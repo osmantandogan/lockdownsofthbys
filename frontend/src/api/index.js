@@ -15,7 +15,10 @@ export const casesAPI = {
   create: (data) => api.post('/cases', data),
   assignTeam: (id, data) => api.post(`/cases/${id}/assign-team`, data),
   updateStatus: (id, data) => api.patch(`/cases/${id}/status`, data),
-  getStats: () => api.get('/cases/stats/dashboard')
+  getStats: () => api.get('/cases/stats/dashboard'),
+  sendNotification: (id, vehicleId) => api.post(`/cases/${id}/send-notification`, null, {
+    params: { vehicle_id: vehicleId }
+  })
 };
 
 // Vehicles API
