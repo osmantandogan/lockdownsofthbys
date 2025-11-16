@@ -42,6 +42,19 @@ const Login = () => {
     }
   };
 
+  const handleQuickLogin = async (testEmail) => {
+    setLoading(true);
+    try {
+      await login(testEmail, 'test123');
+      toast.success('Giriş başarılı!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Giriş başarısız');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
