@@ -113,6 +113,7 @@ class Case(BaseModel):
     status: CaseStatus = "acildi"
     assigned_team: Optional[AssignedTeam] = None
     status_history: List[CaseStatusUpdate] = Field(default_factory=list)
+    case_details: Optional[dict] = None  # Extra form fields
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
