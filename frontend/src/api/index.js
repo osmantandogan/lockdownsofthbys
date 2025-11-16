@@ -45,6 +45,13 @@ export const stockAPI = {
 
 // Shifts API
 export const shiftsAPI = {
+  // Shift assignments
+  createAssignment: (data) => api.post('/shifts/assignments', null, { params: data }),
+  getMyAssignments: () => api.get('/shifts/assignments/my'),
+  getAllAssignments: () => api.get('/shifts/assignments'),
+  deleteAssignment: (id) => api.delete(`/shifts/assignments/${id}`),
+  
+  // Shifts
   start: (data) => api.post('/shifts/start', data),
   end: (data) => api.post('/shifts/end', data),
   getActive: () => api.get('/shifts/active'),
