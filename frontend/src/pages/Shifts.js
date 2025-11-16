@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { shiftsAPI, vehiclesAPI } from '../api';
+import { useNavigate } from 'react-router-dom';
+import { shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Clock, QrCode } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Clock, QrCode, Calendar, CheckCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Shifts = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeShift, setActiveShift] = useState(null);
+  const [myAssignments, setMyAssignments] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [qrDialogOpen, setQrDialogOpen] = useState(false);
-  const [scanner, setScanner] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -20,11 +22,13 @@ const Shifts = () => {
 
   const loadData = async () => {
     try {
-      const [activeRes, historyRes] = await Promise.all([
+      const [activeRes, assignmentsRes, historyRes] = await Promise.all([
         shiftsAPI.getActive(),
+        shiftsAPI.getMyAssignments(),
         shiftsAPI.getHistory({ limit: 10 })
       ]);
       setActiveShift(activeRes.data);
+      setMyAssignments(assignmentsRes.data);
       setHistory(historyRes.data);
     } catch (error) {
       console.error('Error loading shifts:', error);
@@ -34,54 +38,10 @@ const Shifts = () => {
     }
   };
 
-  const startQRScanner = async () => {
-    try {
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      setScanner(html5QrCode);
-
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        async (decodedText) => {
-          await html5QrCode.stop();
-          setQrDialogOpen(false);
-          handleStartShift(decodedText);
-        },
-        (errorMessage) => {
-          // Ignore scan errors
-        }
-      );
-    } catch (err) {
-      console.error('Error starting scanner:', err);
-      toast.error('Kamera açılamadı');
-    }
-  };
-
-  const stopQRScanner = async () => {
-    if (scanner) {
-      try {
-        await scanner.stop();
-      } catch (err) {
-        console.error('Error stopping scanner:', err);
-      }
-    }
-  };
-
-  const handleStartShift = async (vehicleQr) => {
-    try {
-      await shiftsAPI.start({ vehicle_qr: vehicleQr });
-      toast.success('Vardiya başlatıldı');
-      loadData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Vardiya başlatılamadı');
-    }
-  };
-
   const handleEndShift = async () => {
     if (!activeShift) return;
+
+    if (!confirm('Vardiyayı bitirmek istediğinizden emin misiniz?')) return;
 
     try {
       await shiftsAPI.end({ shift_id: activeShift.id });
@@ -98,52 +58,110 @@ const Shifts = () => {
     return `${hours}s ${mins}d`;
   };
 
+  const canManageAssignments = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className=\"flex justify-center py-12\">
+        <div className=\"w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin\"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6" data-testid="shifts-page">
-      <div>
-        <h1 className="text-3xl font-bold">Vardiya Yönetimi</h1>
-        <p className="text-gray-500">Vardiya başlat ve bitir</p>
+    <div className=\"space-y-6\" data-testid=\"shifts-page\">
+      <div className=\"flex justify-between items-center\">
+        <div>
+          <h1 className=\"text-3xl font-bold\">Vardiya Yönetimi</h1>
+          <p className=\"text-gray-500\">Vardiya başlat ve bitir</p>
+        </div>
+        {canManageAssignments && (
+          <Button onClick={() => navigate('/dashboard/shift-assignments')} variant=\"outline\">
+            <Calendar className=\"h-4 w-4 mr-2\" />
+            Atama Yönetimi
+          </Button>
+        )}
       </div>
 
       {/* Active Shift */}
       {activeShift ? (
-        <Card>
+        <Card className=\"border-blue-500\">
           <CardHeader>
-            <CardTitle>Aktif Vardiya</CardTitle>
+            <CardTitle className=\"flex items-center space-x-2\">
+              <CheckCircle className=\"h-5 w-5 text-blue-600\" />
+              <span>Aktif Vardiya</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p><span className="font-medium">Araç:</span> {activeShift.vehicle_id}</p>
-              <p><span className="font-medium">Başlangıç:</span> {new Date(activeShift.start_time).toLocaleString('tr-TR')}</p>
+          <CardContent className=\"space-y-4\">
+            <div className=\"space-y-2\">
+              <p><span className=\"font-medium\">Araç:</span> {activeShift.vehicle_id}</p>
+              <p><span className=\"font-medium\">Başlangıç:</span> {new Date(activeShift.start_time).toLocaleString('tr-TR')}</p>
               <p>
-                <span className="font-medium">Süre:</span> 
+                <span className=\"font-medium\">Süre:</span> 
                 {Math.floor((new Date() - new Date(activeShift.start_time)) / 1000 / 60)} dakika
               </p>
             </div>
-            <Button onClick={handleEndShift} variant="destructive" data-testid="end-shift-button">
+            
+            {/* Photos preview */}
+            {activeShift.photos && (
+              <div className=\"border-t pt-4\">
+                <p className=\"text-sm font-medium mb-2\">Çekilen Fotoğraflar:</p>
+                <div className=\"grid grid-cols-3 gap-2\">
+                  {activeShift.photos.front && <img src={activeShift.photos.front} alt=\"Ön\" className=\"w-full h-20 object-cover rounded\" />}
+                  {activeShift.photos.back && <img src={activeShift.photos.back} alt=\"Arka\" className=\"w-full h-20 object-cover rounded\" />}
+                  {activeShift.photos.left && <img src={activeShift.photos.left} alt=\"Sol\" className=\"w-full h-20 object-cover rounded\" />}
+                  {activeShift.photos.right && <img src={activeShift.photos.right} alt=\"Sağ\" className=\"w-full h-20 object-cover rounded\" />}
+                  {activeShift.photos.trunk && <img src={activeShift.photos.trunk} alt=\"Bagaj\" className=\"w-full h-20 object-cover rounded\" />}
+                  {activeShift.photos.interior && <img src={activeShift.photos.interior} alt=\"İç\" className=\"w-full h-20 object-cover rounded\" />}
+                </div>
+              </div>
+            )}
+            
+            <Button onClick={handleEndShift} variant=\"destructive\" className=\"w-full\" data-testid=\"end-shift-button\">
               Vardiyayı Bitir
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="py-12 text-center space-y-4">
-            <Clock className="h-12 w-12 text-gray-400 mx-auto" />
-            <p className="text-gray-500">Aktif vardiya yok</p>
-            <Button onClick={() => setQrDialogOpen(true)} data-testid="start-shift-button">
-              <QrCode className="h-4 w-4 mr-2" />
-              Vardiya Başlat (QR)
-            </Button>
-          </CardContent>
-        </Card>
+        <div className=\"space-y-4\">
+          {/* My Assignments */}
+          {myAssignments.length > 0 ? (
+            <Card className=\"border-green-500\">
+              <CardHeader>
+                <CardTitle className=\"text-green-700\">Bekleyen Vardiyalarınız</CardTitle>
+              </CardHeader>
+              <CardContent className=\"space-y-3\">
+                {myAssignments.map((assignment) => (
+                  <div key={assignment.id} className=\"p-4 bg-green-50 rounded-lg\">
+                    <div className=\"flex justify-between items-center\">
+                      <div>
+                        <p className=\"font-medium\">
+                          {new Date(assignment.shift_date).toLocaleDateString('tr-TR')}
+                        </p>
+                        <p className=\"text-sm text-gray-600\">Araç: {assignment.vehicle_id}</p>
+                      </div>
+                      <Badge className=\"bg-yellow-100 text-yellow-800\">
+                        {assignment.status === 'pending' ? 'Bekliyor' : 'Başladı'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                <Button onClick={() => navigate('/dashboard/shift-start')} className=\"w-full\" data-testid=\"start-shift-button\">
+                  <QrCode className=\"h-4 w-4 mr-2\" />
+                  Vardiya Başlat (QR)
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className=\"py-12 text-center space-y-4\">
+                <Clock className=\"h-12 w-12 text-gray-400 mx-auto\" />
+                <p className=\"text-gray-500\">Aktif vardiya yok</p>
+                <p className=\"text-sm text-gray-400\">Size atanmış bir vardiya bulunmuyor.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* History */}
@@ -152,23 +170,23 @@ const Shifts = () => {
           <CardTitle>Vardiya Geçmişi</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className=\"space-y-4\">
             {history.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Geçmiş vardiya bulunamadı</p>
+              <p className=\"text-center text-gray-500 py-8\">Geçmiş vardiya bulunamadı</p>
             ) : (
               history.map((shift) => (
-                <div key={shift.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                <div key={shift.id} className=\"flex justify-between items-center p-4 bg-gray-50 rounded-lg\">
                   <div>
-                    <p className="font-medium">{new Date(shift.start_time).toLocaleDateString('tr-TR')}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className=\"font-medium\">{new Date(shift.start_time).toLocaleDateString('tr-TR')}</p>
+                    <p className=\"text-sm text-gray-500\">
                       {new Date(shift.start_time).toLocaleTimeString('tr-TR')} - 
                       {shift.end_time ? new Date(shift.end_time).toLocaleTimeString('tr-TR') : 'Devam ediyor'}
                     </p>
                   </div>
                   {shift.duration_minutes && (
-                    <div className="text-right">
-                      <p className="font-medium">{formatDuration(shift.duration_minutes)}</p>
-                      <p className="text-sm text-gray-500">Araç: {shift.vehicle_id}</p>
+                    <div className=\"text-right\">
+                      <p className=\"font-medium\">{formatDuration(shift.duration_minutes)}</p>
+                      <p className=\"text-sm text-gray-500\">Araç: {shift.vehicle_id}</p>
                     </div>
                   )}
                 </div>
@@ -177,24 +195,11 @@ const Shifts = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* QR Scanner Dialog */}
-      <Dialog open={qrDialogOpen} onOpenChange={(open) => {
-        setQrDialogOpen(open);
-        if (!open) stopQRScanner();
-        else startQRScanner();
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Araç QR Kodunu Okutun</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <div id="qr-reader" className="w-full"></div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
+
+export default Shifts;
+
 
 export default Shifts;
