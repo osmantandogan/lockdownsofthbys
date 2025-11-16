@@ -96,12 +96,12 @@ const Cases = () => {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm font-medium">Durum</label>
-              <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value === 'all' ? '' : value }))}>
                 <SelectTrigger data-testid="filter-status">
-                  <SelectValue placeholder="T\u00fcm durumlar" />
+                  <SelectValue placeholder="Tüm durumlar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">T\u00fcm durumlar</SelectItem>
+                  <SelectItem value="all">Tüm durumlar</SelectItem>
                   {Object.entries(statusLabels).map(([key, label]) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
                   ))}
@@ -109,16 +109,16 @@ const Cases = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">\u00d6ncelik</label>
-              <Select value={filters.priority} onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}>
+              <label className="text-sm font-medium">Öncelik</label>
+              <Select value={filters.priority || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value === 'all' ? '' : value }))}>
                 <SelectTrigger data-testid="filter-priority">
-                  <SelectValue placeholder="T\u00fcm \u00f6ncelikler" />
+                  <SelectValue placeholder="Tüm öncelikler" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">T\u00fcm \u00f6ncelikler</SelectItem>
-                  <SelectItem value="yuksek">Y\u00fcksek</SelectItem>
+                  <SelectItem value="all">Tüm öncelikler</SelectItem>
+                  <SelectItem value="yuksek">Yüksek</SelectItem>
                   <SelectItem value="orta">Orta</SelectItem>
-                  <SelectItem value="dusuk">D\u00fc\u015f\u00fck</SelectItem>
+                  <SelectItem value="dusuk">Düşük</SelectItem>
                 </SelectContent>
               </Select>
             </div>
