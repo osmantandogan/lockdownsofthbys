@@ -16,6 +16,8 @@ import CaseDetail from "./pages/CaseDetail";
 import Vehicles from "./pages/Vehicles";
 import Stock from "./pages/Stock";
 import Shifts from "./pages/Shifts";
+import ShiftAssignments from "./pages/ShiftAssignments";
+import ShiftStartNew from "./pages/ShiftStartNew";
 import Settings from "./pages/Settings";
 
 // Protected Route Component
