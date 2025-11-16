@@ -90,7 +90,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="call-center" element={<CallCenter />} />
+            <Route path="call-center" element={<CallCenterNew />} />
             <Route path="cases" element={<Cases />} />
             <Route path="cases/:id" element={<CaseDetail />} />
             <Route path="vehicles" element={<Vehicles />} />
