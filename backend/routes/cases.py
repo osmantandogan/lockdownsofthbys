@@ -224,3 +224,39 @@ async def get_dashboard_stats(request: Request):
         "available_vehicles": available_vehicles,
         "high_priority_cases": high_priority
     }
+
+@router.post("/{case_id}/send-notification")
+async def send_notification(case_id: str, vehicle_id: Optional[str] = None, request: Request = None):
+    """Send notification about case to relevant users"""
+    user = await get_current_user(request)
+    
+    # Get case
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Case not found")
+    
+    # Get vehicle plate if vehicle_id provided
+    vehicle_plate = None
+    if vehicle_id:
+        vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+        if vehicle:
+            vehicle_plate = vehicle.get("plate")
+    
+    # Prepare notification data
+    notification_data = {
+        "case_number": case_doc.get("case_number"),
+        "priority": case_doc.get("priority"),
+        "patient": case_doc.get("patient"),
+        "caller": case_doc.get("caller"),
+        "location": case_doc.get("location"),
+        "assigned_team": case_doc.get("assigned_team"),
+        "vehicle_plate": vehicle_plate
+    }
+    
+    # Send notifications
+    sent_count = await send_case_notifications(notification_data, users_collection, vehicle_id)
+    
+    return {
+        "message": "Notifications sent successfully",
+        "sent_count": sent_count
+    }
