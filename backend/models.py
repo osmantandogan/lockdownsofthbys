@@ -123,6 +123,7 @@ class CaseCreate(BaseModel):
     patient: PatientInfo
     location: LocationInfo
     priority: CasePriority
+    case_details: Optional[dict] = None
 
 class CaseAssignTeam(BaseModel):
     vehicle_id: str
