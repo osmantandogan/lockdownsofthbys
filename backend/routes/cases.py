@@ -4,6 +4,7 @@ from database import cases_collection, vehicles_collection, users_collection
 from models import Case, CaseCreate, CaseAssignTeam, CaseUpdateStatus, CaseStatusUpdate
 from auth_utils import get_current_user
 from datetime import datetime
+from email_service import send_case_notifications
 
 router = APIRouter()
 
