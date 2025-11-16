@@ -49,7 +49,7 @@ const CaseDetail = () => {
       setUsers(usersRes.data);
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Veri y\u00fcklenemedi');
+      toast.error('Veri yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -58,37 +58,37 @@ const CaseDetail = () => {
   const handleAssignTeam = async () => {
     try {
       await casesAPI.assignTeam(id, assignForm);
-      toast.success('Ekip atand\u0131');
+      toast.success('Ekip atandı');
       setAssignDialogOpen(false);
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Ekip atanamad\u0131');
+      toast.error(error.response?.data?.detail || 'Ekip atanamadı');
     }
   };
 
   const handleUpdateStatus = async () => {
     try {
       await casesAPI.updateStatus(id, statusForm);
-      toast.success('Durum g\u00fcncellendi');
+      toast.success('Durum güncellendi');
       setStatusDialogOpen(false);
       setStatusForm({ status: '', note: '' });
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Durum g\u00fcncellenemedi');
+      toast.error(error.response?.data?.detail || 'Durum güncellenemedi');
     }
   };
 
   const statusLabels = {
-    acildi: 'A\u00e7\u0131ld\u0131',
+    acildi: 'Açıldı',
     ekip_bilgilendirildi: 'Ekip Bilgilendirildi',
-    ekip_yola_cikti: 'Ekip Yola \u00c7\u0131kt\u0131',
+    ekip_yola_cikti: 'Ekip Yola Çıktı',
     sahada: 'Sahada',
-    hasta_alindi: 'Hasta Al\u0131nd\u0131',
-    doktor_konsultasyonu: 'Doktor Kons\u00fcltasyonu',
-    merkeze_donus: 'Merkeze D\u00f6n\u00fc\u015f',
+    hasta_alindi: 'Hasta Alındı',
+    doktor_konsultasyonu: 'Doktor Konsültasyonu',
+    merkeze_donus: 'Merkeze Dönüş',
     hastane_sevki: 'Hastane Sevki',
-    tamamlandi: 'Tamamland\u0131',
-    iptal: '\u0130ptal'
+    tamamlandi: 'Tamamlandı',
+    iptal: 'İptal'
   };
 
   const priorityColors = {
@@ -98,9 +98,9 @@ const CaseDetail = () => {
   };
 
   const priorityLabels = {
-    yuksek: 'Y\u00fcksek',
+    yuksek: 'Yüksek',
     orta: 'Orta',
-    dusuk: 'D\u00fc\u015f\u00fck'
+    dusuk: 'Düşük'
   };
 
   const canManageCase = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
@@ -141,10 +141,10 @@ const CaseDetail = () => {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div>
-                      <Label>Ara\u00e7 *</Label>
+                      <Label>Araç *</Label>
                       <Select value={assignForm.vehicle_id} onValueChange={(v) => setAssignForm(prev => ({...prev, vehicle_id: v}))}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Ara\u00e7 se\u00e7in" />
+                          <SelectValue placeholder="Araç seçin" />
                         </SelectTrigger>
                         <SelectContent>
                           {vehicles.map(v => (
@@ -160,18 +160,18 @@ const CaseDetail = () => {
             )}
             <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" data-testid="update-status-button">Durum G\u00fcncelle</Button>
+                <Button variant="outline" data-testid="update-status-button">Durum Güncelle</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Durum G\u00fcncelle</DialogTitle>
+                  <DialogTitle>Durum Güncelle</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div>
                     <Label>Yeni Durum *</Label>
                     <Select value={statusForm.status} onValueChange={(v) => setStatusForm(prev => ({...prev, status: v}))}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Durum se\u00e7in" />
+                        <SelectValue placeholder="Durum seçin" />
                       </SelectTrigger>
                       <SelectContent>
                         {Object.entries(statusLabels).map(([key, label]) => (
@@ -188,7 +188,7 @@ const CaseDetail = () => {
                       placeholder="Opsiyonel not"
                     />
                   </div>
-                  <Button onClick={handleUpdateStatus} className="w-full">G\u00fcncelle</Button>
+                  <Button onClick={handleUpdateStatus} className="w-full">Güncelle</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -207,10 +207,10 @@ const CaseDetail = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <p><span className="font-medium">Ad Soyad:</span> {caseData.patient.name} {caseData.patient.surname}</p>
-            <p><span className="font-medium">Ya\u015f:</span> {caseData.patient.age}</p>
+            <p><span className="font-medium">Yaş:</span> {caseData.patient.age}</p>
             <p><span className="font-medium">Cinsiyet:</span> {caseData.patient.gender}</p>
             {caseData.patient.tc_no && <p><span className="font-medium">TC:</span> {caseData.patient.tc_no}</p>}
-            <p><span className="font-medium">\u015eikayet:</span> {caseData.patient.complaint}</p>
+            <p><span className="font-medium">Şikayet:</span> {caseData.patient.complaint}</p>
           </CardContent>
         </Card>
 
@@ -225,7 +225,7 @@ const CaseDetail = () => {
           <CardContent className="space-y-2">
             <p><span className="font-medium">Ad Soyad:</span> {caseData.caller.name}</p>
             <p><span className="font-medium">Telefon:</span> {caseData.caller.phone}</p>
-            <p><span className="font-medium">Yak\u0131nl\u0131k:</span> {caseData.caller.relationship}</p>
+            <p><span className="font-medium">Yakınlık:</span> {caseData.caller.relationship}</p>
           </CardContent>
         </Card>
 
@@ -239,8 +239,8 @@ const CaseDetail = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <p>{caseData.location.address}</p>
-            {caseData.location.district && <p><span className="font-medium">\u0130l\u00e7e:</span> {caseData.location.district}</p>}
-            {caseData.location.village_or_neighborhood && <p><span className="font-medium">K\u00f6y/Mahalle:</span> {caseData.location.village_or_neighborhood}</p>}
+            {caseData.location.district && <p><span className="font-medium">İlçe:</span> {caseData.location.district}</p>}
+            {caseData.location.village_or_neighborhood && <p><span className="font-medium">Köy/Mahalle:</span> {caseData.location.village_or_neighborhood}</p>}
           </CardContent>
         </Card>
 
@@ -254,7 +254,7 @@ const CaseDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p><span className="font-medium">Ara\u00e7:</span> {caseData.assigned_team.vehicle_id}</p>
+              <p><span className="font-medium">Araç:</span> {caseData.assigned_team.vehicle_id}</p>
               <p className="text-xs text-gray-500">
                 Atanma: {new Date(caseData.assigned_team.assigned_at).toLocaleString('tr-TR')}
               </p>
@@ -268,7 +268,7 @@ const CaseDetail = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Clock className="h-5 w-5" />
-            <span>Durum Ge\u00e7mi\u015fi</span>
+            <span>Durum Geçmişi</span>
           </CardTitle>
         </CardHeader>
         <CardContent>

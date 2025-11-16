@@ -28,7 +28,7 @@ const Shifts = () => {
       setHistory(historyRes.data);
     } catch (error) {
       console.error('Error loading shifts:', error);
-      toast.error('Vardiya bilgileri y\u00fcklenemedi');
+      toast.error('Vardiya bilgileri yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ const Shifts = () => {
       );
     } catch (err) {
       console.error('Error starting scanner:', err);
-      toast.error('Kamera a\u00e7\u0131lamad\u0131');
+      toast.error('Kamera açılamadı');
     }
   };
 
@@ -73,10 +73,10 @@ const Shifts = () => {
   const handleStartShift = async (vehicleQr) => {
     try {
       await shiftsAPI.start({ vehicle_qr: vehicleQr });
-      toast.success('Vardiya ba\u015flat\u0131ld\u0131');
+      toast.success('Vardiya başlatıldı');
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Vardiya ba\u015flat\u0131lamad\u0131');
+      toast.error(error.response?.data?.detail || 'Vardiya başlatılamadı');
     }
   };
 
@@ -85,10 +85,10 @@ const Shifts = () => {
 
     try {
       await shiftsAPI.end({ shift_id: activeShift.id });
-      toast.success('Vardiya sonland\u0131r\u0131ld\u0131');
+      toast.success('Vardiya sonlandırıldı');
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Vardiya sonland\u0131r\u0131lamad\u0131');
+      toast.error(error.response?.data?.detail || 'Vardiya sonlandırılamadı');
     }
   };
 
@@ -109,8 +109,8 @@ const Shifts = () => {
   return (
     <div className="space-y-6" data-testid="shifts-page">
       <div>
-        <h1 className="text-3xl font-bold">Vardiya Y\u00f6netimi</h1>
-        <p className="text-gray-500">Vardiya ba\u015flat ve bitir</p>
+        <h1 className="text-3xl font-bold">Vardiya Yönetimi</h1>
+        <p className="text-gray-500">Vardiya başlat ve bitir</p>
       </div>
 
       {/* Active Shift */}
@@ -121,15 +121,15 @@ const Shifts = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <p><span className="font-medium">Ara\u00e7:</span> {activeShift.vehicle_id}</p>
-              <p><span className="font-medium">Ba\u015flang\u0131\u00e7:</span> {new Date(activeShift.start_time).toLocaleString('tr-TR')}</p>
+              <p><span className="font-medium">Araç:</span> {activeShift.vehicle_id}</p>
+              <p><span className="font-medium">Başlangıç:</span> {new Date(activeShift.start_time).toLocaleString('tr-TR')}</p>
               <p>
-                <span className="font-medium">S\u00fcre:</span> 
+                <span className="font-medium">Süre:</span> 
                 {Math.floor((new Date() - new Date(activeShift.start_time)) / 1000 / 60)} dakika
               </p>
             </div>
             <Button onClick={handleEndShift} variant="destructive" data-testid="end-shift-button">
-              Vardiyay\u0131 Bitir
+              Vardiyayı Bitir
             </Button>
           </CardContent>
         </Card>
@@ -140,7 +140,7 @@ const Shifts = () => {
             <p className="text-gray-500">Aktif vardiya yok</p>
             <Button onClick={() => setQrDialogOpen(true)} data-testid="start-shift-button">
               <QrCode className="h-4 w-4 mr-2" />
-              Vardiya Ba\u015flat (QR)
+              Vardiya Başlat (QR)
             </Button>
           </CardContent>
         </Card>
@@ -149,12 +149,12 @@ const Shifts = () => {
       {/* History */}
       <Card>
         <CardHeader>
-          <CardTitle>Vardiya Ge\u00e7mi\u015fi</CardTitle>
+          <CardTitle>Vardiya Geçmişi</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {history.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Ge\u00e7mi\u015f vardiya bulunamad\u0131</p>
+              <p className="text-center text-gray-500 py-8">Geçmiş vardiya bulunamadı</p>
             ) : (
               history.map((shift) => (
                 <div key={shift.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
@@ -168,7 +168,7 @@ const Shifts = () => {
                   {shift.duration_minutes && (
                     <div className="text-right">
                       <p className="font-medium">{formatDuration(shift.duration_minutes)}</p>
-                      <p className="text-sm text-gray-500">Ara\u00e7: {shift.vehicle_id}</p>
+                      <p className="text-sm text-gray-500">Araç: {shift.vehicle_id}</p>
                     </div>
                   )}
                 </div>
@@ -186,7 +186,7 @@ const Shifts = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ara\u00e7 QR Kodunu Okutun</DialogTitle>
+            <DialogTitle>Araç QR Kodunu Okutun</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <div id="qr-reader" className="w-full"></div>

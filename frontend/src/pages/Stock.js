@@ -24,7 +24,7 @@ const Stock = () => {
       setAlerts(alertsRes.data);
     } catch (error) {
       console.error('Error loading stock:', error);
-      toast.error('Stok y\u00fcklenemedi');
+      toast.error('Stok yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ const Stock = () => {
   const locationLabels = {
     ambulans: 'Ambulans',
     saha_ofis: 'Saha Ofis',
-    acil_canta: 'Acil \u00c7anta',
+    acil_canta: 'Acil Çanta',
     merkez_depo: 'Merkez Depo'
   };
 
@@ -63,8 +63,8 @@ const Stock = () => {
   return (
     <div className="space-y-6" data-testid="stock-page">
       <div>
-        <h1 className="text-3xl font-bold">Stok Y\u00f6netimi</h1>
-        <p className="text-gray-500">\u0130la\u00e7 ve malzeme takibi</p>
+        <h1 className="text-3xl font-bold">Stok Yönetimi</h1>
+        <p className="text-gray-500">İlaç ve malzeme takibi</p>
       </div>
 
       {/* Alerts */}
@@ -83,7 +83,7 @@ const Stock = () => {
             <div className="text-center">
               <AlertTriangle className="h-8 w-8 text-orange-600 mx-auto mb-2" />
               <p className="text-2xl font-bold text-orange-600">{alerts.expired || 0}</p>
-              <p className="text-sm text-gray-500">S\u00fcresi Dolmu\u015f</p>
+              <p className="text-sm text-gray-500">Süresi Dolmuş</p>
             </div>
           </CardContent>
         </Card>
@@ -92,7 +92,7 @@ const Stock = () => {
             <div className="text-center">
               <AlertTriangle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
               <p className="text-2xl font-bold text-yellow-600">{alerts.expiring_soon || 0}</p>
-              <p className="text-sm text-gray-500">S\u00fcresi Dolacak</p>
+              <p className="text-sm text-gray-500">Süresi Dolacak</p>
             </div>
           </CardContent>
         </Card>
@@ -131,7 +131,7 @@ const Stock = () => {
                         <p>
                           <span className="font-medium">SKT:</span> {new Date(item.expiry_date).toLocaleDateString('tr-TR')}
                           {isExpired(item.expiry_date) && (
-                            <Badge className="ml-2 bg-orange-100 text-orange-800">Dolmu\u015f!</Badge>
+                            <Badge className="ml-2 bg-orange-100 text-orange-800">Dolmuş!</Badge>
                           )}
                           {isExpiringSoon(item.expiry_date) && (
                             <Badge className="ml-2 bg-yellow-100 text-yellow-800">Dolacak</Badge>

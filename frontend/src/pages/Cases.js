@@ -36,7 +36,7 @@ const Cases = () => {
       setCases(response.data);
     } catch (error) {
       console.error('Error loading cases:', error);
-      toast.error('Vakalar y\u00fcklenemedi');
+      toast.error('Vakalar yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -49,22 +49,22 @@ const Cases = () => {
   };
 
   const priorityLabels = {
-    yuksek: 'Y\u00fcksek',
+    yuksek: 'Yüksek',
     orta: 'Orta',
-    dusuk: 'D\u00fc\u015f\u00fck'
+    dusuk: 'Düşük'
   };
 
   const statusLabels = {
-    acildi: 'A\u00e7\u0131ld\u0131',
+    acildi: 'Açıldı',
     ekip_bilgilendirildi: 'Ekip Bilgilendirildi',
-    ekip_yola_cikti: 'Ekip Yola \u00c7\u0131kt\u0131',
+    ekip_yola_cikti: 'Ekip Yola Çıktı',
     sahada: 'Sahada',
-    hasta_alindi: 'Hasta Al\u0131nd\u0131',
-    doktor_konsultasyonu: 'Doktor Kons\u00fcltasyonu',
-    merkeze_donus: 'Merkeze D\u00f6n\u00fc\u015f',
+    hasta_alindi: 'Hasta Alındı',
+    doktor_konsultasyonu: 'Doktor Konsültasyonu',
+    merkeze_donus: 'Merkeze Dönüş',
     hastane_sevki: 'Hastane Sevki',
-    tamamlandi: 'Tamamland\u0131',
-    iptal: '\u0130ptal'
+    tamamlandi: 'Tamamlandı',
+    iptal: 'İptal'
   };
 
   const canCreateCase = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis'].includes(user?.role);
@@ -74,7 +74,7 @@ const Cases = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Vakalar</h1>
-          <p className="text-gray-500">T\u00fcm vakalara genel bak\u0131\u015f</p>
+          <p className="text-gray-500">Tüm vakalara genel bakış</p>
         </div>
         {canCreateCase && (
           <Button onClick={() => navigate('/dashboard/call-center')} data-testid="new-case-button">
@@ -127,7 +127,7 @@ const Cases = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Vaka no, hasta ad\u0131..."
+                  placeholder="Vaka no, hasta adı..."
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                   className="pl-10"
@@ -147,7 +147,7 @@ const Cases = () => {
       ) : cases.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Vaka bulunamad\u0131</p>
+            <p className="text-gray-500">Vaka bulunamadı</p>
           </CardContent>
         </Card>
       ) : (
@@ -174,15 +174,15 @@ const Cases = () => {
                         <span className="font-medium">Hasta:</span> {caseItem.patient.name} {caseItem.patient.surname}
                       </p>
                       <p className="text-sm text-gray-600">
-                        <span className="font-medium">Ya\u015f:</span> {caseItem.patient.age} | 
+                        <span className="font-medium">Yaş:</span> {caseItem.patient.age} | 
                         <span className="font-medium"> Cinsiyet:</span> {caseItem.patient.gender}
                       </p>
                       <p className="text-sm text-gray-600 mt-1">
-                        <span className="font-medium">\u015eikayet:</span> {caseItem.patient.complaint}
+                        <span className="font-medium">Şikayet:</span> {caseItem.patient.complaint}
                       </p>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Olu\u015fturulma: {new Date(caseItem.created_at).toLocaleString('tr-TR')}
+                      Oluşturulma: {new Date(caseItem.created_at).toLocaleString('tr-TR')}
                     </p>
                   </div>
                 </div>

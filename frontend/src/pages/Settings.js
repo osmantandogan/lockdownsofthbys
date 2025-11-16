@@ -36,7 +36,7 @@ const Settings = () => {
       });
     } catch (error) {
       console.error('Error loading settings:', error);
-      toast.error('Ayarlar y\u00fcklenemedi');
+      toast.error('Ayarlar yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -46,23 +46,23 @@ const Settings = () => {
     e.preventDefault();
     try {
       await settingsAPI.updateProfile(formData);
-      toast.success('Profil g\u00fcncellendi');
+      toast.success('Profil güncellendi');
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Profil g\u00fcncellenemedi');
+      toast.error(error.response?.data?.detail || 'Profil güncellenemedi');
     }
   };
 
   const roleLabels = {
     'merkez_ofis': 'Merkez Ofis',
-    'operasyon_muduru': 'Operasyon M\u00fcd\u00fcr\u00fc',
+    'operasyon_muduru': 'Operasyon Müdürü',
     'doktor': 'Doktor',
-    'hemsire': 'Hem\u015fire',
+    'hemsire': 'Hemşire',
     'paramedik': 'Paramedik',
     'att': 'ATT',
-    'bas_sofor': 'Ba\u015f \u015eof\u00f6r',
-    'sofor': '\u015eof\u00f6r',
-    'cagri_merkezi': '\u00c7a\u011fr\u0131 Merkezi'
+    'bas_sofor': 'Baş Şoför',
+    'sofor': 'Şoför',
+    'cagri_merkezi': 'Çağrı Merkezi'
   };
 
   if (loading) {
@@ -77,7 +77,7 @@ const Settings = () => {
     <div className="space-y-6" data-testid="settings-page">
       <div>
         <h1 className="text-3xl font-bold">Ayarlar</h1>
-        <p className="text-gray-500">Profil ve sistem ayarlar\u0131</p>
+        <p className="text-gray-500">Profil ve sistem ayarları</p>
       </div>
 
       {/* Profile */}
@@ -153,7 +153,7 @@ const Settings = () => {
         <CardContent className="space-y-2">
           <p><span className="font-medium">Versiyon:</span> {systemInfo?.version}</p>
           <p><span className="font-medium">Ortam:</span> {systemInfo?.environment}</p>
-          <p><span className="font-medium">Son G\u00fcncelleme:</span> {systemInfo?.last_update}</p>
+          <p><span className="font-medium">Son Güncelleme:</span> {systemInfo?.last_update}</p>
         </CardContent>
       </Card>
     </div>

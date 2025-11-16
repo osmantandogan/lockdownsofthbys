@@ -65,11 +65,11 @@ const CallCenter = () => {
       };
 
       const response = await casesAPI.create(caseData);
-      toast.success(`Vaka olu\u015fturuldu: ${response.data.case_number}`);
+      toast.success(`Vaka oluşturuldu: ${response.data.case_number}`);
       navigate(`/dashboard/cases/${response.data.id}`);
     } catch (error) {
       console.error('Error creating case:', error);
-      toast.error(error.response?.data?.detail || 'Vaka olu\u015fturulamad\u0131');
+      toast.error(error.response?.data?.detail || 'Vaka oluşturulamadı');
     } finally {
       setLoading(false);
     }
@@ -78,8 +78,8 @@ const CallCenter = () => {
   return (
     <div className="space-y-6" data-testid="call-center-page">
       <div>
-        <h1 className="text-3xl font-bold">\u00c7a\u011fr\u0131 Merkezi</h1>
-        <p className="text-gray-500">Yeni vaka olu\u015ftur</p>
+        <h1 className="text-3xl font-bold">Çağrı Merkezi</h1>
+        <p className="text-gray-500">Yeni vaka oluştur</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -113,10 +113,10 @@ const CallCenter = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="callerRelationship">Yak\u0131nl\u0131k *</Label>
+              <Label htmlFor="callerRelationship">Yakınlık *</Label>
               <Input
                 id="callerRelationship"
-                placeholder="\u00d6rn: E\u015fi, Arkada\u015f\u0131, Kom\u015fusu"
+                placeholder="Örn: Eşi, Arkadaşı, Komşusu"
                 value={formData.callerRelationship}
                 onChange={(e) => handleChange('callerRelationship', e.target.value)}
                 required
@@ -169,7 +169,7 @@ const CallCenter = () => {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="patientAge">Ya\u015f *</Label>
+                <Label htmlFor="patientAge">Yaş *</Label>
                 <Input
                   id="patientAge"
                   type="number"
@@ -183,21 +183,21 @@ const CallCenter = () => {
                 <Label htmlFor="patientGender">Cinsiyet *</Label>
                 <Select value={formData.patientGender} onValueChange={(value) => handleChange('patientGender', value)} required>
                   <SelectTrigger data-testid="patient-gender">
-                    <SelectValue placeholder="Se\u00e7in" />
+                    <SelectValue placeholder="Seçin" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="erkek">Erkek</SelectItem>
-                    <SelectItem value="kadin">Kad\u0131n</SelectItem>
-                    <SelectItem value="diger">Di\u011fer</SelectItem>
+                    <SelectItem value="kadin">Kadın</SelectItem>
+                    <SelectItem value="diger">Diğer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="patientComplaint">\u015eikayet *</Label>
+              <Label htmlFor="patientComplaint">Şikayet *</Label>
               <Textarea
                 id="patientComplaint"
-                placeholder="Hastan\u0131n \u015fikayetini detayl\u0131 a\u00e7\u0131klay\u0131n"
+                placeholder="Hastanın şikayetini detaylı açıklayın"
                 value={formData.patientComplaint}
                 onChange={(e) => handleChange('patientComplaint', e.target.value)}
                 required
@@ -221,7 +221,7 @@ const CallCenter = () => {
               <Label htmlFor="locationAddress">Adres *</Label>
               <Textarea
                 id="locationAddress"
-                placeholder="Olay yerinin detayl\u0131 adresi"
+                placeholder="Olay yerinin detaylı adresi"
                 value={formData.locationAddress}
                 onChange={(e) => handleChange('locationAddress', e.target.value)}
                 required
@@ -231,7 +231,7 @@ const CallCenter = () => {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="locationDistrict">\u0130l\u00e7e</Label>
+                <Label htmlFor="locationDistrict">İlçe</Label>
                 <Input
                   id="locationDistrict"
                   value={formData.locationDistrict}
@@ -240,7 +240,7 @@ const CallCenter = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="locationVillage">K\u00f6y / Mahalle</Label>
+                <Label htmlFor="locationVillage">Köy / Mahalle</Label>
                 <Input
                   id="locationVillage"
                   value={formData.locationVillage}
@@ -252,36 +252,36 @@ const CallCenter = () => {
           </CardContent>
         </Card>
 
-        {/* \u00d6ncelik */}
+        {/* Öncelik */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5" />
-              <span>\u00d6ncelik Seviyesi</span>
+              <span>Öncelik Seviyesi</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Select value={formData.priority} onValueChange={(value) => handleChange('priority', value)} required>
               <SelectTrigger data-testid="priority-select">
-                <SelectValue placeholder="\u00d6ncelik se\u00e7in" />
+                <SelectValue placeholder="Öncelik seçin" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="yuksek">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span>Y\u00fcksek (K\u0131rm\u0131z\u0131)</span>
+                    <span>Yüksek (Kırmızı)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="orta">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span>Orta (Sar\u0131)</span>
+                    <span>Orta (Sarı)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="dusuk">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span>D\u00fc\u015f\u00fck (Ye\u015fil)</span>
+                    <span>Düşük (Yeşil)</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -296,14 +296,14 @@ const CallCenter = () => {
             onClick={() => navigate('/dashboard')}
             data-testid="cancel-button"
           >
-            \u0130ptal
+            İptal
           </Button>
           <Button
             type="submit"
             disabled={loading}
             data-testid="create-case-button"
           >
-            {loading ? 'Olu\u015fturuluyor...' : 'Vaka Olu\u015ftur'}
+            {loading ? 'Oluşturuluyor...' : 'Vaka Oluştur'}
           </Button>
         </div>
       </form>

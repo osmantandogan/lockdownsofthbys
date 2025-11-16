@@ -24,7 +24,7 @@ const Vehicles = () => {
       setStats(statsRes.data);
     } catch (error) {
       console.error('Error loading vehicles:', error);
-      toast.error('Ara\u00e7lar y\u00fcklenemedi');
+      toast.error('Araçlar yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -39,11 +39,11 @@ const Vehicles = () => {
   };
 
   const statusLabels = {
-    musait: 'M\u00fcsait',
-    gorevde: 'G\u00f6revde',
-    bakimda: 'Bak\u0131mda',
-    arizali: 'Ar\u0131zal\u0131',
-    kullanim_disi: 'Kullan\u0131m D\u0131\u015f\u0131'
+    musait: 'Müsait',
+    gorevde: 'Görevde',
+    bakimda: 'Bakımda',
+    arizali: 'Arızalı',
+    kullanim_disi: 'Kullanım Dışı'
   };
 
   if (loading) {
@@ -57,8 +57,8 @@ const Vehicles = () => {
   return (
     <div className="space-y-6" data-testid="vehicles-page">
       <div>
-        <h1 className="text-3xl font-bold">Ara\u00e7lar</h1>
-        <p className="text-gray-500">Ara\u00e7 filosu y\u00f6netimi</p>
+        <h1 className="text-3xl font-bold">Araçlar</h1>
+        <p className="text-gray-500">Araç filosu yönetimi</p>
       </div>
 
       {/* Stats */}
@@ -75,7 +75,7 @@ const Vehicles = () => {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">{stats.available || 0}</p>
-              <p className="text-sm text-gray-500">M\u00fcsait</p>
+              <p className="text-sm text-gray-500">Müsait</p>
             </div>
           </CardContent>
         </Card>
@@ -83,7 +83,7 @@ const Vehicles = () => {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{stats.on_duty || 0}</p>
-              <p className="text-sm text-gray-500">G\u00f6revde</p>
+              <p className="text-sm text-gray-500">Görevde</p>
             </div>
           </CardContent>
         </Card>
@@ -91,7 +91,7 @@ const Vehicles = () => {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-yellow-600">{stats.maintenance || 0}</p>
-              <p className="text-sm text-gray-500">Bak\u0131mda</p>
+              <p className="text-sm text-gray-500">Bakımda</p>
             </div>
           </CardContent>
         </Card>
@@ -99,7 +99,7 @@ const Vehicles = () => {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-red-600">{stats.faulty || 0}</p>
-              <p className="text-sm text-gray-500">Ar\u0131zal\u0131</p>
+              <p className="text-sm text-gray-500">Arızalı</p>
             </div>
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ const Vehicles = () => {
               <div className="space-y-1 text-sm">
                 <p><span className="font-medium">KM:</span> {vehicle.km}</p>
                 {vehicle.fuel_level !== null && (
-                  <p><span className="font-medium">Yak\u0131t:</span> %{vehicle.fuel_level}</p>
+                  <p><span className="font-medium">Yakıt:</span> %{vehicle.fuel_level}</p>
                 )}
               </div>
             </CardContent>
