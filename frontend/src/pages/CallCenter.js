@@ -83,13 +83,38 @@ const CallCenter = () => {
       };
 
       const response = await casesAPI.create(caseData);
+      setCreatedCaseId(response.data.id);
       toast.success(`Vaka oluşturuldu: ${response.data.case_number}`);
-      navigate(`/dashboard/cases/${response.data.id}`);
+      
+      // Don't navigate yet, show notification button
     } catch (error) {
       console.error('Error creating case:', error);
       toast.error(error.response?.data?.detail || 'Vaka oluşturulamadı');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendNotification = async () => {
+    if (!createdCaseId) {
+      toast.error('Önce vaka oluşturulmalı');
+      return;
+    }
+
+    setSendingNotification(true);
+    try {
+      await casesAPI.sendNotification(createdCaseId, formData.vehicleId || null);
+      toast.success('Bildirimler gönderildi!');
+      
+      // Navigate to case detail
+      setTimeout(() => {
+        navigate(`/dashboard/cases/${createdCaseId}`);
+      }, 1500);
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      toast.error(error.response?.data?.detail || 'Bildirim gönderilemedi');
+    } finally {
+      setSendingNotification(false);
     }
   };
 
