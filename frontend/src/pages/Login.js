@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
+import { Separator } from '../components/ui/separator';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +14,19 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login, handleGoogleAuthRedirect } = useAuth();
   const navigate = useNavigate();
+
+  // Test users for quick login
+  const testUsers = [
+    { email: 'merkez@healmedy.com', role: 'Merkez Ofis', name: 'Ahmet Yılmaz', color: 'bg-purple-100 text-purple-800 hover:bg-purple-200' },
+    { email: 'operasyon@healmedy.com', role: 'Operasyon Müdürü', name: 'Mehmet Demir', color: 'bg-blue-100 text-blue-800 hover:bg-blue-200' },
+    { email: 'doktor@healmedy.com', role: 'Doktor', name: 'Dr. Ayşe Kaya', color: 'bg-green-100 text-green-800 hover:bg-green-200' },
+    { email: 'hemsire@healmedy.com', role: 'Hemşire', name: 'Fatma Şahin', color: 'bg-pink-100 text-pink-800 hover:bg-pink-200' },
+    { email: 'paramedik@healmedy.com', role: 'Paramedik', name: 'Can Öztürk', color: 'bg-orange-100 text-orange-800 hover:bg-orange-200' },
+    { email: 'att@healmedy.com', role: 'ATT', name: 'Emre Yıldız', color: 'bg-red-100 text-red-800 hover:bg-red-200' },
+    { email: 'bassofor@healmedy.com', role: 'Baş Şoför', name: 'Ali Çelik', color: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' },
+    { email: 'sofor@healmedy.com', role: 'Şoför', name: 'Hasan Aydın', color: 'bg-gray-100 text-gray-800 hover:bg-gray-200' },
+    { email: 'cagri@healmedy.com', role: 'Çağrı Merkezi', name: 'Zeynep Arslan', color: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }
+  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
