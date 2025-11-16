@@ -102,6 +102,19 @@ async def start_shift(data: ShiftStart, request: Request):
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     
+    # Check if user has assignment for this vehicle
+    assignment = await shift_assignments_collection.find_one({
+        "user_id": user.id,
+        "vehicle_id": vehicle["_id"],
+        "status": "pending"
+    })
+    
+    if not assignment:
+        raise HTTPException(
+            status_code=403, 
+            detail="Bu araç için vardiya atamanız yok. Lütfen yöneticinizle iletişime geçin."
+        )
+    
     # Check if user already has an active shift
     active_shift = await shifts_collection.find_one({
         "user_id": user.id,
@@ -109,17 +122,26 @@ async def start_shift(data: ShiftStart, request: Request):
     })
     
     if active_shift:
-        raise HTTPException(status_code=400, detail="You already have an active shift")
+        raise HTTPException(status_code=400, detail="Zaten aktif bir vardiyanz var")
     
     # Create new shift
     new_shift = Shift(
+        assignment_id=assignment["_id"],
         user_id=user.id,
         vehicle_id=vehicle["_id"],
-        start_time=datetime.utcnow()
+        start_time=datetime.utcnow(),
+        photos=data.photos,
+        daily_control=data.daily_control
     )
     
     shift_dict = new_shift.model_dump(by_alias=True)
     await shifts_collection.insert_one(shift_dict)
+    
+    # Update assignment status
+    await shift_assignments_collection.update_one(
+        {"_id": assignment["_id"]},
+        {"$set": {"status": "started"}}
+    )
     
     return new_shift
 
