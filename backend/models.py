@@ -63,6 +63,7 @@ class CallerInfo(BaseModel):
     name: str
     phone: str
     relationship: str
+    organization: Optional[str] = None
 
 class PatientInfo(BaseModel):
     name: str
@@ -71,12 +72,19 @@ class PatientInfo(BaseModel):
     age: int
     gender: Literal["erkek", "kadin", "diger"]
     complaint: str
+    phone: Optional[str] = None
+    clinic: Optional[str] = None
+    preliminary_diagnosis: Optional[str] = None
 
 class LocationInfo(BaseModel):
     address: str
     district: Optional[str] = None
     village_or_neighborhood: Optional[str] = None
-    coordinates: Optional[dict] = None  # {"lat": 0, "lng": 0}
+    coordinates: Optional[dict] = None
+    address_description: Optional[str] = None
+    pickup_location: Optional[str] = None
+    first_dropoff: Optional[str] = None
+    final_dropoff: Optional[str] = None
 
 class AssignedTeam(BaseModel):
     vehicle_id: str
