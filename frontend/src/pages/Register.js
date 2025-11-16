@@ -66,9 +66,7 @@ const Register = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-2xl font-bold">H</span>
-            </div>
+            <img src="/logo.svg" alt="HealMedy" className="h-20 w-20" />
           </div>
           <CardTitle className="text-2xl font-bold">Kayıt Ol</CardTitle>
           <CardDescription>HealMedy HBYS'ye hoş geldiniz</CardDescription>
