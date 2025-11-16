@@ -33,8 +33,23 @@ const CallCenter = () => {
     locationDistrict: '',
     locationVillage: '',
     // Priority
-    priority: ''
+    priority: '',
+    // Vehicle
+    vehicleId: ''
   });
+
+  useEffect(() => {
+    loadVehicles();
+  }, []);
+
+  const loadVehicles = async () => {
+    try {
+      const response = await vehiclesAPI.getAll({ status: 'musait' });
+      setVehicles(response.data);
+    } catch (error) {
+      console.error('Error loading vehicles:', error);
+    }
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
