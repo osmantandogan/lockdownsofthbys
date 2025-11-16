@@ -202,24 +202,49 @@ class StockItemUpdate(BaseModel):
     location_detail: Optional[str] = None
 
 # Shift Models
+class ShiftAssignment(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    user_id: str
+    vehicle_id: str
+    assigned_by: str
+    shift_date: datetime
+    status: Literal["pending", "started", "completed", "cancelled"] = "pending"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 class Shift(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    assignment_id: Optional[str] = None
     user_id: str
     vehicle_id: str
     start_time: datetime
     end_time: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     notes: Optional[str] = None
+    
+    # Vehicle inspection photos
+    photos: Optional[dict] = None  # {"front": "url", "back": "url", "left": "url", "right": "url", "trunk": "url", "interior": "url", "damages": ["url1", "url2"]}
+    
+    # Daily control form
+    daily_control: Optional[dict] = None
+    
+    # Handover form  
+    handover_form: Optional[dict] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ShiftStart(BaseModel):
     vehicle_qr: str
+    photos: Optional[dict] = None
+    daily_control: Optional[dict] = None
 
 class ShiftEnd(BaseModel):
     shift_id: str
     notes: Optional[str] = None
+    handover_form: Optional[dict] = None
 
 # Notification Models
 class Notification(BaseModel):
