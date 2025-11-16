@@ -200,6 +200,3 @@ const Shifts = () => {
 };
 
 export default Shifts;
-
-
-export default Shifts;
