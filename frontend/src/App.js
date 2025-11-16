@@ -98,6 +98,8 @@ function App() {
             <Route path="vehicles" element={<Vehicles />} />
             <Route path="stock" element={<Stock />} />
             <Route path="shifts" element={<Shifts />} />
+            <Route path="shift-assignments" element={<ShiftAssignments />} />
+            <Route path="shift-start" element={<ShiftStartNew />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
