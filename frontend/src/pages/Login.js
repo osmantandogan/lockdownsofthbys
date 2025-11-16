@@ -149,6 +149,38 @@ const Login = () => {
               Kayıt Ol
             </Button>
           </div>
+
+          {/* Development Quick Login Section */}
+          <Separator className="my-6" />
+          
+          <div className="space-y-3">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                🧪 Hızlı Giriş (Geliştirme)
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Tüm şifreler: <code className="bg-gray-100 px-2 py-1 rounded">test123</code>
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+              {testUsers.map((user) => (
+                <Button
+                  key={user.email}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickLogin(user.email)}
+                  disabled={loading}
+                  className={`justify-start text-left h-auto py-2 ${user.color}`}
+                  data-testid={`quick-login-${user.email}`}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold text-xs">{user.role}</span>
+                    <span className="text-xs opacity-75">{user.name}</span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
