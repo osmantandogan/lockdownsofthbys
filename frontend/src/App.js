@@ -10,7 +10,7 @@ import Register from "./pages/Register";
 import AuthRedirect from "./pages/AuthRedirect";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
-import CallCenter from "./pages/CallCenter";
+import CallCenterNew from "./pages/CallCenterNew";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
 import Vehicles from "./pages/Vehicles";
