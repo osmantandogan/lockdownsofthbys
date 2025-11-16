@@ -9,6 +9,89 @@ import uuid
 
 router = APIRouter()
 
+# Shift Assignment Endpoints
+@router.post("/assignments")
+async def create_shift_assignment(
+    user_id: str,
+    vehicle_id: str,
+    shift_date: str,
+    request: Request
+):
+    """Create shift assignment (Admin only)"""
+    current_user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    # Check if user and vehicle exist
+    from database import users_collection
+    user = await users_collection.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    # Check if assignment already exists
+    existing = await shift_assignments_collection.find_one({
+        "user_id": user_id,
+        "shift_date": datetime.fromisoformat(shift_date),
+        "status": {"$in": ["pending", "started"]}
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="User already has an active assignment for this date")
+    
+    # Create assignment
+    assignment = ShiftAssignment(
+        user_id=user_id,
+        vehicle_id=vehicle_id,
+        assigned_by=current_user.id,
+        shift_date=datetime.fromisoformat(shift_date)
+    )
+    
+    assignment_dict = assignment.model_dump(by_alias=True)
+    await shift_assignments_collection.insert_one(assignment_dict)
+    
+    return assignment
+
+@router.get("/assignments/my")
+async def get_my_assignments(request: Request):
+    """Get user's shift assignments"""
+    user = await get_current_user(request)
+    
+    assignments = await shift_assignments_collection.find({
+        "user_id": user.id,
+        "status": {"$in": ["pending", "started"]}
+    }).sort("shift_date", -1).to_list(100)
+    
+    for assignment in assignments:
+        assignment["id"] = assignment.pop("_id")
+    
+    return assignments
+
+@router.get("/assignments")
+async def get_all_assignments(request: Request):
+    """Get all shift assignments (Admin only)"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    assignments = await shift_assignments_collection.find({}).sort("shift_date", -1).to_list(1000)
+    
+    for assignment in assignments:
+        assignment["id"] = assignment.pop("_id")
+    
+    return assignments
+
+@router.delete("/assignments/{assignment_id}")
+async def delete_assignment(assignment_id: str, request: Request):
+    """Delete shift assignment (Admin only)"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    result = await shift_assignments_collection.delete_one({"_id": assignment_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    return {"message": "Assignment deleted successfully"}
+
 @router.post("/start", response_model=Shift)
 async def start_shift(data: ShiftStart, request: Request):
     """Start shift by scanning vehicle QR code"""
