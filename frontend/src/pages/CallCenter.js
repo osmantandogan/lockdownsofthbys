@@ -332,23 +332,92 @@ const CallCenter = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate('/dashboard')}
-            data-testid="cancel-button"
-          >
-            İptal
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            data-testid="create-case-button"
-          >
-            {loading ? 'Oluşturuluyor...' : 'Vaka Oluştur'}
-          </Button>
-        </div>
+        {/* Araç Seçimi */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Truck className="h-5 w-5" />
+              <span>Araç Seçimi (Opsiyonel)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="vehicle">Araç</Label>
+                <Select value={formData.vehicleId} onValueChange={(value) => handleChange('vehicleId', value)}>
+                  <SelectTrigger data-testid="vehicle-select">
+                    <SelectValue placeholder="Araç seçin (opsiyonel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Seçilmedi</SelectItem>
+                    {vehicles.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.plate} - {vehicle.type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Araç seçerseniz, bildirim o araçtaki ekibe de gönderilir
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {!createdCaseId ? (
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/dashboard')}
+              data-testid="cancel-button"
+            >
+              İptal
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              data-testid="create-case-button"
+            >
+              {loading ? 'Oluşturuluyor...' : 'Vaka Oluştur'}
+            </Button>
+          </div>
+        ) : (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-green-800 mb-2">✅ Vaka Başarıyla Oluşturuldu!</h3>
+                  <p className="text-sm text-green-700 mb-4">
+                    Şimdi ilgili ekiplere bildirim gönderebilirsiniz.
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Bildirim gönderilecek: Merkez Ofis, Operasyon Müdürü, Doktor, Hemşire
+                    {formData.vehicleId && formData.vehicleId !== 'none' && ' + Seçilen Araç Ekibi'}
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/cases/${createdCaseId}`)}
+                  >
+                    Vakaya Git
+                  </Button>
+                  <Button
+                    onClick={handleSendNotification}
+                    disabled={sendingNotification}
+                    data-testid="send-notification-button"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    {sendingNotification ? 'Gönderiliyor...' : 'Bildirim Gönder'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </form>
     </div>
   );
