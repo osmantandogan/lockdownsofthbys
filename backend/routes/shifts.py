@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
 from typing import List, Optional
-from database import shifts_collection, vehicles_collection
-from models import Shift, ShiftStart, ShiftEnd
-from auth_utils import get_current_user
+from database import shifts_collection, vehicles_collection, shift_assignments_collection
+from models import Shift, ShiftStart, ShiftEnd, ShiftAssignment
+from auth_utils import get_current_user, require_roles
 from datetime import datetime
+import base64
+import uuid
 
 router = APIRouter()
 
