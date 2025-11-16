@@ -30,6 +30,7 @@ async def create_case(data: CaseCreate, request: Request):
         patient=data.patient,
         location=data.location,
         priority=data.priority,
+        case_details=data.case_details if hasattr(data, 'case_details') else None,
         created_by=user.id
     )
     
