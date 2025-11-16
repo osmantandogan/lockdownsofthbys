@@ -58,9 +58,7 @@ const DashboardLayout = () => {
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-50 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-bold">H</span>
-          </div>
+          <img src="/logo.svg" alt="HealMedy" className="h-8 w-8" />
           <span className="font-bold text-lg">HealMedy</span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -76,9 +74,7 @@ const DashboardLayout = () => {
       `}>
         <div className="p-6 border-b">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold">H</span>
-            </div>
+            <img src="/logo.svg" alt="HealMedy" className="h-10 w-10" />
             <div>
               <h1 className="font-bold text-lg">HealMedy</h1>
               <p className="text-xs text-gray-500">HBYS</p>
