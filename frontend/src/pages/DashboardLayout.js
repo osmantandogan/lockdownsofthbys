@@ -1,0 +1,158 @@
+import React from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/ui/button';
+import { 
+  LayoutDashboard, 
+  Phone, 
+  Folder, 
+  Truck, 
+  Package, 
+  Clock, 
+  Settings, 
+  LogOut,
+  Menu,
+  X
+} from 'lucide-react';
+import { useState } from 'react';
+
+const DashboardLayout = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const menuItems = [
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis'] },
+    { path: '/dashboard/cases', icon: Folder, label: 'Vakalar' },
+    { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar' },
+    { path: '/dashboard/stock', icon: Package, label: 'Stok' },
+    { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
+    { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }
+  ];
+
+  const roleLabels = {
+    'merkez_ofis': 'Merkez Ofis',
+    'operasyon_muduru': 'Operasyon Müdürü',
+    'doktor': 'Doktor',
+    'hemsire': 'Hemşire',
+    'paramedik': 'Paramedik',
+    'att': 'ATT',
+    'bas_sofor': 'Baş Şoför',
+    'sofor': 'Şoför',
+    'cagri_merkezi': 'Çağrı Merkezi'
+  };
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(user?.role);
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile menu button */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-bold">H</span>
+          </div>
+          <span className="font-bold text-lg">HealMedy</span>
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      </div>
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed top-0 left-0 h-full w-64 bg-white border-r transform transition-transform duration-200 ease-in-out z-40
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
+        <div className="p-6 border-b">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold">H</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-lg">HealMedy</h1>
+              <p className="text-xs text-gray-500">HBYS</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-b">
+          <div className="flex items-center space-x-3">
+            {user?.picture ? (
+              <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
+            ) : (
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-medium">{user?.name?.[0]}</span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500">{roleLabels[user?.role]}</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="p-4 space-y-1">
+          {filteredMenuItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/dashboard'}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`
+              }
+              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleLogout}
+            data-testid="logout-button"
+          >
+            <LogOut className="h-5 w-5 mr-3" />
+            Çıkış Yap
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="lg:pl-64 pt-16 lg:pt-0">
+        <main className="p-6">
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+export default DashboardLayout;
