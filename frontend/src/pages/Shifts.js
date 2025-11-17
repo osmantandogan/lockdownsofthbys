@@ -125,7 +125,7 @@ const Shifts = () => {
               </div>
             )}
             
-            <Button onClick={handleEndShift} variant="destructive" className="w-full" data-testid="end-shift-button">
+            <Button onClick={() => navigate('/dashboard/shift-end')} variant="destructive" className="w-full" data-testid="end-shift-button">
               Vardiyayı Bitir
             </Button>
           </CardContent>
