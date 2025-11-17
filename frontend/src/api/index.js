@@ -29,7 +29,9 @@ export const vehiclesAPI = {
   create: (data) => api.post('/vehicles', data),
   update: (id, data) => api.patch(`/vehicles/${id}`, data),
   delete: (id) => api.delete(`/vehicles/${id}`),
-  getStats: () => api.get('/vehicles/stats/summary')
+  getStats: () => api.get('/vehicles/stats/summary'),
+  getDailyAssignments: (date) => api.get('/vehicles/daily-assignments', { params: { date } }),
+  getMonthlyCalendar: (year, month) => api.get('/vehicles/monthly-calendar', { params: { year, month } })
 };
 
 // Stock API
