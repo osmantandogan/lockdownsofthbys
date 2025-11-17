@@ -95,7 +95,7 @@ function App() {
             <Route path="call-center" element={<CallCenterNew />} />
             <Route path="cases" element={<Cases />} />
             <Route path="cases/:id" element={<CaseDetail />} />
-            <Route path="vehicles" element={<Vehicles />} />
+            <Route path="vehicles" element={<VehiclesNew />} />
             <Route path="stock" element={<Stock />} />
             <Route path="shifts" element={<Shifts />} />
             <Route path="shift-assignments" element={<ShiftAssignments />} />
