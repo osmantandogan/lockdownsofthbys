@@ -102,6 +102,8 @@ function App() {
             <Route path="shifts" element={<Shifts />} />
             <Route path="shift-assignments" element={<ShiftAssignments />} />
             <Route path="shift-start" element={<ShiftStartNew />} />
+            <Route path="shift-end" element={<ShiftEnd />} />
+            <Route path="shift-forms" element={<ShiftForms />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
