@@ -115,3 +115,84 @@ async def get_vehicle_stats(request: Request):
         "maintenance": maintenance,
         "faulty": faulty
     }
+
+@router.get("/daily-assignments")
+async def get_daily_assignments(request: Request, date: Optional[str] = None):
+    """Get daily shift assignments for all vehicles"""
+    await get_current_user(request)
+    
+    from database import shift_assignments_collection, users_collection
+    from datetime import datetime as dt
+    
+    # Use today if no date provided
+    if not date:
+        target_date = dt.utcnow().date()
+    else:
+        target_date = dt.fromisoformat(date).date()
+    
+    # Get all assignments for the date
+    assignments = await shift_assignments_collection.find({
+        "shift_date": {
+            "$gte": dt.combine(target_date, dt.min.time()),
+            "$lt": dt.combine(target_date, dt.max.time())
+        }
+    }).to_list(1000)
+    
+    # Enrich with user and vehicle data
+    result = []
+    for assignment in assignments:
+        user_doc = await users_collection.find_one({"_id": assignment["user_id"]})
+        vehicle_doc = await vehicles_collection.find_one({"_id": assignment["vehicle_id"]})
+        
+        result.append({
+            "assignment_id": assignment["_id"],
+            "user_id": assignment["user_id"],
+            "user_name": user_doc.get("name") if user_doc else "Unknown",
+            "user_role": user_doc.get("role") if user_doc else "Unknown",
+            "vehicle_id": assignment["vehicle_id"],
+            "vehicle_plate": vehicle_doc.get("plate") if vehicle_doc else "Unknown",
+            "status": assignment["status"],
+            "shift_date": assignment["shift_date"]
+        })
+    
+    return result
+
+@router.get("/monthly-calendar")
+async def get_monthly_calendar(request: Request, year: int, month: int):
+    """Get monthly shift calendar for all vehicles"""
+    await get_current_user(request)
+    
+    from database import shift_assignments_collection, users_collection
+    from datetime import datetime as dt
+    import calendar
+    
+    # Get first and last day of month
+    first_day = dt(year, month, 1)
+    last_day = dt(year, month, calendar.monthrange(year, month)[1], 23, 59, 59)
+    
+    # Get all assignments for the month
+    assignments = await shift_assignments_collection.find({
+        "shift_date": {
+            "$gte": first_day,
+            "$lte": last_day
+        }
+    }).to_list(10000)
+    
+    # Enrich with user and vehicle data
+    result = []
+    for assignment in assignments:
+        user_doc = await users_collection.find_one({"_id": assignment["user_id"]})
+        vehicle_doc = await vehicles_collection.find_one({"_id": assignment["vehicle_id"]})
+        
+        result.append({
+            "assignment_id": assignment["_id"],
+            "date": assignment["shift_date"].isoformat(),
+            "user_id": assignment["user_id"],
+            "user_name": user_doc.get("name") if user_doc else "Unknown",
+            "user_role": user_doc.get("role") if user_doc else "Unknown",
+            "vehicle_id": assignment["vehicle_id"],
+            "vehicle_plate": vehicle_doc.get("plate") if vehicle_doc else "Unknown",
+            "status": assignment["status"]
+        })
+    
+    return result
