@@ -164,12 +164,16 @@ class VehicleCreate(BaseModel):
     type: VehicleType
     km: int = 0
     fuel_level: Optional[int] = None
+    last_inspection_date: Optional[datetime] = None
+    next_maintenance_km: Optional[int] = None
 
 class VehicleUpdate(BaseModel):
     plate: Optional[str] = None
     status: Optional[VehicleStatus] = None
     km: Optional[int] = None
     fuel_level: Optional[int] = None
+    last_inspection_date: Optional[datetime] = None
+    next_maintenance_km: Optional[int] = None
 
 # Stock Models
 StockLocation = Literal["ambulans", "saha_ofis", "acil_canta", "merkez_depo"]
