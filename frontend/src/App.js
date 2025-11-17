@@ -13,7 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import CallCenterNew from "./pages/CallCenterNew";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
-import Vehicles from "./pages/Vehicles";
+import VehiclesNew from "./pages/VehiclesNew";
 import Stock from "./pages/Stock";
 import Shifts from "./pages/Shifts";
 import ShiftAssignments from "./pages/ShiftAssignments";
