@@ -18,6 +18,8 @@ import Stock from "./pages/Stock";
 import Shifts from "./pages/Shifts";
 import ShiftAssignments from "./pages/ShiftAssignments";
 import ShiftStartNew from "./pages/ShiftStartNew";
+import ShiftEnd from "./pages/ShiftEnd";
+import ShiftForms from "./pages/ShiftForms";
 import Settings from "./pages/Settings";
 
 // Protected Route Component
