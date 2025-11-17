@@ -151,6 +151,11 @@ class Vehicle(BaseModel):
     fuel_level: Optional[int] = None  # 0-100
     qr_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
     current_case_id: Optional[str] = None
+    
+    # Maintenance tracking (from Excel)
+    last_inspection_date: Optional[datetime] = None
+    next_maintenance_km: Optional[int] = None  # Next 20000 block
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
