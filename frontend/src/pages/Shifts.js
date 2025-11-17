@@ -75,12 +75,20 @@ const Shifts = () => {
           <h1 className="text-3xl font-bold">Vardiya Yönetimi</h1>
           <p className="text-gray-500">Vardiya başlat ve bitir</p>
         </div>
-        {canManageAssignments && (
-          <Button onClick={() => navigate('/dashboard/shift-assignments')} variant="outline">
-            <Calendar className="h-4 w-4 mr-2" />
-            Atama Yönetimi
-          </Button>
-        )}
+        <div className="flex space-x-2">
+          {canManageAssignments && (
+            <>
+              <Button onClick={() => navigate('/dashboard/shift-forms')} variant="outline">
+                <FileText className="h-4 w-4 mr-2" />
+                Formları Görüntüle
+              </Button>
+              <Button onClick={() => navigate('/dashboard/shift-assignments')} variant="outline">
+                <Calendar className="h-4 w-4 mr-2" />
+                Atama Yönetimi
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Active Shift */}
