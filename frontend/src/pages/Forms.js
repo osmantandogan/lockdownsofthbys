@@ -13,6 +13,8 @@ import MedicineRequestForm from '../components/forms/MedicineRequestForm';
 import MaterialRequestForm from '../components/forms/MaterialRequestForm';
 import MedicalGasRequestForm from '../components/forms/MedicalGasRequestForm';
 import AmbulanceEquipmentCheckForm from '../components/forms/AmbulanceEquipmentCheckForm';
+import PreCaseCheckForm from '../components/forms/PreCaseCheckForm';
+import AmbulanceCaseForm from '../components/forms/AmbulanceCaseForm';
 import DailyControlForm from '../components/DailyControlForm';
 import HandoverForm from '../components/HandoverForm';
 
