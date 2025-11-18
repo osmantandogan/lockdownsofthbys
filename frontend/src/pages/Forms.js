@@ -82,6 +82,33 @@ const Forms = () => {
     }
   ];
 
+  const ambulanceForms = [
+    {
+      id: 'ambulance-equipment-check',
+      title: 'Ambulans Cihaz/Malzeme/İlaç Kontrol',
+      icon: ClipboardCheck,
+      color: 'text-blue-600',
+      description: 'Günlük ekipman kontrolü (60+ item) - ATT/Paramedik',
+      note: 'ATT ve Paramedik için'
+    },
+    {
+      id: 'daily-control',
+      title: 'Ambulans Günlük Kontrol Formu',
+      icon: Truck,
+      color: 'text-green-600',
+      description: 'Araç genel kontrol formu - Şoför',
+      note: 'Şoför için - Vardiya başlatmada kullanılıyor'
+    },
+    {
+      id: 'handover',
+      title: 'Ambulans Devir Teslim Formu',
+      icon: ClipboardCheck,
+      color: 'text-orange-600',
+      description: 'Araç devir teslim formu - Şoför',
+      note: 'Şoför için - Vardiya bitirmede kullanılıyor'
+    }
+  ];
+
   const openForm = (formId) => {
     setSelectedForm(formId);
     setDialogOpen(true);
