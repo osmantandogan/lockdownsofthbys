@@ -4,7 +4,7 @@ import { shiftsAPI, vehiclesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
-import HandoverFormFull from '../components/forms/HandoverFormFullFull';
+import HandoverFormFull from '../components/forms/HandoverFormFull';
 import { Clock, CheckCircle } from 'lucide-react';
 
 const ShiftEnd = () => {
