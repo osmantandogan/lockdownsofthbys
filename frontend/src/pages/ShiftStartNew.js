@@ -7,7 +7,7 @@ import { Progress } from '../components/ui/progress';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
-import DailyControlForm from '../components/DailyControlForm';
+import DailyControlForm from '../components/forms/DailyControlFormFull';
 import { QrCode, Camera, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ShiftStartNew = () => {
