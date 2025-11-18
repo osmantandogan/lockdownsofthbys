@@ -20,6 +20,7 @@ import ShiftAssignments from "./pages/ShiftAssignments";
 import ShiftStartNew from "./pages/ShiftStartNew";
 import ShiftEnd from "./pages/ShiftEnd";
 import ShiftForms from "./pages/ShiftForms";
+import Forms from "./pages/Forms";
 import Settings from "./pages/Settings";
 
 // Protected Route Component
