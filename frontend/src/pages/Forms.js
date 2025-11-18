@@ -62,13 +62,13 @@ const Forms = () => {
       case 'kvkk':
         return <KVKKConsentForm />;
       case 'injection':
-        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
+        return <InjectionConsentForm />;
       case 'puncture':
-        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
+        return <PunctureConsentForm />;
       case 'minor-surgery':
-        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
+        return <MinorSurgeryConsentForm />;
       case 'general-consent':
-        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
+        return <GeneralConsentForm />;
       default:
         return null;
     }
