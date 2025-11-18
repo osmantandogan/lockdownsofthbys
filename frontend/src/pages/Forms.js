@@ -56,15 +56,15 @@ const Forms = () => {
   const renderFormContent = (formId) => {
     switch(formId) {
       case 'kvkk':
-        return <KVKKForm />;
+        return <KVKKConsentForm />;
       case 'injection':
-        return <InjectionConsentForm />;
+        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
       case 'puncture':
-        return <PunctureConsentForm />;
+        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
       case 'minor-surgery':
-        return <MinorSurgeryConsentForm />;
+        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
       case 'general-consent':
-        return <GeneralConsentForm />;
+        return <div className="p-4 text-center text-gray-500">Form içeriği ekleniyor...</div>;
       default:
         return null;
     }
