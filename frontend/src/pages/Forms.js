@@ -14,9 +14,9 @@ import MaterialRequestForm from '../components/forms/MaterialRequestForm';
 import MedicalGasRequestForm from '../components/forms/MedicalGasRequestForm';
 import AmbulanceEquipmentCheckForm from '../components/forms/AmbulanceEquipmentCheckForm';
 import PreCaseCheckForm from '../components/forms/PreCaseCheckForm';
-import AmbulanceCaseForm from '../components/forms/AmbulanceCaseForm';
-import DailyControlForm from '../components/DailyControlForm';
-import HandoverForm from '../components/HandoverForm';
+import AmbulanceCaseFormFull from '../components/forms/AmbulanceCaseFormFull';
+import DailyControlFormFull from '../components/forms/DailyControlFormFull';
+import HandoverFormFull from '../components/forms/HandoverFormFull';
 
 const Forms = () => {
   const [selectedForm, setSelectedForm] = useState(null);
