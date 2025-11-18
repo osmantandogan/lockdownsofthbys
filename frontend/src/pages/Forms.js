@@ -20,38 +20,62 @@ const Forms = () => {
   const consentForms = [
     {
       id: 'kvkk',
-      title: 'KVKK - Kişisel Verilerin Korunması Onay Formu',
+      title: 'KVKK - Kişisel Verilerin Korunması Onam Formu',
       icon: Shield,
       color: 'text-blue-600',
-      description: 'Kişisel verilerin korunması hakkında bilgilendirme ve onay formu'
+      description: 'Kişisel verilerin korunması hakkında bilgilendirme ve onam formu'
     },
     {
       id: 'injection',
-      title: 'Enjeksiyon Uygulama Onay Formu',
+      title: 'Enjeksiyon Uygulama Onam Formu',
       icon: Syringe,
       color: 'text-green-600',
-      description: 'İlaç ve enjeksiyon uygulaması için hasta/veli onayı'
+      description: 'İlaç ve enjeksiyon uygulaması için hasta/veli onamı'
     },
     {
       id: 'puncture',
-      title: 'Ponksiyon/İğne Uygulaması Onay Formu',
+      title: 'Ponksiyon/İğne Uygulaması Onam Formu',
       icon: Syringe,
       color: 'text-orange-600',
-      description: 'Ponksiyon, kan alma ve damar yolu açma işlemleri onayı'
+      description: 'Ponksiyon, kan alma ve damar yolu açma işlemleri onamı'
     },
     {
       id: 'minor-surgery',
-      title: 'Minör Cerrahi İşlem Onay Formu',
+      title: 'Minör Cerrahi İşlem Onam Formu',
       icon: Scissors,
       color: 'text-red-600',
       description: 'Küçük cerrahi müdahaleler için rıza formu'
     },
     {
       id: 'general-consent',
-      title: 'Genel Tıbbi Müdahale Onay Formu',
+      title: 'Genel Tıbbi Müdahale Onam Formu',
       icon: FileSignature,
       color: 'text-purple-600',
       description: 'Genel tıbbi işlemler için hasta rıza formu'
+    }
+  ];
+
+  const requestForms = [
+    {
+      id: 'medicine-request',
+      title: 'İlaç Talep Formu',
+      icon: Pill,
+      color: 'text-blue-600',
+      description: 'İlaç sipariş ve talep formu (20 satır)'
+    },
+    {
+      id: 'material-request',
+      title: 'Malzeme Talep Formu',
+      icon: Package,
+      color: 'text-green-600',
+      description: 'Tıbbi malzeme talep ve teslim formu (18 satır)'
+    },
+    {
+      id: 'medical-gas-request',
+      title: 'Medikal Gaz İstek Formu',
+      icon: Wind,
+      color: 'text-cyan-600',
+      description: 'Medikal gaz (oksijen, hava vb.) talep formu'
     }
   ];
 
