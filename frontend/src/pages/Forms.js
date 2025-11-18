@@ -155,11 +155,11 @@ const Forms = () => {
       case 'pre-case-check':
         return <PreCaseCheckForm />;
       case 'ambulance-case':
-        return <AmbulanceCaseForm />;
+        return <AmbulanceCaseFormFull />;
       case 'daily-control':
-        return <DailyControlForm formData={{}} onChange={() => {}} />;
+        return <DailyControlFormFull formData={{}} onChange={() => {}} />;
       case 'handover':
-        return <HandoverForm formData={{}} onChange={() => {}} vehiclePlate="" vehicleKm={0} />;
+        return <HandoverFormFull formData={{}} onChange={() => {}} vehiclePlate="" vehicleKm={0} />;
       default:
         return null;
     }
