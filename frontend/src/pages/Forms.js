@@ -94,6 +94,22 @@ const Forms = () => {
       note: 'ATT ve Paramedik için'
     },
     {
+      id: 'pre-case-check',
+      title: 'Vaka Öncesi Kontrol Formu',
+      icon: ClipboardCheck,
+      color: 'text-purple-600',
+      description: 'Vaka öncesi ekipman hazırlık kontrolü - ATT/Paramedik',
+      note: 'ATT ve Paramedik için'
+    },
+    {
+      id: 'ambulance-case',
+      title: 'Ambulans Vaka Formu',
+      icon: Ambulance,
+      color: 'text-red-600',
+      description: 'Vaka detay ve müdahale formu - ATT/Paramedik',
+      note: 'ATT ve Paramedik için'
+    },
+    {
       id: 'daily-control',
       title: 'Ambulans Günlük Kontrol Formu',
       icon: Truck,
