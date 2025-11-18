@@ -1,0 +1,132 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { ScrollArea } from '../components/ui/scroll-area';
+import SignaturePad from '../components/SignaturePad';
+import { FileText, Shield, Syringe, Scissors, FileSignature } from 'lucide-react';
+
+const Forms = () => {
+  const [selectedForm, setSelectedForm] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const consentForms = [
+    {
+      id: 'kvkk',
+      title: 'KVKK - Kişisel Verilerin Korunması Onay Formu',
+      icon: Shield,
+      color: 'text-blue-600',
+      description: 'Kişisel verilerin korunması hakkında bilgilendirme ve onay formu'
+    },
+    {
+      id: 'injection',
+      title: 'Enjeksiyon Uygulama Onay Formu',
+      icon: Syringe,
+      color: 'text-green-600',
+      description: 'İlaç ve enjeksiyon uygulaması için hasta/veli onayı'
+    },
+    {
+      id: 'puncture',
+      title: 'Ponksiyon/İğne Uygulaması Onay Formu',
+      icon: Syringe,
+      color: 'text-orange-600',
+      description: 'Ponksiyon, kan alma ve damar yolu açma işlemleri onayı'
+    },
+    {
+      id: 'minor-surgery',
+      title: 'Minör Cerrahi İşlem Onay Formu',
+      icon: Scissors,
+      color: 'text-red-600',
+      description: 'Küçük cerrahi müdahaleler için rıza formu'
+    },
+    {
+      id: 'general-consent',
+      title: 'Genel Tıbbi Müdahale Onay Formu',
+      icon: FileSignature,
+      color: 'text-purple-600',
+      description: 'Genel tıbbi işlemler için hasta rıza formu'
+    }
+  ];
+
+  const openForm = (formId) => {
+    setSelectedForm(formId);
+    setDialogOpen(true);
+  };
+
+  const renderFormContent = (formId) => {
+    switch(formId) {
+      case 'kvkk':
+        return <KVKKForm />;
+      case 'injection':
+        return <InjectionConsentForm />;
+      case 'puncture':
+        return <PunctureConsentForm />;
+      case 'minor-surgery':
+        return <MinorSurgeryConsentForm />;
+      case 'general-consent':
+        return <GeneralConsentForm />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="forms-page">
+      <div>
+        <h1 className="text-3xl font-bold">Formlar</h1>
+        <p className="text-gray-500">Tıbbi formlar ve onay belgeleri</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="border-b pb-2">
+          <h2 className="text-2xl font-semibold">Onay Formları</h2>
+          <p className="text-sm text-gray-500">Hasta ve veli rıza formları</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {consentForms.map((form) => {
+            const Icon = form.icon;
+            return (
+              <Card key={form.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => openForm(form.id)}>
+                <CardContent className="p-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center ${form.color}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-sm leading-tight">{form.title}</h3>
+                    <p className="text-xs text-gray-600">{form.description}</p>
+                    <Button variant="outline" size="sm" className="w-full mt-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Formu Aç
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[95vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {consentForms.find(f => f.id === selectedForm)?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[80vh] pr-4">
+            {selectedForm && renderFormContent(selectedForm)}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Forms;
