@@ -12,7 +12,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { useState } from 'react';
 
