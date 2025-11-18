@@ -98,7 +98,7 @@ const Forms = () => {
       title: 'Vaka Öncesi Kontrol Formu',
       icon: ClipboardCheck,
       color: 'text-purple-600',
-      description: 'Vaka öncesi ekipman hazırlık kontrolü - ATT/Paramedik',
+      description: 'Vaka öncesi ekipman hazırlık kontrolü (14 item) - ATT/Paramedik',
       note: 'ATT ve Paramedik için'
     },
     {
@@ -106,7 +106,7 @@ const Forms = () => {
       title: 'Ambulans Vaka Formu',
       icon: Ambulance,
       color: 'text-red-600',
-      description: 'Vaka detay ve müdahale formu - ATT/Paramedik',
+      description: 'Vaka detay, vital bulgular ve müdahale formu - ATT/Paramedik',
       note: 'ATT ve Paramedik için'
     },
     {
@@ -114,7 +114,7 @@ const Forms = () => {
       title: 'Ambulans Günlük Kontrol Formu',
       icon: Truck,
       color: 'text-green-600',
-      description: 'Araç genel kontrol formu - Şoför',
+      description: 'Araç genel kontrol formu (48 kontrol) - Şoför',
       note: 'Şoför için - Vardiya başlatmada kullanılıyor'
     },
     {
@@ -122,7 +122,7 @@ const Forms = () => {
       title: 'Ambulans Devir Teslim Formu',
       icon: ClipboardCheck,
       color: 'text-orange-600',
-      description: 'Araç devir teslim formu - Şoför',
+      description: 'Araç devir teslim formu (3 imza) - Şoför',
       note: 'Şoför için - Vardiya bitirmede kullanılıyor'
     }
   ];
