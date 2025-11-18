@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
-import SignaturePad from '../components/SignaturePad';
 import { FileText, Shield, Syringe, Scissors, FileSignature } from 'lucide-react';
+import KVKKConsentForm from '../components/forms/KVKKConsentForm';
 
 const Forms = () => {
   const [selectedForm, setSelectedForm] = useState(null);
