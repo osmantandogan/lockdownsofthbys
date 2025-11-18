@@ -132,6 +132,12 @@ const Forms = () => {
         return <MaterialRequestForm />;
       case 'medical-gas-request':
         return <MedicalGasRequestForm />;
+      case 'ambulance-equipment-check':
+        return <AmbulanceEquipmentCheckForm />;
+      case 'daily-control':
+        return <DailyControlForm formData={{}} onChange={() => {}} />;
+      case 'handover':
+        return <HandoverForm formData={{}} onChange={() => {}} vehiclePlate="" vehicleKm={0} />;
       default:
         return null;
     }
