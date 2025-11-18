@@ -5,6 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { ScrollArea } from '../components/ui/scroll-area';
 import { FileText, Shield, Syringe, Scissors, FileSignature } from 'lucide-react';
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
+import InjectionConsentForm from '../components/forms/InjectionConsentForm';
+import PunctureConsentForm from '../components/forms/PunctureConsentForm';
+import MinorSurgeryConsentForm from '../components/forms/MinorSurgeryConsentForm';
+import GeneralConsentForm from '../components/forms/GeneralConsentForm';
 
 const Forms = () => {
   const [selectedForm, setSelectedForm] = useState(null);
