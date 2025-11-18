@@ -3,12 +3,15 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { FileText, Shield, Syringe, Scissors, FileSignature } from 'lucide-react';
+import { FileText, Shield, Syringe, Scissors, FileSignature, Pill, Package, Wind } from 'lucide-react';
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
 import InjectionConsentForm from '../components/forms/InjectionConsentForm';
 import PunctureConsentForm from '../components/forms/PunctureConsentForm';
 import MinorSurgeryConsentForm from '../components/forms/MinorSurgeryConsentForm';
 import GeneralConsentForm from '../components/forms/GeneralConsentForm';
+import MedicineRequestForm from '../components/forms/MedicineRequestForm';
+import MaterialRequestForm from '../components/forms/MaterialRequestForm';
+import MedicalGasRequestForm from '../components/forms/MedicalGasRequestForm';
 
 const Forms = () => {
   const [selectedForm, setSelectedForm] = useState(null);
