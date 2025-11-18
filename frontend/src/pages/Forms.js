@@ -152,6 +152,10 @@ const Forms = () => {
         return <MedicalGasRequestForm />;
       case 'ambulance-equipment-check':
         return <AmbulanceEquipmentCheckForm />;
+      case 'pre-case-check':
+        return <PreCaseCheckForm />;
+      case 'ambulance-case':
+        return <AmbulanceCaseForm />;
       case 'daily-control':
         return <DailyControlForm formData={{}} onChange={() => {}} />;
       case 'handover':
