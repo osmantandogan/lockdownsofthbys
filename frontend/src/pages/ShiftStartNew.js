@@ -7,7 +7,7 @@ import { Progress } from '../components/ui/progress';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
-import DailyControlForm from '../components/forms/DailyControlFormFull';
+import DailyControlFormFull from '../components/forms/DailyControlFormFullFull';
 import { QrCode, Camera, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ShiftStartNew = () => {
@@ -198,7 +198,7 @@ const ShiftStartNew = () => {
 
       {step === 3 && (
         <div className="space-y-4">
-          <DailyControlForm formData={controlForm} onChange={setControlForm} />
+          <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>Geri</Button>
             <Button onClick={() => setStep(4)}>Devam</Button>

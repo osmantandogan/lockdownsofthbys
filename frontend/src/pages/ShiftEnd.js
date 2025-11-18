@@ -4,14 +4,14 @@ import { shiftsAPI, vehiclesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
-import HandoverForm from '../components/forms/HandoverFormFull';
+import HandoverFormFull from '../components/forms/HandoverFormFullFull';
 import { Clock, CheckCircle } from 'lucide-react';
 
 const ShiftEnd = () => {
   const navigate = useNavigate();
   const [activeShift, setActiveShift] = useState(null);
   const [vehicle, setVehicle] = useState(null);
-  const [handoverForm, setHandoverForm] = useState({});
+  const [handoverForm, setHandoverFormFull] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -100,9 +100,9 @@ const ShiftEnd = () => {
       </Card>
 
       {/* Handover Form */}
-      <HandoverForm
+      <HandoverFormFull
         formData={handoverForm}
-        onChange={setHandoverForm}
+        onChange={setHandoverFormFull}
         vehiclePlate={vehicle?.plate}
         vehicleKm={vehicle?.km}
       />
