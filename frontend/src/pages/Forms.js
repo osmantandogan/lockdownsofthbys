@@ -96,6 +96,12 @@ const Forms = () => {
         return <MinorSurgeryConsentForm />;
       case 'general-consent':
         return <GeneralConsentForm />;
+      case 'medicine-request':
+        return <MedicineRequestForm />;
+      case 'material-request':
+        return <MaterialRequestForm />;
+      case 'medical-gas-request':
+        return <MedicalGasRequestForm />;
       default:
         return null;
     }
