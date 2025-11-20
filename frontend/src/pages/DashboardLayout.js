@@ -13,7 +13,9 @@ import {
   LogOut,
   Menu,
   X,
-  FileText
+  FileText,
+  History,
+  UserCog
 } from 'lucide-react';
 import { useState } from 'react';
 
