@@ -6,10 +6,15 @@ import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { Truck, AlertTriangle, Calendar, Users, Search } from 'lucide-react';
+import { Truck, AlertTriangle, Calendar, Users, Plus, Edit } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const VehiclesNew = () => {
+  const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
   const [stats, setStats] = useState({});
   const [dailyAssignments, setDailyAssignments] = useState([]);
@@ -19,6 +24,17 @@ const VehiclesNew = () => {
   const [selectedMonth, setSelectedMonth] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1
+  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [formData, setFormData] = useState({
+    plate: '',
+    type: 'ambulans',
+    km: 0,
+    fuel_level: 50,
+    last_inspection_date: '',
+    next_maintenance_km: 20000
   });
 
   useEffect(() => {
@@ -43,6 +59,63 @@ const VehiclesNew = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreate = async () => {
+    try {
+      await vehiclesAPI.create(formData);
+      toast.success('Araç oluşturuldu');
+      setDialogOpen(false);
+      resetForm();
+      loadData();
+    } catch (error) {
+      toast.error('Araç oluşturulamadı');
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await vehiclesAPI.update(selectedVehicle.id, formData);
+      toast.success('Araç güncellendi');
+      setDialogOpen(false);
+      resetForm();
+      loadData();
+    } catch (error) {
+      toast.error('Araç güncellenemedi');
+    }
+  };
+
+  const openEditDialog = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setFormData({
+      plate: vehicle.plate,
+      type: vehicle.type,
+      km: vehicle.km,
+      fuel_level: vehicle.fuel_level || 50,
+      last_inspection_date: vehicle.last_inspection_date ? new Date(vehicle.last_inspection_date).toISOString().split('T')[0] : '',
+      next_maintenance_km: vehicle.next_maintenance_km || 20000
+    });
+    setEditMode(true);
+    setDialogOpen(true);
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setEditMode(false);
+    setDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      plate: '',
+      type: 'ambulans',
+      km: 0,
+      fuel_level: 50,
+      last_inspection_date: '',
+      next_maintenance_km: 20000
+    });
+    setSelectedVehicle(null);
+    setEditMode(false);
   };
 
   const calculateKmRemaining = (currentKm, nextMaintenanceKm) => {
