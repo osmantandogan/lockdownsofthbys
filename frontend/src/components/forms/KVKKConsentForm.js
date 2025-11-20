@@ -24,30 +24,14 @@ const KVKKConsentForm = () => {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!formData.patientName) {
-      toast.error('Lütfen hasta adını giriniz');
-      return;
-    }
-    if (!formData.signature) {
-      toast.error('Lütfen imzalayınız');
-      return;
-    }
-
     setSaving(true);
-    try {
-      await formsAPI.submit({
-        form_type: 'kvkk',
-        form_data: formData,
-        patient_name: formData.patientName
-      });
-      toast.success('Form başarıyla kaydedildi!');
-      handleClear();
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.response?.data?.detail || 'Form kaydedilemedi');
-    } finally {
-      setSaving(false);
-    }
+    const saveFunc = handleFormSave('kvkk', formData, {
+      validateFields: ['patientName'],
+      validateSignature: true,
+      onSuccess: handleClear
+    });
+    await saveFunc();
+    setSaving(false);
   };
 
   const handlePrint = () => {
