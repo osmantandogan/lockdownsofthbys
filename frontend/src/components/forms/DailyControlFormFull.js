@@ -12,7 +12,22 @@ import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { ChevronDown } from 'lucide-react';
 
-const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('daily_control', formData, {
+      validateFields: [],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
+  const [saving, setSaving] = useState(false);
   const [localFormData, setLocalFormData] = useState({
     istasyonAdi: '',
     plaka: '',
@@ -256,7 +271,7 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
         <Button variant="outline">🗑 Temizle</Button>
         <Button variant="outline">💾 PDF Önizleme</Button>
         <Button variant="outline">🖨 Yazdır</Button>
-        <Button>💾 Kaydet</Button>
+        <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>
   );

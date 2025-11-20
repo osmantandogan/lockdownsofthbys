@@ -9,7 +9,22 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('handover', formData, {
+      validateFields: ['teslimEden'],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
+  const [saving, setSaving] = useState(false);
   const [localFormData, setLocalFormData] = useState({
     aracPlakasi: vehiclePlate || '',
     kayitTarihi: new Date().toISOString().split('T')[0],
@@ -256,7 +271,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
         <Button variant="outline">🗑 Temizle</Button>
         <Button variant="outline">💾 PDF Önizleme</Button>
         <Button variant="outline">🖨 Yazdır</Button>
-        <Button>💾 Kaydet</Button>
+        <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>
   );

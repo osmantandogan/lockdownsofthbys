@@ -8,10 +8,25 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const MedicalGasRequestForm = () => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('medical_gas_request', formData, {
+      validateFields: ['managerName'],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const MedicalGasRequestForm = () => {
   const [gases, setGases] = useState([
     { id: 1, name: '', quantity: '' }
   ]);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     managerName: '',
@@ -123,7 +138,7 @@ const MedicalGasRequestForm = () => {
         <Button variant="outline">🗑 Temizle</Button>
         <Button variant="outline">💾 PDF Önizleme</Button>
         <Button variant="outline">🖨 Yazdır</Button>
-        <Button>💾 Kaydet</Button>
+        <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>
   );

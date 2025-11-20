@@ -8,7 +8,22 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const PunctureConsentForm = () => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('puncture', formData, {
+      validateFields: ['patientName'],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const PunctureConsentForm = () => {
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     consciousnessStatus: 'conscious',
     patientName: '',

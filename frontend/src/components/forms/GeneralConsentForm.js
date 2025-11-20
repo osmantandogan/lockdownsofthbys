@@ -9,7 +9,22 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const GeneralConsentForm = () => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('general_consent', formData, {
+      validateFields: ['patientName'],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const GeneralConsentForm = () => {
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     patientName: '',
     patientTc: '',

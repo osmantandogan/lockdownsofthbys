@@ -10,7 +10,22 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const AmbulanceEquipmentCheckForm = () => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('ambulance_equipment', formData, {
+      validateFields: ['staffName'],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const AmbulanceEquipmentCheckForm = () => {
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     vehiclePlate: '',
     lockNumber: '',
@@ -232,7 +247,7 @@ const AmbulanceEquipmentCheckForm = () => {
         <Button variant="outline">🗑 Temizle</Button>
         <Button variant="outline">💾 PDF Önizleme</Button>
         <Button variant="outline">🖨 Yazdır</Button>
-        <Button>💾 Kaydet</Button>
+        <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>
   );

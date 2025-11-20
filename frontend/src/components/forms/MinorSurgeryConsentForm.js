@@ -8,7 +8,22 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const MinorSurgeryConsentForm = () => {
+
+  const handleSave = async () => {
+    setSaving(true);
+    const saveFunc = handleFormSave('minor_surgery', formData, {
+      validateFields: ['patientName'],
+      validateSignature: false,
+      onSuccess: () => {
+        // Form saved successfully
+      }
+    });
+    await saveFunc();
+    setSaving(false);
+  };
+
+  const MinorSurgeryConsentForm = () => {
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     diagnosis: '',
     procedureDuration: '',
