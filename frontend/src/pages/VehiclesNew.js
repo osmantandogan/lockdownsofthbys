@@ -325,6 +325,17 @@ const VehiclesNew = () => {
                             <Badge className="bg-green-100 text-green-800">Normal</Badge>
                           )}
                         </TableCell>
+                        {canManage && (
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => openEditDialog(vehicle)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
