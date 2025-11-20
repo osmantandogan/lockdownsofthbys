@@ -278,6 +278,7 @@ const VehiclesNew = () => {
                     <TableHead>KM Kalan</TableHead>
                     <TableHead>Muayene Kalan Gün</TableHead>
                     <TableHead>Genel Uyarı</TableHead>
+                    {canManage && <TableHead>İşlemler</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
