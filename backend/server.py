@@ -31,6 +31,7 @@ api_router.include_router(vehicles.router, prefix="/vehicles", tags=["Vehicles"]
 api_router.include_router(stock.router, prefix="/stock", tags=["Stock"])
 api_router.include_router(shifts.router, prefix="/shifts", tags=["Shifts"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
+api_router.include_router(forms.router, prefix="/forms", tags=["Forms"])
 
 # Health check endpoint
 @api_router.get("/")
