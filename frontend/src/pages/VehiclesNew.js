@@ -199,6 +199,15 @@ const VehiclesNew = () => {
         <p className="text-gray-500">Filo takibi ve vardiya planlaması</p>
       </div>
 
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Yeni Araç Ekle
+          </Button>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-5">
         <Card>
