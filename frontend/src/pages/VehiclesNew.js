@@ -175,6 +175,8 @@ const VehiclesNew = () => {
     att: 'ATT'
   };
 
+  const canManage = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
