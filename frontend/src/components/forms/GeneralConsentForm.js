@@ -6,6 +6,8 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
 import SignaturePad from '../SignaturePad';
+import { handleFormSave } from '../../utils/formHelpers';
+import { toast } from 'sonner';
 
 const GeneralConsentForm = () => {
   const [formData, setFormData] = useState({

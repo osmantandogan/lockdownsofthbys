@@ -7,6 +7,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Textarea } from '../ui/textarea';
 import { Progress } from '../ui/progress';
 import SignaturePad from '../SignaturePad';
+import { handleFormSave } from '../../utils/formHelpers';
+import { toast } from 'sonner';
 
 const AmbulanceEquipmentCheckForm = () => {
   const [formData, setFormData] = useState({

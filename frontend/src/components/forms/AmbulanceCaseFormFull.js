@@ -9,6 +9,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { Switch } from '../ui/switch';
 import SignaturePad from '../SignaturePad';
+import { handleFormSave } from '../../utils/formHelpers';
+import { toast } from 'sonner';
 
 const AmbulanceCaseFormFull = () => {
   const [formData, setFormData] = useState({

@@ -6,6 +6,8 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import SignaturePad from '../SignaturePad';
+import { handleFormSave } from '../../utils/formHelpers';
+import { toast } from 'sonner';
 
 const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
   const [localFormData, setLocalFormData] = useState({

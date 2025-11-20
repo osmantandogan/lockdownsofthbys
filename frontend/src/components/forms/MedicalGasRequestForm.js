@@ -5,6 +5,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Plus, Trash2 } from 'lucide-react';
 import SignaturePad from '../SignaturePad';
+import { handleFormSave } from '../../utils/formHelpers';
+import { toast } from 'sonner';
 
 const MedicalGasRequestForm = () => {
   const [gases, setGases] = useState([
