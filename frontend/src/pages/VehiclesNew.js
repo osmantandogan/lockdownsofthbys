@@ -475,6 +475,78 @@ const VehiclesNew = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Araç Ekle/Düzenle Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editMode ? 'Araç Düzenle' : 'Yeni Araç Ekle'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Plaka</Label>
+              <Input 
+                value={formData.plate} 
+                onChange={(e) => setFormData({...formData, plate: e.target.value.toUpperCase()})}
+                placeholder="34 ABC 123"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Araç Tipi</Label>
+              <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ambulans">Ambulans</SelectItem>
+                  <SelectItem value="arac">Araç</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Kilometre</Label>
+                <Input 
+                  type="number" 
+                  value={formData.km} 
+                  onChange={(e) => setFormData({...formData, km: parseInt(e.target.value) || 0})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Yakıt Seviyesi (%)</Label>
+                <Input 
+                  type="number" 
+                  value={formData.fuel_level} 
+                  onChange={(e) => setFormData({...formData, fuel_level: parseInt(e.target.value) || 0})}
+                  min="0"
+                  max="100"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Son Muayene Tarihi</Label>
+                <Input 
+                  type="date" 
+                  value={formData.last_inspection_date} 
+                  onChange={(e) => setFormData({...formData, last_inspection_date: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Sonraki Bakım KM</Label>
+                <Input 
+                  type="number" 
+                  value={formData.next_maintenance_km} 
+                  onChange={(e) => setFormData({...formData, next_maintenance_km: parseInt(e.target.value) || 0})}
+                />
+              </div>
+            </div>
+            <Button onClick={editMode ? handleUpdate : handleCreate} className="w-full">
+              {editMode ? 'Güncelle' : 'Oluştur'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
