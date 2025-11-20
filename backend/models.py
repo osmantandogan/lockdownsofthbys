@@ -13,7 +13,8 @@ UserRole = Literal[
     "att",
     "bas_sofor",
     "sofor",
-    "cagri_merkezi"
+    "cagri_merkezi",
+    "personel"  # New: General staff role (no specific screens)
 ]
 
 # User Models
