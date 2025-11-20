@@ -38,6 +38,8 @@ const DashboardLayout = () => {
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },
+    { path: '/dashboard/form-history', icon: History, label: 'Form Geçmişi', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor'] },
+    { path: '/dashboard/user-management', icon: UserCog, label: 'Kullanıcı Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }
   ];
 
