@@ -81,4 +81,13 @@ export const settingsAPI = {
   getSystemInfo: () => api.get('/settings/system')
 };
 
+// Forms API
+export const formsAPI = {
+  submit: (data) => api.post('/forms', data),
+  getAll: (params) => api.get('/forms', { params }),
+  getById: (id) => api.get(`/forms/${id}`),
+  delete: (id) => api.delete(`/forms/${id}`),
+  getStats: () => api.get('/forms/stats/summary')
+};
+
 export default api;
