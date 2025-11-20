@@ -108,6 +108,8 @@ function App() {
             <Route path="shift-end" element={<ShiftEnd />} />
             <Route path="shift-forms" element={<ShiftForms />} />
             <Route path="forms" element={<Forms />} />
+            <Route path="form-history" element={<FormHistory />} />
+            <Route path="user-management" element={<UserManagement />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
