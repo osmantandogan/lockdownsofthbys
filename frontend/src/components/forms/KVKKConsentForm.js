@@ -6,6 +6,8 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import SignaturePad from '../SignaturePad';
+import { formsAPI } from '../../api';
+import { toast } from 'sonner';
 
 const KVKKConsentForm = () => {
   const [formData, setFormData] = useState({
@@ -19,9 +21,33 @@ const KVKKConsentForm = () => {
     signature: null
   });
 
-  const handleSave = () => {
-    console.log('Form data:', formData);
-    alert('Form kaydedildi! (Backend entegrasyonu yapılacak)');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!formData.patientName) {
+      toast.error('Lütfen hasta adını giriniz');
+      return;
+    }
+    if (!formData.signature) {
+      toast.error('Lütfen imzalayınız');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await formsAPI.submit({
+        form_type: 'kvkk',
+        form_data: formData,
+        patient_name: formData.patientName
+      });
+      toast.success('Form başarıyla kaydedildi!');
+      handleClear();
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(error.response?.data?.detail || 'Form kaydedilemedi');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePrint = () => {
