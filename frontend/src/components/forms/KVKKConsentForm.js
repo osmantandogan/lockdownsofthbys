@@ -317,8 +317,8 @@ const KVKKConsentForm = () => {
         <Button variant="outline" onClick={handlePrint}>
           🖨 Yazdır
         </Button>
-        <Button onClick={handleSave}>
-          ✓ Kaydet
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? 'Kaydediliyor...' : '✓ Kaydet'}
         </Button>
       </div>
     </div>
