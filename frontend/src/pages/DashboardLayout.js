@@ -52,7 +52,8 @@ const DashboardLayout = () => {
     'att': 'ATT',
     'bas_sofor': 'Baş Şoför',
     'sofor': 'Şoför',
-    'cagri_merkezi': 'Çağrı Merkezi'
+    'cagri_merkezi': 'Çağrı Merkezi',
+    'personel': 'Personel'
   };
 
   const filteredMenuItems = menuItems.filter(item => {
