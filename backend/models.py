@@ -279,3 +279,32 @@ class AuditLog(BaseModel):
     details: dict
     ip_address: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Form Models
+FormType = Literal[
+    "kvkk", "injection", "puncture", "minor_surgery", "general_consent",
+    "medicine_request", "material_request", "medical_gas_request",
+    "ambulance_equipment", "pre_case_check", "ambulance_case",
+    "daily_control", "handover"
+]
+
+class FormSubmission(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    form_type: FormType
+    form_data: dict
+    submitted_by: str
+    patient_name: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    case_id: Optional[str] = None
+    status: Literal["draft", "submitted", "approved", "rejected"] = "submitted"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FormSubmissionCreate(BaseModel):
+    form_type: FormType
+    form_data: dict
+    patient_name: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    case_id: Optional[str] = None
