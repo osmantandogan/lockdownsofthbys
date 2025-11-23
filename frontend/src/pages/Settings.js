@@ -18,6 +18,11 @@ const Settings = () => {
     phone: '',
     tc_no: ''
   });
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    sms: true,
+    email: true,
+    push: true
+  });
 
   useEffect(() => {
     loadData();
