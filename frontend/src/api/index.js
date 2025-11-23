@@ -90,4 +90,14 @@ export const formsAPI = {
   getStats: () => api.get('/forms/stats/summary')
 };
 
+// Reports API
+export const reportsAPI = {
+  caseStatistics: (params) => api.get('/reports/case-statistics', { params }),
+  personnelPerformance: (params) => api.get('/reports/personnel-performance', { params }),
+  vehicleUsage: (params) => api.get('/reports/vehicle-usage', { params }),
+  stockMovement: () => api.get('/reports/stock-movement'),
+  interventionTime: () => api.get('/reports/intervention-time'),
+  criticalStockAlert: () => api.get('/reports/critical-stock-alert')
+};
+
 export default api;
