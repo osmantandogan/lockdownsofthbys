@@ -37,6 +37,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar' },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar' },
     { path: '/dashboard/stock', icon: Package, label: 'Stok' },
+    { path: '/dashboard/stock-movements', icon: Package, label: 'Stok Hareketleri', roles: ['merkez_ofis', 'operasyon_muduru', 'hemsire'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },
