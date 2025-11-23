@@ -101,6 +101,16 @@ const Login = () => {
             </Button>
           </form>
 
+          <div className="text-center text-sm mt-4">
+            <Button
+              variant="link"
+              className="p-0 h-auto text-blue-600"
+              onClick={() => navigate('/forgot-password')}
+            >
+              Şifremi Unuttum
+            </Button>
+          </div>
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
