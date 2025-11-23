@@ -87,8 +87,16 @@ const Settings = () => {
         <p className="text-gray-500">Profil ve sistem ayarları</p>
       </div>
 
-      {/* Profile */}
-      <Card>
+      <Tabs defaultValue="profile">
+        <TabsList>
+          <TabsTrigger value="profile">Profil</TabsTrigger>
+          <TabsTrigger value="notifications">Bildirimler</TabsTrigger>
+          <TabsTrigger value="system">Sistem</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="space-y-4">
+          {/* Profile */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <User className="h-5 w-5" />
