@@ -5,6 +5,7 @@ from models import Case, CaseCreate, CaseAssignTeam, CaseUpdateStatus, CaseStatu
 from auth_utils import get_current_user
 from datetime import datetime
 from email_service import send_case_notifications
+from audit_logger import log_action
 
 router = APIRouter()
 
