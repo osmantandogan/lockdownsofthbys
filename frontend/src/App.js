@@ -117,6 +117,7 @@ function App() {
             <Route path="user-management" element={<UserManagement />} />
             <Route path="reports" element={<Reports />} />
             <Route path="audit-logs" element={<AuditLogs />} />
+            <Route path="stock-movements" element={<StockMovements />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
