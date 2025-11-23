@@ -17,6 +17,9 @@ import PreCaseCheckForm from '../components/forms/PreCaseCheckForm';
 import AmbulanceCaseFormFull from '../components/forms/AmbulanceCaseFormFull';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
 import HandoverFormFull from '../components/forms/HandoverFormFull';
+import OrderForm from '../components/forms/OrderForm';
+import AssetForm from '../components/forms/AssetForm';
+import LeaveForm from '../components/forms/LeaveForm';
 
 const Forms = () => {
   const [selectedForm, setSelectedForm] = useState(null);
