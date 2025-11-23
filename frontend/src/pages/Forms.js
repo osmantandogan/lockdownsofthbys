@@ -130,6 +130,30 @@ const Forms = () => {
     }
   ];
 
+  const corporateForms = [
+    {
+      id: 'order',
+      title: 'Sipariş/Talep Formu',
+      icon: ShoppingCart,
+      color: 'text-blue-600',
+      description: 'Malzeme ve ekipman sipariş formu'
+    },
+    {
+      id: 'asset',
+      title: 'Zimmet Formu',
+      icon: Briefcase,
+      color: 'text-orange-600',
+      description: 'Demirbaş zimmet formu'
+    },
+    {
+      id: 'leave',
+      title: 'İzin Talep Formu',
+      icon: CalendarIcon,
+      color: 'text-green-600',
+      description: 'Personel izin talep formu'
+    }
+  ];
+
   const openForm = (formId) => {
     setSelectedForm(formId);
     setDialogOpen(true);
