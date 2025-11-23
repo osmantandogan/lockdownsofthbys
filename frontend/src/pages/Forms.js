@@ -187,6 +187,12 @@ const Forms = () => {
         return <DailyControlFormFull formData={{}} onChange={() => {}} />;
       case 'handover':
         return <HandoverFormFull formData={{}} onChange={() => {}} vehiclePlate="" vehicleKm={0} />;
+      case 'order':
+        return <OrderForm />;
+      case 'asset':
+        return <AssetForm />;
+      case 'leave':
+        return <LeaveForm />;
       default:
         return null;
     }
