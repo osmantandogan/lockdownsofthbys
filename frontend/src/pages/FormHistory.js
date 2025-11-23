@@ -56,6 +56,32 @@ const FormHistory = () => {
     }
   };
 
+  const handleApprove = async (id) => {
+    try {
+      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/api/forms/${id}`, 
+        { status: 'approved' }, 
+        { withCredentials: true }
+      );
+      toast.success('Form onaylandı');
+      loadData();
+    } catch (error) {
+      toast.error('Form onaylanamadı');
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/api/forms/${id}`, 
+        { status: 'rejected' }, 
+        { withCredentials: true }
+      );
+      toast.success('Form reddedildi');
+      loadData();
+    } catch (error) {
+      toast.error('Form reddedilemedi');
+    }
+  };
+
   const viewForm = async (form) => {
     setSelectedForm(form);
     setDialogOpen(true);
