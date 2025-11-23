@@ -22,6 +22,7 @@ const CaseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [consultationDialogOpen, setConsultationDialogOpen] = useState(false);
   const [assignForm, setAssignForm] = useState({
     vehicle_id: '',
     driver_id: '',
@@ -32,6 +33,7 @@ const CaseDetail = () => {
     status: '',
     note: ''
   });
+  const [consultationNote, setConsultationNote] = useState('');
 
   useEffect(() => {
     loadData();
