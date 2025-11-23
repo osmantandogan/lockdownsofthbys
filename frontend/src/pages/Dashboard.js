@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { casesAPI, vehiclesAPI, stockAPI } from '../api';
+import { casesAPI, vehiclesAPI, stockAPI, reportsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Activity, Truck, Package, AlertTriangle } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -13,6 +14,7 @@ const Dashboard = () => {
     expired: 0,
     expiringSoon: 0
   });
+  const [caseStats, setCaseStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +23,11 @@ const Dashboard = () => {
 
   const loadStats = async () => {
     try {
-      const [casesRes, vehiclesRes, stockRes] = await Promise.all([
+      const [casesRes, vehiclesRes, stockRes, reportRes] = await Promise.all([
         casesAPI.getStats(),
         vehiclesAPI.getStats(),
-        stockAPI.getAlerts()
+        stockAPI.getAlerts(),
+        reportsAPI.caseStatistics({})
       ]);
 
       setStats({
@@ -35,6 +38,8 @@ const Dashboard = () => {
         expired: stockRes.data.expired,
         expiringSoon: stockRes.data.expiring_soon
       });
+      
+      setCaseStats(reportRes.data);
     } catch (error) {
       console.error('Error loading stats:', error);
       toast.error('İstatistikler yüklenemedi');
