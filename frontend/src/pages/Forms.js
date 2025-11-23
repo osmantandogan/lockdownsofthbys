@@ -308,6 +308,39 @@ const Forms = () => {
         </div>
       </div>
 
+      {/* Kurumsal Formlar Section */}
+      <div className="space-y-4">
+        <div className="border-b pb-2">
+          <h2 className="text-2xl font-semibold">Kurumsal Formlar</h2>
+          <p className="text-sm text-gray-500">İdari ve operasyonel formlar</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {corporateForms.map((form) => {
+            const Icon = form.icon;
+            return (
+              <Card key={form.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => openForm(form.id)}>
+                <CardContent className="p-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center ${form.color}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-sm leading-tight">{form.title}</h3>
+                    <p className="text-xs text-gray-600">{form.description}</p>
+                    <Button variant="outline" size="sm" className="w-full mt-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Formu Aç
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[95vh]">
           <DialogHeader>
