@@ -89,6 +89,7 @@ function App() {
               </PublicRoute>
             }
           />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth-redirect" element={<AuthRedirect />} />
 
           {/* Protected Routes */}
