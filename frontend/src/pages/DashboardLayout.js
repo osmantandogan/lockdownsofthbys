@@ -28,6 +28,16 @@ const DashboardLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: 'Yeni Vaka', message: 'Yüksek öncelikli vaka oluşturuldu', time: '5 dk önce', read: false },
+    { id: 2, title: 'Kritik Stok', message: 'Parasetamol kritik seviyede', time: '1 saat önce', read: false }
+  ]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAsRead = (id) => {
+    setNotifications(notifications.map(n => n.id === id ? {...n, read: true} : n));
+  };
 
   const handleLogout = async () => {
     await logout();
