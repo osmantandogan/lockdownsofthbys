@@ -230,6 +230,16 @@ const FormHistory = () => {
                     <Button variant="ghost" size="icon" onClick={() => viewForm(form)}>
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {form.status === 'submitted' && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => handleApprove(form.id)} className="text-green-600">
+                          ✓ Onayla
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleReject(form.id)} className="text-red-600">
+                          ✗ Reddet
+                        </Button>
+                      </>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(form.id)} className="text-red-600">
                       <Trash2 className="h-4 w-4" />
                     </Button>
