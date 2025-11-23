@@ -87,8 +87,34 @@ const StockMovements = () => {
         </Dialog>
       </div>
       <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-gray-500">Stok hareket geçmişi burada görünecek</p>
+        <CardHeader><CardTitle>Hareket Geçmişi</CardTitle></CardHeader>
+        <CardContent>
+          {movements.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">Hareket kaydı bulunamadı</p>
+          ) : (
+            <div className="space-y-3">
+              {movements.map((movement) => (
+                <div key={movement.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      {movement.movement_type === 'in' && <ArrowDown className="h-4 w-4 text-green-600" />}
+                      {movement.movement_type === 'out' && <ArrowUp className="h-4 w-4 text-red-600" />}
+                      {movement.movement_type === 'transfer' && <ArrowLeftRight className="h-4 w-4 text-blue-600" />}
+                      <span className="font-medium text-sm">
+                        {movement.movement_type === 'in' ? 'Giriş' : movement.movement_type === 'out' ? 'Çıkış' : 'Transfer'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">{movement.reason}</p>
+                    <p className="text-xs text-gray-400">{new Date(movement.created_at).toLocaleString('tr-TR')}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">{movement.quantity}</p>
+                    <p className="text-xs text-gray-500">Adet</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
