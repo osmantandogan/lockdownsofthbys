@@ -166,6 +166,14 @@ const UserManagement = () => {
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(userData)}>
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openTempRoleDialog(userData)}
+                        className="text-xs"
+                      >
+                        Geçici Rol
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
