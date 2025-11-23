@@ -126,6 +126,22 @@ const UserManagement = () => {
     setEditMode(false);
   };
 
+  const openTempRoleDialog = (userData) => {
+    setSelectedUser(userData);
+    setTempRoleDialog(true);
+  };
+
+  const handleAssignTempRole = async () => {
+    try {
+      await usersAPI.assignTempRole(selectedUser.id, tempRoleData.role, tempRoleData.duration);
+      toast.success('Geçici rol atandı');
+      setTempRoleDialog(false);
+      loadUsers();
+    } catch (error) {
+      toast.error('Geçici rol atanamadı');
+    }
+  };
+
   const canManage = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
 
   if (!canManage) {
