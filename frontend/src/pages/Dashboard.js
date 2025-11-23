@@ -136,6 +136,63 @@ const Dashboard = () => {
         </Card>
       )}
 
+      {/* Vaka Trendi Grafiği */}
+      {caseStats && caseStats.daily_breakdown && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vaka Trendi (Son 30 Gün)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={caseStats.daily_breakdown.slice(-30)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} name="Vaka Sayısı" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Öncelik Dağılımı */}
+      {caseStats && caseStats.by_priority && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vaka Öncelik Dağılımı</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Yüksek', value: caseStats.by_priority.high, color: '#ef4444' },
+                    { name: 'Orta', value: caseStats.by_priority.medium, color: '#f59e0b' },
+                    { name: 'Düşük', value: caseStats.by_priority.low, color: '#10b981' }
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
+                  label
+                >
+                  {[
+                    { name: 'Yüksek', value: caseStats.by_priority.high, color: '#ef4444' },
+                    { name: 'Orta', value: caseStats.by_priority.medium, color: '#f59e0b' },
+                    { name: 'Düşük', value: caseStats.by_priority.low, color: '#10b981' }
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Hızlı Aksiyonlar */}
       <Card>
         <CardHeader>
