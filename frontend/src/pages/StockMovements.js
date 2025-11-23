@@ -13,6 +13,7 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 const StockMovements = () => {
+  const [movements, setMovements] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     stock_item_id: '',
@@ -21,6 +22,19 @@ const StockMovements = () => {
     reason: '',
     notes: ''
   });
+
+  useEffect(() => {
+    loadMovements();
+  }, []);
+
+  const loadMovements = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/stock/movements`, { withCredentials: true });
+      setMovements(response.data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const handleSubmit = async () => {
     try {
