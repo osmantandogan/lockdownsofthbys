@@ -25,6 +25,8 @@ import FormHistory from "./pages/FormHistory";
 import UserManagement from "./pages/UserManagement";
 import Reports from "./pages/Reports";
 import AuditLogs from "./pages/AuditLogs";
+import StockMovements from "./pages/StockMovements";
+import ForgotPassword from "./pages/ForgotPassword";
 import Settings from "./pages/Settings";
 
 // Protected Route Component
