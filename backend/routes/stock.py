@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
-from database import stock_collection
-from models import StockItem, StockItemCreate, StockItemUpdate
+from database import stock_collection, stock_movements_collection
+from models import StockItem, StockItemCreate, StockItemUpdate, StockMovement, StockMovementCreate
 from auth_utils import get_current_user, require_roles
 from datetime import datetime, timedelta
 
