@@ -253,6 +253,42 @@ const UserManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Geçici Rol Atama Dialog */}
+      <Dialog open={tempRoleDialog} onOpenChange={setTempRoleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Geçici Rol Ata - {selectedUser?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Geçici Rol</Label>
+              <Select value={tempRoleData.role} onValueChange={(v) => setTempRoleData({...tempRoleData, role: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(r => (
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Süre (Gün)</Label>
+              <Input 
+                type="number" 
+                value={tempRoleData.duration} 
+                onChange={(e) => setTempRoleData({...tempRoleData, duration: parseInt(e.target.value)})}
+              />
+            </div>
+            <p className="text-xs text-gray-500">
+              Belirlenen süre sonunda rol otomatik olarak kaldırılacaktır.
+            </p>
+            <Button onClick={handleAssignTempRole} className="w-full">Ata</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
