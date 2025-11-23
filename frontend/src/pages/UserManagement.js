@@ -19,8 +19,13 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [tempRoleDialog, setTempRoleDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [tempRoleData, setTempRoleData] = useState({
+    role: '',
+    duration: 7
+  });
   const [formData, setFormData] = useState({
     email: '',
     password: '',
