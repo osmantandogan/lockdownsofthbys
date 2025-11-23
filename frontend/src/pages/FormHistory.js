@@ -204,6 +204,16 @@ const FormHistory = () => {
                       <Badge className="bg-blue-100 text-blue-800">
                         {formTypeLabels[form.form_type]}
                       </Badge>
+                      <Badge className={
+                        form.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        form.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        form.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }>
+                        {form.status === 'approved' ? 'Onaylandı' :
+                         form.status === 'rejected' ? 'Reddedildi' :
+                         form.status === 'draft' ? 'Taslak' : 'Bekliyor'}
+                      </Badge>
                       <span className="text-sm text-gray-500">
                         {new Date(form.created_at).toLocaleString('tr-TR')}
                       </span>
