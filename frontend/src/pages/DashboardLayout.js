@@ -15,7 +15,9 @@ import {
   X,
   FileText,
   History,
-  UserCog
+  UserCog,
+  BarChart3,
+  Shield
 } from 'lucide-react';
 import { useState } from 'react';
 
