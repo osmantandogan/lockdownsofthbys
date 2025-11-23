@@ -112,6 +112,8 @@ function App() {
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
             <Route path="user-management" element={<UserManagement />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="audit-logs" element={<AuditLogs />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
