@@ -46,6 +46,15 @@ async def create_case(data: CaseCreate, request: Request):
     case_dict = new_case.model_dump(by_alias=True)
     await cases_collection.insert_one(case_dict)
     
+    # Audit log
+    await log_action(
+        user_id=user.id,
+        action="CREATE_CASE",
+        entity_type="case",
+        entity_id=new_case.id,
+        details={"case_number": case_number, "priority": data.priority}
+    )
+    
     return new_case
 
 @router.get("/", response_model=List[Case])
