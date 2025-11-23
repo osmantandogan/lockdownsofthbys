@@ -345,7 +345,7 @@ const Forms = () => {
         <DialogContent className="max-w-5xl max-h-[95vh]">
           <DialogHeader>
             <DialogTitle className="text-xl">
-              {[...consentForms, ...requestForms, ...ambulanceForms].find(f => f.id === selectedForm)?.title}
+              {[...consentForms, ...requestForms, ...ambulanceForms, ...corporateForms].find(f => f.id === selectedForm)?.title}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-[80vh] pr-4">
