@@ -23,6 +23,8 @@ import ShiftForms from "./pages/ShiftForms";
 import Forms from "./pages/Forms";
 import FormHistory from "./pages/FormHistory";
 import UserManagement from "./pages/UserManagement";
+import Reports from "./pages/Reports";
+import AuditLogs from "./pages/AuditLogs";
 import Settings from "./pages/Settings";
 
 // Protected Route Component
