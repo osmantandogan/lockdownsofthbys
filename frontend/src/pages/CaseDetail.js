@@ -80,6 +80,21 @@ const CaseDetail = () => {
     }
   };
 
+  const handleConsultation = async () => {
+    try {
+      await casesAPI.updateStatus(id, {
+        status: 'doktor_konsultasyonu',
+        note: consultationNote
+      });
+      toast.success('Konsültasyon notu eklendi');
+      setConsultationDialogOpen(false);
+      setConsultationNote('');
+      loadData();
+    } catch (error) {
+      toast.error('Konsültasyon eklenemedi');
+    }
+  };
+
   const statusLabels = {
     acildi: 'Açıldı',
     ekip_bilgilendirildi: 'Ekip Bilgilendirildi',
