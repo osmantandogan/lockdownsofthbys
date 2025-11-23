@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import { User, Info } from 'lucide-react';
+import { User, Info, Bell } from 'lucide-react';
 
 const Settings = () => {
   const [profile, setProfile] = useState(null);
