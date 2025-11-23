@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta, timezone
 import aiohttp
 import os
+import uuid
 from database import users_collection, user_sessions_collection
 from models import User, UserRole
 from auth_utils import create_access_token, get_current_user
