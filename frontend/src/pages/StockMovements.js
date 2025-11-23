@@ -41,6 +41,7 @@ const StockMovements = () => {
       await axios.post(`${API_URL}/stock/movements`, formData, { withCredentials: true });
       toast.success('Stok hareketi kaydedildi');
       setDialogOpen(false);
+      loadMovements();
     } catch (error) {
       toast.error('Hareket kaydedilemedi');
     }
