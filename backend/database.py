@@ -18,6 +18,7 @@ vehicles_collection = db.vehicles
 stock_collection = db.stock
 shifts_collection = db.shifts
 shift_assignments_collection = db.shift_assignments
+stock_movements_collection = db.stock_movements
 audit_logs_collection = db.audit_logs
 notifications_collection = db.notifications
 forms_collection = db.forms  # New: Form submissions
