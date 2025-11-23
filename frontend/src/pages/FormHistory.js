@@ -10,6 +10,7 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
 import { FileText, Search, Trash2, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 const FormHistory = () => {
   const { user } = useAuth();
