@@ -17,7 +17,8 @@ import {
   History,
   UserCog,
   BarChart3,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
 
