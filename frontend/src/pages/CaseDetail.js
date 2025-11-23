@@ -209,6 +209,28 @@ const CaseDetail = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            <Dialog open={consultationDialogOpen} onOpenChange={setConsultationDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="consultation-button">Konsültasyon</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Doktor Konsültasyonu</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label>Konsültasyon Notu *</Label>
+                    <Textarea
+                      value={consultationNote}
+                      onChange={(e) => setConsultationNote(e.target.value)}
+                      placeholder="Konsültasyon notunu girin"
+                      rows={4}
+                    />
+                  </div>
+                  <Button onClick={handleConsultation} className="w-full">Kaydet</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>
