@@ -132,3 +132,67 @@ async def get_stock_alerts(request: Request):
         "expired": expired,
         "expiring_soon": expiring_soon
     }
+
+# Stock Movement Endpoints
+@router.post("/movements", response_model=StockMovement)
+async def create_stock_movement(data: StockMovementCreate, request: Request):
+    """Record stock movement"""
+    user = await get_current_user(request)
+    
+    # Get stock item
+    stock_item = await stock_collection.find_one({"_id": data.stock_item_id})
+    if not stock_item:
+        raise HTTPException(status_code=404, detail="Stock item not found")
+    
+    # Create movement
+    movement = StockMovement(
+        stock_item_id=data.stock_item_id,
+        movement_type=data.movement_type,
+        quantity=data.quantity,
+        from_location=data.from_location,
+        to_location=data.to_location,
+        reason=data.reason,
+        notes=data.notes,
+        performed_by=user.id
+    )
+    
+    movement_dict = movement.model_dump(by_alias=True)
+    await stock_movements_collection.insert_one(movement_dict)
+    
+    # Update stock quantity
+    if data.movement_type == "in":
+        new_quantity = stock_item["quantity"] + data.quantity
+    elif data.movement_type == "out":
+        new_quantity = stock_item["quantity"] - data.quantity
+    else:  # transfer
+        new_quantity = stock_item["quantity"]
+    
+    await stock_collection.update_one(
+        {"_id": data.stock_item_id},
+        {"$set": {"quantity": new_quantity, "updated_at": datetime.utcnow()}}
+    )
+    
+    return movement
+
+@router.get("/movements", response_model=List[StockMovement])
+async def get_stock_movements(
+    request: Request,
+    stock_item_id: Optional[str] = None,
+    movement_type: Optional[str] = None,
+    limit: int = 100
+):
+    """Get stock movement history"""
+    await get_current_user(request)
+    
+    query = {}
+    if stock_item_id:
+        query["stock_item_id"] = stock_item_id
+    if movement_type:
+        query["movement_type"] = movement_type
+    
+    movements = await stock_movements_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for movement in movements:
+        movement["id"] = movement.pop("_id")
+    
+    return movements
