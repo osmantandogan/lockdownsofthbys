@@ -8,6 +8,18 @@ const api = axios.create({
   withCredentials: true
 });
 
+// Add response interceptor for 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Redirect to login on authentication failure
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Cases API
 export const casesAPI = {
   getAll: (params) => api.get('/cases', { params }),
