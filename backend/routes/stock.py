@@ -19,7 +19,7 @@ async def create_stock_item(data: StockItemCreate, request: Request):
     
     return new_item
 
-@router.get("/", response_model=List[StockItem])
+@router.get("", response_model=List[StockItem])
 async def get_stock_items(
     request: Request,
     location: Optional[str] = None,
