@@ -26,7 +26,7 @@ async def submit_form(data: FormSubmissionCreate, request: Request):
     
     return new_form
 
-@router.get("/", response_model=List[FormSubmission])
+@router.get("", response_model=List[FormSubmission])
 async def get_forms(
     request: Request,
     form_type: Optional[str] = None,
