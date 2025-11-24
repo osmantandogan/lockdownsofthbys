@@ -57,7 +57,7 @@ async def create_case(data: CaseCreate, request: Request):
     
     return new_case
 
-@router.get("/", response_model=List[Case])
+@router.get("", response_model=List[Case])
 async def get_cases(
     request: Request,
     status: Optional[str] = None,
