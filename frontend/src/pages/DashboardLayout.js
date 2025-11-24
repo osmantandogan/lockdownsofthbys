@@ -189,29 +189,31 @@ const DashboardLayout = () => {
           </div>
         </div>
 
-        <nav className="p-4 space-y-1">
-          {filteredMenuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/dashboard'}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`
-              }
-              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="text-sm font-medium">{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        <ScrollArea className="flex-1 px-4">
+          <nav className="space-y-1 py-4">
+            {filteredMenuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/dashboard'}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`
+                }
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        </ScrollArea>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+        <div className="p-4 border-t">
           <Button
             variant="ghost"
             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
