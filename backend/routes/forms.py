@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/", response_model=FormSubmission)
+@router.post("", response_model=FormSubmission)
 async def submit_form(data: FormSubmissionCreate, request: Request):
     """Submit a new form"""
     user = await get_current_user(request)
