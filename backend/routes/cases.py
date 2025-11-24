@@ -16,7 +16,7 @@ def generate_case_number() -> str:
     # This is simplified - in production, use atomic counter
     return f"{date_str}-{now.strftime('%H%M%S')}"
 
-@router.post("/", response_model=Case)
+@router.post("", response_model=Case)
 async def create_case(data: CaseCreate, request: Request):
     """Create new case (Call Center)"""
     user = await get_current_user(request)
