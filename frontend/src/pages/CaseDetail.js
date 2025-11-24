@@ -22,6 +22,7 @@ const CaseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [consultationDialogOpen, setConsultationDialogOpen] = useState(false);
   const [assignForm, setAssignForm] = useState({
     vehicle_id: '',
     driver_id: '',
@@ -32,6 +33,7 @@ const CaseDetail = () => {
     status: '',
     note: ''
   });
+  const [consultationNote, setConsultationNote] = useState('');
 
   useEffect(() => {
     loadData();
@@ -75,6 +77,21 @@ const CaseDetail = () => {
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Durum güncellenemedi');
+    }
+  };
+
+  const handleConsultation = async () => {
+    try {
+      await casesAPI.updateStatus(id, {
+        status: 'doktor_konsultasyonu',
+        note: consultationNote
+      });
+      toast.success('Konsültasyon notu eklendi');
+      setConsultationDialogOpen(false);
+      setConsultationNote('');
+      loadData();
+    } catch (error) {
+      toast.error('Konsültasyon eklenemedi');
     }
   };
 
@@ -189,6 +206,28 @@ const CaseDetail = () => {
                     />
                   </div>
                   <Button onClick={handleUpdateStatus} className="w-full">Güncelle</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={consultationDialogOpen} onOpenChange={setConsultationDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="consultation-button">Konsültasyon</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Doktor Konsültasyonu</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label>Konsültasyon Notu *</Label>
+                    <Textarea
+                      value={consultationNote}
+                      onChange={(e) => setConsultationNote(e.target.value)}
+                      placeholder="Konsültasyon notunu girin"
+                      rows={4}
+                    />
+                  </div>
+                  <Button onClick={handleConsultation} className="w-full">Kaydet</Button>
                 </div>
               </DialogContent>
             </Dialog>

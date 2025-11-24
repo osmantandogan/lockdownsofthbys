@@ -10,6 +10,7 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
 import { FileText, Search, Trash2, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 const FormHistory = () => {
   const { user } = useAuth();
@@ -53,6 +54,32 @@ const FormHistory = () => {
       loadData();
     } catch (error) {
       toast.error('Form silinemedi');
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/api/forms/${id}`, 
+        { status: 'approved' }, 
+        { withCredentials: true }
+      );
+      toast.success('Form onaylandı');
+      loadData();
+    } catch (error) {
+      toast.error('Form onaylanamadı');
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/api/forms/${id}`, 
+        { status: 'rejected' }, 
+        { withCredentials: true }
+      );
+      toast.success('Form reddedildi');
+      loadData();
+    } catch (error) {
+      toast.error('Form reddedilemedi');
     }
   };
 
@@ -178,6 +205,16 @@ const FormHistory = () => {
                       <Badge className="bg-blue-100 text-blue-800">
                         {formTypeLabels[form.form_type]}
                       </Badge>
+                      <Badge className={
+                        form.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        form.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        form.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }>
+                        {form.status === 'approved' ? 'Onaylandı' :
+                         form.status === 'rejected' ? 'Reddedildi' :
+                         form.status === 'draft' ? 'Taslak' : 'Bekliyor'}
+                      </Badge>
                       <span className="text-sm text-gray-500">
                         {new Date(form.created_at).toLocaleString('tr-TR')}
                       </span>
@@ -194,6 +231,16 @@ const FormHistory = () => {
                     <Button variant="ghost" size="icon" onClick={() => viewForm(form)}>
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {form.status === 'submitted' && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => handleApprove(form.id)} className="text-green-600">
+                          ✓ Onayla
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleReject(form.id)} className="text-red-600">
+                          ✗ Reddet
+                        </Button>
+                      </>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(form.id)} className="text-red-600">
                       <Trash2 className="h-4 w-4" />
                     </Button>

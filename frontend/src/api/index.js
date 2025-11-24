@@ -8,6 +8,18 @@ const api = axios.create({
   withCredentials: true
 });
 
+// Add response interceptor for 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Redirect to login on authentication failure
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Cases API
 export const casesAPI = {
   getAll: (params) => api.get('/cases', { params }),
@@ -88,6 +100,16 @@ export const formsAPI = {
   getById: (id) => api.get(`/forms/${id}`),
   delete: (id) => api.delete(`/forms/${id}`),
   getStats: () => api.get('/forms/stats/summary')
+};
+
+// Reports API
+export const reportsAPI = {
+  caseStatistics: (params) => api.get('/reports/case-statistics', { params }),
+  personnelPerformance: (params) => api.get('/reports/personnel-performance', { params }),
+  vehicleUsage: (params) => api.get('/reports/vehicle-usage', { params }),
+  stockMovement: () => api.get('/reports/stock-movement'),
+  interventionTime: () => api.get('/reports/intervention-time'),
+  criticalStockAlert: () => api.get('/reports/critical-stock-alert')
 };
 
 export default api;

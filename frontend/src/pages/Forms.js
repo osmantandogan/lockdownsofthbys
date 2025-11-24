@@ -3,7 +3,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { FileText, Shield, Syringe, Scissors, FileSignature, Pill, Package, Wind, Ambulance, Truck, ClipboardCheck } from 'lucide-react';
+import { FileText, Shield, Syringe, Scissors, FileSignature, Pill, Package, Wind, Ambulance, Truck, ClipboardCheck, ShoppingCart, Briefcase, Calendar as CalendarIcon } from 'lucide-react';
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
 import InjectionConsentForm from '../components/forms/InjectionConsentForm';
 import PunctureConsentForm from '../components/forms/PunctureConsentForm';
@@ -17,6 +17,9 @@ import PreCaseCheckForm from '../components/forms/PreCaseCheckForm';
 import AmbulanceCaseFormFull from '../components/forms/AmbulanceCaseFormFull';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
 import HandoverFormFull from '../components/forms/HandoverFormFull';
+import OrderForm from '../components/forms/OrderForm';
+import AssetForm from '../components/forms/AssetForm';
+import LeaveForm from '../components/forms/LeaveForm';
 
 const Forms = () => {
   const [selectedForm, setSelectedForm] = useState(null);
@@ -127,6 +130,30 @@ const Forms = () => {
     }
   ];
 
+  const corporateForms = [
+    {
+      id: 'order',
+      title: 'Sipariş/Talep Formu',
+      icon: ShoppingCart,
+      color: 'text-blue-600',
+      description: 'Malzeme ve ekipman sipariş formu'
+    },
+    {
+      id: 'asset',
+      title: 'Zimmet Formu',
+      icon: Briefcase,
+      color: 'text-orange-600',
+      description: 'Demirbaş zimmet formu'
+    },
+    {
+      id: 'leave',
+      title: 'İzin Talep Formu',
+      icon: CalendarIcon,
+      color: 'text-green-600',
+      description: 'Personel izin talep formu'
+    }
+  ];
+
   const openForm = (formId) => {
     setSelectedForm(formId);
     setDialogOpen(true);
@@ -160,6 +187,12 @@ const Forms = () => {
         return <DailyControlFormFull formData={{}} onChange={() => {}} />;
       case 'handover':
         return <HandoverFormFull formData={{}} onChange={() => {}} vehiclePlate="" vehicleKm={0} />;
+      case 'order':
+        return <OrderForm />;
+      case 'asset':
+        return <AssetForm />;
+      case 'leave':
+        return <LeaveForm />;
       default:
         return null;
     }
@@ -275,11 +308,44 @@ const Forms = () => {
         </div>
       </div>
 
+      {/* Kurumsal Formlar Section */}
+      <div className="space-y-4">
+        <div className="border-b pb-2">
+          <h2 className="text-2xl font-semibold">Kurumsal Formlar</h2>
+          <p className="text-sm text-gray-500">İdari ve operasyonel formlar</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {corporateForms.map((form) => {
+            const Icon = form.icon;
+            return (
+              <Card key={form.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => openForm(form.id)}>
+                <CardContent className="p-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center ${form.color}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-sm leading-tight">{form.title}</h3>
+                    <p className="text-xs text-gray-600">{form.description}</p>
+                    <Button variant="outline" size="sm" className="w-full mt-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Formu Aç
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[95vh]">
           <DialogHeader>
             <DialogTitle className="text-xl">
-              {[...consentForms, ...requestForms, ...ambulanceForms].find(f => f.id === selectedForm)?.title}
+              {[...consentForms, ...requestForms, ...ambulanceForms, ...corporateForms].find(f => f.id === selectedForm)?.title}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-[80vh] pr-4">

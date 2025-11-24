@@ -281,6 +281,30 @@ class AuditLog(BaseModel):
     ip_address: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Stock Movement Models
+class StockMovement(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    stock_item_id: str
+    movement_type: Literal["in", "out", "transfer"]
+    quantity: int
+    from_location: Optional[str] = None
+    to_location: Optional[str] = None
+    reason: str
+    performed_by: str
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class StockMovementCreate(BaseModel):
+    stock_item_id: str
+    movement_type: Literal["in", "out", "transfer"]
+    quantity: int
+    from_location: Optional[str] = None
+    to_location: Optional[str] = None
+    reason: str
+    notes: Optional[str] = None
+
 # Form Models
 FormType = Literal[
     "kvkk", "injection", "puncture", "minor_surgery", "general_consent",
@@ -309,3 +333,25 @@ class FormSubmissionCreate(BaseModel):
     patient_name: Optional[str] = None
     vehicle_plate: Optional[str] = None
     case_id: Optional[str] = None
+
+# Maintenance Models
+class VehicleMaintenance(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    vehicle_id: str
+    maintenance_type: Literal["routine", "repair", "inspection"]
+    description: str
+    km_at_maintenance: int
+    cost: Optional[float] = None
+    performed_by: str
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MaintenanceCreate(BaseModel):
+    vehicle_id: str
+    maintenance_type: Literal["routine", "repair", "inspection"]
+    description: str
+    km_at_maintenance: int
+    cost: Optional[float] = None
+    notes: Optional[str] = None

@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 # Import routers
-from routes import auth, users, cases, vehicles, stock, shifts, settings, forms
+from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, reports, audit
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -18,7 +18,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app
-app = FastAPI(title="HealMedy HBYS API")
+app = FastAPI(title="HealMedy HBYS API", redirect_slashes=False)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -32,6 +32,8 @@ api_router.include_router(stock.router, prefix="/stock", tags=["Stock"])
 api_router.include_router(shifts.router, prefix="/shifts", tags=["Shifts"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
 api_router.include_router(forms.router, prefix="/forms", tags=["Forms"])
+api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
+api_router.include_router(audit.router, prefix="/audit-logs", tags=["Audit"])
 
 # Health check endpoint
 @api_router.get("/")

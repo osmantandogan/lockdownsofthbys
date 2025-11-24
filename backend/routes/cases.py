@@ -5,6 +5,7 @@ from models import Case, CaseCreate, CaseAssignTeam, CaseUpdateStatus, CaseStatu
 from auth_utils import get_current_user
 from datetime import datetime
 from email_service import send_case_notifications
+from audit_logger import log_action
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ def generate_case_number() -> str:
     # This is simplified - in production, use atomic counter
     return f"{date_str}-{now.strftime('%H%M%S')}"
 
-@router.post("/", response_model=Case)
+@router.post("", response_model=Case)
 async def create_case(data: CaseCreate, request: Request):
     """Create new case (Call Center)"""
     user = await get_current_user(request)
@@ -45,9 +46,18 @@ async def create_case(data: CaseCreate, request: Request):
     case_dict = new_case.model_dump(by_alias=True)
     await cases_collection.insert_one(case_dict)
     
+    # Audit log
+    await log_action(
+        user_id=user.id,
+        action="CREATE_CASE",
+        entity_type="case",
+        entity_id=new_case.id,
+        details={"case_number": case_number, "priority": data.priority}
+    )
+    
     return new_case
 
-@router.get("/", response_model=List[Case])
+@router.get("", response_model=List[Case])
 async def get_cases(
     request: Request,
     status: Optional[str] = None,

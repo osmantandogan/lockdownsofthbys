@@ -23,6 +23,10 @@ import ShiftForms from "./pages/ShiftForms";
 import Forms from "./pages/Forms";
 import FormHistory from "./pages/FormHistory";
 import UserManagement from "./pages/UserManagement";
+import Reports from "./pages/Reports";
+import AuditLogs from "./pages/AuditLogs";
+import StockMovements from "./pages/StockMovements";
+import ForgotPassword from "./pages/ForgotPassword";
 import Settings from "./pages/Settings";
 
 // Protected Route Component
@@ -85,6 +89,7 @@ function App() {
               </PublicRoute>
             }
           />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth-redirect" element={<AuthRedirect />} />
 
           {/* Protected Routes */}
@@ -110,6 +115,9 @@ function App() {
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
             <Route path="user-management" element={<UserManagement />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="audit-logs" element={<AuditLogs />} />
+            <Route path="stock-movements" element={<StockMovements />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

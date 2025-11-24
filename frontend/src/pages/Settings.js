@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import { User, Info } from 'lucide-react';
+import { User, Info, Bell } from 'lucide-react';
 
 const Settings = () => {
   const [profile, setProfile] = useState(null);
@@ -15,6 +17,11 @@ const Settings = () => {
     name: '',
     phone: '',
     tc_no: ''
+  });
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    sms: true,
+    email: true,
+    push: true
   });
 
   useEffect(() => {
@@ -62,7 +69,8 @@ const Settings = () => {
     'att': 'ATT',
     'bas_sofor': 'Baş Şoför',
     'sofor': 'Şoför',
-    'cagri_merkezi': 'Çağrı Merkezi'
+    'cagri_merkezi': 'Çağrı Merkezi',
+    'personel': 'Personel'
   };
 
   if (loading) {
@@ -80,8 +88,16 @@ const Settings = () => {
         <p className="text-gray-500">Profil ve sistem ayarları</p>
       </div>
 
-      {/* Profile */}
-      <Card>
+      <Tabs defaultValue="profile">
+        <TabsList>
+          <TabsTrigger value="profile">Profil</TabsTrigger>
+          <TabsTrigger value="notifications">Bildirimler</TabsTrigger>
+          <TabsTrigger value="system">Sistem</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="space-y-4">
+          {/* Profile */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <User className="h-5 w-5" />
@@ -156,6 +172,68 @@ const Settings = () => {
           <p><span className="font-medium">Son Güncelleme:</span> {systemInfo?.last_update}</p>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Bell className="h-5 w-5" />
+                <span>Bildirim Tercihleri</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Email Bildirimleri</p>
+                  <p className="text-sm text-gray-500">Vaka ve uyarı bildirimlerini email ile al</p>
+                </div>
+                <Switch 
+                  checked={notificationPrefs.email} 
+                  onCheckedChange={(v) => setNotificationPrefs({...notificationPrefs, email: v})}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">SMS Bildirimleri</p>
+                  <p className="text-sm text-gray-500">Acil durumları SMS ile bildir</p>
+                </div>
+                <Switch 
+                  checked={notificationPrefs.sms} 
+                  onCheckedChange={(v) => setNotificationPrefs({...notificationPrefs, sms: v})}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Push Bildirimleri</p>
+                  <p className="text-sm text-gray-500">Tarayıcı bildirimleri</p>
+                </div>
+                <Switch 
+                  checked={notificationPrefs.push} 
+                  onCheckedChange={(v) => setNotificationPrefs({...notificationPrefs, push: v})}
+                />
+              </div>
+              <Button className="w-full">Tercihleri Kaydet</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="system" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Info className="h-5 w-5" />
+                <span>Sistem Bilgisi</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p><span className="font-medium">Versiyon:</span> {systemInfo?.version}</p>
+              <p><span className="font-medium">Ortam:</span> {systemInfo?.environment}</p>
+              <p><span className="font-medium">Son Güncelleme:</span> {systemInfo?.last_update}</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { casesAPI, vehiclesAPI, stockAPI } from '../api';
+import { casesAPI, vehiclesAPI, stockAPI, reportsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Activity, Truck, Package, AlertTriangle } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -13,6 +14,7 @@ const Dashboard = () => {
     expired: 0,
     expiringSoon: 0
   });
+  const [caseStats, setCaseStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +23,11 @@ const Dashboard = () => {
 
   const loadStats = async () => {
     try {
-      const [casesRes, vehiclesRes, stockRes] = await Promise.all([
+      const [casesRes, vehiclesRes, stockRes, reportRes] = await Promise.all([
         casesAPI.getStats(),
         vehiclesAPI.getStats(),
-        stockAPI.getAlerts()
+        stockAPI.getAlerts(),
+        reportsAPI.caseStatistics({})
       ]);
 
       setStats({
@@ -35,6 +38,8 @@ const Dashboard = () => {
         expired: stockRes.data.expired,
         expiringSoon: stockRes.data.expiring_soon
       });
+      
+      setCaseStats(reportRes.data);
     } catch (error) {
       console.error('Error loading stats:', error);
       toast.error('İstatistikler yüklenemedi');
@@ -127,6 +132,63 @@ const Dashboard = () => {
                 <span className="text-sm font-bold text-yellow-600">{stats.expiringSoon}</span>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vaka Trendi Grafiği */}
+      {caseStats && caseStats.daily_breakdown && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vaka Trendi (Son 30 Gün)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={caseStats.daily_breakdown.slice(-30)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} name="Vaka Sayısı" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Öncelik Dağılımı */}
+      {caseStats && caseStats.by_priority && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vaka Öncelik Dağılımı</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Yüksek', value: caseStats.by_priority.high, color: '#ef4444' },
+                    { name: 'Orta', value: caseStats.by_priority.medium, color: '#f59e0b' },
+                    { name: 'Düşük', value: caseStats.by_priority.low, color: '#10b981' }
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
+                  label
+                >
+                  {[
+                    { name: 'Yüksek', value: caseStats.by_priority.high, color: '#ef4444' },
+                    { name: 'Orta', value: caseStats.by_priority.medium, color: '#f59e0b' },
+                    { name: 'Düşük', value: caseStats.by_priority.low, color: '#10b981' }
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       )}

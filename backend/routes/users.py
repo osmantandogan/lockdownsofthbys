@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.get("/", response_model=List[User])
+@router.get("", response_model=List[User])
 async def get_users(request: Request):
     """Get all users (admin only)"""
     user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)

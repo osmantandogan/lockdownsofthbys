@@ -19,8 +19,13 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [tempRoleDialog, setTempRoleDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [tempRoleData, setTempRoleData] = useState({
+    role: '',
+    duration: 7
+  });
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -121,6 +126,22 @@ const UserManagement = () => {
     setEditMode(false);
   };
 
+  const openTempRoleDialog = (userData) => {
+    setSelectedUser(userData);
+    setTempRoleDialog(true);
+  };
+
+  const handleAssignTempRole = async () => {
+    try {
+      await usersAPI.assignTempRole(selectedUser.id, tempRoleData.role, tempRoleData.duration);
+      toast.success('Geçici rol atandı');
+      setTempRoleDialog(false);
+      loadUsers();
+    } catch (error) {
+      toast.error('Geçici rol atanamadı');
+    }
+  };
+
   const canManage = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
 
   if (!canManage) {
@@ -165,6 +186,14 @@ const UserManagement = () => {
                     <div className="flex space-x-2">
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(userData)}>
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openTempRoleDialog(userData)}
+                        className="text-xs"
+                      >
+                        Geçici Rol
                       </Button>
                     </div>
                   </div>
@@ -221,6 +250,42 @@ const UserManagement = () => {
             <Button onClick={editMode ? handleUpdate : handleCreate} className="w-full">
               {editMode ? 'Güncelle' : 'Oluştur'}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Geçici Rol Atama Dialog */}
+      <Dialog open={tempRoleDialog} onOpenChange={setTempRoleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Geçici Rol Ata - {selectedUser?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Geçici Rol</Label>
+              <Select value={tempRoleData.role} onValueChange={(v) => setTempRoleData({...tempRoleData, role: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(r => (
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Süre (Gün)</Label>
+              <Input 
+                type="number" 
+                value={tempRoleData.duration} 
+                onChange={(e) => setTempRoleData({...tempRoleData, duration: parseInt(e.target.value)})}
+              />
+            </div>
+            <p className="text-xs text-gray-500">
+              Belirlenen süre sonunda rol otomatik olarak kaldırılacaktır.
+            </p>
+            <Button onClick={handleAssignTempRole} className="w-full">Ata</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/", response_model=Vehicle)
+@router.post("", response_model=Vehicle)
 async def create_vehicle(data: VehicleCreate, request: Request):
     """Create new vehicle (admin only)"""
     await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
@@ -19,7 +19,7 @@ async def create_vehicle(data: VehicleCreate, request: Request):
     
     return new_vehicle
 
-@router.get("/", response_model=List[Vehicle])
+@router.get("", response_model=List[Vehicle])
 async def get_vehicles(
     request: Request,
     status: Optional[str] = None,
@@ -196,3 +196,44 @@ async def get_monthly_calendar(request: Request, year: int, month: int):
         })
     
     return result
+
+# Maintenance Endpoints
+@router.post("/maintenance")
+async def create_maintenance(data: dict, request: Request):
+    """Record vehicle maintenance"""
+    user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    from database import db
+    from datetime import datetime
+    import uuid
+    
+    maintenance = {
+        "_id": str(uuid.uuid4()),
+        "vehicle_id": data["vehicle_id"],
+        "maintenance_type": data["maintenance_type"],
+        "description": data["description"],
+        "km_at_maintenance": data["km_at_maintenance"],
+        "cost": data.get("cost"),
+        "performed_by": user.id,
+        "notes": data.get("notes"),
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.vehicle_maintenance.insert_one(maintenance)
+    return maintenance
+
+@router.get("/maintenance/{vehicle_id}")
+async def get_maintenance_history(vehicle_id: str, request: Request):
+    """Get maintenance history for vehicle"""
+    await get_current_user(request)
+    
+    from database import db
+    
+    history = await db.vehicle_maintenance.find(
+        {"vehicle_id": vehicle_id}
+    ).sort("created_at", -1).to_list(100)
+    
+    for item in history:
+        item["id"] = item.pop("_id")
+    
+    return history
