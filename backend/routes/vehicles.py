@@ -19,7 +19,7 @@ async def create_vehicle(data: VehicleCreate, request: Request):
     
     return new_vehicle
 
-@router.get("/", response_model=List[Vehicle])
+@router.get("", response_model=List[Vehicle])
 async def get_vehicles(
     request: Request,
     status: Optional[str] = None,
