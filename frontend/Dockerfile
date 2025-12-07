@@ -11,9 +11,11 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Set backend URL for build
+# Set build-time environment variables
 ARG REACT_APP_BACKEND_URL
+ARG REACT_APP_ONESIGNAL_APP_ID
 ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
+ENV REACT_APP_ONESIGNAL_APP_ID=$REACT_APP_ONESIGNAL_APP_ID
 ENV DISABLE_HOT_RELOAD=true
 ENV GENERATE_SOURCEMAP=false
 
