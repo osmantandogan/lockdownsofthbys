@@ -1,12 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs-18_x"]
+nixPkgs = ["nodejs_18", "yarn"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["yarn install"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["yarn build"]
 
 [start]
 cmd = "npx serve -s build -l $PORT"
-

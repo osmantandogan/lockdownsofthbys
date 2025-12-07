@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/", response_model=Vehicle)
+@router.post("", response_model=Vehicle)
 async def create_vehicle(data: VehicleCreate, request: Request):
     """Create new vehicle (admin only)"""
     await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
@@ -19,7 +19,7 @@ async def create_vehicle(data: VehicleCreate, request: Request):
     
     return new_vehicle
 
-@router.get("/")
+@router.get("")
 async def get_vehicles(
     request: Request,
     status: Optional[str] = None,

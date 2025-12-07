@@ -2,25 +2,21 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { notificationsAPI } from '../api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
-import { getFCMToken, onMessageListener } from '../config/firebase';
+import {
+  initOneSignal,
+  requestNotificationPermission,
+  isPushEnabled,
+  getPlayerId,
+  optInPushNotifications,
+  optOutPushNotifications,
+  removeExternalUserId,
+  addNotificationListener,
+  setUserTags,
+  getInitError,
+  isProduction
+} from '../config/onesignal';
 
 const NotificationContext = createContext(null);
-
-// URL-safe base64 encode
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-  
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -29,34 +25,91 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
+  const [oneSignalReady, setOneSignalReady] = useState(false);
+  const [oneSignalError, setOneSignalError] = useState(null);
+  const [isLocalhost, setIsLocalhost] = useState(!isProduction());
 
   // Push desteğini kontrol et
   useEffect(() => {
     const checkPushSupport = () => {
-      const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+      const supported = 'Notification' in window && 'serviceWorker' in navigator;
       setPushSupported(supported);
-      
-      if (supported) {
-        // Mevcut izin durumunu kontrol et
-        if (Notification.permission === 'granted') {
-          checkExistingSubscription();
-        }
-      }
     };
     
     checkPushSupport();
   }, []);
 
-  // Mevcut subscription'ı kontrol et
-  const checkExistingSubscription = async () => {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      setPushEnabled(!!subscription);
-    } catch (error) {
-      console.error('Error checking push subscription:', error);
+  // OneSignal'i başlat (kullanıcı login olduğunda)
+  useEffect(() => {
+    const initializeOneSignal = async () => {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        // OneSignal'i başlat
+        const onesignal = await initOneSignal(user.id, {
+          role: user.role,
+          name: user.name
+        });
+
+        // Hata durumunu kontrol et
+        const error = getInitError();
+        if (error) {
+          setOneSignalError(error);
+          if (error === 'localhost') {
+            // Localhost'ta simüle et - ready olarak işaretle
+            setOneSignalReady(true);
+            console.log('[OneSignal] Localhost modunda çalışıyor - Push bildirimleri production ortamında aktif olacak');
+          }
+          return;
+        }
+
+        if (onesignal && !onesignal.isLocalhost) {
+          setOneSignalReady(true);
+          
+          // Mevcut push durumunu kontrol et
+          const enabled = await isPushEnabled();
+          setPushEnabled(enabled);
+
+          // Player ID'yi backend'e kaydet
+          if (enabled) {
+            const playerId = await getPlayerId();
+            if (playerId) {
+              try {
+                await notificationsAPI.subscribe({ player_id: playerId });
+              } catch (e) {
+                console.warn('Player ID backend kayıt hatası:', e);
+              }
+            }
+          }
+
+          // Foreground bildirimleri dinle
+          addNotificationListener((notification) => {
+            toast.info(notification.title, {
+              description: notification.body
+            });
+            // In-app bildirimleri yenile
+            loadNotifications();
+          });
+        } else if (onesignal?.isLocalhost) {
+          // Localhost simülasyonu
+          setOneSignalReady(true);
+          setIsLocalhost(true);
+        }
+      } catch (error) {
+        console.error('OneSignal initialization error:', error);
+        setOneSignalError(error.message);
+      }
+    };
+
+    initializeOneSignal();
+  }, [isAuthenticated, user]);
+
+  // Kullanıcı logout olduğunda OneSignal'den çıkış yap
+  useEffect(() => {
+    if (!isAuthenticated && oneSignalReady) {
+      removeExternalUserId();
     }
-  };
+  }, [isAuthenticated, oneSignalReady]);
 
   // Bildirimleri yükle
   const loadNotifications = useCallback(async () => {
@@ -89,70 +142,49 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [isAuthenticated, loadNotifications]);
 
-  // Push bildirimleri etkinleştir (FCM veya VAPID)
+  // Push bildirimleri etkinleştir
   const enablePushNotifications = async () => {
     if (!pushSupported) {
       toast.error('Tarayıcınız push bildirimleri desteklemiyor');
       return false;
     }
 
+    if (!oneSignalReady) {
+      toast.error('Bildirim sistemi henüz hazır değil');
+      return false;
+    }
+
+    // Localhost kontrolü
+    if (isLocalhost) {
+      toast.warning('Push bildirimleri sadece production ortamında (abro.ldserp.com) aktif olur');
+      return false;
+    }
+
     try {
       // İzin iste
-      const permission = await Notification.requestPermission();
+      const granted = await requestNotificationPermission();
       
-      if (permission !== 'granted') {
+      if (!granted) {
         toast.error('Bildirim izni reddedildi');
         return false;
       }
 
-      // Önce FCM token'ı dene
-      let fcmToken = null;
-      try {
-        fcmToken = await getFCMToken();
-        if (fcmToken) {
-          // FCM token'ı backend'e kaydet
-          await notificationsAPI.subscribeFCM(fcmToken);
-          setPushEnabled(true);
-          toast.success('FCM push bildirimleri etkinleştirildi');
-          
-          // Foreground mesajları dinle
-          onMessageListener().then((payload) => {
-            if (payload) {
-              toast.info(payload.notification?.title || 'Yeni bildirim', {
-                description: payload.notification?.body
-              });
-            }
-          });
-          
-          return true;
-        }
-      } catch (fcmError) {
-        console.warn('FCM not available, falling back to VAPID:', fcmError);
+      // Push bildirimleri aç
+      await optInPushNotifications();
+      
+      // Player ID'yi backend'e kaydet
+      const playerId = await getPlayerId();
+      if (playerId) {
+        await notificationsAPI.subscribe({ player_id: playerId });
       }
 
-      // FCM yoksa VAPID kullan
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
-
-      // VAPID public key'i al
-      let vapidPublicKey;
-      try {
-        const keyRes = await notificationsAPI.getVapidPublicKey();
-        vapidPublicKey = keyRes.data.publicKey;
-      } catch (e) {
-        console.warn('VAPID key not configured');
-        toast.warning('Push bildirimleri henüz yapılandırılmamış');
-        return false;
+      // Kullanıcı tag'lerini güncelle
+      if (user) {
+        await setUserTags({
+          role: user.role,
+          name: user.name
+        });
       }
-
-      // Push subscription oluştur
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-      });
-
-      // Subscription'ı backend'e gönder
-      await notificationsAPI.subscribePush(subscription.toJSON());
       
       setPushEnabled(true);
       toast.success('Push bildirimleri etkinleştirildi');
@@ -168,12 +200,13 @@ export const NotificationProvider = ({ children }) => {
   // Push bildirimleri devre dışı bırak
   const disablePushNotifications = async () => {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      await optOutPushNotifications();
       
-      if (subscription) {
-        await subscription.unsubscribe();
-        await notificationsAPI.unsubscribePush(subscription.toJSON());
+      // Backend'den subscription'ı kaldır
+      try {
+        await notificationsAPI.unsubscribe();
+      } catch (e) {
+        console.warn('Backend unsubscribe error:', e);
       }
       
       setPushEnabled(false);
@@ -232,9 +265,9 @@ export const NotificationProvider = ({ children }) => {
   };
 
   // Test bildirimi gönder
-  const sendTestNotification = async (type, channel, phone) => {
+  const sendTestNotification = async (type, message) => {
     try {
-      const result = await notificationsAPI.sendTest({ type, channel, phone });
+      const result = await notificationsAPI.sendTest({ type, message });
       toast.success('Test bildirimi gönderildi');
       return result.data;
     } catch (error) {
@@ -250,6 +283,9 @@ export const NotificationProvider = ({ children }) => {
     loading,
     pushEnabled,
     pushSupported,
+    oneSignalReady,
+    oneSignalError,
+    isLocalhost,
     loadNotifications,
     enablePushNotifications,
     disablePushNotifications,
@@ -275,4 +311,3 @@ export const useNotifications = () => {
 };
 
 export default NotificationContext;
-

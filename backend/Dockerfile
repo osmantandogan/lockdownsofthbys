@@ -14,9 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose port
-EXPOSE 8001
+# Railway uses PORT env variable
+ENV PORT=8080
+EXPOSE 8080
 
-# Run the application
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001"]
-
+# Run the application with PORT from environment
+CMD uvicorn server:app --host 0.0.0.0 --port $PORT

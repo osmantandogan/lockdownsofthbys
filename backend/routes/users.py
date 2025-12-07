@@ -113,7 +113,7 @@ async def get_staff_performance(request: Request, start_date: Optional[str] = No
     
     return performance
 
-@router.get("/", response_model=List[User])
+@router.get("", response_model=List[User])
 async def get_users(request: Request):
     """Get all users (accessible by all authenticated users)"""
     # Tüm giriş yapmış kullanıcılar görebilir (vaka atama, ekip seçimi vb. için gerekli)

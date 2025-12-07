@@ -22,10 +22,22 @@ db = client[db_name]
 app = FastAPI(title="HealMedy HBYS API")
 
 # CORS middleware - MUST be added BEFORE routes
+# Get allowed origins from env or use defaults
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', '').split(',') if os.environ.get('ALLOWED_ORIGINS') else []
+allowed_origins.extend([
+    "http://localhost:3001", 
+    "http://localhost:3000", 
+    "http://127.0.0.1:3001",
+    "https://frontend-production-cd55.up.railway.app",
+    "https://abro.ldserp.com"
+])
+# Remove empty strings
+allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["http://localhost:3001", "http://localhost:3000", "http://127.0.0.1:3001", "*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

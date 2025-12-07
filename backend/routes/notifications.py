@@ -1,5 +1,5 @@
 """
-Bildirim API Endpoint'leri
+Bildirim API Endpoint'leri - OneSignal Entegrasyonu
 """
 
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
@@ -8,32 +8,27 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import secrets
 import string
+import os
 
-from database import notifications_collection, users_collection, cases_collection, shift_assignments_collection
+from database import notifications_collection, users_collection
 from auth_utils import get_current_user
-from services.notification_service import (
-    notification_service, 
-    NotificationType, 
-    NotificationChannel,
-    send_case_notification,
-    send_master_code
+from services.onesignal_service import (
+    onesignal_service, 
+    NotificationType,
+    send_master_code_notification
 )
 
 router = APIRouter()
 
 
 # Models
-class PushSubscription(BaseModel):
-    endpoint: str
-    keys: dict
+class OneSignalSubscription(BaseModel):
+    player_id: str  # OneSignal player_id
 
 
 class NotificationPreferences(BaseModel):
-    sms: bool = True
-    whatsapp: bool = True
-    web_push: bool = True
-    mobile_push: bool = True
-    email: bool = True
+    push: bool = True
+    in_app: bool = True
 
 
 class MasterCodeRequest(BaseModel):
@@ -44,8 +39,7 @@ class MasterCodeRequest(BaseModel):
 
 class TestNotificationRequest(BaseModel):
     type: str
-    channel: str
-    phone: Optional[str] = None
+    message: Optional[str] = None
 
 
 # Rol çevirisi
@@ -63,9 +57,11 @@ ROLE_LABELS = {
 }
 
 
-@router.get("/")
+# ==================== In-App Bildirimler ====================
+
+@router.get("")
 async def get_notifications(request: Request, limit: int = 50, unread_only: bool = False):
-    """Kullanıcının bildirimlerini getir"""
+    """Kullanıcının in-app bildirimlerini getir"""
     user = await get_current_user(request)
     
     query = {"user_id": user.id}
@@ -132,68 +128,47 @@ async def delete_notification(notification_id: str, request: Request):
     return {"message": "Bildirim silindi"}
 
 
-# Push Subscription Yönetimi
-@router.post("/subscribe-push")
-async def subscribe_push(subscription: PushSubscription, request: Request):
-    """Web Push subscription kaydet"""
+# ==================== OneSignal Subscription ====================
+
+@router.post("/subscribe")
+async def subscribe_onesignal(subscription: OneSignalSubscription, request: Request):
+    """OneSignal player_id kaydet ve kullanıcıyı external_user_id olarak eşle"""
     user = await get_current_user(request)
     
-    subscription_data = subscription.model_dump()
-    
-    # Mevcut subscription'ları güncelle veya ekle
-    await users_collection.update_one(
-        {"_id": user.id},
-        {
-            "$addToSet": {
-                "push_subscriptions": subscription_data
-            }
-        }
-    )
-    
-    return {"message": "Push bildirimleri aktif edildi"}
-
-
-@router.delete("/unsubscribe-push")
-async def unsubscribe_push(subscription: PushSubscription, request: Request):
-    """Web Push subscription kaldır"""
-    user = await get_current_user(request)
-    
-    await users_collection.update_one(
-        {"_id": user.id},
-        {
-            "$pull": {
-                "push_subscriptions": {"endpoint": subscription.endpoint}
-            }
-        }
-    )
-    
-    return {"message": "Push bildirimleri devre dışı bırakıldı"}
-
-
-@router.post("/subscribe-fcm")
-async def subscribe_fcm(data: dict, request: Request):
-    """FCM token kaydet"""
-    user = await get_current_user(request)
-    
-    fcm_token = data.get("fcm_token")
-    if not fcm_token:
-        raise HTTPException(status_code=400, detail="FCM token gerekli")
-    
-    # FCM token'ı kullanıcıya kaydet
+    # Player ID'yi kullanıcıya kaydet
     await users_collection.update_one(
         {"_id": user.id},
         {
             "$set": {
-                "fcm_token": fcm_token,
-                "fcm_token_updated_at": datetime.utcnow().isoformat()
+                "onesignal_player_id": subscription.player_id,
+                "onesignal_subscribed_at": datetime.utcnow().isoformat()
             }
         }
     )
     
-    return {"message": "FCM token kaydedildi", "fcm_token": fcm_token}
+    return {"message": "OneSignal bildirimleri etkinleştirildi", "player_id": subscription.player_id}
 
 
-# Bildirim Tercihleri
+@router.delete("/unsubscribe")
+async def unsubscribe_onesignal(request: Request):
+    """OneSignal subscription kaldır"""
+    user = await get_current_user(request)
+    
+    await users_collection.update_one(
+        {"_id": user.id},
+        {
+            "$unset": {
+                "onesignal_player_id": "",
+                "onesignal_subscribed_at": ""
+            }
+        }
+    )
+    
+    return {"message": "OneSignal bildirimleri devre dışı bırakıldı"}
+
+
+# ==================== Bildirim Tercihleri ====================
+
 @router.get("/preferences")
 async def get_preferences(request: Request):
     """Kullanıcı bildirim tercihlerini getir"""
@@ -204,12 +179,12 @@ async def get_preferences(request: Request):
     
     # Default değerleri ekle
     default_prefs = {
-        "case_created": {"sms": True, "whatsapp": True, "web_push": True, "mobile_push": True},
-        "case_assigned": {"sms": True, "whatsapp": True, "web_push": True, "mobile_push": True},
-        "shift_reminder": {"sms": True, "whatsapp": True, "web_push": True, "mobile_push": True},
-        "handover_approval": {"sms": True, "whatsapp": True, "web_push": True, "mobile_push": True},
-        "stock_critical": {"sms": True, "whatsapp": True, "web_push": True, "mobile_push": True},
-        "emergency": {"sms": True, "whatsapp": True, "web_push": True, "mobile_push": True}
+        "case_created": {"push": True, "in_app": True},
+        "case_assigned": {"push": True, "in_app": True},
+        "shift_reminder": {"push": True, "in_app": True},
+        "handover_approval": {"push": True, "in_app": True},
+        "stock_critical": {"push": True, "in_app": True},
+        "emergency": {"push": True, "in_app": True}
     }
     
     for key, value in default_prefs.items():
@@ -232,7 +207,8 @@ async def update_preferences(preferences: dict, request: Request):
     return {"message": "Bildirim tercihleri güncellendi"}
 
 
-# Master Code Sistemi
+# ==================== Master Code Sistemi ====================
+
 @router.post("/generate-master-code")
 async def generate_master_code(data: MasterCodeRequest, request: Request, background_tasks: BackgroundTasks):
     """
@@ -273,22 +249,19 @@ async def generate_master_code(data: MasterCodeRequest, request: Request, backgr
     )
     
     # Müdüre bildirim gönder (arka planda)
-    manager_phone = (await users_collection.find_one({"_id": user.id})).get("phone")
-    
-    if manager_phone:
-        background_tasks.add_task(
-            send_master_code,
-            code,
-            employee.get("name"),
-            data.vehicle_id,  # TODO: araç plakasını al
-            {"user_id": user.id, "phone": manager_phone}
-        )
+    background_tasks.add_task(
+        send_master_code_notification,
+        code,
+        employee.get("name"),
+        data.vehicle_id,
+        user.id
+    )
     
     return {
         "code": code,
         "expires_at": expiry.isoformat(),
         "employee_name": employee.get("name"),
-        "message": "Master code oluşturuldu ve size bildirildi"
+        "message": "Master code oluşturuldu"
     }
 
 
@@ -325,53 +298,48 @@ async def verify_master_code(code: str, request: Request):
     }
 
 
-# Test endpoint'i
+# ==================== Test & Broadcast ====================
+
 @router.post("/test")
 async def test_notification(data: TestNotificationRequest, request: Request):
-    """Bildirim testi (sadece development için)"""
+    """Bildirim testi"""
     user = await get_current_user(request)
     
     if user.role not in ["merkez_ofis", "operasyon_muduru"]:
         raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
     
-    user_doc = await users_collection.find_one({"_id": user.id})
-    phone = data.phone or user_doc.get("phone")
+    notification_type = NotificationType(data.type) if data.type else NotificationType.SYSTEM_ALERT
     
-    channels = [NotificationChannel(data.channel)] if data.channel else None
-    
-    result = await notification_service.send_notification(
-        NotificationType(data.type),
-        [{
-            "user_id": user.id,
-            "phone": phone,
-            "push_subscriptions": user_doc.get("push_subscriptions", [])
-        }],
+    result = await onesignal_service.send_notification(
+        notification_type,
+        [user.id],
         {
             "case_number": "TEST-001",
             "patient_name": "Test Hasta",
             "location": "Filyos",
             "priority": "Normal",
-            "created_at": datetime.now().strftime("%d.%m.%Y %H:%M"),
             "vehicle_plate": "67 ABC 001",
             "shift_date": datetime.now().strftime("%d.%m.%Y"),
             "shift_time": "08:00 - 16:00",
-            "employee_name": user_doc.get("name", "Test Personel"),
-            "master_code": "123456"
-        },
-        channels=channels
+            "employee_name": "Test Personel",
+            "master_code": "123456",
+            "message": data.message or "Bu bir test bildirimidir",
+            "item_name": "Test Ürün",
+            "current_qty": "5",
+            "min_qty": "10",
+            "doctor_name": "Dr. Test"
+        }
     )
     
     return result
 
 
-# Toplu bildirim gönderme (Admin)
 @router.post("/broadcast")
 async def broadcast_notification(
     request: Request,
     message: str,
     title: str = "HEALMEDY Duyuru",
-    roles: List[str] = None,
-    channels: List[str] = None
+    roles: List[str] = None
 ):
     """
     Toplu bildirim gönder
@@ -390,55 +358,49 @@ async def broadcast_notification(
     recipients_cursor = users_collection.find(query)
     recipients = await recipients_cursor.to_list(500)
     
-    recipient_list = []
-    for r in recipients:
-        recipient_list.append({
-            "user_id": r["_id"],
-            "phone": r.get("phone"),
-            "push_subscriptions": r.get("push_subscriptions", []),
-            "fcm_token": r.get("fcm_token")
-        })
+    user_ids = [r["_id"] for r in recipients]
     
-    # Kanalları belirle
-    channel_list = [NotificationChannel(c) for c in channels] if channels else None
+    if not user_ids:
+        return {"message": "Gönderilecek kullanıcı bulunamadı", "recipients": 0}
     
-    result = await notification_service.send_notification(
+    # OneSignal ile gönder
+    result = await onesignal_service.send_notification(
         NotificationType.SYSTEM_ALERT,
-        recipient_list,
-        {"message": message, "title": title},
-        channels=channel_list
+        user_ids,
+        {"message": message, "title": title}
     )
     
     return {
-        "message": f"{len(recipient_list)} kişiye bildirim gönderildi",
+        "message": f"{len(user_ids)} kişiye bildirim gönderildi",
         "details": result
     }
 
 
-# VAPID Public Key (Web Push için)
-@router.get("/vapid-public-key")
-async def get_vapid_public_key():
-    """Web Push için VAPID public key döndür"""
-    import os
-    key = os.environ.get("VAPID_PUBLIC_KEY", "")
-    
-    if not key:
-        raise HTTPException(status_code=503, detail="Web Push yapılandırılmamış")
-    
-    return {"publicKey": key}
+# ==================== OneSignal Config ====================
 
-
-# FCM Status Check
-@router.get("/fcm-status")
-async def get_fcm_status(request: Request):
-    """FCM yapılandırma durumunu kontrol et"""
-    from services.notification_service import notification_service
+@router.get("/onesignal-config")
+async def get_onesignal_config():
+    """OneSignal yapılandırma bilgilerini döndür (frontend için)"""
+    app_id = os.environ.get("ONESIGNAL_APP_ID", "")
+    
+    if not app_id:
+        raise HTTPException(status_code=503, detail="OneSignal yapılandırılmamış")
     
     return {
-        "fcm_enabled": notification_service.fcm_enabled,
-        "fcm_initialized": notification_service.fcm_app is not None,
-        "project_id": os.environ.get("FIREBASE_PROJECT_ID", ""),
-        "credentials_path": os.environ.get("FIREBASE_CREDENTIALS_PATH", ""),
-        "credentials_exists": os.path.exists(os.environ.get("FIREBASE_CREDENTIALS_PATH", "")) if os.environ.get("FIREBASE_CREDENTIALS_PATH") else False
+        "appId": app_id,
+        "enabled": onesignal_service.enabled
     }
 
+
+@router.get("/status")
+async def get_notification_status(request: Request):
+    """Bildirim sistemi durumunu kontrol et"""
+    user = await get_current_user(request)
+    user_doc = await users_collection.find_one({"_id": user.id})
+    
+    return {
+        "onesignal_enabled": onesignal_service.enabled,
+        "user_subscribed": bool(user_doc.get("onesignal_player_id")),
+        "player_id": user_doc.get("onesignal_player_id"),
+        "subscribed_at": user_doc.get("onesignal_subscribed_at")
+    }

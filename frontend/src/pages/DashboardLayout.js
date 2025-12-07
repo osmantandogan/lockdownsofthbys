@@ -19,7 +19,8 @@ import {
   Users,
   Archive as ArchiveIcon,
   FileCog,
-  Bell
+  Bell,
+  Gauge
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationDropdown from '../components/NotificationDropdown';
@@ -39,6 +40,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'doktor'] },
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar' },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar' },
+    { path: '/dashboard/vehicle-km-report', icon: Gauge, label: 'Araç KM Raporu', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/stock', icon: Package, label: 'Stok' },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },

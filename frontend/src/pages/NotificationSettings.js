@@ -13,9 +13,7 @@ import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
 import {
   Bell,
-  MessageSquare,
   Smartphone,
-  Mail,
   Globe,
   Send,
   Settings,
@@ -23,17 +21,22 @@ import {
   Ambulance,
   Clock,
   Package,
-  Shield,
   RefreshCw,
   Check,
-  Loader2
+  Loader2,
+  BellRing,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
 const NotificationSettings = () => {
   const { user } = useAuth();
   const { 
     pushEnabled, 
-    pushSupported, 
+    pushSupported,
+    oneSignalReady,
+    oneSignalError,
+    isLocalhost,
     enablePushNotifications, 
     disablePushNotifications,
     sendTestNotification 
@@ -43,9 +46,9 @@ const NotificationSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
-  const [testPhone, setTestPhone] = useState('');
   const [testType, setTestType] = useState('case_created');
-  const [testChannel, setTestChannel] = useState('sms');
+  const [testMessage, setTestMessage] = useState('');
+  const [notificationStatus, setNotificationStatus] = useState(null);
 
   // Bildirim tipleri
   const notificationTypes = [
@@ -107,16 +110,9 @@ const NotificationSettings = () => {
     }
   ];
 
-  // Kanallar
-  const channels = [
-    { id: 'sms', label: 'SMS', icon: MessageSquare },
-    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-    { id: 'web_push', label: 'Web Push', icon: Globe },
-    { id: 'mobile_push', label: 'Mobil Push', icon: Smartphone }
-  ];
-
   useEffect(() => {
     loadPreferences();
+    loadNotificationStatus();
   }, []);
 
   const loadPreferences = async () => {
@@ -125,9 +121,17 @@ const NotificationSettings = () => {
       setPreferences(response.data);
     } catch (error) {
       console.error('Error loading preferences:', error);
-      toast.error('Tercihler yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadNotificationStatus = async () => {
+    try {
+      const response = await notificationsAPI.getStatus();
+      setNotificationStatus(response.data);
+    } catch (error) {
+      console.error('Error loading notification status:', error);
     }
   };
 
@@ -157,7 +161,7 @@ const NotificationSettings = () => {
   const handleTestNotification = async () => {
     setTestLoading(true);
     try {
-      await sendTestNotification(testType, testChannel, testPhone || undefined);
+      await sendTestNotification(testType, testMessage || undefined);
     } finally {
       setTestLoading(false);
     }
@@ -169,6 +173,8 @@ const NotificationSettings = () => {
     } else {
       await enablePushNotifications();
     }
+    // Durumu yenile
+    setTimeout(loadNotificationStatus, 1000);
   };
 
   if (loading) {
@@ -183,37 +189,80 @@ const NotificationSettings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Bildirim Ayarları</h1>
-        <p className="text-gray-500">SMS, WhatsApp ve push bildirim tercihlerinizi yönetin</p>
+        <p className="text-gray-500">Push bildirim tercihlerinizi yönetin (OneSignal)</p>
       </div>
 
-      {/* Web Push Ayarları */}
-      <Card>
-        <CardHeader>
+      {/* OneSignal Push Ayarları */}
+      <Card className="border-2 border-blue-200">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardTitle className="flex items-center space-x-2">
-            <Globe className="h-5 w-5" />
-            <span>Web Push Bildirimleri</span>
+            <BellRing className="h-5 w-5 text-blue-600" />
+            <span>Push Bildirimleri</span>
+            {oneSignalReady && (
+              <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
+                OneSignal Aktif
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription>
-            Tarayıcınızdan anlık bildirim alın
+            Tarayıcınızdan ve mobil cihazınızdan anlık bildirim alın
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          {isLocalhost && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-yellow-800">Localhost Geliştirme Modu</p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Push bildirimleri sadece production ortamında (<strong>abro.ldserp.com</strong>) çalışır. 
+                    Localhost'ta test bildirimleri gönderilemez ancak diğer tüm özellikler çalışır.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label>Web Push Bildirimleri</Label>
+              <Label className="text-lg font-medium">Push Bildirimleri</Label>
               <p className="text-sm text-gray-500">
-                {pushSupported 
-                  ? 'Tarayıcınız push bildirimlerini destekliyor'
-                  : 'Tarayıcınız push bildirimlerini desteklemiyor'}
+                {!pushSupported 
+                  ? '❌ Tarayıcınız push bildirimlerini desteklemiyor'
+                  : isLocalhost
+                  ? '🧪 Localhost modu - Production ortamında aktif olacak'
+                  : !oneSignalReady
+                  ? '⏳ OneSignal yükleniyor...'
+                  : pushEnabled
+                  ? '✅ Push bildirimleri aktif - Bildirimler bu cihaza gönderilecek'
+                  : '🔔 Push bildirimlerini etkinleştirmek için butona tıklayın'}
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              {pushEnabled && <Badge variant="outline" className="text-green-600">Aktif</Badge>}
-              <Switch
-                checked={pushEnabled}
-                onCheckedChange={handlePushToggle}
-                disabled={!pushSupported}
-              />
+              {pushEnabled && !isLocalhost && (
+                <Badge className="bg-green-500">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Aktif
+                </Badge>
+              )}
+              <Button
+                onClick={handlePushToggle}
+                disabled={!pushSupported || !oneSignalReady || isLocalhost}
+                variant={pushEnabled ? "outline" : "default"}
+                className={pushEnabled ? "border-red-300 text-red-600 hover:bg-red-50" : ""}
+              >
+                {pushEnabled ? (
+                  <>
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Bildirimleri Kapat
+                  </>
+                ) : (
+                  <>
+                    <Bell className="h-4 w-4 mr-2" />
+                    Bildirimleri Aç
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -227,27 +276,29 @@ const NotificationSettings = () => {
             <span>Bildirim Tercihleri</span>
           </CardTitle>
           <CardDescription>
-            Hangi bildirimleri hangi kanallardan almak istediğinizi seçin
+            Hangi bildirimleri almak istediğinizi seçin
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             {/* Kanal Başlıkları */}
-            <div className="grid grid-cols-5 gap-4 pb-2 border-b">
+            <div className="grid grid-cols-3 gap-4 pb-2 border-b">
               <div className="col-span-1"></div>
-              {channels.map(channel => (
-                <div key={channel.id} className="text-center">
-                  <channel.icon className="h-4 w-4 mx-auto mb-1" />
-                  <span className="text-xs font-medium">{channel.label}</span>
-                </div>
-              ))}
+              <div className="text-center">
+                <Globe className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+                <span className="text-xs font-medium">Push</span>
+              </div>
+              <div className="text-center">
+                <Smartphone className="h-4 w-4 mx-auto mb-1 text-green-500" />
+                <span className="text-xs font-medium">In-App</span>
+              </div>
             </div>
 
             {/* Bildirim Tipleri */}
             {notificationTypes.map((type) => {
               const Icon = type.icon;
               return (
-                <div key={type.id} className="grid grid-cols-5 gap-4 items-center">
+                <div key={type.id} className="grid grid-cols-3 gap-4 items-center">
                   <div className="col-span-1">
                     <div className="flex items-center space-x-2">
                       <Icon className={`h-4 w-4 ${type.color}`} />
@@ -257,14 +308,18 @@ const NotificationSettings = () => {
                       </div>
                     </div>
                   </div>
-                  {channels.map(channel => (
-                    <div key={channel.id} className="flex justify-center">
-                      <Switch
-                        checked={preferences[type.id]?.[channel.id] ?? true}
-                        onCheckedChange={(checked) => handlePreferenceChange(type.id, channel.id, checked)}
-                      />
-                    </div>
-                  ))}
+                  <div className="flex justify-center">
+                    <Switch
+                      checked={preferences[type.id]?.push ?? true}
+                      onCheckedChange={(checked) => handlePreferenceChange(type.id, 'push', checked)}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <Switch
+                      checked={preferences[type.id]?.in_app ?? true}
+                      onCheckedChange={(checked) => handlePreferenceChange(type.id, 'in_app', checked)}
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -299,11 +354,11 @@ const NotificationSettings = () => {
               <span>Test Bildirimi Gönder</span>
             </CardTitle>
             <CardDescription>
-              Bildirim sistemini test edin
+              Push bildirim sistemini test edin
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Bildirim Tipi</Label>
                 <Select value={testType} onValueChange={setTestType}>
@@ -321,26 +376,11 @@ const NotificationSettings = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Kanal</Label>
-                <Select value={testChannel} onValueChange={setTestChannel}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sms">SMS</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    <SelectItem value="web_push">Web Push</SelectItem>
-                    <SelectItem value="in_app">In-App</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Telefon (Opsiyonel)</Label>
+                <Label>Özel Mesaj (Opsiyonel)</Label>
                 <Input
-                  placeholder="5XX XXX XXXX"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="Test mesajı..."
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
                 />
               </div>
 
@@ -360,37 +400,75 @@ const NotificationSettings = () => {
         </Card>
       )}
 
-      {/* Infobip Durumu */}
+      {/* OneSignal Durumu */}
       <Card>
         <CardHeader>
-          <CardTitle>Servis Durumu</CardTitle>
+          <CardTitle>Bildirim Sistemi Durumu</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <MessageSquare className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="font-medium">SMS (Infobip)</p>
-                <p className="text-sm text-gray-500">Yapılandırılacak</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+              <div className={`p-2 rounded-full ${
+                isLocalhost ? 'bg-yellow-100' : 
+                oneSignalReady ? 'bg-green-100' : 'bg-yellow-100'
+              }`}>
+                <Bell className={`h-5 w-5 ${
+                  isLocalhost ? 'text-yellow-600' :
+                  oneSignalReady ? 'text-green-600' : 'text-yellow-600'
+                }`} />
               </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <MessageSquare className="h-5 w-5 text-green-500" />
               <div>
-                <p className="font-medium">WhatsApp (Infobip)</p>
-                <p className="text-sm text-gray-500">Yapılandırılacak</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <Globe className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="font-medium">Web Push</p>
+                <p className="font-medium">OneSignal</p>
                 <p className="text-sm text-gray-500">
-                  {pushEnabled ? 'Aktif' : 'Yapılandırılacak'}
+                  {isLocalhost 
+                    ? 'Localhost modu' 
+                    : oneSignalReady 
+                    ? 'Bağlı ve çalışıyor' 
+                    : 'Bağlanıyor...'}
                 </p>
               </div>
+              {isLocalhost ? (
+                <AlertTriangle className="h-5 w-5 text-yellow-500 ml-auto" />
+              ) : oneSignalReady ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto" />
+              ) : null}
+            </div>
+            
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+              <div className={`p-2 rounded-full ${
+                isLocalhost ? 'bg-gray-100' :
+                pushEnabled ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+                <BellRing className={`h-5 w-5 ${
+                  isLocalhost ? 'text-gray-400' :
+                  pushEnabled ? 'text-green-600' : 'text-gray-400'
+                }`} />
+              </div>
+              <div>
+                <p className="font-medium">Push Aboneliği</p>
+                <p className="text-sm text-gray-500">
+                  {isLocalhost 
+                    ? 'Production ortamında aktif olacak' 
+                    : pushEnabled 
+                    ? 'Bu cihazda aktif' 
+                    : 'Bu cihazda kapalı'}
+                </p>
+              </div>
+              {!isLocalhost && (pushEnabled ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto" />
+              ) : (
+                <XCircle className="h-5 w-5 text-gray-400 ml-auto" />
+              ))}
             </div>
           </div>
+          
+          {notificationStatus?.player_id && !isLocalhost && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-600 font-mono">
+                Player ID: {notificationStatus.player_id}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

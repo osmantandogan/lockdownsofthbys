@@ -135,20 +135,20 @@ export const formsAPI = {
   getStats: () => api.get('/forms/stats/summary')
 };
 
-// Notifications API
+// Notifications API (OneSignal)
 export const notificationsAPI = {
-  // Bildirimler
+  // In-app Bildirimler
   getAll: (params) => api.get('/notifications', { params }),
   getUnreadCount: () => api.get('/notifications/unread-count'),
   markAsRead: (id) => api.put(`/notifications/${id}/read`),
   markAllRead: () => api.put('/notifications/mark-all-read'),
   delete: (id) => api.delete(`/notifications/${id}`),
   
-  // Push subscription
-  subscribePush: (subscription) => api.post('/notifications/subscribe-push', subscription),
-  subscribeFCM: (fcmToken) => api.post('/notifications/subscribe-fcm', { fcm_token: fcmToken }),
-  unsubscribePush: (subscription) => api.delete('/notifications/unsubscribe-push', { data: subscription }),
-  getVapidPublicKey: () => api.get('/notifications/vapid-public-key'),
+  // OneSignal Subscription
+  subscribe: (data) => api.post('/notifications/subscribe', data),
+  unsubscribe: () => api.delete('/notifications/unsubscribe'),
+  getStatus: () => api.get('/notifications/status'),
+  getConfig: () => api.get('/notifications/onesignal-config'),
   
   // Tercihler
   getPreferences: () => api.get('/notifications/preferences'),

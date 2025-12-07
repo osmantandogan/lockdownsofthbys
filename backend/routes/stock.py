@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
-@router.post("/", response_model=StockItem)
+@router.post("", response_model=StockItem)
 async def create_stock_item(data: StockItemCreate, request: Request):
     """Create new stock item"""
     await require_roles(["merkez_ofis", "operasyon_muduru", "hemsire"])(request)
@@ -19,7 +19,7 @@ async def create_stock_item(data: StockItemCreate, request: Request):
     
     return new_item
 
-@router.get("/", response_model=List[StockItem])
+@router.get("", response_model=List[StockItem])
 async def get_stock_items(
     request: Request,
     location: Optional[str] = None,

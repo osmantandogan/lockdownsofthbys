@@ -29,6 +29,7 @@ import Staff from "./pages/Staff";
 import DocumentManagement from "./pages/DocumentManagement";
 import Archive from "./pages/Archive";
 import NotificationSettings from "./pages/NotificationSettings";
+import VehicleKmReport from "./pages/VehicleKmReport";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -118,6 +119,7 @@ function App() {
             <Route path="documents" element={<DocumentManagement />} />
             <Route path="archive" element={<Archive />} />
             <Route path="notifications" element={<NotificationSettings />} />
+            <Route path="vehicle-km-report" element={<VehicleKmReport />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

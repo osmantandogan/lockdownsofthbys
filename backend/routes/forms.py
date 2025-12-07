@@ -20,7 +20,7 @@ ROLE_LABELS = {
     "cagri_merkezi": "Çağrı Merkezi"
 }
 
-@router.post("/", response_model=FormSubmission)
+@router.post("", response_model=FormSubmission)
 async def submit_form(data: FormSubmissionCreate, request: Request):
     """Submit a new form"""
     user = await get_current_user(request)
@@ -39,7 +39,7 @@ async def submit_form(data: FormSubmissionCreate, request: Request):
     
     return new_form
 
-@router.get("/")
+@router.get("")
 async def get_forms(
     request: Request,
     form_type: Optional[str] = None,
