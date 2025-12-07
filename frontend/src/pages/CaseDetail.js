@@ -1,16 +1,41 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI, usersAPI } from '../api';
+import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
+import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Separator } from '../components/ui/separator';
+import { Switch } from '../components/ui/switch';
+import { Checkbox } from '../components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { toast } from 'sonner';
-import { ArrowLeft, User, Phone, MapPin, Truck, Clock } from 'lucide-react';
+import { 
+  ArrowLeft, User, Phone, MapPin, Truck, Clock, Video, Users, 
+  Check, X, Search, Building2, Stethoscope, Activity, FileText,
+  Heart, Thermometer, Droplet, Brain, AlertCircle, Eye, Syringe,
+  Ambulance, ClipboardList, VideoOff, FileSignature, Shield, Scissors, Save,
+  Package, QrCode, Trash2, Plus, Pill, Camera
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import VideoCall from '../components/VideoCall';
+import { ScrollArea } from '../components/ui/scroll-area';
+
+// Onam Form Bileşenleri
+import KVKKConsentForm from '../components/forms/KVKKConsentForm';
+import InjectionConsentForm from '../components/forms/InjectionConsentForm';
+import PunctureConsentForm from '../components/forms/PunctureConsentForm';
+import MinorSurgeryConsentForm from '../components/forms/MinorSurgeryConsentForm';
+import GeneralConsentForm from '../components/forms/GeneralConsentForm';
+
+// Jitsi server URL - kendi sunucunuzu kullanmak için değiştirin
+const JITSI_DOMAIN = process.env.REACT_APP_JITSI_DOMAIN || 'meet.jit.si';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -20,6 +45,134 @@ const CaseDetail = () => {
   const [vehicles, setVehicles] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('form');
+  
+  // Real-time collaboration
+  const [participants, setParticipants] = useState([]);
+  const [medicalForm, setMedicalForm] = useState({});
+  const [icdSearch, setIcdSearch] = useState('');
+  const [icdResults, setIcdResults] = useState([]);
+  const [hospitalSearch, setHospitalSearch] = useState('');
+  const [hospitalResults, setHospitalResults] = useState([]);
+  const [hospitalsGrouped, setHospitalsGrouped] = useState(null);
+  const [doctorApproval, setDoctorApproval] = useState(null);
+  
+  // Consent Forms
+  const [selectedConsentForm, setSelectedConsentForm] = useState(null);
+  const [consentDialogOpen, setConsentDialogOpen] = useState(false);
+  
+  // Medication/Materials state
+  const [medications, setMedications] = useState([]);
+  const [vehicleStock, setVehicleStock] = useState([]);
+  const [stockSearch, setStockSearch] = useState('');
+  const [stockSearchResults, setStockSearchResults] = useState([]);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeResult, setBarcodeResult] = useState(null);
+  const [showNewStockDialog, setShowNewStockDialog] = useState(false);
+  const [newStockName, setNewStockName] = useState('');
+  const [addingMedication, setAddingMedication] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  
+  // Onam formları listesi
+  const consentFormsList = [
+    {
+      id: 'kvkk',
+      title: 'KVKK - Kişisel Verilerin Korunması Onam Formu',
+      icon: Shield,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100',
+      description: 'Kişisel verilerin korunması hakkında bilgilendirme ve onam formu'
+    },
+    {
+      id: 'injection',
+      title: 'Enjeksiyon Uygulama Onam Formu',
+      icon: Syringe,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+      description: 'İlaç ve enjeksiyon uygulaması için hasta/veli onamı'
+    },
+    {
+      id: 'puncture',
+      title: 'Ponksiyon/İğne Uygulaması Onam Formu',
+      icon: Syringe,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100',
+      description: 'Ponksiyon, kan alma ve damar yolu açma işlemleri onamı'
+    },
+    {
+      id: 'minor-surgery',
+      title: 'Minör Cerrahi İşlem Onam Formu',
+      icon: Scissors,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100',
+      description: 'Küçük cerrahi müdahaleler için rıza formu'
+    },
+    {
+      id: 'general-consent',
+      title: 'Genel Tıbbi Müdahale Onam Formu',
+      icon: FileSignature,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
+      description: 'Genel tıbbi işlemler için hasta rıza formu'
+    }
+  ];
+  
+  // Vital Signs - 3 sets
+  const [vitalSigns, setVitalSigns] = useState([
+    { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },
+    { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },
+    { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' }
+  ]);
+  
+  // Clinical observations
+  const [clinicalObs, setClinicalObs] = useState({
+    emotionalState: '',
+    pupils: '',
+    skin: '',
+    respirationType: '',
+    pulseType: '',
+    motorResponse: '',
+    verbalResponse: '',
+    eyeOpening: '',
+    consciousStatus: true
+  });
+  
+  // CPR data
+  const [cprData, setCprData] = useState({
+    cprBy: '',
+    cprStart: '',
+    cprEnd: '',
+    cprReason: ''
+  });
+  
+  // Procedures and transfers
+  const [procedures, setProcedures] = useState({});
+  const [transfers, setTransfers] = useState({});
+  
+  // Vehicle and protocol info
+  const [vehicleInfo, setVehicleInfo] = useState({
+    startKm: '',
+    endKm: '',
+    protocol112: '',
+    hospitalProtocol: '',
+    referringInstitution: '',
+    roundTrip: ''
+  });
+  
+  // Time tracking
+  const [timeInfo, setTimeInfo] = useState({
+    callTime: '',
+    arrivalTime: '',
+    departureTime: '',
+    hospitalArrivalTime: ''
+  });
+  
+  // Isolation and chronic diseases
+  const [isolation, setIsolation] = useState([]);
+  const [chronicDiseases, setChronicDiseases] = useState('');
+  const [applications, setApplications] = useState('');
+  
+  // Dialogs
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [assignForm, setAssignForm] = useState({
@@ -33,9 +186,112 @@ const CaseDetail = () => {
     note: ''
   });
 
+  // Polling interval ref
+  const pollInterval = useRef(null);
+  
+  // Procedure list (33 items)
+  const proceduresList = [
+    'Maske ile hava yolu desteği',
+    'Airway ile hava yolu desteği',
+    'Entübasyon uygulaması',
+    'Nazal Entübasyon uygulaması',
+    'LMA uygulaması',
+    'Combi tüp uygulaması',
+    'Acil trakeotomi açılması',
+    'Mekanik ventilasyon',
+    'Nebulizatör ile ilaç uygulama',
+    'Oksijen inhalasyon tedavisi 1 Saat',
+    'Aspirasyon uygulaması',
+    'Ventilatör ile takip (CPAP BİPAP dahil)',
+    'Balon valf maske uygulaması',
+    'CPR uygulaması',
+    'Defibrilasyon',
+    'Kardiyoversiyon',
+    'Monitörizasyon',
+    'İnfüzyon pompası',
+    'Kanama kontrolü',
+    'Çubuk atel uygulaması',
+    'Vakum atel uygulaması',
+    'Şişme atel uygulaması',
+    'U atel uygulaması',
+    'Traksiyon atel uygulaması',
+    'Pelvis kemeri uygulaması',
+    'Sekiz bandaj uygulaması',
+    'Elastik bandaj (velpa)',
+    'Femur(vücut) traksiyonu',
+    'Eklem çıkığı kapalı redüksiyonu',
+    'Servical collar uygulama',
+    'Travma yeleği',
+    'Sırt tahtası uygulaması',
+    'Vakum sedye uygulaması'
+  ];
+  
+  // Transfer list (14 items)
+  const transferList = [
+    'Evde Muayene',
+    'Yerinde Muayene',
+    'Hastaneye Nakil',
+    'Hastaneler Arası Nakil',
+    'Tıbbi Tetkik İçin Nakil',
+    'Eve Nakil',
+    'Şehirler Arası Nakil',
+    'Uluslar Arası Nakil',
+    'İlçe Dışı Transport',
+    'İlçe İçi Transfer',
+    'EX (Yerinde Bırakıldı)',
+    'Başka Araçla Nakil',
+    'Sağlık Tedbir',
+    'Diğer'
+  ];
+  
+  // Role labels
+  const roleLabels = {
+    merkez_ofis: 'Merkez Ofis',
+    operasyon_muduru: 'Operasyon Müdürü',
+    cagri_merkezi: 'Çağrı Merkezi',
+    doktor: 'Doktor',
+    hemsire: 'Hemşire',
+    paramedik: 'Paramedik',
+    att: 'ATT',
+    bas_sofor: 'Baş Şoför',
+    sofor: 'Şoför'
+  };
+
+  // GKS calculation
+  const gksPuani = (parseInt(clinicalObs.motorResponse) || 0) + 
+                   (parseInt(clinicalObs.verbalResponse) || 0) + 
+                   (parseInt(clinicalObs.eyeOpening) || 0);
+
+  // Load initial data
   useEffect(() => {
     loadData();
+    loadHospitalsGrouped();
+    
+    // Cleanup on unmount
+    return () => {
+      if (pollInterval.current) clearInterval(pollInterval.current);
+      // Leave case
+      casesAPI.leaveCase(id).catch(() => {});
+    };
   }, [id]);
+  
+  // Start polling for real-time updates
+  useEffect(() => {
+    if (caseData) {
+      // Join case
+      casesAPI.joinCase(id).catch(console.error);
+      
+      // Poll for updates every 3 seconds
+      pollInterval.current = setInterval(() => {
+        loadMedicalForm();
+        loadParticipants();
+      }, 3000);
+    }
+    
+    return () => {
+      if (pollInterval.current) clearInterval(pollInterval.current);
+    };
+  }, [caseData, id]);
 
   const loadData = async () => {
     try {
@@ -47,11 +303,489 @@ const CaseDetail = () => {
       setCaseData(caseRes.data);
       setVehicles(vehiclesRes.data);
       setUsers(usersRes.data);
+      
+      // Load medical form
+      await loadMedicalForm();
+      
+      // Load medications
+      await loadMedications();
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Veri yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Load medications for case
+  const loadMedications = async () => {
+    try {
+      const res = await medicationsAPI.getCaseMedications(id);
+      setMedications(res.data || []);
+    } catch (error) {
+      console.error('Error loading medications:', error);
+    }
+  };
+  
+  // Handle barcode submit
+  const handleBarcodeSubmit = async () => {
+    if (!barcodeInput.trim()) return;
+    
+    try {
+      // Get vehicle plate from assigned team
+      const vehiclePlate = caseData?.assigned_team?.vehicle_id 
+        ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
+        : null;
+      
+      const res = await medicationsAPI.parseBarcode(barcodeInput, vehiclePlate);
+      setBarcodeResult(res.data);
+      setBarcodeInput('');
+    } catch (error) {
+      console.error('Error parsing barcode:', error);
+      toast.error('Barkod okunamadı');
+    }
+  };
+  
+  // Handle stock search
+  const handleStockSearch = async (query) => {
+    if (query.length < 2) {
+      setStockSearchResults([]);
+      return;
+    }
+    
+    try {
+      // Get vehicle plate
+      const vehiclePlate = caseData?.assigned_team?.vehicle_id 
+        ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
+        : null;
+      
+      const res = await stockAPI.search({ 
+        q: query, 
+        location: 'ambulans',
+        location_detail: vehiclePlate
+      });
+      setStockSearchResults(res.data || []);
+    } catch (error) {
+      console.error('Error searching stock:', error);
+    }
+  };
+  
+  // Add medication to case
+  const handleAddMedication = async (stockItem, parsedBarcode) => {
+    setAddingMedication(true);
+    try {
+      await medicationsAPI.addToCases(id, {
+        name: stockItem?.name || 'Bilinmiyor',
+        gtin: parsedBarcode?.gtin || stockItem?.gtin,
+        lot_number: parsedBarcode?.lot_number || stockItem?.lot_number,
+        serial_number: parsedBarcode?.serial_number || stockItem?.serial_number,
+        expiry_date: parsedBarcode?.expiry_date_parsed || stockItem?.expiry_date,
+        quantity: 1,
+        unit: stockItem?.unit || 'adet',
+        stock_item_id: stockItem?.id
+      });
+      
+      toast.success('Malzeme eklendi ve stoktan düşüldü');
+      setBarcodeResult(null);
+      setStockSearch('');
+      setStockSearchResults([]);
+      await loadMedications();
+    } catch (error) {
+      console.error('Error adding medication:', error);
+      toast.error('Malzeme eklenemedi');
+    } finally {
+      setAddingMedication(false);
+    }
+  };
+  
+  // Remove medication from case
+  const handleRemoveMedication = async (medicationId) => {
+    try {
+      await medicationsAPI.removeFromCase(id, medicationId);
+      toast.success('Malzeme kaldırıldı ve stoğa iade edildi');
+      await loadMedications();
+    } catch (error) {
+      console.error('Error removing medication:', error);
+      toast.error('Malzeme kaldırılamadı');
+    }
+  };
+  
+  // Create new stock item from barcode
+  const handleCreateNewStock = async () => {
+    if (!newStockName.trim() || !barcodeResult) return;
+    
+    try {
+      // Get vehicle plate
+      const vehiclePlate = caseData?.assigned_team?.vehicle_id 
+        ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
+        : null;
+      
+      const res = await medicationsAPI.createFromBarcode({
+        barcode: barcodeResult.parsed?.raw_data || '',
+        name: newStockName,
+        quantity: 10, // Default initial quantity
+        min_quantity: 5,
+        location: 'ambulans',
+        location_detail: vehiclePlate
+      });
+      
+      toast.success('Yeni ürün stoğa eklendi');
+      setNewStockName('');
+      setBarcodeResult(null);
+      
+      // Now add it to the case
+      if (res.data?.stock_item) {
+        await handleAddMedication(res.data.stock_item, barcodeResult.parsed);
+      }
+    } catch (error) {
+      console.error('Error creating stock:', error);
+      toast.error('Ürün eklenemedi');
+    }
+  };
+  
+  // Vaka durum güncelleme (ATT ve Paramedik için)
+  const handleStatusUpdate = async (newStatus) => {
+    if (!newStatus || statusUpdating) return;
+    
+    setStatusUpdating(true);
+    try {
+      await casesAPI.updateStatus(id, { 
+        status: newStatus, 
+        note: `Durum güncellendi: ${getStatusLabel(newStatus)}` 
+      });
+      toast.success(`Durum güncellendi: ${getStatusLabel(newStatus)}`);
+      // Reload case data
+      const res = await casesAPI.getById(id);
+      setCaseData(res.data);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Durum güncellenemedi');
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+  
+  // Status labels
+  const getStatusLabel = (status) => {
+    const labels = {
+      'acildi': 'Açıldı',
+      'ekip_bilgilendirildi': 'Ekip Bilgilendirildi',
+      'ekip_yola_cikti': 'Ekip Yola Çıktı',
+      'sahada': 'Sahada',
+      'hasta_alindi': 'Hasta Alındı',
+      'doktor_konsultasyonu': 'Doktor Konsültasyonu',
+      'merkeze_donus': 'Merkeze Dönüş',
+      'hastane_sevki': 'Hastane Sevki',
+      'tamamlandi': 'Tamamlandı',
+      'iptal': 'İptal'
+    };
+    return labels[status] || status;
+  };
+  
+  // Next status logic for ATT/Paramedik
+  const getNextStatuses = (currentStatus) => {
+    const statusFlow = {
+      'acildi': ['ekip_bilgilendirildi'],
+      'ekip_bilgilendirildi': ['ekip_yola_cikti'],
+      'ekip_yola_cikti': ['sahada'],
+      'sahada': ['hasta_alindi', 'tamamlandi', 'iptal'],
+      'hasta_alindi': ['doktor_konsultasyonu', 'merkeze_donus', 'hastane_sevki'],
+      'doktor_konsultasyonu': ['merkeze_donus', 'hastane_sevki'],
+      'merkeze_donus': ['tamamlandi'],
+      'hastane_sevki': ['tamamlandi'],
+      'tamamlandi': [],
+      'iptal': []
+    };
+    return statusFlow[currentStatus] || [];
+  };
+  
+  const loadMedicalForm = async () => {
+    try {
+      const response = await casesAPI.getMedicalForm(id);
+      const formData = response.data.medical_form || {};
+      setMedicalForm(formData);
+      setDoctorApproval(response.data.doctor_approval);
+      setParticipants(response.data.participants || []);
+      
+      // Load extended form data
+      if (formData.vital_signs) setVitalSigns(formData.vital_signs);
+      if (formData.clinical_obs) setClinicalObs(formData.clinical_obs);
+      if (formData.cpr_data) setCprData(formData.cpr_data);
+      if (formData.procedures) setProcedures(formData.procedures);
+      if (formData.transfers) setTransfers(formData.transfers);
+      if (formData.vehicle_info) setVehicleInfo(formData.vehicle_info);
+      if (formData.time_info) setTimeInfo(formData.time_info);
+      if (formData.isolation) setIsolation(formData.isolation);
+      if (formData.chronic_diseases) setChronicDiseases(formData.chronic_diseases);
+      if (formData.applications) setApplications(formData.applications);
+    } catch (error) {
+      console.error('Error loading medical form:', error);
+    }
+  };
+  
+  const loadParticipants = async () => {
+    try {
+      const response = await casesAPI.getParticipants(id);
+      setParticipants(response.data.participants || []);
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    }
+  };
+  
+  const loadHospitalsGrouped = async () => {
+    try {
+      const response = await referenceAPI.getHospitalsGrouped();
+      setHospitalsGrouped(response.data);
+    } catch (error) {
+      console.error('Error loading hospitals:', error);
+    }
+  };
+  
+  // Debounced form update
+  const updateFormField = useCallback(async (field, value) => {
+    setMedicalForm(prev => ({ ...prev, [field]: value }));
+    
+    try {
+      await casesAPI.updateMedicalForm(id, { [field]: value });
+    } catch (error) {
+      console.error('Error updating form:', error);
+    }
+  }, [id]);
+  
+  // Update vital signs
+  const updateVitalSigns = async (index, field, value) => {
+    const newVitals = [...vitalSigns];
+    newVitals[index][field] = value;
+    setVitalSigns(newVitals);
+    updateFormField('vital_signs', newVitals);
+  };
+  
+  // Update clinical observations
+  const updateClinicalObs = async (field, value) => {
+    const newObs = { ...clinicalObs, [field]: value };
+    setClinicalObs(newObs);
+    updateFormField('clinical_obs', newObs);
+  };
+  
+  // Update CPR data
+  const updateCprData = async (field, value) => {
+    const newCpr = { ...cprData, [field]: value };
+    setCprData(newCpr);
+    updateFormField('cpr_data', newCpr);
+  };
+  
+  // Update vehicle info
+  const updateVehicleInfo = async (field, value) => {
+    const newInfo = { ...vehicleInfo, [field]: value };
+    setVehicleInfo(newInfo);
+    updateFormField('vehicle_info', newInfo);
+  };
+  
+  // Update time info
+  const updateTimeInfo = async (field, value) => {
+    const newInfo = { ...timeInfo, [field]: value };
+    setTimeInfo(newInfo);
+    updateFormField('time_info', newInfo);
+  };
+  
+  // Toggle procedure
+  const toggleProcedure = (proc) => {
+    const newProcs = { ...procedures, [proc]: !procedures[proc] };
+    setProcedures(newProcs);
+    updateFormField('procedures', newProcs);
+  };
+  
+  // Toggle transfer
+  const toggleTransfer = (transfer) => {
+    const newTransfers = { ...transfers, [transfer]: !transfers[transfer] };
+    setTransfers(newTransfers);
+    updateFormField('transfers', newTransfers);
+  };
+  
+  // Toggle isolation
+  const toggleIsolation = (type) => {
+    const newIso = isolation.includes(type) 
+      ? isolation.filter(i => i !== type)
+      : [...isolation, type];
+    setIsolation(newIso);
+    updateFormField('isolation', newIso);
+  };
+  
+  // ICD code search
+  const searchIcdCodes = async (query) => {
+    if (!query || query.length < 2) {
+      setIcdResults([]);
+      return;
+    }
+    
+    try {
+      const response = await referenceAPI.searchIcdCodes(query);
+      setIcdResults(response.data);
+    } catch (error) {
+      console.error('Error searching ICD codes:', error);
+    }
+  };
+  
+  // Hospital search
+  const searchHospitals = async (query) => {
+    if (!query || query.length < 2) {
+      setHospitalResults([]);
+      return;
+    }
+    
+    try {
+      const response = await referenceAPI.getHospitals({ q: query });
+      setHospitalResults(response.data);
+    } catch (error) {
+      console.error('Error searching hospitals:', error);
+    }
+  };
+  
+  // Add ICD diagnosis
+  const addDiagnosis = (icd, type = 'preliminary') => {
+    const field = type === 'preliminary' ? 'preliminary_diagnosis' : 'final_diagnosis';
+    const current = medicalForm[field] || [];
+    
+    // Check if already added
+    if (current.some(d => d.code === icd.code)) {
+      toast.error('Bu tanı zaten eklenmiş');
+      return;
+    }
+    
+    const updated = [...current, icd];
+    updateFormField(field, updated);
+    setIcdSearch('');
+    setIcdResults([]);
+    toast.success(`${icd.code} - ${icd.name} eklendi`);
+  };
+  
+  // Remove diagnosis
+  const removeDiagnosis = (code, type = 'preliminary') => {
+    const field = type === 'preliminary' ? 'preliminary_diagnosis' : 'final_diagnosis';
+    const current = medicalForm[field] || [];
+    const updated = current.filter(d => d.code !== code);
+    updateFormField(field, updated);
+  };
+  
+  // Select hospital
+  const selectHospital = (hospital) => {
+    updateFormField('transfer_hospital', hospital);
+    setHospitalSearch('');
+    setHospitalResults([]);
+    toast.success(`${hospital.name} seçildi`);
+  };
+  
+  // Doctor approval
+  const handleDoctorApproval = async (status) => {
+    try {
+      const response = await casesAPI.doctorApproval(id, {
+        status,
+        notes: status === 'approved' ? 'İşlem onaylandı' : null,
+        rejection_reason: status === 'rejected' ? 'Red nedeni belirtilmedi' : null
+      });
+      toast.success(response.data.message);
+      setDoctorApproval(response.data.approval);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'İşlem başarısız');
+    }
+  };
+  
+  // Video call state
+  const [videoCallActive, setVideoCallActive] = useState(false);
+  const [videoRoomUrl, setVideoRoomUrl] = useState(null);
+  const [videoProvider, setVideoProvider] = useState(null);
+  
+  // Start video call - embed in page
+  const startVideoCall = async () => {
+    try {
+      // Daily.co API'yi dene
+      const response = await videoCallAPI.createRoom(id);
+      console.log('Video call response:', response.data);
+      const { room_url, provider } = response.data;
+      
+      if (room_url) {
+        console.log('Setting video state:', { room_url, provider });
+        // State'leri hızlı sırayla güncelle
+        setVideoProvider(provider || 'daily');
+        setVideoRoomUrl(room_url);
+        // Kısa gecikme ile aktif et
+        setTimeout(() => {
+          setVideoCallActive(true);
+          toast.success('Görüntülü görüşme başlatılıyor...');
+        }, 100);
+      } else {
+        toast.error('Video odası URL alınamadı');
+      }
+    } catch (error) {
+      console.error('Video call error:', error);
+      toast.error('Görüntülü görüşme başlatılamadı');
+    }
+  };
+  
+  // End video call
+  const endVideoCall = async () => {
+    console.log('endVideoCall called');
+    console.trace('endVideoCall stack trace');
+    try {
+      await videoCallAPI.endRoom(id);
+    } catch (e) {
+      // Ignore
+    }
+    setVideoCallActive(false);
+    setVideoRoomUrl(null);
+    setVideoProvider(null);
+    toast.info('Görüntülü görüşme sonlandırıldı');
+  };
+  
+  // Check video call status on load - only once at mount
+  const videoStatusCheckedRef = useRef(false);
+  useEffect(() => {
+    const checkVideoStatus = async () => {
+      // Sadece bir kez kontrol et
+      if (videoStatusCheckedRef.current) return;
+      videoStatusCheckedRef.current = true;
+      
+      try {
+        const response = await videoCallAPI.getRoomStatus(id);
+        if (response.data.active && response.data.room_url) {
+          setVideoRoomUrl(response.data.room_url);
+          setVideoProvider(response.data.provider);
+          setVideoCallActive(true);
+        }
+      } catch (e) {
+        // Ignore
+      }
+    };
+    if (id) checkVideoStatus();
+  }, [id]);
+
+  // Onam formu açma
+  const openConsentForm = (formId) => {
+    setSelectedConsentForm(formId);
+    setConsentDialogOpen(true);
+  };
+  
+  // Onam formu bileşenini render et
+  const renderConsentFormContent = (formId) => {
+    const commonProps = {
+      caseId: id,
+      caseNumber: caseData?.case_number,
+      patientName: caseData?.patient_name || ''
+    };
+    
+    switch(formId) {
+      case 'kvkk':
+        return <KVKKConsentForm {...commonProps} />;
+      case 'injection':
+        return <InjectionConsentForm {...commonProps} />;
+      case 'puncture':
+        return <PunctureConsentForm {...commonProps} />;
+      case 'minor-surgery':
+        return <MinorSurgeryConsentForm {...commonProps} />;
+      case 'general-consent':
+        return <GeneralConsentForm {...commonProps} />;
+      default:
+        return null;
     }
   };
 
@@ -104,6 +838,8 @@ const CaseDetail = () => {
   };
 
   const canManageCase = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
+  const isDoctor = user?.role === 'doktor';
+  const canEditForm = ['doktor', 'hemsire', 'paramedik', 'att'].includes(user?.role);
 
   if (loading || !caseData) {
     return (
@@ -114,26 +850,1192 @@ const CaseDetail = () => {
   }
 
   return (
-    <div className="space-y-6" data-testid="case-detail-page">
+    <div className="space-y-4" data-testid="case-detail-page">
+      {/* Header */}
+      <div className="flex items-center justify-between">
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/cases')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{caseData.case_number}</h1>
+          <div>
+            <h1 className="text-2xl font-bold">AMBULANS VAKA FORMU</h1>
           <div className="flex items-center space-x-2 mt-1">
+              <Badge variant="outline">{caseData.case_number}</Badge>
             <Badge className={priorityColors[caseData.priority]}>
               {priorityLabels[caseData.priority]}
             </Badge>
             <Badge variant="outline">{statusLabels[caseData.status]}</Badge>
           </div>
         </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          {/* Status Update Buttons - Only for ATT/Paramedik */}
+          {(user?.role === 'att' || user?.role === 'paramedik') && caseData?.status !== 'tamamlandi' && caseData?.status !== 'iptal' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Durum:</span>
+              <Badge variant="outline" className="mr-2">{getStatusLabel(caseData?.status)}</Badge>
+              <span className="text-sm text-gray-400">→</span>
+              <Select 
+                value="" 
+                onValueChange={handleStatusUpdate}
+                disabled={statusUpdating || getNextStatuses(caseData?.status).length === 0}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder={statusUpdating ? "Güncelleniyor..." : "Sonraki durum"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {getNextStatuses(caseData?.status).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {getStatusLabel(status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {/* Participants */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Katılanlar:</span>
+            <div className="flex -space-x-2">
+              {participants.slice(0, 5).map((p, idx) => (
+                <Avatar key={idx} className="w-8 h-8 border-2 border-white">
+                  <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                    {p.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {participants.length > 5 && (
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium border-2 border-white">
+                  +{participants.length - 5}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Video Call Button */}
+          {videoCallActive ? (
+            <Button 
+              onClick={endVideoCall}
+              variant="destructive"
+            >
+              <VideoOff className="h-4 w-4 mr-2" />
+              Görüşmeyi Kapat
+            </Button>
+          ) : (
+            <Button 
+              onClick={startVideoCall}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            >
+              <Video className="h-4 w-4 mr-2" />
+              Görüntülü Görüşme
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      {/* Embedded Video Call */}
+      {videoCallActive && videoRoomUrl && (
+        <div className="mb-4">
+          <VideoCall 
+            roomUrl={videoRoomUrl}
+            userName={user?.name}
+            provider={videoProvider}
+            onLeave={endVideoCall}
+            onError={(e) => console.error('Video error:', e)}
+          />
+        </div>
+      )}
+      
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="form" className="flex items-center space-x-2">
+            <FileText className="h-4 w-4" />
+            <span>Temel Bilgiler</span>
+          </TabsTrigger>
+          <TabsTrigger value="vitals" className="flex items-center space-x-2">
+            <Activity className="h-4 w-4" />
+            <span>Vitaller</span>
+          </TabsTrigger>
+          <TabsTrigger value="procedures" className="flex items-center space-x-2">
+            <Syringe className="h-4 w-4" />
+            <span>Uygulamalar</span>
+          </TabsTrigger>
+          <TabsTrigger value="medications" className="flex items-center space-x-2">
+            <Package className="h-4 w-4" />
+            <span>Malzemeler</span>
+          </TabsTrigger>
+          <TabsTrigger value="transfer" className="flex items-center space-x-2">
+            <Ambulance className="h-4 w-4" />
+            <span>Transfer</span>
+          </TabsTrigger>
+          <TabsTrigger value="consent" className="flex items-center space-x-2">
+            <FileSignature className="h-4 w-4" />
+            <span>Onam Formları</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center space-x-2">
+            <Clock className="h-4 w-4" />
+            <span>Geçmiş</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Doctor Approval Banner */}
+        {isDoctor && !doctorApproval?.status && (
+          <Card className="border-2 border-amber-300 bg-amber-50">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="h-6 w-6 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-900">Onay Bekliyor</p>
+                    <p className="text-sm text-amber-700">Lütfen işlemleri inceleyip onayınızı verin</p>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={() => handleDoctorApproval('approved')}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    İşleme Onay Veriyorum
+                  </Button>
+                  <Button 
+                    onClick={() => handleDoctorApproval('rejected')}
+                    variant="destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Onay Vermiyorum
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {doctorApproval?.status && (
+          <Card className={`border-2 ${doctorApproval.status === 'approved' ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}`}>
+            <CardContent className="py-3">
+              <div className="flex items-center space-x-3">
+                {doctorApproval.status === 'approved' ? (
+                  <Check className="h-5 w-5 text-green-600" />
+                ) : (
+                  <X className="h-5 w-5 text-red-600" />
+                )}
+                <span className={doctorApproval.status === 'approved' ? 'text-green-800' : 'text-red-800'}>
+                  {doctorApproval.doctor_name} tarafından {doctorApproval.status === 'approved' ? 'onaylandı' : 'reddedildi'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* TAB 1: Temel Bilgiler */}
+        <TabsContent value="form" className="space-y-4">
+          {/* Hasta ve Zaman Bilgileri */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <User className="h-5 w-5" />
+                <span>Hasta ve Zaman Bilgileri</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid gap-4 md:grid-cols-4">
+                <div>
+                  <Label>Adı Soyadı</Label>
+                  <Input value={`${caseData.patient.name} ${caseData.patient.surname}`} disabled className="bg-gray-50" />
+                </div>
+                <div>
+                  <Label>T.C. Kimlik No</Label>
+                  <Input value={caseData.patient.tc_no || ''} disabled className="bg-gray-50" />
+                </div>
+                <div>
+                  <Label>Yaş</Label>
+                  <Input value={caseData.patient.age} disabled className="bg-gray-50" />
+                </div>
+                <div>
+                  <Label>Cinsiyet</Label>
+                  <Input value={caseData.patient.gender === 'erkek' ? 'Erkek' : caseData.patient.gender === 'kadin' ? 'Kadın' : 'Diğer'} disabled className="bg-gray-50" />
+                </div>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-4">
+                <div>
+                  <Label>Çağrı Saati</Label>
+                  <Input 
+                    type="time" 
+                    value={timeInfo.callTime} 
+                    onChange={(e) => updateTimeInfo('callTime', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Varış Saati</Label>
+                  <Input 
+                    type="time" 
+                    value={timeInfo.arrivalTime} 
+                    onChange={(e) => updateTimeInfo('arrivalTime', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Ayrılış Saati</Label>
+                  <Input 
+                    type="time" 
+                    value={timeInfo.departureTime} 
+                    onChange={(e) => updateTimeInfo('departureTime', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Hastane Varış Saati</Label>
+                  <Input 
+                    type="time" 
+                    value={timeInfo.hospitalArrivalTime} 
+                    onChange={(e) => updateTimeInfo('hospitalArrivalTime', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>Adres</Label>
+                <Textarea value={caseData.location.address} disabled className="bg-gray-50" rows={2} />
+              </div>
+              
+              <div>
+                <Label>Hastanın Şikayeti</Label>
+                <Textarea value={caseData.patient.complaint} disabled className="bg-gray-50" rows={2} />
+              </div>
+              
+              <div className="flex items-center space-x-3 bg-yellow-50 p-3 rounded">
+                <Switch 
+                  id="conscious" 
+                  checked={clinicalObs.consciousStatus} 
+                  onCheckedChange={(v) => updateClinicalObs('consciousStatus', v)}
+                  disabled={!canEditForm}
+                />
+                <Label htmlFor="conscious" className="cursor-pointer">
+                  Hasta Bilinci Durumu: <strong>{clinicalObs.consciousStatus ? 'Bilinci Açık' : 'Bilinci Kapalı'}</strong>
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tıbbi Bilgiler */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Stethoscope className="h-5 w-5" />
+                <span>Tıbbi Bilgiler</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              {/* ICD Diagnosis */}
+              <div className="relative">
+                <Label>Ön Tanı (ICD-10)</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Örn: A00 veya Kolera"
+                    className="pl-10"
+                    value={icdSearch}
+                    onChange={(e) => {
+                      setIcdSearch(e.target.value);
+                      searchIcdCodes(e.target.value);
+                    }}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                
+                {icdResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {icdResults.map((icd, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => addDiagnosis(icd)}
+                        className="w-full px-4 py-2 text-left hover:bg-blue-50 flex items-center justify-between"
+                      >
+                        <span className="font-mono text-blue-600">{icd.code}</span>
+                        <span className="text-sm text-gray-600 truncate ml-2">{icd.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {(medicalForm.preliminary_diagnosis || []).map((diag, idx) => (
+                  <Badge 
+                    key={idx} 
+                    variant="secondary"
+                    className="flex items-center space-x-1 bg-indigo-100 text-indigo-800"
+                  >
+                    <span className="font-mono">{diag.code}</span>
+                    <span>-</span>
+                    <span className="truncate max-w-[150px]">{diag.name}</span>
+                    {canEditForm && (
+                      <button onClick={() => removeDiagnosis(diag.code)} className="ml-1 hover:text-red-600">
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+              
+              <div>
+                <Label>Kronik Hastalıklar</Label>
+                <Input 
+                  value={chronicDiseases} 
+                  onChange={(e) => {
+                    setChronicDiseases(e.target.value);
+                    updateFormField('chronic_diseases', e.target.value);
+                  }}
+                  placeholder="DM, HT, KOAH vb."
+                  disabled={!canEditForm}
+                />
+              </div>
+              
+              <div>
+                <Label>Açıklama, Hastaya Yapılan Uygulama, Kullanılan İlaçlar</Label>
+                <Textarea 
+                  value={applications} 
+                  onChange={(e) => {
+                    setApplications(e.target.value);
+                    updateFormField('applications', e.target.value);
+                  }}
+                  rows={4}
+                  disabled={!canEditForm}
+                />
+              </div>
+              
+              <div>
+                <Label>İzolasyon Durumu</Label>
+                <div className="flex space-x-6 mt-2">
+                  {['solunum', 'damlacik', 'temas'].map((type) => (
+                    <div key={type} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`iso-${type}`}
+                        checked={isolation.includes(type)}
+                        onCheckedChange={() => toggleIsolation(type)}
+                        disabled={!canEditForm}
+                      />
+                      <Label htmlFor={`iso-${type}`} className="font-normal cursor-pointer">
+                        {type === 'solunum' ? 'Solunum' : type === 'damlacik' ? 'Damlacık' : 'Temas'} İzolasyonu
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Nakil Hastanesi */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Building2 className="h-5 w-5" />
+                <span>Nakil Hastanesi</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              {hospitalsGrouped && (
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div>
+                    <Label className="text-sm font-semibold text-emerald-700">HEALMEDY</Label>
+                    <div className="space-y-1 mt-2">
+                      {hospitalsGrouped.healmedy?.map((h, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => selectHospital(h)}
+                          className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
+                            medicalForm.transfer_hospital?.name === h.name
+                              ? 'bg-emerald-100 border-emerald-500 text-emerald-800'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {h.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-semibold text-blue-700">Özel Hastaneler</Label>
+                    <div className="space-y-1 mt-2">
+                      {hospitalsGrouped.ozel_hastaneler?.map((h, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => selectHospital(h)}
+                          className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
+                            medicalForm.transfer_hospital?.name === h.name
+                              ? 'bg-blue-100 border-blue-500 text-blue-800'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {h.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-semibold text-purple-700">Zonguldak Devlet Hastaneleri</Label>
+                    <div className="space-y-1 mt-2 max-h-[200px] overflow-y-auto">
+                      {hospitalsGrouped.devlet_hastaneleri?.map((h, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => selectHospital(h)}
+                          className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
+                            medicalForm.transfer_hospital?.name === h.name
+                              ? 'bg-purple-100 border-purple-500 text-purple-800'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {h.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div>
+                <Label>Diğer İller (Arama)</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Hastane adı yazın..."
+                    className="pl-10"
+                    value={hospitalSearch}
+                    onChange={(e) => {
+                      setHospitalSearch(e.target.value);
+                      searchHospitals(e.target.value);
+                    }}
+                    disabled={!canEditForm}
+                  />
+                  
+                  {hospitalResults.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {hospitalResults.map((h, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => selectHospital(h)}
+                          className="w-full px-4 py-2 text-left hover:bg-blue-50"
+                        >
+                          <div className="font-medium">{h.name}</div>
+                          <div className="text-xs text-gray-500">{h.il} - {h.ilce}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {medicalForm.transfer_hospital && (
+                <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-teal-800">{medicalForm.transfer_hospital.name}</p>
+                      <p className="text-sm text-teal-600">{medicalForm.transfer_hospital.type}</p>
+                    </div>
+                    {canEditForm && (
+                      <Button variant="ghost" size="sm" onClick={() => updateFormField('transfer_hospital', null)} className="text-red-500 hover:text-red-700">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 2: Vital ve Klinik Gözlemler */}
+        <TabsContent value="vitals" className="space-y-4">
+          {/* 3 Vital Ölçüm Seti */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Activity className="h-5 w-5" />
+                <span>Vital Ölçümler</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              {vitalSigns.map((vital, index) => (
+                <Card key={index} className="bg-gray-50">
+                  <CardHeader className="py-2">
+                    <CardTitle className="text-sm">{index + 1}. ÖLÇÜM</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-6">
+                    <div>
+                      <Label className="text-xs">Ölçüm Saati</Label>
+                      <Input 
+                        type="time" 
+                        className="h-9"
+                        value={vital.time}
+                        onChange={(e) => updateVitalSigns(index, 'time', e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Tansiyon</Label>
+                      <Input 
+                        placeholder="120/80" 
+                        className="h-9"
+                        value={vital.bp}
+                        onChange={(e) => updateVitalSigns(index, 'bp', e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Nabız</Label>
+                      <Input 
+                        placeholder="72" 
+                        className="h-9"
+                        value={vital.pulse}
+                        onChange={(e) => updateVitalSigns(index, 'pulse', e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">SPO2</Label>
+                      <Input 
+                        placeholder="98" 
+                        className="h-9"
+                        value={vital.spo2}
+                        onChange={(e) => updateVitalSigns(index, 'spo2', e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Solunum/DK</Label>
+                      <Input 
+                        placeholder="16" 
+                        className="h-9"
+                        value={vital.respiration}
+                        onChange={(e) => updateVitalSigns(index, 'respiration', e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Ateş</Label>
+                      <Input 
+                        placeholder="36.5" 
+                        className="h-9"
+                        value={vital.temp}
+                        onChange={(e) => updateVitalSigns(index, 'temp', e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Klinik Gözlemler */}
+          {clinicalObs.consciousStatus && (
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-t-lg">
+                <CardTitle className="flex items-center space-x-2 text-lg">
+                  <Eye className="h-5 w-5" />
+                  <span>Klinik Gözlemler</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label>Emosyonel Durum</Label>
+                    <RadioGroup 
+                      value={clinicalObs.emotionalState} 
+                      onValueChange={(v) => updateClinicalObs('emotionalState', v)}
+                      disabled={!canEditForm}
+                    >
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {['Normal', 'Üzüntülü', 'Huzursuz', 'Kayıtsız', 'Diğer'].map(opt => (
+                          <div key={opt} className="flex items-center space-x-2">
+                            <RadioGroupItem value={opt.toLowerCase()} id={`emo-${opt}`} />
+                            <Label htmlFor={`emo-${opt}`} className="font-normal text-xs">{opt}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div>
+                    <Label>Pupiller</Label>
+                    <RadioGroup 
+                      value={clinicalObs.pupils} 
+                      onValueChange={(v) => updateClinicalObs('pupils', v)}
+                      disabled={!canEditForm}
+                    >
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {['Normal', 'Miyotik', 'Midriatik', 'Anizokorik', 'Reaksiyon Yok', 'Fix Dilate'].map(opt => (
+                          <div key={opt} className="flex items-center space-x-2">
+                            <RadioGroupItem value={opt.toLowerCase()} id={`pup-${opt}`} />
+                            <Label htmlFor={`pup-${opt}`} className="font-normal text-xs">{opt}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label>Deri</Label>
+                    <RadioGroup 
+                      value={clinicalObs.skin} 
+                      onValueChange={(v) => updateClinicalObs('skin', v)}
+                      disabled={!canEditForm}
+                    >
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {['Normal', 'Soluk', 'Siyatonik', 'Hiperemik', 'İkterik', 'Terli'].map(opt => (
+                          <div key={opt} className="flex items-center space-x-2">
+                            <RadioGroupItem value={opt.toLowerCase()} id={`skin-${opt}`} />
+                            <Label htmlFor={`skin-${opt}`} className="font-normal text-xs">{opt}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div>
+                    <Label>Solunum</Label>
+                    <RadioGroup 
+                      value={clinicalObs.respirationType} 
+                      onValueChange={(v) => updateClinicalObs('respirationType', v)}
+                      disabled={!canEditForm}
+                    >
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {['Rahat', 'Derin', 'Yüzeysel', 'Düzensiz', 'Dispneik', 'Yok'].map(opt => (
+                          <div key={opt} className="flex items-center space-x-2">
+                            <RadioGroupItem value={opt.toLowerCase()} id={`resp-${opt}`} />
+                            <Label htmlFor={`resp-${opt}`} className="font-normal text-xs">{opt}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>Nabız Tipi</Label>
+                  <RadioGroup 
+                    value={clinicalObs.pulseType} 
+                    onValueChange={(v) => updateClinicalObs('pulseType', v)}
+                    disabled={!canEditForm}
+                  >
+                    <div className="flex space-x-6 mt-2">
+                      {['Düzenli', 'Aritmik', 'Filiform', 'Alınmıyor'].map(opt => (
+                        <div key={opt} className="flex items-center space-x-2">
+                          <RadioGroupItem value={opt.toLowerCase()} id={`pulse-${opt}`} />
+                          <Label htmlFor={`pulse-${opt}`} className="font-normal text-xs">{opt}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </RadioGroup>
+                </div>
+                
+                {/* GKS */}
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div>
+                    <Label>Motor Yanıt (1-6)</Label>
+                    <Input 
+                      type="number" 
+                      min="1" max="6"
+                      placeholder="1-6"
+                      value={clinicalObs.motorResponse}
+                      onChange={(e) => updateClinicalObs('motorResponse', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>Sözlü Yanıt (1-5)</Label>
+                    <Input 
+                      type="number" 
+                      min="1" max="5"
+                      placeholder="1-5"
+                      value={clinicalObs.verbalResponse}
+                      onChange={(e) => updateClinicalObs('verbalResponse', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>Göz Açma (1-4)</Label>
+                    <Input 
+                      type="number" 
+                      min="1" max="4"
+                      placeholder="1-4"
+                      value={clinicalObs.eyeOpening}
+                      onChange={(e) => updateClinicalObs('eyeOpening', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>GKS Puanı</Label>
+                    <div className="h-9 flex items-center justify-center bg-blue-100 rounded font-bold text-blue-800">
+                      {gksPuani || 0}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* CPR */}
+                <Separator />
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div>
+                    <Label>CPR Yapan</Label>
+                    <Input 
+                      value={cprData.cprBy}
+                      onChange={(e) => updateCprData('cprBy', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>Başlama Zamanı</Label>
+                    <Input 
+                      type="time"
+                      value={cprData.cprStart}
+                      onChange={(e) => updateCprData('cprStart', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>Bırakma Zamanı</Label>
+                    <Input 
+                      type="time"
+                      value={cprData.cprEnd}
+                      onChange={(e) => updateCprData('cprEnd', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>Bırakma Nedeni</Label>
+                    <Input 
+                      value={cprData.cprReason}
+                      onChange={(e) => updateCprData('cprReason', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Notes */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Anamnez</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="Hasta öyküsü..."
+                  rows={4}
+                  value={medicalForm.anamnesis || ''}
+                  onChange={(e) => updateFormField('anamnesis', e.target.value)}
+                  disabled={!canEditForm}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Fizik Muayene</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="Fizik muayene bulguları..."
+                  rows={4}
+                  value={medicalForm.physical_exam || ''}
+                  onChange={(e) => updateFormField('physical_exam', e.target.value)}
+                  disabled={!canEditForm}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* TAB 3: Yapılan Uygulamalar */}
+        <TabsContent value="procedures" className="space-y-4">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Syringe className="h-5 w-5" />
+                <span>Yapılan Uygulamalar ve İşlemler</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {proceduresList.map((proc, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`proc-${index}`}
+                      checked={procedures[proc] || false}
+                      onCheckedChange={() => toggleProcedure(proc)}
+                      disabled={!canEditForm}
+                    />
+                    <Label htmlFor={`proc-${index}`} className="text-xs font-normal cursor-pointer">{proc}</Label>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Genel Notlar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Ekstra notlar..."
+                rows={4}
+                value={medicalForm.notes || ''}
+                onChange={(e) => updateFormField('notes', e.target.value)}
+                disabled={!canEditForm}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 4: Kullanılan Malzemeler/İlaçlar */}
+        <TabsContent value="medications" className="space-y-4">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Package className="h-5 w-5" />
+                <span>Kullanılan İlaç ve Malzemeler</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              {/* Yetki kontrolü - ATT ve Paramedik */}
+              {(user?.role === 'att' || user?.role === 'paramedik' || user?.role === 'hemsire' || user?.role === 'doktor') && (
+                <div className="space-y-4">
+                  {/* Karekod/Barkod Okuma */}
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label>Karekod/Barkod Girin veya Okutun</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          placeholder="Karekodu yapıştırın veya tarayın..."
+                          value={barcodeInput}
+                          onChange={(e) => setBarcodeInput(e.target.value)}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter' && barcodeInput.trim()) {
+                              await handleBarcodeSubmit();
+                            }
+                          }}
+                        />
+                        <Button 
+                          variant="outline" 
+                          onClick={handleBarcodeSubmit}
+                          disabled={!barcodeInput.trim()}
+                        >
+                          <QrCode className="h-4 w-4 mr-2" />
+                          Ara
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barkod Sonucu */}
+                  {barcodeResult && (
+                    <Card className={`border-2 ${barcodeResult.found ? 'border-green-300 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
+                      <CardContent className="p-4">
+                        {barcodeResult.found ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-green-800">{barcodeResult.stock_item?.name}</p>
+                                <p className="text-sm text-green-600">
+                                  Stok: {barcodeResult.stock_item?.quantity} {barcodeResult.stock_item?.unit || 'adet'} | 
+                                  Lot: {barcodeResult.parsed?.lot_number || '-'} | 
+                                  SKT: {barcodeResult.parsed?.expiry_date_parsed ? new Date(barcodeResult.parsed.expiry_date_parsed).toLocaleDateString('tr-TR') : '-'}
+                                </p>
+                              </div>
+                              <Button 
+                                onClick={() => handleAddMedication(barcodeResult.stock_item, barcodeResult.parsed)}
+                                disabled={addingMedication}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Ekle
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="font-semibold text-amber-800">Stokta bulunamadı</p>
+                            <p className="text-sm text-amber-600">
+                              GTIN: {barcodeResult.parsed?.gtin || '-'} | 
+                              Lot: {barcodeResult.parsed?.lot_number || '-'}
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <Input
+                                placeholder="Ürün adını girin..."
+                                value={newStockName}
+                                onChange={(e) => setNewStockName(e.target.value)}
+                                className="flex-1"
+                              />
+                              <Button 
+                                onClick={handleCreateNewStock}
+                                disabled={!newStockName.trim()}
+                                variant="outline"
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Yeni Ürün Ekle
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Manuel Arama */}
+                  <div>
+                    <Label>veya Manuel Ara</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        placeholder="İlaç/malzeme adı..."
+                        value={stockSearch}
+                        onChange={(e) => {
+                          setStockSearch(e.target.value);
+                          handleStockSearch(e.target.value);
+                        }}
+                      />
+                    </div>
+                    {stockSearchResults.length > 0 && (
+                      <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto">
+                        {stockSearchResults.map((item) => (
+                          <div 
+                            key={item.id}
+                            className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                            onClick={() => handleAddMedication(item, null)}
+                          >
+                            <div>
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-sm text-gray-500">
+                                Stok: {item.quantity} | {item.location_detail || item.location}
+                              </p>
+                            </div>
+                            <Plus className="h-4 w-4 text-gray-400" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Kullanılan Malzemeler Listesi */}
+              <div className="mt-6">
+                <h4 className="font-semibold mb-3 flex items-center">
+                  <Pill className="h-4 w-4 mr-2" />
+                  Vakada Kullanılan ({medications.length})
+                </h4>
+                {medications.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">Henüz malzeme eklenmedi</p>
+                ) : (
+                  <div className="space-y-2">
+                    {medications.map((med) => (
+                      <div 
+                        key={med.id} 
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">{med.name}</p>
+                          <p className="text-sm text-gray-500">
+                            Miktar: {med.quantity} {med.unit || 'adet'} | 
+                            {med.lot_number && ` Lot: ${med.lot_number} |`}
+                            {med.expiry_date && ` SKT: ${new Date(med.expiry_date).toLocaleDateString('tr-TR')}`}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Ekleyen: {med.added_by_name} - {new Date(med.added_at).toLocaleString('tr-TR')}
+                          </p>
+                        </div>
+                        {(user?.role === 'att' || user?.role === 'paramedik' || user?.role === 'hemsire') && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemoveMedication(med.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 5: Transfer ve Araç Bilgileri */}
+        <TabsContent value="transfer" className="space-y-4">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Ambulance className="h-5 w-5" />
+                <span>Transfer Durumu</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {transferList.map((transfer, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`trans-${index}`}
+                      checked={transfers[transfer] || false}
+                      onCheckedChange={() => toggleTransfer(transfer)}
+                      disabled={!canEditForm}
+                    />
+                    <Label htmlFor={`trans-${index}`} className="text-xs font-normal cursor-pointer">{transfer}</Label>
+                  </div>
+                ))}
+              </div>
+              
+              <Separator />
+              
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <Label>Refakatçı Sayısı</Label>
+                  <Input 
+                    type="number"
+                    value={medicalForm.companions || ''}
+                    onChange={(e) => updateFormField('companions', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Ambulans Bekleme (Saat)</Label>
+                  <Input 
+                    type="number"
+                    value={medicalForm.waitHours || ''}
+                    onChange={(e) => updateFormField('waitHours', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Ambulans Bekleme (Dakika)</Label>
+                  <Input 
+                    type="number"
+                    value={medicalForm.waitMinutes || ''}
+                    onChange={(e) => updateFormField('waitMinutes', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <ClipboardList className="h-5 w-5" />
+                <span>Taşıt ve Protokol Bilgileri</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Başlangıç KM</Label>
+                  <Input 
+                    type="number"
+                    value={vehicleInfo.startKm}
+                    onChange={(e) => updateVehicleInfo('startKm', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Bitiş KM</Label>
+                  <Input 
+                    type="number"
+                    value={vehicleInfo.endKm}
+                    onChange={(e) => updateVehicleInfo('endKm', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>112 Protokol Numarası</Label>
+                  <Input 
+                    value={vehicleInfo.protocol112}
+                    onChange={(e) => updateVehicleInfo('protocol112', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Hastane Protokol/Dosya No</Label>
+                  <Input 
+                    value={vehicleInfo.hospitalProtocol}
+                    onChange={(e) => updateVehicleInfo('hospitalProtocol', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>Vakayı Veren Kurum Bilgisi</Label>
+                <Input 
+                  value={vehicleInfo.referringInstitution}
+                  onChange={(e) => updateVehicleInfo('referringInstitution', e.target.value)}
+                  disabled={!canEditForm}
+                />
+              </div>
+              
+              <div>
+                <Label>Gidiş-Dönüş</Label>
+                <RadioGroup 
+                  value={vehicleInfo.roundTrip}
+                  onValueChange={(v) => updateVehicleInfo('roundTrip', v)}
+                  disabled={!canEditForm}
+                >
+                  <div className="flex space-x-6 mt-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="evet" id="rt-yes" />
+                      <Label htmlFor="rt-yes" className="font-normal">Evet</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="hayir" id="rt-no" />
+                      <Label htmlFor="rt-no" className="font-normal">Hayır</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ekip Bilgileri */}
+          {caseData.assigned_team && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Truck className="h-5 w-5" />
+                  <span>Atanan Ekip</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p><span className="font-medium">Araç:</span> {caseData.assigned_team.vehicle_id}</p>
+                <p className="text-xs text-gray-500">
+                  Atanma: {new Date(caseData.assigned_team.assigned_at).toLocaleString('tr-TR')}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Admin Actions */}
         {canManageCase && (
-          <div className="space-x-2">
+            <div className="flex space-x-2">
             {!caseData.assigned_team && (
               <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button data-testid="assign-team-button">Ekip Ata</Button>
+                    <Button>Ekip Ata</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -160,7 +2062,7 @@ const CaseDetail = () => {
             )}
             <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" data-testid="update-status-button">Durum Güncelle</Button>
+                  <Button variant="outline">Durum Güncelle</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -194,76 +2096,65 @@ const CaseDetail = () => {
             </Dialog>
           </div>
         )}
-      </div>
+        </TabsContent>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Hasta Bilgileri */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Hasta Bilgileri</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p><span className="font-medium">Ad Soyad:</span> {caseData.patient.name} {caseData.patient.surname}</p>
-            <p><span className="font-medium">Yaş:</span> {caseData.patient.age}</p>
-            <p><span className="font-medium">Cinsiyet:</span> {caseData.patient.gender}</p>
-            {caseData.patient.tc_no && <p><span className="font-medium">TC:</span> {caseData.patient.tc_no}</p>}
-            <p><span className="font-medium">Şikayet:</span> {caseData.patient.complaint}</p>
-          </CardContent>
-        </Card>
+        {/* TAB 5: Onam Formları */}
+        <TabsContent value="consent">
+          <div className="space-y-4">
+            {/* Başlık */}
+            <div className="border-b pb-2">
+              <h2 className="text-2xl font-semibold">Onam Formları</h2>
+              <p className="text-sm text-gray-500">Hasta ve veli rıza formları</p>
+            </div>
 
-        {/* Arayan Bilgileri */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Phone className="h-5 w-5" />
-              <span>Arayan Bilgileri</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p><span className="font-medium">Ad Soyad:</span> {caseData.caller.name}</p>
-            <p><span className="font-medium">Telefon:</span> {caseData.caller.phone}</p>
-            <p><span className="font-medium">Yakınlık:</span> {caseData.caller.relationship}</p>
-          </CardContent>
-        </Card>
+            {/* Form Kartları Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {consentFormsList.map((form) => {
+                const Icon = form.icon;
+                return (
+                  <Card 
+                    key={form.id} 
+                    className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2 hover:border-gray-300"
+                    onClick={() => openConsentForm(form.id)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-12 h-12 rounded-full ${form.bgColor} flex items-center justify-center ${form.color}`}>
+                            <Icon className="h-6 w-6" />
+                          </div>
+                        </div>
+                        <h3 className="font-semibold text-sm leading-tight">{form.title}</h3>
+                        <p className="text-xs text-gray-600">{form.description}</p>
+                        <Button variant="outline" size="sm" className="w-full mt-2">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Formu Aç
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Konum */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5" />
-              <span>Konum</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p>{caseData.location.address}</p>
-            {caseData.location.district && <p><span className="font-medium">İlçe:</span> {caseData.location.district}</p>}
-            {caseData.location.village_or_neighborhood && <p><span className="font-medium">Köy/Mahalle:</span> {caseData.location.village_or_neighborhood}</p>}
-          </CardContent>
-        </Card>
+          {/* Onam Formu Dialog */}
+          <Dialog open={consentDialogOpen} onOpenChange={setConsentDialogOpen}>
+            <DialogContent className="max-w-5xl max-h-[95vh]">
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  {consentFormsList.find(f => f.id === selectedConsentForm)?.title}
+                </DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[80vh] pr-4">
+                {selectedConsentForm && renderConsentFormContent(selectedConsentForm)}
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
 
-        {/* Atanan Ekip */}
-        {caseData.assigned_team && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Truck className="h-5 w-5" />
-                <span>Atanan Ekip</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p><span className="font-medium">Araç:</span> {caseData.assigned_team.vehicle_id}</p>
-              <p className="text-xs text-gray-500">
-                Atanma: {new Date(caseData.assigned_team.assigned_at).toLocaleString('tr-TR')}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Timeline */}
+        {/* TAB 6: Geçmiş */}
+        <TabsContent value="history">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -275,7 +2166,7 @@ const CaseDetail = () => {
           <div className="space-y-4">
             {caseData.status_history.map((item, index) => (
               <div key={index} className="flex space-x-4 items-start">
-                <div className="min-w-[120px] text-sm text-gray-500">
+                    <div className="min-w-[140px] text-sm text-gray-500">
                   {new Date(item.updated_at).toLocaleString('tr-TR')}
                 </div>
                 <div className="flex-1">
@@ -287,8 +2178,11 @@ const CaseDetail = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
 export default CaseDetail;
+

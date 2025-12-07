@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEALMEDY HBYS - Yönetici Sunumu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --secondary: #f97316;
+            --accent: #22c55e;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --gradient-1: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            --gradient-2: linear-gradient(135deg, #f97316 0%, #ec4899 100%);
+            --gradient-3: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--darker);
+            color: var(--light);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(249, 115, 22, 0.1) 0%, transparent 40%),
+                var(--darker);
+        }
+
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(99, 102, 241, 0.1));
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) { width: 400px; height: 400px; top: -100px; right: -100px; animation-delay: 0s; }
+        .shape:nth-child(2) { width: 300px; height: 300px; bottom: -50px; left: -50px; animation-delay: -5s; }
+        .shape:nth-child(3) { width: 200px; height: 200px; top: 50%; left: 50%; animation-delay: -10s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -20px) rotate(5deg); }
+            50% { transform: translate(-10px, 20px) rotate(-5deg); }
+            75% { transform: translate(-20px, -10px) rotate(3deg); }
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem 2rem;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Sections */
+        section {
+            min-height: 100vh;
+            padding: 8rem 2rem 4rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Hero Section */
+        .hero {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100vh;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .hero h1 span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--gray);
+            max-width: 600px;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 4rem;
+            animation: fadeInUp 0.8s ease 0.6s both;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 3rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-stat-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Section Headers */
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-tag {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            background: rgba(14, 165, 233, 0.1);
+            border-radius: 50px;
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-desc {
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(14, 165, 233, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon.blue { background: rgba(14, 165, 233, 0.1); color: var(--primary); }
+        .card-icon.orange { background: rgba(249, 115, 22, 0.1); color: var(--secondary); }
+        .card-icon.green { background: rgba(34, 197, 94, 0.1); color: var(--accent); }
+        .card-icon.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .card-icon.pink { background: rgba(236, 72, 153, 0.1); color: #ec4899; }
+        .card-icon.cyan { background: rgba(6, 182, 212, 0.1); color: #06b6d4; }
+
+        .card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card p {
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        .card-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .card-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            color: var(--gray);
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-list li:last-child {
+            border-bottom: none;
+        }
+
+        .card-list li::before {
+            content: "✓";
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Roles Section */
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .role-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .role-card:hover {
+            border-color: rgba(14, 165, 233, 0.3);
+            transform: scale(1.02);
+        }
+
+        .role-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .role-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .role-desc {
+            color: var(--gray);
+            font-size: 0.8rem;
+        }
+
+        /* Tech Stack */
+        .tech-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tech-category {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .tech-category h3 {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .tech-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Notifications Section */
+        .notifications-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .notifications-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .notifications-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .notif-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .notif-card:hover {
+            border-color: rgba(14, 165, 233, 0.3);
+        }
+
+        .notif-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .notif-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* Security Section */
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .security-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .security-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .security-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+        }
+
+        .check-list {
+            list-style: none;
+        }
+
+        .check-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .check-list li:last-child {
+            border-bottom: none;
+        }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        /* Roadmap */
+        .roadmap-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .roadmap-phase {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 768px) {
+            .roadmap-phase {
+                flex-direction: column;
+            }
+        }
+
+        .roadmap-timeline {
+            flex-shrink: 0;
+            width: 150px;
+            text-align: right;
+        }
+
+        .roadmap-period {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .roadmap-content {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .roadmap-content h3 {
+            margin-bottom: 1rem;
+        }
+
+        .roadmap-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .roadmap-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .roadmap-item.done {
+            opacity: 0.5;
+        }
+
+        .roadmap-item .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+        }
+
+        .roadmap-item .status.pending {
+            background: rgba(249, 115, 22, 0.1);
+            color: var(--secondary);
+            border: 2px solid var(--secondary);
+        }
+
+        .roadmap-item .status.done {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-table th {
+            background: rgba(255, 255, 255, 0.03);
+            font-weight: 600;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table .check {
+            color: var(--accent);
+            font-size: 1.25rem;
+        }
+
+        .comparison-table .cross {
+            color: #ef4444;
+            font-size: 1.25rem;
+        }
+
+        /* Screenshot Gallery */
+        .screenshot-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 3rem auto;
+            max-width: 1200px;
+        }
+
+        @media (max-width: 1024px) {
+            .screenshot-gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .screenshot-gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .screenshot-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            aspect-ratio: 16/10;
+        }
+
+        .screenshot-item:hover {
+            transform: scale(1.02);
+            border-color: rgba(14, 165, 233, 0.5);
+        }
+
+        .screenshot-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top left;
+        }
+
+        .screenshot-item .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+        }
+
+        .screenshot-item .overlay h4 {
+            font-size: 0.85rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .screenshot-item .overlay p {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin: 0;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+            border-radius: 24px;
+            margin: 4rem 0;
+        }
+
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            color: var(--gray);
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-1);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .footer-logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .footer-text {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* Scroll Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Print Styles */
+        @media print {
+            nav, .bg-animation, .floating-shapes {
+                display: none;
+            }
+            
+            body {
+                background: white;
+                color: black;
+            }
+            
+            section {
+                page-break-after: always;
+                padding: 2rem;
+            }
+            
+            .card, .role-card, .notif-card, .tech-category, .security-card, .roadmap-content {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            
+            section {
+                padding: 6rem 1rem 2rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <nav>
+        <div class="logo">HEALMEDY</div>
+        <ul class="nav-links">
+            <li><a href="#modules">Modüller</a></li>
+            <li><a href="#roles">Roller</a></li>
+            <li><a href="#tech">Teknoloji</a></li>
+            <li><a href="#security">Güvenlik</a></li>
+            <li><a href="#roadmap">Yol Haritası</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-badge">
+            🏥 Sağlık Teknolojileri
+        </div>
+        <h1>
+            <span>HEALMEDY</span> HBYS
+        </h1>
+        <p class="hero-subtitle">
+            Özel ambulans hizmetleri ve sağlık kuruluşları için geliştirilen 
+            kapsamlı Hastane Bilgi Yönetim Sistemi
+        </p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">13+</div>
+                <div class="hero-stat-label">Dijital Form</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">9</div>
+                <div class="hero-stat-label">Kullanıcı Rolü</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">5</div>
+                <div class="hero-stat-label">Bildirim Kanalı</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modules Section -->
+    <section id="modules">
+        <div class="section-header reveal">
+            <span class="section-tag">Modüller</span>
+            <h2 class="section-title">Kapsamlı Özellikler</h2>
+            <p class="section-desc">Tüm operasyonel süreçleri tek platformda yönetin</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card reveal">
+                <div class="card-icon blue">📋</div>
+                <h3>Vaka Yönetimi</h3>
+                <p>Acil çağrılardan hasta teslimata kadar tüm süreci takip edin</p>
+                <ul class="card-list">
+                    <li>Anlık durum takibi</li>
+                    <li>Ekip atama</li>
+                    <li>GPS lokasyon</li>
+                    <li>10 farklı vaka durumu</li>
+                </ul>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-icon orange">🚑</div>
+                <h3>Araç Yönetimi</h3>
+                <p>Filo yönetimi, bakım takibi ve QR kod sistemi</p>
+                <ul class="card-list">
+                    <li>Kilometre takibi</li>
+                    <li>Bakım hatırlatması</li>
+                    <li>QR ile tanımlama</li>
+                    <li>Yakıt seviyesi</li>
+                </ul>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-icon green">⏰</div>
+                <h3>Vardiya Yönetimi</h3>
+                <p>Personel atama, QR ile başlatma, devir-teslim</p>
+                <ul class="card-list">
+                    <li>Personel-araç eşleştirme</li>
+                    <li>Günlük kontrol formu</li>
+                    <li>Fotoğraflı devir-teslim</li>
+                    <li>Master code sistemi</li>
+                </ul>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-icon purple">📦</div>
+                <h3>Stok Yönetimi</h3>
+                <p>Tıbbi malzeme takibi, kritik stok uyarıları</p>
+                <ul class="card-list">
+                    <li>4 farklı lokasyon</li>
+                    <li>Son kullanma takibi</li>
+                    <li>Lot numarası kaydı</li>
+                    <li>Minimum stok uyarısı</li>
+                </ul>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-icon pink">📝</div>
+                <h3>Form Yönetimi</h3>
+                <p>13 farklı dijital form, onam ve talep formları</p>
+                <ul class="card-list">
+                    <li>KVKK onam formu</li>
+                    <li>Tıbbi işlem onamları</li>
+                    <li>Talep formları</li>
+                    <li>Dijital imza</li>
+                </ul>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-icon cyan">📹</div>
+                <h3>Video Konsültasyon</h3>
+                <p>Sayfa içi görüntülü görüşme, doktor desteği</p>
+                <ul class="card-list">
+                    <li>Entegre video sistemi</li>
+                    <li>Mobil uyumlu</li>
+                    <li>Otomatik oda oluşturma</li>
+                    <li>Uzaktan tıbbi destek</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Screenshot Gallery -->
+        <div class="section-header reveal" style="margin-top: 4rem;">
+            <span class="section-tag">Ekran Görüntüleri</span>
+            <h2 class="section-title">Sistem Arayüzü</h2>
+            <p class="section-desc">Modern, kullanıcı dostu tasarım</p>
+        </div>
+
+        <div class="screenshot-gallery reveal">
+            <div class="screenshot-item">
+                <img src="images/dashboard.png" alt="Dashboard">
+                <div class="overlay">
+                    <h4>📊 Dashboard</h4>
+                    <p>Genel sistem durumu</p>
+                </div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/call-center.png" alt="Çağrı Merkezi">
+                <div class="overlay">
+                    <h4>📞 Çağrı Merkezi</h4>
+                    <p>Harita entegrasyonlu vaka oluşturma</p>
+                </div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/case-detail.png" alt="Vaka Detay">
+                <div class="overlay">
+                    <h4>📋 Vaka Detay</h4>
+                    <p>Hasta ve tıbbi bilgiler</p>
+                </div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/case-vitals.png" alt="Vitaller">
+                <div class="overlay">
+                    <h4>💓 Vital Ölçümler</h4>
+                    <p>Klinik gözlemler ve GKS</p>
+                </div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/vehicles.png" alt="Araçlar">
+                <div class="overlay">
+                    <h4>🚑 Araç Yönetimi</h4>
+                    <p>Filo takibi ve QR sistem</p>
+                </div>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/forms.png" alt="Formlar">
+                <div class="overlay">
+                    <h4>📝 Form Galerisi</h4>
+                    <p>13 farklı dijital form</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roles Section -->
+    <section id="roles">
+        <div class="section-header reveal">
+            <span class="section-tag">Roller</span>
+            <h2 class="section-title">9 Farklı Kullanıcı Rolü</h2>
+            <p class="section-desc">Her rol için özelleştirilmiş yetkiler ve ekranlar</p>
+        </div>
+
+        <div class="roles-grid reveal">
+            <div class="role-card">
+                <div class="role-icon">👔</div>
+                <div class="role-name">Merkez Ofis</div>
+                <div class="role-desc">Tam yönetim yetkisi</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">📊</div>
+                <div class="role-name">Operasyon Müdürü</div>
+                <div class="role-desc">Saha operasyonları</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">👨‍⚕️</div>
+                <div class="role-name">Doktor</div>
+                <div class="role-desc">Tıbbi onay & konsültasyon</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">👩‍⚕️</div>
+                <div class="role-name">Hemşire</div>
+                <div class="role-desc">Hasta bakım & ilaç</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🏥</div>
+                <div class="role-name">Paramedik</div>
+                <div class="role-desc">Saha müdahale</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">💉</div>
+                <div class="role-name">ATT</div>
+                <div class="role-desc">Acil bakım desteği</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🚗</div>
+                <div class="role-name">Baş Şoför</div>
+                <div class="role-desc">Araç sorumlusu</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">🚐</div>
+                <div class="role-name">Şoför</div>
+                <div class="role-desc">Araç kullanımı</div>
+            </div>
+            <div class="role-card">
+                <div class="role-icon">📞</div>
+                <div class="role-name">Çağrı Merkezi</div>
+                <div class="role-desc">Vaka oluşturma</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Notifications Section -->
+    <section id="notifications">
+        <div class="section-header reveal">
+            <span class="section-tag">Bildirimler</span>
+            <h2 class="section-title">5 Farklı Bildirim Kanalı</h2>
+            <p class="section-desc">Kritik bilgileri anında iletmek için çoklu kanal desteği</p>
+        </div>
+
+        <div class="notifications-grid reveal">
+            <div class="notif-card">
+                <div class="notif-icon">📱</div>
+                <div class="notif-name">SMS</div>
+            </div>
+            <div class="notif-card">
+                <div class="notif-icon">💬</div>
+                <div class="notif-name">WhatsApp</div>
+            </div>
+            <div class="notif-card">
+                <div class="notif-icon">🔔</div>
+                <div class="notif-name">Web Push</div>
+            </div>
+            <div class="notif-card">
+                <div class="notif-icon">📲</div>
+                <div class="notif-name">Mobile Push</div>
+            </div>
+            <div class="notif-card">
+                <div class="notif-icon">🔵</div>
+                <div class="notif-name">In-App</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Section -->
+    <section id="tech">
+        <div class="section-header reveal">
+            <span class="section-tag">Teknoloji</span>
+            <h2 class="section-title">Modern Teknoloji Altyapısı</h2>
+            <p class="section-desc">Ölçeklenebilir ve güvenilir mimari</p>
+        </div>
+
+        <div class="tech-container reveal">
+            <div class="tech-category">
+                <h3>🎨 Frontend</h3>
+                <div class="tech-list">
+                    <span class="tech-item">⚛️ React.js 18</span>
+                    <span class="tech-item">🎨 Tailwind CSS</span>
+                    <span class="tech-item">🧩 shadcn/ui</span>
+                    <span class="tech-item">📊 Recharts</span>
+                    <span class="tech-item">🔀 React Router</span>
+                </div>
+            </div>
+            <div class="tech-category">
+                <h3>⚙️ Backend</h3>
+                <div class="tech-list">
+                    <span class="tech-item">🐍 Python FastAPI</span>
+                    <span class="tech-item">🍃 MongoDB Atlas</span>
+                    <span class="tech-item">🔐 JWT Auth</span>
+                    <span class="tech-item">🔄 RESTful API</span>
+                    <span class="tech-item">📡 WebSocket</span>
+                </div>
+            </div>
+            <div class="tech-category">
+                <h3>🔌 Entegrasyonlar</h3>
+                <div class="tech-list">
+                    <span class="tech-item">📹 Daily.co</span>
+                    <span class="tech-item">📱 Infobip</span>
+                    <span class="tech-item">🔥 Firebase FCM</span>
+                    <span class="tech-item">☁️ Cloud Native</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section id="security">
+        <div class="section-header reveal">
+            <span class="section-tag">Güvenlik</span>
+            <h2 class="section-title">Güvenlik & Uyumluluk</h2>
+            <p class="section-desc">Endüstri standartlarında veri güvenliği</p>
+        </div>
+
+        <div class="security-grid reveal">
+            <div class="security-card">
+                <h3>🔒 Veri Güvenliği</h3>
+                <ul class="check-list">
+                    <li>
+                        <span class="check-icon">✓</span>
+                        JWT tabanlı kimlik doğrulama
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Rol bazlı yetkilendirme (RBAC)
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Şifreli veri iletimi (HTTPS)
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Güvenli şifre hashleme (bcrypt)
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Session yönetimi
+                    </li>
+                </ul>
+            </div>
+            <div class="security-card">
+                <h3>⚖️ Yasal Uyumluluk</h3>
+                <ul class="check-list">
+                    <li>
+                        <span class="check-icon">✓</span>
+                        KVKK - Kişisel Verilerin Korunması
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Sağlık Bakanlığı düzenlemeleri
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Tıbbi kayıt saklama standartları
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Dijital imza desteği
+                    </li>
+                    <li>
+                        <span class="check-icon">✓</span>
+                        Denetim izi (Audit Log)
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section id="comparison">
+        <div class="section-header reveal">
+            <span class="section-tag">Karşılaştırma</span>
+            <h2 class="section-title">Rekabet Avantajları</h2>
+            <p class="section-desc">HEALMEDY'nin farkı</p>
+        </div>
+
+        <div class="reveal" style="overflow-x: auto;">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Özellik</th>
+                        <th>HEALMEDY</th>
+                        <th>Rakipler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Ambulans Odaklı Tasarım</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td>Türkçe Arayüz</td>
+                        <td><span class="check">✓</span></td>
+                        <td>Kısmen</td>
+                    </tr>
+                    <tr>
+                        <td>KVKK Uyumlu</td>
+                        <td><span class="check">✓</span></td>
+                        <td>Değişken</td>
+                    </tr>
+                    <tr>
+                        <td>Video Konsültasyon</td>
+                        <td><span class="check">✓</span></td>
+                        <td>Nadir</td>
+                    </tr>
+                    <tr>
+                        <td>Çoklu Bildirim Kanalı</td>
+                        <td><span class="check">✓</span></td>
+                        <td>Sadece SMS</td>
+                    </tr>
+                    <tr>
+                        <td>Modern UI/UX</td>
+                        <td><span class="check">✓</span></td>
+                        <td>Eski teknoloji</td>
+                    </tr>
+                    <tr>
+                        <td>Cloud-Native</td>
+                        <td><span class="check">✓</span></td>
+                        <td>On-premise</td>
+                    </tr>
+                    <tr>
+                        <td>QR Kod Entegrasyonu</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap">
+        <div class="section-header reveal">
+            <span class="section-tag">Yol Haritası</span>
+            <h2 class="section-title">Gelecek Planları</h2>
+            <p class="section-desc">Sürekli gelişen bir platform</p>
+        </div>
+
+        <div class="roadmap-container reveal">
+            <div class="roadmap-phase">
+                <div class="roadmap-timeline">
+                    <div class="roadmap-period">3-6 Ay</div>
+                </div>
+                <div class="roadmap-content">
+                    <h3>Kısa Vadeli</h3>
+                    <div class="roadmap-items">
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Mobil Uygulama (React Native)
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Harita Entegrasyonu
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Gelişmiş Raporlama
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Fatura Entegrasyonu
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="roadmap-phase">
+                <div class="roadmap-timeline">
+                    <div class="roadmap-period">6-12 Ay</div>
+                </div>
+                <div class="roadmap-content">
+                    <h3>Orta Vadeli</h3>
+                    <div class="roadmap-items">
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            AI Destekli Triage
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Otonom Vardiya Planlama
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Hastane Entegrasyonu (HL7)
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Tedarikçi Portal
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="roadmap-phase">
+                <div class="roadmap-timeline">
+                    <div class="roadmap-period">12+ Ay</div>
+                </div>
+                <div class="roadmap-content">
+                    <h3>Uzun Vadeli</h3>
+                    <div class="roadmap-items">
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Predictive Analytics
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            IoT Entegrasyonu
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            Çoklu Dil Desteği
+                        </div>
+                        <div class="roadmap-item">
+                            <span class="status pending">○</span>
+                            White-Label Çözüm
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section>
+        <div class="cta-section reveal">
+            <h2>Sağlık Hizmetlerinizi Dijitalleştirin</h2>
+            <p>HEALMEDY ile operasyonel verimliliğinizi artırın, hasta bakım kalitesini yükseltin</p>
+            <div class="cta-buttons">
+                <a href="#" class="btn btn-primary">
+                    📧 Demo Talep Et
+                </a>
+                <a href="#" class="btn btn-secondary">
+                    📄 Detaylı Broşür
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">HEALMEDY</div>
+        <p class="footer-text">
+            © 2024 HEALMEDY Sağlık Teknolojileri. Tüm hakları saklıdır.<br>
+            <small style="color: var(--gray);">v2.0 - Aralık 2024</small>
+        </p>
+    </footer>
+
+    <script>
+        // Scroll reveal animation
+        function reveal() {
+            const reveals = document.querySelectorAll('.reveal');
+            
+            reveals.forEach(element => {
+                const windowHeight = window.innerHeight;
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+                
+                if (elementTop < windowHeight - elementVisible) {
+                    element.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', reveal);
+        window.addEventListener('load', reveal);
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Print function
+        function printPresentation() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
+

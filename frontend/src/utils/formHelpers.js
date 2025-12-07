@@ -3,12 +3,15 @@ import { toast } from 'sonner';
 
 export const saveFormSubmission = async (formType, formData, extraData = {}) => {
   try {
+    // formData içinden caseId'yi çıkar (eğer varsa)
+    const { caseId: formCaseId, caseNumber, ...cleanFormData } = formData;
+    
     const submission = {
       form_type: formType,
-      form_data: formData,
+      form_data: cleanFormData,
       patient_name: extraData.patientName || formData.patientName || null,
       vehicle_plate: extraData.vehiclePlate || formData.vehiclePlate || formData.aracPlakasi || null,
-      case_id: extraData.caseId || null
+      case_id: extraData.caseId || formCaseId || null
     };
 
     await formsAPI.submit(submission);
@@ -26,7 +29,8 @@ export const handleFormSave = (formType, formData, options = {}) => {
     onSuccess,
     onError,
     validateFields = [],
-    validateSignature = true
+    validateSignature = true,
+    extraData = {}
   } = options;
 
   return async () => {
@@ -43,8 +47,8 @@ export const handleFormSave = (formType, formData, options = {}) => {
       return false;
     }
 
-    // Save
-    const success = await saveFormSubmission(formType, formData);
+    // Save with extraData
+    const success = await saveFormSubmission(formType, formData, extraData);
     
     if (success && onSuccess) {
       onSuccess();

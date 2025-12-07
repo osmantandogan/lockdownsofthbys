@@ -67,7 +67,7 @@ const Cases = () => {
     iptal: 'İptal'
   };
 
-  const canCreateCase = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis'].includes(user?.role);
+  const canCreateCase = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'doktor'].includes(user?.role);
 
   return (
     <div className="space-y-6" data-testid="cases-page">
@@ -154,9 +154,9 @@ const Cases = () => {
         <div className="grid gap-4">
           {cases.map((caseItem) => (
             <Card
-              key={caseItem.id}
+              key={caseItem.id || caseItem._id}
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate(`/dashboard/cases/${caseItem.id}`)}
+              onClick={() => navigate(`/dashboard/cases/${caseItem.id || caseItem._id}`)}
               data-testid={`case-item-${caseItem.case_number}`}
             >
               <CardContent className="p-6">

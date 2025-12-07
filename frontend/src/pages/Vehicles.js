@@ -2,13 +2,33 @@ import React, { useEffect, useState } from 'react';
 import { vehiclesAPI } from '../api';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Truck } from 'lucide-react';
+import { Truck, Plus, Edit, QrCode, Download } from 'lucide-react';
+import VehicleKmReport from './VehicleKmReport';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [formData, setFormData] = useState({
+    plate: '',
+    type: 'ambulans',
+    km: 0,
+    fuel_level: 100,
+    status: 'musait',
+    last_inspection_date: '',
+    next_maintenance_km: 0
+  });
 
   useEffect(() => {
     loadData();
@@ -28,6 +48,58 @@ const Vehicles = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreate = async () => {
+    try {
+      await vehiclesAPI.create(formData);
+      toast.success('Araç başarıyla oluşturuldu');
+      setDialogOpen(false);
+      setFormData({ plate: '', type: 'ambulans', km: 0, fuel_level: 100, status: 'musait', last_inspection_date: '', next_maintenance_km: 0 });
+      setEditMode(false);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Araç oluşturulamadı');
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const vehicleId = selectedVehicle.id || selectedVehicle._id;
+      console.log('Updating vehicle ID:', vehicleId);
+      console.log('Form data:', formData);
+      
+      if (!vehicleId) {
+        toast.error('Araç ID bulunamadı');
+        return;
+      }
+      
+      await vehiclesAPI.update(vehicleId, formData);
+      toast.success('Araç güncellendi');
+      setDialogOpen(false);
+      setEditMode(false);
+      loadData();
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error.response?.data?.detail || 'Araç güncellenemedi');
+    }
+  };
+
+  const openEditDialog = (vehicle) => {
+    console.log('Opening edit for vehicle:', vehicle);
+    console.log('Vehicle ID:', vehicle.id, 'Vehicle _id:', vehicle._id);
+    setSelectedVehicle(vehicle);
+    setFormData({
+      plate: vehicle.plate,
+      type: vehicle.type,
+      km: vehicle.km,
+      fuel_level: vehicle.fuel_level || 100,
+      status: vehicle.status,
+      last_inspection_date: vehicle.last_inspection_date ? new Date(vehicle.last_inspection_date).toISOString().split('T')[0] : '',
+      next_maintenance_km: vehicle.next_maintenance_km || 0
+    });
+    setEditMode(true);
+    setDialogOpen(true);
   };
 
   const statusColors = {
@@ -56,13 +128,153 @@ const Vehicles = () => {
 
   return (
     <div className="space-y-6" data-testid="vehicles-page">
-      <div>
-        <h1 className="text-3xl font-bold">Araçlar</h1>
-        <p className="text-gray-500">Araç filosu yönetimi</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Araçlar</h1>
+          <p className="text-gray-500">Araç filosu yönetimi</p>
+        </div>
+        
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Araç Ekle
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editMode ? 'Araç Düzenle' : 'Yeni Araç Ekle'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4 max-h-[600px] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Plaka *</Label>
+                  <Input
+                    value={formData.plate}
+                    onChange={(e) => setFormData({...formData, plate: e.target.value.toUpperCase()})}
+                    placeholder="34 ABC 123"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Araç Tipi *</Label>
+                  <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ambulans">Ambulans</SelectItem>
+                      <SelectItem value="arac">Araç</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Durum</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="musait">Müsait</SelectItem>
+                    <SelectItem value="gorevde">Görevde</SelectItem>
+                    <SelectItem value="bakimda">Bakımda</SelectItem>
+                    <SelectItem value="arizali">Arızalı</SelectItem>
+                    <SelectItem value="kullanim_disi">Kullanım Dışı</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Kilometre</Label>
+                  <Input
+                    type="number"
+                    value={formData.km}
+                    onChange={(e) => setFormData({...formData, km: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Yakıt Seviyesi (%)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.fuel_level}
+                    onChange={(e) => setFormData({...formData, fuel_level: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Son Muayene Tarihi</Label>
+                  <Input
+                    type="date"
+                    value={formData.last_inspection_date}
+                    onChange={(e) => setFormData({...formData, last_inspection_date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Sonraki Bakım KM</Label>
+                  <Input
+                    type="number"
+                    value={formData.next_maintenance_km}
+                    onChange={(e) => setFormData({...formData, next_maintenance_km: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+              </div>
+
+              {editMode && selectedVehicle?.qr_code && (
+                <div className="space-y-2 p-4 bg-blue-50 rounded-lg">
+                  <Label>QR Kod</Label>
+                  <div className="flex flex-col items-center p-4 bg-white rounded space-y-3">
+                    <QRCodeCanvas 
+                      value={selectedVehicle.qr_code} 
+                      size={200}
+                      level="H"
+                      includeMargin={true}
+                    />
+                    <p className="font-mono text-sm">{selectedVehicle.qr_code}</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        const canvas = document.querySelector('canvas');
+                        const url = canvas.toDataURL('image/png');
+                        const link = document.createElement('a');
+                        link.download = `${selectedVehicle.plate}-QR.png`;
+                        link.href = url;
+                        link.click();
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      QR İndir
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                onClick={editMode ? handleUpdate : handleCreate} 
+                className="w-full"
+              >
+                {editMode ? 'Güncelle' : 'Araç Oluştur'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="list">Araç Listesi</TabsTrigger>
+          <TabsTrigger value="km-report">KM Raporu</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="space-y-6 mt-6">
+          {/* Stats */}
+          <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -118,20 +330,40 @@ const Vehicles = () => {
                     <p className="text-sm text-gray-500 capitalize">{vehicle.type}</p>
                   </div>
                 </div>
-                <Badge className={statusColors[vehicle.status]}>
-                  {statusLabels[vehicle.status]}
-                </Badge>
+                <div className="flex flex-col items-end space-y-2">
+                  <Badge className={statusColors[vehicle.status]}>
+                    {statusLabels[vehicle.status]}
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => openEditDialog(vehicle)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Düzenle
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1 text-sm">
-                <p><span className="font-medium">KM:</span> {vehicle.km}</p>
+                <p><span className="font-medium">KM:</span> {vehicle.km.toLocaleString()}</p>
                 {vehicle.fuel_level !== null && (
                   <p><span className="font-medium">Yakıt:</span> %{vehicle.fuel_level}</p>
                 )}
+                <p className="flex items-center space-x-1 text-xs text-gray-500">
+                  <QrCode className="h-3 w-3" />
+                  <span className="font-mono">{vehicle.qr_code}</span>
+                </p>
               </div>
             </CardContent>
           </Card>
         ))}
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="km-report" className="mt-6">
+          <VehicleKmReport />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

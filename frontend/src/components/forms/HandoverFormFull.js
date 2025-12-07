@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +8,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+import { shiftsAPI, vehiclesAPI } from '../../api';
 
 
   const handleSave = async () => {
@@ -24,7 +26,9 @@ import { toast } from 'sonner';
   };
 
   const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [localFormData, setLocalFormData] = useState({
     aracPlakasi: vehiclePlate || '',
     kayitTarihi: new Date().toISOString().split('T')[0],
@@ -39,11 +43,57 @@ import { toast } from 'sonner';
     teslimEden: '',
     teslimAlan: '',
     birimYoneticisi: '',
-    onayTarihi: new Date().toISOString().split('T')[0]
+    onayTarihi: new Date().toISOString().split('T')[0],
+    teslimEdenSignature: null,
+    teslimAlanSignature: null
   });
 
   const formData = externalFormData || localFormData;
   const setFormData = onChange || setLocalFormData;
+
+  // Otomatik vardiya ve araç bilgisi yükleme
+  useEffect(() => {
+    const loadShiftData = async () => {
+      try {
+        // Aktif vardiya bilgisini çek
+        const activeShift = await shiftsAPI.getActive();
+        
+        if (activeShift) {
+          // Araç bilgisini çek
+          const vehicle = await vehiclesAPI.getById(activeShift.vehicle_id);
+          
+          // Form verilerini otomatik doldur
+          const newData = {
+            ...formData,
+            aracPlakasi: vehicle.plate,
+            teslimAlinanKm: vehicle.km,
+            servisYapilacakKm: vehicle.next_maintenance_km || '',
+            teslimAlan: user.name,
+            teslimAlanSignature: user.signature || null
+          };
+          
+          if (onChange) {
+            onChange(newData);
+          } else {
+            setLocalFormData(newData);
+          }
+          
+          toast.success('Vardiya bilgileri otomatik yüklendi');
+        }
+      } catch (error) {
+        console.error('Vardiya yüklenemedi:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (!vehiclePlate && !vehicleKm) {
+      // Eğer prop olarak gelmediyse, vardiya bilgisini çek
+      loadShiftData();
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   const handleChange = (field, value) => {
     const newData = {...formData, [field]: value};
@@ -60,6 +110,14 @@ import { toast } from 'sonner';
     return 'bg-green-100 text-green-800 border-green-500';
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-6">
       <div className="text-center space-y-2 border-b pb-4">
@@ -68,6 +126,9 @@ import { toast } from 'sonner';
 
       <div className="bg-blue-50 p-3 rounded-lg">
         <p className="text-sm">ℹ️ Bu form, ambulans nöbet değişimlerinde araç ve ekipman teslim işlemleri için kullanılır.</p>
+        {formData.aracPlakasi && (
+          <p className="text-sm font-medium mt-2">✓ Vardiya bilgileri otomatik yüklendi</p>
+        )}
       </div>
 
       <Card>
@@ -236,9 +297,34 @@ import { toast } from 'sonner';
               value={formData.teslimAlan}
               onChange={(e) => handleChange('teslimAlan', e.target.value)}
               placeholder="Adı Soyadı"
+              disabled={!!user}
             />
+            {user && (
+              <p className="text-xs text-green-600">✓ Otomatik: {user.name}</p>
+            )}
           </div>
-          <SignaturePad label="İmza" required />
+          
+          {formData.teslimAlanSignature ? (
+            <div className="space-y-2">
+              <Label>İmza (Otomatik Yüklendi)</Label>
+              <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
+                <img 
+                  src={formData.teslimAlanSignature} 
+                  alt="İmza" 
+                  className="h-32 w-full object-contain"
+                />
+              </div>
+              <p className="text-xs text-green-600">
+                ✓ Kayıtlı imzanız otomatik kullanılıyor
+              </p>
+            </div>
+          ) : (
+            <SignaturePad 
+              label="İmza" 
+              required
+              onSignature={(sig) => handleChange('teslimAlanSignature', sig)}
+            />
+          )}
         </CardContent>
       </Card>
 

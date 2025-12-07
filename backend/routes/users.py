@@ -1,16 +1,123 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
-from typing import List
-from database import users_collection
+from typing import List, Optional
+from database import users_collection, shifts_collection, cases_collection, forms_collection
 from models import User, UserUpdate, UserRole
 from auth_utils import get_current_user, require_roles
 from datetime import datetime
 
 router = APIRouter()
 
+@router.get("/staff-performance")
+async def get_staff_performance(request: Request, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    """Get staff performance metrics"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    users = await users_collection.find({}, {"password_hash": 0}).to_list(1000)
+    
+    # Date filters
+    date_filter = {}
+    if start_date:
+        date_filter["start_time"] = {"$gte": datetime.fromisoformat(start_date)}
+    if end_date:
+        if "start_time" in date_filter:
+            date_filter["start_time"]["$lte"] = datetime.fromisoformat(end_date)
+        else:
+            date_filter["start_time"] = {"$lte": datetime.fromisoformat(end_date)}
+    
+    performance = []
+    
+    for user in users:
+        # Get user's shifts
+        shift_query = {"user_id": user["_id"]}
+        if date_filter:
+            shift_query.update(date_filter)
+        
+        shifts = await shifts_collection.find(shift_query).to_list(1000)
+        
+        # Get user's assigned cases
+        case_query = {
+            "$or": [
+                {"assigned_team.driver_id": user["_id"]},
+                {"assigned_team.paramedic_id": user["_id"]},
+                {"assigned_team.att_id": user["_id"]},
+                {"assigned_team.nurse_id": user["_id"]}
+            ]
+        }
+        
+        cases = await cases_collection.find(case_query).to_list(1000)
+        
+        # Calculate shift metrics
+        total_shifts = len(shifts)
+        completed_shifts = [s for s in shifts if s.get("end_time")]
+        total_minutes = sum(shift.get("duration_minutes", 0) for shift in completed_shifts)
+        total_hours = round(total_minutes / 60, 2) if total_minutes > 0 else 0
+        
+        # Calculate case metrics
+        total_cases = len(cases)
+        completed_cases = len([c for c in cases if c.get("status") == "tamamlandi"])
+        
+        # Calculate KM metrics from forms
+        case_km = 0
+        shift_km = 0
+        
+        # Get ambulance case forms submitted by this user
+        ambulance_forms = await forms_collection.find({
+            "form_type": "ambulance_case",
+            "submitted_by": user["_id"]
+        }).to_list(1000)
+        
+        for form in ambulance_forms:
+            form_data = form.get("form_data", {})
+            if form_data.get("startKm") and form_data.get("endKm"):
+                try:
+                    start = int(form_data["startKm"])
+                    end = int(form_data["endKm"])
+                    case_km += (end - start)
+                except (ValueError, TypeError):
+                    pass
+        
+        # Calculate shift KM from handover forms
+        for shift in completed_shifts:
+            handover = shift.get("handover_form", {})
+            if handover.get("teslimAlinanKm") and handover.get("currentKm"):
+                try:
+                    start = int(handover["teslimAlinanKm"])
+                    end = int(handover.get("currentKm", start))
+                    shift_km += (end - start)
+                except (ValueError, TypeError):
+                    pass
+        
+        non_case_km = shift_km - case_km if shift_km > case_km else 0
+        efficiency_rate = round((case_km / shift_km * 100) if shift_km > 0 else 0, 2)
+        
+        performance.append({
+            "user_id": user["_id"],
+            "name": user.get("name"),
+            "email": user.get("email"),
+            "role": user.get("role"),
+            "phone": user.get("phone"),
+            "total_shifts": total_shifts,
+            "completed_shifts": len(completed_shifts),
+            "total_hours": total_hours,
+            "total_cases": total_cases,
+            "completed_cases": completed_cases,
+            "total_shift_km": shift_km,
+            "case_km": case_km,
+            "non_case_km": non_case_km,
+            "efficiency_rate": efficiency_rate,
+            "is_active": user.get("is_active", True)
+        })
+    
+    # Sort by total hours (most active first)
+    performance.sort(key=lambda x: x["total_hours"], reverse=True)
+    
+    return performance
+
 @router.get("/", response_model=List[User])
 async def get_users(request: Request):
-    """Get all users (admin only)"""
-    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    """Get all users (accessible by all authenticated users)"""
+    # Tüm giriş yapmış kullanıcılar görebilir (vaka atama, ekip seçimi vb. için gerekli)
+    user = await get_current_user(request)
     
     users = await users_collection.find({}, {"password_hash": 0}).to_list(1000)
     

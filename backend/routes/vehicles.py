@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
-from database import vehicles_collection
+from database import vehicles_collection, cases_collection, users_collection, shifts_collection, forms_collection
 from models import Vehicle, VehicleCreate, VehicleUpdate
 from auth_utils import get_current_user, require_roles
 from datetime import datetime
@@ -19,7 +19,7 @@ async def create_vehicle(data: VehicleCreate, request: Request):
     
     return new_vehicle
 
-@router.get("/", response_model=List[Vehicle])
+@router.get("/")
 async def get_vehicles(
     request: Request,
     status: Optional[str] = None,
@@ -41,7 +41,7 @@ async def get_vehicles(
     
     return vehicles
 
-@router.get("/{vehicle_id}", response_model=Vehicle)
+@router.get("/{vehicle_id}")
 async def get_vehicle(vehicle_id: str, request: Request):
     """Get vehicle by ID"""
     await get_current_user(request)
@@ -51,7 +51,7 @@ async def get_vehicle(vehicle_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Vehicle not found")
     
     vehicle_doc["id"] = vehicle_doc.pop("_id")
-    return Vehicle(**vehicle_doc)
+    return vehicle_doc
 
 @router.get("/qr/{qr_code}", response_model=Vehicle)
 async def get_vehicle_by_qr(qr_code: str, request: Request):
@@ -65,7 +65,7 @@ async def get_vehicle_by_qr(qr_code: str, request: Request):
     vehicle_doc["id"] = vehicle_doc.pop("_id")
     return Vehicle(**vehicle_doc)
 
-@router.patch("/{vehicle_id}", response_model=Vehicle)
+@router.patch("/{vehicle_id}")
 async def update_vehicle(vehicle_id: str, data: VehicleUpdate, request: Request):
     """Update vehicle"""
     await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
@@ -83,7 +83,7 @@ async def update_vehicle(vehicle_id: str, data: VehicleUpdate, request: Request)
         raise HTTPException(status_code=404, detail="Vehicle not found")
     
     result["id"] = result.pop("_id")
-    return Vehicle(**result)
+    return result
 
 @router.delete("/{vehicle_id}")
 async def delete_vehicle(vehicle_id: str, request: Request):
@@ -196,3 +196,113 @@ async def get_monthly_calendar(request: Request, year: int, month: int):
         })
     
     return result
+
+@router.get("/km-report/{vehicle_id}")
+async def get_vehicle_km_report(
+    vehicle_id: str,
+    request: Request,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """Get detailed KM report for a vehicle"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    # Query filters
+    query = {}
+    if start_date:
+        query["created_at"] = {"$gte": datetime.fromisoformat(start_date)}
+    if end_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = datetime.fromisoformat(end_date)
+        else:
+            query["created_at"] = {"$lte": datetime.fromisoformat(end_date)}
+    
+    # Get all forms (ambulance_case) for this vehicle
+    from database import forms_collection
+    case_forms = await forms_collection.find({
+        "form_type": "ambulance_case",
+        "vehicle_plate": vehicle["plate"],
+        **query
+    }).to_list(1000)
+    
+    # Get all shifts for this vehicle
+    shifts = await shifts_collection.find({
+        "vehicle_id": vehicle_id,
+        "end_time": {"$ne": None},
+        **query
+    }).to_list(1000)
+    
+    # Process case KM
+    case_km_data = []
+    total_case_km = 0
+    
+    for form in case_forms:
+        form_data = form.get("form_data", {})
+        if form_data.get("startKm") and form_data.get("endKm"):
+            start_km = int(form_data["startKm"])
+            end_km = int(form_data["endKm"])
+            km_diff = end_km - start_km
+            
+            # Get driver info
+            submitted_by = form.get("submitted_by")
+            user = await users_collection.find_one({"_id": submitted_by})
+            
+            case_km_data.append({
+                "case_id": form.get("case_id"),
+                "case_number": form_data.get("healmedyProtocol", "N/A"),
+                "driver_name": user.get("name") if user else "Unknown",
+                "driver_id": submitted_by,
+                "start_km": start_km,
+                "end_km": end_km,
+                "km_used": km_diff,
+                "date": form.get("created_at").isoformat() if form.get("created_at") else None
+            })
+            total_case_km += km_diff
+    
+    # Process shift KM
+    shift_km_data = []
+    total_shift_km = 0
+    
+    for shift in shifts:
+        shift_data = shift.get("handover_form", {})
+        if shift_data.get("teslimAlinanKm") and shift_data.get("currentKm"):
+            start_km = int(shift_data["teslimAlinanKm"])
+            end_km = int(shift_data.get("currentKm", start_km))
+            km_diff = end_km - start_km
+            
+            # Get user info
+            user = await users_collection.find_one({"_id": shift["user_id"]})
+            
+            shift_km_data.append({
+                "shift_id": shift["_id"],
+                "driver_name": user.get("name") if user else "Unknown",
+                "driver_id": shift["user_id"],
+                "start_km": start_km,
+                "end_km": end_km,
+                "km_used": km_diff,
+                "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
+                "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
+            })
+            total_shift_km += km_diff
+    
+    non_case_km = total_shift_km - total_case_km if total_shift_km > total_case_km else 0
+    
+    return {
+        "vehicle": {
+            "id": vehicle["_id"],
+            "plate": vehicle["plate"],
+            "current_km": vehicle.get("km", 0)
+        },
+        "summary": {
+            "total_shift_km": total_shift_km,
+            "total_case_km": total_case_km,
+            "non_case_km": non_case_km,
+            "efficiency_rate": round((total_case_km / total_shift_km * 100) if total_shift_km > 0 else 0, 2)
+        },
+        "case_details": case_km_data,
+        "shift_details": shift_km_data
+    }

@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEALMEDY HBYS - Ürün Broşürü</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #1e293b;
+            background: white;
+        }
+        
+        .page {
+            width: 100%;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+            page-break-after: always;
+            min-height: 277mm;
+            position: relative;
+        }
+        
+        .page:last-child {
+            page-break-after: avoid;
+        }
+        
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 5mm;
+            border-bottom: 2px solid #0ea5e9;
+            margin-bottom: 8mm;
+        }
+        
+        .logo {
+            font-size: 18pt;
+            font-weight: 800;
+            color: #0ea5e9;
+        }
+        
+        .page-number {
+            font-size: 9pt;
+            color: #64748b;
+        }
+        
+        /* Cover Page */
+        .cover {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 250mm;
+        }
+        
+        .cover-logo {
+            font-size: 48pt;
+            font-weight: 800;
+            color: #0ea5e9;
+            margin-bottom: 5mm;
+        }
+        
+        .cover-subtitle {
+            font-size: 14pt;
+            color: #475569;
+            margin-bottom: 15mm;
+        }
+        
+        .cover-tagline {
+            font-size: 11pt;
+            color: #64748b;
+            max-width: 120mm;
+            line-height: 1.6;
+        }
+        
+        .cover-stats {
+            display: flex;
+            gap: 15mm;
+            margin-top: 20mm;
+        }
+        
+        .cover-stat {
+            text-align: center;
+        }
+        
+        .cover-stat-value {
+            font-size: 24pt;
+            font-weight: 800;
+            color: #0ea5e9;
+        }
+        
+        .cover-stat-label {
+            font-size: 9pt;
+            color: #64748b;
+        }
+        
+        .cover-footer {
+            position: absolute;
+            bottom: 15mm;
+            font-size: 9pt;
+            color: #94a3b8;
+        }
+        
+        /* Section Title */
+        h1 {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 5mm;
+            padding-bottom: 2mm;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        h2 {
+            font-size: 12pt;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 5mm 0 3mm;
+        }
+        
+        h3 {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #334155;
+            margin: 3mm 0 2mm;
+        }
+        
+        p {
+            margin-bottom: 3mm;
+            color: #475569;
+        }
+        
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5mm;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 4mm;
+        }
+        
+        /* Cards */
+        .card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 3mm;
+            padding: 4mm;
+            margin-bottom: 3mm;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 2mm;
+            margin-bottom: 2mm;
+        }
+        
+        .card-icon {
+            font-size: 12pt;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            font-size: 10pt;
+        }
+        
+        .card-desc {
+            font-size: 9pt;
+            color: #64748b;
+        }
+        
+        /* Lists */
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        li {
+            padding: 1mm 0;
+            padding-left: 4mm;
+            position: relative;
+            font-size: 9pt;
+        }
+        
+        li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin: 3mm 0;
+        }
+        
+        th, td {
+            padding: 2mm 3mm;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+        
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 1mm 3mm;
+            border-radius: 2mm;
+            font-size: 8pt;
+            font-weight: 500;
+        }
+        
+        .badge-primary { background: #dbeafe; color: #1d4ed8; }
+        .badge-success { background: #d1fae5; color: #059669; }
+        .badge-warning { background: #fef3c7; color: #d97706; }
+        .badge-danger { background: #fee2e2; color: #dc2626; }
+        
+        /* Highlight Box */
+        .highlight {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+            border-left: 3px solid #0ea5e9;
+            padding: 4mm;
+            margin: 4mm 0;
+            border-radius: 0 2mm 2mm 0;
+        }
+        
+        /* Roles Grid */
+        .role-item {
+            display: flex;
+            align-items: center;
+            gap: 2mm;
+            padding: 2mm;
+            background: #f8fafc;
+            border-radius: 2mm;
+            margin-bottom: 2mm;
+        }
+        
+        .role-icon {
+            font-size: 11pt;
+        }
+        
+        .role-name {
+            font-weight: 500;
+            font-size: 9pt;
+        }
+        
+        /* Tech Stack */
+        .tech-item {
+            display: inline-block;
+            padding: 1.5mm 3mm;
+            background: #f1f5f9;
+            border-radius: 2mm;
+            font-size: 8pt;
+            margin: 1mm;
+        }
+        
+        /* Print Button (hidden in print) */
+        .print-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            z-index: 1000;
+        }
+        
+        .print-btn:hover {
+            background: #0284c7;
+        }
+        
+        @media print {
+            .print-btn {
+                display: none;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+        
+        @media screen {
+            body {
+                background: #f1f5f9;
+                padding: 20px;
+            }
+            
+            .page {
+                background: white;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+                border-radius: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">📄 PDF Olarak İndir</button>
+
+    <!-- Page 1: Cover -->
+    <div class="page cover">
+        <div class="cover-logo">🏥 HEALMEDY</div>
+        <div class="cover-subtitle">Hastane Bilgi Yönetim Sistemi</div>
+        <div class="cover-tagline">
+            Özel ambulans hizmetleri ve sağlık kuruluşları için geliştirilen 
+            kapsamlı, modern ve güvenli dijital sağlık platformu
+        </div>
+        <div class="cover-stats">
+            <div class="cover-stat">
+                <div class="cover-stat-value">13+</div>
+                <div class="cover-stat-label">Dijital Form</div>
+            </div>
+            <div class="cover-stat">
+                <div class="cover-stat-value">9</div>
+                <div class="cover-stat-label">Kullanıcı Rolü</div>
+            </div>
+            <div class="cover-stat">
+                <div class="cover-stat-value">5</div>
+                <div class="cover-stat-label">Bildirim Kanalı</div>
+            </div>
+        </div>
+        <div class="cover-footer">v2.0 - Aralık 2024</div>
+    </div>
+
+    <!-- Page 2: Overview -->
+    <div class="page">
+        <div class="page-header">
+            <div class="logo">HEALMEDY</div>
+            <div class="page-number">Sayfa 2 / 6</div>
+        </div>
+        
+        <h1>Sistem Genel Bakışı</h1>
+        
+        <div class="highlight">
+            <strong>HEALMEDY HBYS</strong>, acil sağlık hizmetlerinin tüm süreçlerini dijitalleştirerek 
+            operasyonel verimliliği artırır, yasal uyumluluğu sağlar ve hasta bakım kalitesini yükseltir.
+        </div>
+        
+        <h2>Ana Modüller</h2>
+        
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📋</span>
+                    <span class="card-title">Vaka Yönetimi</span>
+                </div>
+                <ul>
+                    <li>Çağrı merkezi entegrasyonu</li>
+                    <li>10 farklı vaka durumu</li>
+                    <li>Ekip atama sistemi</li>
+                    <li>GPS lokasyon takibi</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">🚑</span>
+                    <span class="card-title">Araç Yönetimi</span>
+                </div>
+                <ul>
+                    <li>Filo takibi</li>
+                    <li>QR kod sistemi</li>
+                    <li>Kilometre kaydı</li>
+                    <li>Bakım hatırlatması</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">⏰</span>
+                    <span class="card-title">Vardiya Yönetimi</span>
+                </div>
+                <ul>
+                    <li>Personel atama</li>
+                    <li>QR ile başlatma</li>
+                    <li>Devir-teslim formu</li>
+                    <li>Master code sistemi</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📦</span>
+                    <span class="card-title">Stok Yönetimi</span>
+                </div>
+                <ul>
+                    <li>4 lokasyon desteği</li>
+                    <li>SKT takibi</li>
+                    <li>Kritik stok uyarısı</li>
+                    <li>Lot numarası kaydı</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📝</span>
+                    <span class="card-title">Form Yönetimi</span>
+                </div>
+                <ul>
+                    <li>13 farklı dijital form</li>
+                    <li>Onam formları</li>
+                    <li>Talep formları</li>
+                    <li>Dijital imza</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📹</span>
+                    <span class="card-title">Video Konsültasyon</span>
+                </div>
+                <ul>
+                    <li>Entegre görüntülü görüşme</li>
+                    <li>Mobil uyumlu</li>
+                    <li>Doktor konsültasyonu</li>
+                    <li>Daily.co altyapısı</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 3: Roles & Notifications -->
+    <div class="page">
+        <div class="page-header">
+            <div class="logo">HEALMEDY</div>
+            <div class="page-number">Sayfa 3 / 6</div>
+        </div>
+        
+        <h1>Kullanıcı Rolleri & Bildirim Sistemi</h1>
+        
+        <h2>9 Farklı Kullanıcı Rolü</h2>
+        
+        <div class="grid-3">
+            <div class="role-item">
+                <span class="role-icon">👔</span>
+                <span class="role-name">Merkez Ofis</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">📊</span>
+                <span class="role-name">Operasyon Müdürü</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">👨‍⚕️</span>
+                <span class="role-name">Doktor</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">👩‍⚕️</span>
+                <span class="role-name">Hemşire</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">🏥</span>
+                <span class="role-name">Paramedik</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">💉</span>
+                <span class="role-name">ATT</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">🚗</span>
+                <span class="role-name">Baş Şoför</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">🚐</span>
+                <span class="role-name">Şoför</span>
+            </div>
+            <div class="role-item">
+                <span class="role-icon">📞</span>
+                <span class="role-name">Çağrı Merkezi</span>
+            </div>
+        </div>
+        
+        <h2>5 Kanallı Bildirim Sistemi</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Kanal</th>
+                    <th>Sağlayıcı</th>
+                    <th>Kullanım Alanı</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>📱 SMS</td>
+                    <td>Infobip</td>
+                    <td>Acil bildirimler, kritik uyarılar</td>
+                </tr>
+                <tr>
+                    <td>💬 WhatsApp</td>
+                    <td>Infobip</td>
+                    <td>Detaylı bilgilendirmeler</td>
+                </tr>
+                <tr>
+                    <td>🔔 Web Push</td>
+                    <td>VAPID/FCM</td>
+                    <td>Tarayıcı bildirimleri</td>
+                </tr>
+                <tr>
+                    <td>📲 Mobile Push</td>
+                    <td>Firebase FCM</td>
+                    <td>Mobil uygulama</td>
+                </tr>
+                <tr>
+                    <td>🔵 In-App</td>
+                    <td>Dahili</td>
+                    <td>Sistem içi bildirimler</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>Bildirim Türleri</h2>
+        
+        <div class="grid-2">
+            <div>
+                <ul>
+                    <li>Yeni vaka oluşturuldu</li>
+                    <li>Vardiya hatırlatması</li>
+                    <li>Devir-teslim onay talebi</li>
+                    <li>Kritik stok uyarısı</li>
+                </ul>
+            </div>
+            <div>
+                <ul>
+                    <li>Dosya erişim talebi</li>
+                    <li>Doktor onay bildirimi</li>
+                    <li>Sistem uyarıları</li>
+                    <li>Master code oluşturuldu</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 4: Forms -->
+    <div class="page">
+        <div class="page-header">
+            <div class="logo">HEALMEDY</div>
+            <div class="page-number">Sayfa 4 / 6</div>
+        </div>
+        
+        <h1>Form Yönetimi</h1>
+        
+        <p>Sistemde 13 farklı dijital form bulunmaktadır. Tüm formlar KVKK uyumlu, dijital imza destekli ve PDF olarak indirilebilir.</p>
+        
+        <div class="grid-3">
+            <div>
+                <h3>📋 Onam Formları</h3>
+                <ul>
+                    <li>KVKK Aydınlatma Metni</li>
+                    <li>Enjeksiyon Onam Formu</li>
+                    <li>Ponksiyon Onam Formu</li>
+                    <li>Küçük Cerrahi Onam</li>
+                    <li>Genel Onam Formu</li>
+                </ul>
+            </div>
+            <div>
+                <h3>🚑 Operasyonel Formlar</h3>
+                <ul>
+                    <li>Ambulans Vaka Formu</li>
+                    <li>Günlük Kontrol Formu</li>
+                    <li>Devir-Teslim Formu</li>
+                    <li>Vaka Öncesi Kontrol</li>
+                    <li>Ekipman Kontrol Formu</li>
+                </ul>
+            </div>
+            <div>
+                <h3>📝 Talep Formları</h3>
+                <ul>
+                    <li>İlaç Talep Formu</li>
+                    <li>Malzeme Talep Formu</li>
+                    <li>Tıbbi Gaz Talep Formu</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h2>Tıbbi Kayıt Özellikleri</h2>
+        
+        <div class="grid-2">
+            <div class="card">
+                <h3>Vital Bulgular</h3>
+                <ul>
+                    <li>Tansiyon (mmHg)</li>
+                    <li>Nabız (bpm)</li>
+                    <li>SpO2 (%)</li>
+                    <li>Ateş (°C)</li>
+                    <li>Solunum hızı</li>
+                    <li>Kan şekeri</li>
+                    <li>GCS Skoru</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Tanı & Tedavi</h3>
+                <ul>
+                    <li>ICD-10 kodlu tanı</li>
+                    <li>Ön tanı / Kesin tanı</li>
+                    <li>Uygulanan tedaviler</li>
+                    <li>Verilen ilaçlar</li>
+                    <li>Anamnez</li>
+                    <li>Fizik muayene</li>
+                    <li>Transfer bilgileri</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 5: Technical -->
+    <div class="page">
+        <div class="page-header">
+            <div class="logo">HEALMEDY</div>
+            <div class="page-number">Sayfa 5 / 6</div>
+        </div>
+        
+        <h1>Teknik Altyapı</h1>
+        
+        <div class="grid-2">
+            <div class="card">
+                <h3>🎨 Frontend</h3>
+                <div>
+                    <span class="tech-item">React.js 18</span>
+                    <span class="tech-item">Tailwind CSS</span>
+                    <span class="tech-item">shadcn/ui</span>
+                    <span class="tech-item">React Router v6</span>
+                    <span class="tech-item">Recharts</span>
+                    <span class="tech-item">React Hook Form</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>⚙️ Backend</h3>
+                <div>
+                    <span class="tech-item">Python 3.11+</span>
+                    <span class="tech-item">FastAPI</span>
+                    <span class="tech-item">Pydantic</span>
+                    <span class="tech-item">JWT Auth</span>
+                    <span class="tech-item">HTTPX</span>
+                    <span class="tech-item">bcrypt</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🗄️ Database</h3>
+                <div>
+                    <span class="tech-item">MongoDB Atlas</span>
+                    <span class="tech-item">Motor (Async)</span>
+                    <span class="tech-item">Cloud Native</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🔌 Entegrasyonlar</h3>
+                <div>
+                    <span class="tech-item">Daily.co</span>
+                    <span class="tech-item">Infobip</span>
+                    <span class="tech-item">Firebase FCM</span>
+                    <span class="tech-item">VAPID Push</span>
+                </div>
+            </div>
+        </div>
+        
+        <h2>API Yapısı</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Açıklama</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>/api/auth/*</td><td>Kimlik doğrulama işlemleri</td></tr>
+                <tr><td>/api/cases/*</td><td>Vaka yönetimi</td></tr>
+                <tr><td>/api/vehicles/*</td><td>Araç yönetimi</td></tr>
+                <tr><td>/api/shifts/*</td><td>Vardiya yönetimi</td></tr>
+                <tr><td>/api/stock/*</td><td>Stok yönetimi</td></tr>
+                <tr><td>/api/forms/*</td><td>Form yönetimi</td></tr>
+                <tr><td>/api/notifications/*</td><td>Bildirim sistemi</td></tr>
+                <tr><td>/api/video-call/*</td><td>Video görüşme</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Page 6: Security & Compliance -->
+    <div class="page">
+        <div class="page-header">
+            <div class="logo">HEALMEDY</div>
+            <div class="page-number">Sayfa 6 / 6</div>
+        </div>
+        
+        <h1>Güvenlik & Uyumluluk</h1>
+        
+        <div class="grid-2">
+            <div class="card">
+                <h3>🔐 Veri Güvenliği</h3>
+                <ul>
+                    <li>JWT tabanlı kimlik doğrulama</li>
+                    <li>Rol bazlı yetkilendirme (RBAC)</li>
+                    <li>Şifreli veri iletimi (HTTPS)</li>
+                    <li>Güvenli şifre hashleme (bcrypt)</li>
+                    <li>Session yönetimi ve timeout</li>
+                    <li>Denetim izi (Audit Log)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>⚖️ Yasal Uyumluluk</h3>
+                <ul>
+                    <li>KVKK - Kişisel Verilerin Korunması</li>
+                    <li>Sağlık Bakanlığı düzenlemeleri</li>
+                    <li>Tıbbi kayıt saklama standartları</li>
+                    <li>Dijital imza desteği</li>
+                    <li>ICD-10 kodlama sistemi</li>
+                    <li>PDF export özelliği</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h2>Rekabet Avantajları</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Özellik</th>
+                    <th>HEALMEDY</th>
+                    <th>Rakipler</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ambulans Odaklı Tasarım</td>
+                    <td><span class="badge badge-success">✓</span></td>
+                    <td><span class="badge badge-danger">✗</span></td>
+                </tr>
+                <tr>
+                    <td>Türkçe Arayüz</td>
+                    <td><span class="badge badge-success">✓</span></td>
+                    <td><span class="badge badge-warning">Kısmen</span></td>
+                </tr>
+                <tr>
+                    <td>KVKK Uyumlu</td>
+                    <td><span class="badge badge-success">✓</span></td>
+                    <td><span class="badge badge-warning">Değişken</span></td>
+                </tr>
+                <tr>
+                    <td>Video Konsültasyon</td>
+                    <td><span class="badge badge-success">✓</span></td>
+                    <td><span class="badge badge-danger">Nadir</span></td>
+                </tr>
+                <tr>
+                    <td>Çoklu Bildirim Kanalı</td>
+                    <td><span class="badge badge-success">5 Kanal</span></td>
+                    <td><span class="badge badge-warning">Sadece SMS</span></td>
+                </tr>
+                <tr>
+                    <td>Modern UI/UX</td>
+                    <td><span class="badge badge-success">✓</span></td>
+                    <td><span class="badge badge-danger">Eski</span></td>
+                </tr>
+                <tr>
+                    <td>Cloud-Native</td>
+                    <td><span class="badge badge-success">✓</span></td>
+                    <td><span class="badge badge-danger">On-premise</span></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="highlight" style="margin-top: 8mm;">
+            <h3>📞 İletişim</h3>
+            <p style="margin: 2mm 0;">
+                <strong>HEALMEDY Sağlık Teknolojileri</strong><br>
+                Demo talebi ve detaylı bilgi için iletişime geçin.
+            </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 10mm; color: #94a3b8; font-size: 9pt;">
+            © 2024 HEALMEDY Sağlık Teknolojileri. Tüm hakları saklıdır. | v2.0
+        </div>
+    </div>
+</body>
+</html>
+

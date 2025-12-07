@@ -1,10 +1,23 @@
-from fastapi import APIRouter, HTTPException, Request
-from typing import List, Optional
-from database import cases_collection, vehicles_collection, users_collection
-from models import Case, CaseCreate, CaseAssignTeam, CaseUpdateStatus, CaseStatusUpdate
-from auth_utils import get_current_user
-from datetime import datetime
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
+from typing import List, Optional, Any
+from database import cases_collection, vehicles_collection, users_collection, shift_assignments_collection
+from models import Case, CaseCreate, CaseAssignTeam, CaseUpdateStatus, CaseStatusUpdate, MedicalFormData, DoctorApproval, CaseParticipant
+from auth_utils import get_current_user, require_roles
+from datetime import datetime, timedelta
 from email_service import send_case_notifications
+from pydantic import BaseModel
+import uuid
+import os
+import logging
+
+# Bildirim servisi
+try:
+    from services.notification_service import notification_service, NotificationType, NotificationChannel
+    NOTIFICATIONS_ENABLED = True
+except ImportError:
+    NOTIFICATIONS_ENABLED = False
+    
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -45,7 +58,47 @@ async def create_case(data: CaseCreate, request: Request):
     case_dict = new_case.model_dump(by_alias=True)
     await cases_collection.insert_one(case_dict)
     
-    return new_case
+    # Vaka oluşturma bildirimi gönder (arka planda)
+    if NOTIFICATIONS_ENABLED:
+        try:
+            from services.notification_service import get_users_by_role
+            
+            # İlgili rollere bildirim gönder
+            managers = await get_users_by_role(["merkez_ofis", "operasyon_muduru"])
+            recipients = []
+            for manager in managers:
+                recipients.append({
+                    "user_id": manager["id"],
+                    "phone": manager.get("phone"),
+                    "push_subscriptions": manager.get("push_subscriptions", []),
+                    "fcm_token": manager.get("fcm_token"),
+                    "notification_preferences": manager.get("notification_preferences", {})
+                })
+            
+            if recipients:
+                patient_info = case_dict.get("patient", {})
+                location_info = case_dict.get("location", {})
+                
+                await notification_service.send_notification(
+                    NotificationType.CASE_CREATED,
+                    recipients,
+                    {
+                        "case_number": case_number,
+                        "patient_name": f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş",
+                        "location": location_info.get("address", "Belirtilmemiş"),
+                        "priority": case_dict.get("priority", "Normal"),
+                        "created_at": datetime.now().strftime("%d.%m.%Y %H:%M"),
+                        "url": f"/dashboard/cases/{case_dict['_id']}"
+                    },
+                    channels=[NotificationChannel.SMS, NotificationChannel.WEB_PUSH, NotificationChannel.IN_APP]
+                )
+                logger.info(f"Sent case creation notifications to {len(recipients)} recipients")
+        except Exception as e:
+            logger.error(f"Error sending case creation notifications: {e}", exc_info=True)
+    
+    # Return with 'id' field for frontend
+    case_dict["id"] = case_dict.pop("_id")
+    return case_dict
 
 @router.get("/", response_model=List[Case])
 async def get_cases(
@@ -59,28 +112,38 @@ async def get_cases(
     
     # Build query
     query = {}
+    filters = []
     
-    # Role-based filtering
-    if user.role in ["paramedik", "att", "sofor"]:
+    # Role-based filtering - saha personeli sadece atandıkları vakaları görür
+    if user.role in ["paramedik", "att", "sofor", "hemsire"]:
         # Only see assigned cases
-        query["$or"] = [
-            {"assigned_team.driver_id": user.id},
-            {"assigned_team.paramedic_id": user.id},
-            {"assigned_team.att_id": user.id}
-        ]
+        filters.append({
+            "$or": [
+                {"assigned_team.driver_id": user.id},
+                {"assigned_team.paramedic_id": user.id},
+                {"assigned_team.att_id": user.id},
+                {"assigned_team.nurse_id": user.id}
+            ]
+        })
     
     if status:
-        query["status"] = status
+        filters.append({"status": status})
     
     if priority:
-        query["priority"] = priority
+        filters.append({"priority": priority})
     
     if search:
-        query["$or"] = [
-            {"case_number": {"$regex": search, "$options": "i"}},
-            {"patient.name": {"$regex": search, "$options": "i"}},
-            {"patient.surname": {"$regex": search, "$options": "i"}}
-        ]
+        filters.append({
+            "$or": [
+                {"case_number": {"$regex": search, "$options": "i"}},
+                {"patient.name": {"$regex": search, "$options": "i"}},
+                {"patient.surname": {"$regex": search, "$options": "i"}}
+            ]
+        })
+    
+    # Combine all filters with $and
+    if filters:
+        query = {"$and": filters} if len(filters) > 1 else filters[0]
     
     cases = await cases_collection.find(query).sort("created_at", -1).to_list(1000)
     
@@ -103,11 +166,13 @@ async def get_case(case_id: str, request: Request):
 
 @router.post("/{case_id}/assign-team")
 async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
-    """Assign team to case (Operation Manager)"""
+    """Assign team to case (Operation Manager, Call Center, Nurse, Doctor)"""
     user = await get_current_user(request)
     
-    if user.role not in ["merkez_ofis", "operasyon_muduru"]:
-        raise HTTPException(status_code=403, detail="Only operation managers can assign teams")
+    # Çağrı merkezi, hemşire ve doktor da ekip atayabilir
+    allowed_roles = ["merkez_ofis", "operasyon_muduru", "cagri_merkezi", "hemsire", "doktor"]
+    if user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Bu işlemi yapmaya yetkiniz yok")
     
     # Check if vehicle exists and is available
     vehicle = await vehicles_collection.find_one({"_id": data.vehicle_id})
@@ -117,8 +182,46 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     if vehicle["status"] != "musait":
         raise HTTPException(status_code=400, detail="Vehicle is not available")
     
-    # Update case
+    # Bugünkü vardiya atamalarından ekibi otomatik bul
+    
+    # O araca atanmış personeli bul
+    vehicle_assignments = await shift_assignments_collection.find({
+        "vehicle_id": data.vehicle_id,
+        "status": {"$in": ["pending", "started"]}
+    }).to_list(100)
+    
+    logger.info(f"Found {len(vehicle_assignments)} assignments for vehicle {data.vehicle_id}")
+    
+    # Ekip ID'lerini doldur (eğer gönderilmemişse)
     assigned_team = data.model_dump()
+    
+    for assignment in vehicle_assignments:
+        user_id = assignment.get("user_id")
+        logger.info(f"Processing assignment: user_id={user_id}")
+        if user_id:
+            # Kullanıcının rolünü bul
+            assigned_user = await users_collection.find_one({"_id": user_id})
+            if assigned_user:
+                role = assigned_user.get("role")
+                logger.info(f"User {user_id} has role: {role}")
+                if role == "sofor" or role == "bas_sofor":
+                    if not assigned_team.get("driver_id"):
+                        assigned_team["driver_id"] = user_id
+                        logger.info(f"Set driver_id to {user_id}")
+                elif role == "paramedik":
+                    if not assigned_team.get("paramedic_id"):
+                        assigned_team["paramedic_id"] = user_id
+                        logger.info(f"Set paramedic_id to {user_id}")
+                elif role == "att":
+                    if not assigned_team.get("att_id"):
+                        assigned_team["att_id"] = user_id
+                        logger.info(f"Set att_id to {user_id}")
+                elif role == "hemsire":
+                    if not assigned_team.get("nurse_id"):
+                        assigned_team["nurse_id"] = user_id
+                        logger.info(f"Set nurse_id to {user_id}")
+    
+    logger.info(f"Final assigned_team: {assigned_team}")
     assigned_team["assigned_at"] = datetime.utcnow()
     
     status_update = CaseStatusUpdate(
@@ -150,6 +253,64 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             }
         }
     )
+    
+    # Bildirim gönder (arka planda)
+    if NOTIFICATIONS_ENABLED:
+        try:
+            # Vaka bilgilerini al
+            case_doc = await cases_collection.find_one({"_id": case_id})
+            
+            # Alıcıları belirle: ekip üyeleri + müdür + doktor
+            recipient_ids = []
+            
+            # Ekip üyelerini ekle
+            for key in ["driver_id", "paramedic_id", "att_id", "nurse_id"]:
+                if assigned_team.get(key):
+                    recipient_ids.append(assigned_team[key])
+            
+            # Doktor ve operasyon müdürü ekle
+            managers = await users_collection.find({
+                "role": {"$in": ["doktor", "operasyon_muduru", "merkez_ofis"]},
+                "is_active": True
+            }).to_list(50)
+            
+            for mgr in managers:
+                if mgr["_id"] not in recipient_ids:
+                    recipient_ids.append(mgr["_id"])
+            
+            # Alıcı bilgilerini topla
+            recipients = []
+            for rid in recipient_ids:
+                user_doc = await users_collection.find_one({"_id": rid})
+                if user_doc:
+                    recipients.append({
+                        "user_id": rid,
+                        "phone": user_doc.get("phone"),
+                        "push_subscriptions": user_doc.get("push_subscriptions", []),
+                        "fcm_token": user_doc.get("fcm_token"),
+                        "notification_preferences": user_doc.get("notification_preferences", {})
+                    })
+            
+            # Vaka oluşturma bildirimi gönder
+            if recipients:
+                patient_info = case_doc.get("patient", {})
+                location_info = case_doc.get("location", {})
+                
+                await notification_service.send_notification(
+                    NotificationType.CASE_ASSIGNED,
+                    recipients,
+                    {
+                        "case_number": case_doc.get("case_number"),
+                        "patient_name": f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş",
+                        "location": location_info.get("address", "Belirtilmemiş"),
+                        "priority": case_doc.get("priority", "Normal"),
+                        "vehicle_plate": vehicle.get("plate", ""),
+                        "url": f"/dashboard/cases/{case_id}"
+                    }
+                )
+                logger.info(f"Sent notifications to {len(recipients)} recipients for case {case_id}")
+        except Exception as e:
+            logger.error(f"Error sending case notifications: {e}")
     
     return {"message": "Team assigned successfully"}
 
@@ -260,4 +421,266 @@ async def send_notification(case_id: str, vehicle_id: Optional[str] = None, requ
     return {
         "message": "Notifications sent successfully",
         "sent_count": sent_count
+    }
+
+# ============================================================================
+# REAL-TIME COLLABORATION ENDPOINTS
+# ============================================================================
+
+class MedicalFormUpdate(BaseModel):
+    """Partial update for medical form"""
+    field: str
+    value: Any
+
+@router.post("/{case_id}/join")
+async def join_case(case_id: str, request: Request):
+    """Join case as participant (real-time collaboration)"""
+    user = await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Check if user is authorized (assigned to case or doctor/nurse/admin)
+    is_authorized = False
+    assigned_team = case_doc.get("assigned_team", {})
+    
+    if user.role in ["merkez_ofis", "operasyon_muduru", "doktor", "hemsire"]:
+        is_authorized = True
+    elif user.id in [
+        assigned_team.get("driver_id"),
+        assigned_team.get("paramedic_id"),
+        assigned_team.get("att_id"),
+        assigned_team.get("nurse_id")
+    ]:
+        is_authorized = True
+    
+    if not is_authorized:
+        raise HTTPException(status_code=403, detail="Bu vakaya erişim yetkiniz yok")
+    
+    # Add or update participant
+    participant = CaseParticipant(
+        user_id=user.id,
+        user_name=user.name,
+        user_role=user.role,
+        joined_at=datetime.utcnow(),
+        last_activity=datetime.utcnow()
+    )
+    
+    # Remove old entry if exists, then add new
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$pull": {"participants": {"user_id": user.id}}}
+    )
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$push": {"participants": participant.model_dump()}}
+    )
+    
+    return {"message": "Vakaya katıldınız", "participant": participant.model_dump()}
+
+@router.post("/{case_id}/leave")
+async def leave_case(case_id: str, request: Request):
+    """Leave case as participant"""
+    user = await get_current_user(request)
+    
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$pull": {"participants": {"user_id": user.id}}}
+    )
+    
+    return {"message": "Vakadan ayrıldınız"}
+
+@router.get("/{case_id}/participants")
+async def get_participants(case_id: str, request: Request):
+    """Get active participants in case"""
+    await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Filter out inactive participants (last activity > 5 minutes ago)
+    cutoff = datetime.utcnow() - timedelta(minutes=5)
+    participants = case_doc.get("participants", [])
+    
+    active_participants = []
+    for p in participants:
+        last_activity = p.get("last_activity")
+        if isinstance(last_activity, str):
+            last_activity = datetime.fromisoformat(last_activity.replace('Z', '+00:00'))
+        if last_activity and last_activity > cutoff:
+            active_participants.append(p)
+    
+    return {"participants": active_participants}
+
+@router.patch("/{case_id}/medical-form")
+async def update_medical_form(case_id: str, request: Request):
+    """Update medical form (real-time collaboration)"""
+    user = await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Get form data from request body
+    form_data = await request.json()
+    
+    # Update medical form
+    current_form = case_doc.get("medical_form") or {}
+    
+    # Merge with new data
+    for key, value in form_data.items():
+        if key not in ["_id", "id"]:
+            current_form[key] = value
+    
+    # Update case
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {
+            "$set": {
+                "medical_form": current_form,
+                "last_form_update": datetime.utcnow(),
+                "last_form_updater": user.id,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # Update participant's last activity
+    await cases_collection.update_one(
+        {"_id": case_id, "participants.user_id": user.id},
+        {"$set": {"participants.$.last_activity": datetime.utcnow()}}
+    )
+    
+    return {
+        "message": "Form güncellendi",
+        "updated_by": user.name,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+@router.get("/{case_id}/medical-form")
+async def get_medical_form(case_id: str, request: Request):
+    """Get medical form data"""
+    await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    return {
+        "medical_form": case_doc.get("medical_form"),
+        "last_update": case_doc.get("last_form_update"),
+        "last_updater": case_doc.get("last_form_updater"),
+        "doctor_approval": case_doc.get("doctor_approval"),
+        "participants": case_doc.get("participants", [])
+    }
+
+# ============================================================================
+# DOCTOR APPROVAL ENDPOINTS
+# ============================================================================
+
+class DoctorApprovalRequest(BaseModel):
+    status: str  # "approved" or "rejected"
+    notes: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
+@router.post("/{case_id}/doctor-approval")
+async def doctor_approval(case_id: str, data: DoctorApprovalRequest, request: Request):
+    """Doctor approves or rejects the case treatment"""
+    user = await get_current_user(request)
+    
+    # Only doctors can approve
+    if user.role != "doktor":
+        raise HTTPException(status_code=403, detail="Sadece doktorlar onay verebilir")
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    approval = DoctorApproval(
+        status=data.status,
+        doctor_id=user.id,
+        doctor_name=user.name,
+        approved_at=datetime.utcnow(),
+        rejection_reason=data.rejection_reason if data.status == "rejected" else None,
+        notes=data.notes
+    )
+    
+    # Update case
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {
+            "$set": {
+                "doctor_approval": approval.model_dump(),
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # Add to status history
+    status_note = f"Doktor {user.name} tarafından {'onaylandı' if data.status == 'approved' else 'reddedildi'}"
+    if data.rejection_reason:
+        status_note += f": {data.rejection_reason}"
+    
+    status_update = CaseStatusUpdate(
+        status=case_doc.get("status"),  # Keep current status
+        note=status_note,
+        updated_by=user.id
+    )
+    
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$push": {"status_history": status_update.model_dump()}}
+    )
+    
+    return {
+        "message": f"İşlem {'onaylandı' if data.status == 'approved' else 'reddedildi'}",
+        "approval": approval.model_dump()
+    }
+
+# ============================================================================
+# VIDEO CALL ENDPOINTS
+# ============================================================================
+
+@router.post("/{case_id}/start-video-call")
+async def start_video_call(case_id: str, request: Request):
+    """Start video call for case using Jitsi Meet
+    
+    Kendi Jitsi sunucunuzu kullanmak için .env dosyasına ekleyin:
+    JITSI_DOMAIN=jitsi.your-domain.com
+    """
+    user = await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Create a unique room name for Jitsi (always use case_number for consistency)
+    case_number = case_doc.get("case_number", case_id[:8])
+    # Clean room name - remove special characters for Jitsi
+    video_room_id = f"HealMedy{case_number}".replace("-", "").replace(" ", "")
+    
+    # Get Jitsi domain from environment or use default
+    jitsi_domain = os.environ.get("JITSI_DOMAIN", "meet.jit.si")
+    
+    # Update case with video call info
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$set": {
+            "video_room_id": video_room_id, 
+            "video_call_active": True,
+            "jitsi_domain": jitsi_domain
+        }}
+    )
+    
+    # Build Jitsi URL
+    jitsi_url = f"https://{jitsi_domain}/{video_room_id}"
+    
+    return {
+        "room_id": video_room_id,
+        "room_url": jitsi_url,
+        "jitsi_domain": jitsi_domain,
+        "started_by": user.name,
+        "message": "Görüntülü görüşme başlatıldı."
     }

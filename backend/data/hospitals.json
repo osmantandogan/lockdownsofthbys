@@ -1,0 +1,5858 @@
+{
+  "custom": [
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "HEALMEDY Filyos Sağlık Merkezi",
+      "type": "ÖZEL SAĞLIK MERKEZİ",
+      "priority": 1
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "ÇAYCUMA",
+      "name": "Filyos Sağlık Merkezi Saha Ambulans Bekleme Noktaları",
+      "type": "AMBULANS NOKTASI",
+      "priority": 2
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "Özel Level Hospital",
+      "type": "ÖZEL HASTANE",
+      "priority": 3
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "EREĞLİ",
+      "name": "Özel Ereğli Echomar Hastanesi",
+      "type": "ÖZEL HASTANE",
+      "priority": 4
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "EREĞLİ",
+      "name": "Özel Ereğli Anadolu Hastanesi",
+      "type": "ÖZEL HASTANE",
+      "priority": 5
+    }
+  ],
+  "zonguldak_devlet": [],
+  "zonguldak_all": [
+    {
+      "il": "ZONGULDAK",
+      "ilce": "EREĞLİ",
+      "name": "T.C. Sağlık Bakanlığı Karadeniz Ereğli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "ÇAYCUMA",
+      "name": "T.C. Sağlık Bakanlığı Çaycuma Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "DEVREK",
+      "name": "T.C. Sağlık Bakanlığı Devrek Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "ALAPLI",
+      "name": "T.C. Sağlık Bakanlığı Alaplı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Zonguldak Uzun Mehmet Göğüs ve Meslek Hastalıkları Hastanesi",
+      "type": "M.H.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Zonguldak Atatürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Zonguldak Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "GÖKÇEBEY",
+      "name": "T.C. Sağlık Bakanlığı Gökçebey İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    }
+  ],
+  "all": [
+    {
+      "il": "ADANA",
+      "ilce": "YÜREĞİR",
+      "name": "T.C. Sağlık Bakanlığı Adana Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "KOZAN",
+      "name": "T.C. Sağlık Bakanlığı Kozan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "YÜREĞİR",
+      "name": "T.C. Sağlık Bakanlığı Adana Yüreğir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "ÇUKUROVA",
+      "name": "T.C. Sağlık Bakanlığı Adana Dr.Ekrem Tok Ruh Sağlığı ve Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "CEYHAN",
+      "name": "T.C. Sağlık Bakanlığı Ceyhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "KARAİSALI",
+      "name": "T.C. Sağlık Bakanlığı Karaisalı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "İMAMOĞLU",
+      "name": "T.C. Sağlık Bakanlığı İmamoğlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "TUFANBEYLİ",
+      "name": "T.C. Sağlık Bakanlığı Tufanbeyli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "POZANTI",
+      "name": "T.C. Sağlık Bakanlığı Pozantı 80.Yıl Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "SEYHAN",
+      "name": "T.C. Sağlık Bakanlığı Seyhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "SEYHAN",
+      "name": "T.C. Sağlık Bakanlığı Adana Fatma Kemal Timuçin Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "ÇUKUROVA",
+      "name": "T.C. Sağlık Bakanlığı Adana Çukurova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "YÜREĞİR",
+      "name": "T.C. Sağlık Bakanlığı Yüreğir Karşıyaka Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "FEKE",
+      "name": "T.C. Sağlık Bakanlığı Feke İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "SAİMBEYLİ",
+      "name": "T.C. Sağlık Bakanlığı Saimbeyli Şehit Uzman Çavuş Adem Ambarcı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADANA",
+      "ilce": "ALADAĞ",
+      "name": "T.C. Sağlık Bakanlığı Aladağ İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Adıyaman Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "KAHTA",
+      "name": "T.C. Sağlık Bakanlığı Kahta Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "BESNİ",
+      "name": "T.C. Sağlık Bakanlığı Besni Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "GÖLBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Gölbaşı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "ÇELİKHAN",
+      "name": "T.C. Sağlık Bakanlığı Çelikhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "SİNCİK",
+      "name": "T.C. Sağlık Bakanlığı Sincik İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "KAHTA",
+      "name": "T.C. Sağlık Bakanlığı Kahta Göçeri İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "GERGER",
+      "name": "T.C. Sağlık Bakanlığı Gerger İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "TUT",
+      "name": "T.C. Sağlık Bakanlığı Tut İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ADIYAMAN",
+      "ilce": "SAMSAT",
+      "name": "T.C. Sağlık Bakanlığı Samsat İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "ŞUHUT",
+      "name": "T.C. Sağlık Bakanlığı Şuhut Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "SANDIKLI",
+      "name": "T.C. Sağlık Bakanlığı Sandıklı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "EMİRDAĞ",
+      "name": "T.C. Sağlık Bakanlığı Emirdağ Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "DİNAR",
+      "name": "T.C. Sağlık Bakanlığı Dinar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "BOLVADİN",
+      "name": "T.C. Sağlık Bakanlığı Bolvadin Dr.Halil İbrahim Özsoy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "ÇAY",
+      "name": "T.C. Sağlık Bakanlığı Çay Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Afyonkarahisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "İSCEHİSAR",
+      "name": "T.C. Sağlık Bakanlığı İscehisar Karamehmet Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "SİNANPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Sinanpaşa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "BAŞMAKÇI",
+      "name": "T.C. Sağlık Bakanlığı Başmakçı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "BAYAT",
+      "name": "T.C. Sağlık Bakanlığı Bayat Dr.Mete Tan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "ÇOBANLAR",
+      "name": "T.C. Sağlık Bakanlığı Çobanlar  İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "DAZKIRI",
+      "name": "T.C. Sağlık Bakanlığı Dazkırı  İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "DİNAR",
+      "name": "T.C. Sağlık Bakanlığı Haydarlı  İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "EVCİLER",
+      "name": "T.C. Sağlık Bakanlığı Evciler İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "HOCALAR",
+      "name": "T.C. Sağlık Bakanlığı Hocalar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "İHSANİYE",
+      "name": "T.C. Sağlık Bakanlığı İhsaniye İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AFYONKARAHİSAR",
+      "ilce": "SULTANDAĞI",
+      "name": "T.C. Sağlık Bakanlığı Sultandağı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Ağrı Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "ELEŞKİRT",
+      "name": "T.C. Sağlık Bakanlığı Eleşkirt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "TUTAK",
+      "name": "T.C. Sağlık Bakanlığı Tutak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "DİYADİN",
+      "name": "T.C. Sağlık Bakanlığı Diyadin Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "DOĞUBAYAZIT",
+      "name": "T.C. Sağlık Bakanlığı Doğubayazıt Dr. Yaşar Eryılmaz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "PATNOS",
+      "name": "T.C. Sağlık Bakanlığı Patnos Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "TAŞLIÇAY",
+      "name": "T.C. Sağlık Bakanlığı Taşlıçay İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AĞRI",
+      "ilce": "HAMUR",
+      "name": "T.C. Sağlık Bakanlığı Hamur İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Aksaray Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "ORTAKÖY",
+      "name": "T.C. Sağlık Bakanlığı Aksaray Ortaköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "ESKİL",
+      "name": "T.C. Sağlık Bakanlığı Eskil Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "GÜLAĞAÇ",
+      "name": "T.C. Sağlık Bakanlığı Gülağaç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "SULTANHANI",
+      "name": "T.C. Sağlık Bakanlığı Sultanhanı Dr. Hüseyin Ağır İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "GÜZELYURT",
+      "name": "T.C. Sağlık Bakanlığı Güzelyurt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "AĞAÇÖREN",
+      "name": "T.C. Sağlık Bakanlığı Ağaçören İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AKSARAY",
+      "ilce": "SARIYAHŞİ",
+      "name": "T.C. Sağlık Bakanlığı Sarıyahşi İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Amasya Sabuncuoğlu Şerefeddin Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "GÜMÜŞHACIKÖY",
+      "name": "T.C. Sağlık Bakanlığı Gümüşhacıköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "MERZİFON",
+      "name": "T.C. Sağlık Bakanlığı Merzifon Kara Mustafa Paşa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "SULUOVA",
+      "name": "T.C. Sağlık Bakanlığı Suluova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "TAŞOVA",
+      "name": "T.C. Sağlık Bakanlığı Taşova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "GÖYNÜCEK",
+      "name": "T.C. Sağlık Bakanlığı Göynücek İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AMASYA",
+      "ilce": "HAMAMÖZÜ",
+      "name": "T.C. Sağlık Bakanlığı Hamamözü İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "YENİMAHALLE",
+      "name": "T.C. Sağlık Bakanlığı Ankara  Yenimahalle Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KEÇİÖREN",
+      "name": "T.C. Sağlık Bakanlığı Ankara  Tepebaşı Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "YENİMAHALLE",
+      "name": "T.C. Sağlık Bakanlığı  Ankara Dr. Abdurrahman Yurtaslan Onkoloji Eğitim ve Araştırma Hastanesi",
+      "type": "ONKOLOJİ"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KEÇİÖREN",
+      "name": "T.C. Sağlık Bakanlığı  Ankara Atatürk Sanatoryum Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ALTINDAĞ",
+      "name": "T.C. Sağlık Bakanlığı Ankara Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ALTINDAĞ",
+      "name": "T.C. Sağlık Bakanlığı  Ankara Dr. Sami Ulus  Çocuk Sağlığı ve Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "Ç.H.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "YENİMAHALLE",
+      "name": "T.C. Sağlık Bakanlığı  Ankara Etlik Zübeyde Hanım Kadın Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ALTINDAĞ",
+      "name": "T.C. Sağlık Bakanlığı  Ankara Dışkapı Yıldırım Beyazıt Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ALTINDAĞ",
+      "name": "T.C. Sağlık Bakanlığı  Ankara Ulucanlar Göz Eğitim ve Araştırma Hastanesi",
+      "type": "GÖZ"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ÇANKAYA",
+      "name": "T.C. Sağlık Bakanlığı Ankara Bilkent Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KEÇİÖREN",
+      "name": "T.C. Sağlık Bakanlığı   Ankara Gülhane Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ÇANKAYA",
+      "name": "T.C. Sağlık Bakanlığı   Ankara Gaziler Fizik Tedavi ve Rehabilitasyon Eğitim ve Araştırma Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ŞEREFLİKOÇHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Şereflikoçhisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KIZILCAHAMAM",
+      "name": "T.C. Sağlık Bakanlığı Kızılcahamam Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "NALLIHAN",
+      "name": "T.C. Sağlık Bakanlığı Nallıhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "POLATLI",
+      "name": "T.C. Sağlık Bakanlığı Polatlı Duatepe Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "HAYMANA",
+      "name": "T.C. Sağlık Bakanlığı Haymana Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KAHRAMANKAZAN",
+      "name": "T.C. Sağlık Bakanlığı Kahramankazan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ELMADAĞ",
+      "name": "T.C. Sağlık Bakanlığı Elmadağ Dr. Hulusi Alataş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "BEYPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Beypazarı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ÇUBUK",
+      "name": "T.C. Sağlık Bakanlığı Çubuk Halil Şıvgın Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ETİMESGUT",
+      "name": "T.C. Sağlık Bakanlığı Ankara Etimesgut Şehit Sait Ertürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ALTINDAĞ",
+      "name": "T.C. Sağlık Bakanlığı Ankara 75.Yıl Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "SİNCAN",
+      "name": "T.C. Sağlık Bakanlığı Ankara Sincan Dr. Nafiz Körez Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "AKYURT",
+      "name": "T.C. Sağlık Bakanlığı Akyurt Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "AYAŞ",
+      "name": "T.C. Sağlık Bakanlığı Ayaş Şehit Mehmet Çifci Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "YENİMAHALLE",
+      "name": "T.C. Sağlık Bakanlığı Ankara Gazi Mustafa Kemal Mesleki ve Çevresel Hastalıklar  Hastanesi",
+      "type": "M.H.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "GÖLBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Gölbaşı Şehit Ahmet Özsoy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "PURSAKLAR",
+      "name": "T.C. Sağlık Bakanlığı Pursaklar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "SİNCAN",
+      "name": "T.C. Sağlık Bakanlığı Ankara Ceza İnfaz Kurumları Kampüs Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ÇANKAYA",
+      "name": "T.C. Sağlık Bakanlığı Ankara Meclis Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ÇANKAYA",
+      "name": "T.C. Sağlık Bakanlığı Ankara 29 Mayıs Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "ÇANKAYA",
+      "name": "T.C. Sağlık Bakanlığı Ankara Beytepe Şehit Murat Erdi Eker Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "MAMAK",
+      "name": "T.C. Sağlık Bakanlığı Mamak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KEÇİÖREN",
+      "name": "T.C. Sağlık Bakanlığı Ankara Osmanlı Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "YENİMAHALLE",
+      "name": "T.C. Sağlık Bakanlığı Ankara Etlik Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "YENİMAHALLE",
+      "name": "T..C. Sağlık Bakanlığı Ankara Beştepe Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "KALECİK",
+      "name": "T.C. Sağlık Bakanlığı Kalecik İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "GÜDÜL",
+      "name": "T.C. Sağlık Bakanlığı Güdül İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ANKARA",
+      "ilce": "BALA",
+      "name": "T.C. Sağlık Bakanlığı Bala İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "ALANYA",
+      "name": "T.C. Sağlık Bakanlığı Alanya Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "MURATPAŞA",
+      "name": "T.C. Sağlık Bakanlığı  Antalya Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "SERİK",
+      "name": "T.C. Sağlık Bakanlığı Serik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "KUMLUCA",
+      "name": "T.C. Sağlık Bakanlığı Kumluca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "MANAVGAT",
+      "name": "T.C. Sağlık Bakanlığı Manavgat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "KAŞ",
+      "name": "T.C. Sağlık Bakanlığı Kaş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "KEMER",
+      "name": "T.C. Sağlık Bakanlığı Kemer Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "KORKUTELİ",
+      "name": "T.C. Sağlık Bakanlığı Korkuteli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "ELMALI",
+      "name": "T.C. Sağlık Bakanlığı Elmalı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "FİNİKE",
+      "name": "T.C. Sağlık Bakanlığı Finike Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "GAZİPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Gazipaşa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "AKSEKİ",
+      "name": "T.C. Sağlık Bakanlığı Akseki İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "DEMRE",
+      "name": "T.C. Sağlık Bakanlığı Demre Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "KEPEZ",
+      "name": "T.C. Sağlık Bakanlığı Antalya Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "MURATPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Antalya Atatürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "GÜNDOĞMUŞ",
+      "name": "T.C. Sağlık Bakanlığı Gündoğmuş İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ANTALYA",
+      "ilce": "KEPEZ",
+      "name": "T.C. Sağlık Bakanlığı Kepez Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARDAHAN",
+      "ilce": "GÖLE",
+      "name": "T.C. Sağlık Bakanlığı Göle Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARDAHAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Ardahan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARDAHAN",
+      "ilce": "POSOF",
+      "name": "T.C. Sağlık Bakanlığı Posof İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ARDAHAN",
+      "ilce": "ÇILDIR",
+      "name": "T.C. Sağlık Bakanlığı Çıldır İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "ŞAVŞAT",
+      "name": "T.C. Sağlık Bakanlığı Şavşat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "ARHAVİ",
+      "name": "T.C. Sağlık Bakanlığı Arhavi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "HOPA",
+      "name": "T.C. Sağlık Bakanlığı Hopa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Artvin Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "YUSUFELİ",
+      "name": "T.C. Sağlık Bakanlığı Yusufeli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "BORÇKA",
+      "name": "T.C. Sağlık Bakanlığı Borçka Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "ARDANUÇ",
+      "name": "T.C. Sağlık Bakanlığı Ardanuç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ARTVİN",
+      "ilce": "MURGUL",
+      "name": "T.C. Sağlık Bakanlığı Murgul İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "NAZİLLİ",
+      "name": "T.C. Sağlık Bakanlığı Nazilli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "SÖKE",
+      "name": "T.C. Sağlık Bakanlığı Söke Fehime Faik Kocagöz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "KUŞADASI",
+      "name": "T.C. Sağlık Bakanlığı Kuşadası Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "ÇİNE",
+      "name": "T.C. Sağlık Bakanlığı Çine Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "EFELER",
+      "name": "T.C. Sağlık Bakanlığı Aydın Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "DİDİM",
+      "name": "T.C. Sağlık Bakanlığı Didim Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "EFELER",
+      "name": "T.C. Sağlık Bakanlığı Aydın Atatürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "BOZDOĞAN",
+      "name": "T.C. Sağlık Bakanlığı Bozdoğan Rasim Menteşe İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "EFELER",
+      "name": "T.C. Sağlık Bakanlığı Aydın Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "GERMENCİK",
+      "name": "T.C. Sağlık Bakanlığı Germencik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "KOÇARLI",
+      "name": "T.C. Sağlık Bakanlığı Koçarlı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "SULTANHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Sultanhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "BUHARKENT",
+      "name": "T.C. Sağlık Bakanlığı Buharkent İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "YENİPAZAR",
+      "name": "T.C. Sağlık Bakanlığı Aydın Yenipazar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "KARPUZLU",
+      "name": "T.C. Sağlık Bakanlığı Karpuzlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "KÖŞK",
+      "name": "T.C. Sağlık Bakanlığı Köşk İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "AYDIN",
+      "ilce": "KUYUCAK",
+      "name": "T.C. Sağlık Bakanlığı Kuyucak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "SINDIRGI",
+      "name": "T.C. Sağlık Bakanlığı Sındırgı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "SUSURLUK",
+      "name": "T.C. Sağlık Bakanlığı Susurluk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "İVRİNDİ",
+      "name": "T.C. Sağlık Bakanlığı İvrindi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "MANYAS",
+      "name": "T.C. Sağlık Bakanlığı Manyas Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "ERDEK",
+      "name": "T.C. Sağlık Bakanlığı Erdek Neyyire Sıtkı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "GÖNEN",
+      "name": "T.C. Sağlık Bakanlığı Gönen Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "HAVRAN",
+      "name": "T.C. Sağlık Bakanlığı Havran Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "BURHANİYE",
+      "name": "T.C. Sağlık Bakanlığı Burhaniye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "DURSUNBEY",
+      "name": "T.C. Sağlık Bakanlığı Dursunbey Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "EDREMİT",
+      "name": "T.C. Sağlık Bakanlığı Edremit Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "BİGADİÇ",
+      "name": "T.C. Sağlık Bakanlığı Bigadiç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "AYVALIK",
+      "name": "T.C. Sağlık Bakanlığı Ayvalık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "KARESİ",
+      "name": "T.C. Sağlık Bakanlığı Balıkesir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "BANDIRMA",
+      "name": "T.C. Sağlık Bakanlığı Bandırma Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "ALTIEYLÜL",
+      "name": "T.C. Sağlık Bakanlığı Balıkesir Atatürk Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "SAVAŞTEPE",
+      "name": "T.C. Sağlık Bakanlığı Savaştepe Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "ALTIEYLÜL",
+      "name": "T.C. Sağlık Bakanlığı Balıkesir Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "GÖMEÇ",
+      "name": "T.C. Sağlık Bakanlığı Gömeç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "KEPSUT",
+      "name": "T.C. Sağlık Bakanlığı Kepsut İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "BALYA",
+      "name": "T.C. Sağlık Bakanlığı Balya İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BALIKESİR",
+      "ilce": "MARMARA",
+      "name": "T.C. Sağlık Bakanlığı Marmara Süleyman İlik İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BARTIN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bartın Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BARTIN",
+      "ilce": "ULUS",
+      "name": "T.C. Sağlık Bakanlığı Ulus Şehit Piyade Er Hasan Hüseyin Oğuz İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BARTIN",
+      "ilce": "AMASRA",
+      "name": "T.C. Sağlık Bakanlığı Amasra İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "KOZLUK",
+      "name": "T.C. Sağlık Bakanlığı Kozluk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "SASON",
+      "name": "T.C. Sağlık Bakanlığı Sason Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "GERCÜŞ",
+      "name": "T.C. Sağlık Bakanlığı Gercüş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Batman Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Batman İluh Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "HASANKEYF",
+      "name": "T.C. Sağlık Bakanlığı Hasankeyf İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BATMAN",
+      "ilce": "BEŞİRİ",
+      "name": "T.C. Sağlık Bakanlığı Beşiri İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BAYBURT",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bayburt Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "SÖĞÜT",
+      "name": "T.C. Sağlık Bakanlığı Söğüt Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "BOZÜYÜK",
+      "name": "T.C. Sağlık Bakanlığı Bozüyük Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bilecik Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "OSMANELİ",
+      "name": "T.C. Sağlık Bakanlığı Osmaneli Mustafa Selahattin Çetintaş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "PAZARYERİ",
+      "name": "T.C. Sağlık Bakanlığı Pazaryeri İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "GÖLPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Gölpazarı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "YENİPAZAR",
+      "name": "T.C. Sağlık Bakanlığı Bilecik Yenipazar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BİLECİK",
+      "ilce": "İNHİSAR",
+      "name": "T.C. Sağlık Bakanlığı İnhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "SOLHAN",
+      "name": "T.C. Sağlık Bakanlığı Solhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "GENÇ",
+      "name": "T.C. Sağlık Bakanlığı Genç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bingöl Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bingöl Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "KARLIOVA",
+      "name": "T.C. Sağlık Bakanlığı Karlıova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "ADAKLI",
+      "name": "T.C. Sağlık Bakanlığı Adaklı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BİNGÖL",
+      "ilce": "KİĞI",
+      "name": "T.C. Sağlık Bakanlığı Kiğı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "AHLAT",
+      "name": "T.C. Sağlık Bakanlığı Ahlat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "TATVAN",
+      "name": "T.C. Sağlık Bakanlığı Tatvan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bitlis Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "ADİLCEVAZ",
+      "name": "T.C. Sağlık Bakanlığı Adilcevaz Onkoloji Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "GÜROYMAK",
+      "name": "T.C. Sağlık Bakanlığı Güroymak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "HİZAN",
+      "name": "T.C. Sağlık Bakanlığı Hizan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BİTLİS",
+      "ilce": "MUTKİ",
+      "name": "T.C. Sağlık Bakanlığı Mutki İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bolu İzzet Baysal Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bolu İzzet Baysal Fizik Tedavi ve Rehabilitasyon Eğitim ve Araştırma Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı  Bolu İzzet Baysal Ruh Sağlığı ve Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "GEREDE",
+      "name": "T.C. Sağlık Bakanlığı Gerede Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "MUDURNU",
+      "name": "T.C. Sağlık Bakanlığı Mudurnu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Bolu İzzet Baysal Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "GÖYNÜK",
+      "name": "T.C. Sağlık Bakanlığı Göynük Şehit Ziya Sarpkaya İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "MENGEN",
+      "name": "T.C. Sağlık Bakanlığı Mengen Dr.Mustafa Körpeoğlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BOLU",
+      "ilce": "YENİÇAĞA",
+      "name": "T.C. Sağlık Bakanlığı Yeniçağa İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "YEŞİLOVA",
+      "name": "T.C. Sağlık Bakanlığı Yeşilova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "GÖLHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Gölhisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "BUCAK",
+      "name": "T.C. Sağlık Bakanlığı Bucak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Burdur Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "TEFENNİ",
+      "name": "T.C. Sağlık Bakanlığı Tefenni İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "AĞLASUN",
+      "name": "T.C. Sağlık Bakanlığı Ağlasun İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "KARAMANLI",
+      "name": "T.C. Sağlık Bakanlığı Karamanlı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURDUR",
+      "ilce": "ÇAVDIR",
+      "name": "T.C. Sağlık Bakanlığı Çavdır İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "YILDIRIM",
+      "name": "T.C. Sağlık Bakanlığı Bursa Ağız ve Diş Sağlığı   Eğitim ve Araştırma Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "YILDIRIM",
+      "name": "T.C. Sağlık Bakanlığı Bursa Yüksek İhtisas Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "NİLÜFER",
+      "name": "T.C. Sağlık Bakanlığı Bursa Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "YENİŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Yenişehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "MUDANYA",
+      "name": "T.C. Sağlık Bakanlığı Mudanya Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "M.KEMALPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Mustafakemalpaşa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "ORHANELİ",
+      "name": "T.C. Sağlık Bakanlığı Orhaneli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "KARACABEY",
+      "name": "T.C. Sağlık Bakanlığı Karacabey Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "İNEGÖL",
+      "name": "T.C. Sağlık Bakanlığı İnegöl Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "GEMLİK",
+      "name": "T.C. Sağlık Bakanlığı Gemlik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "OSMANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Bursa Ali Osman Sönmez Onkoloji Hastanesi",
+      "type": "ONKOLOJİ"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "OSMANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Bursa Dörtçelik Çocuk Hastalıkları Hastanesi",
+      "type": "Ç.H.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "ORHANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Orhangazi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "OSMANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Bursa Dr. Ayten Bozkaya Spastik Çocuklar Hastanesi ve Rehabilitasyon Merkezi",
+      "type": "Ç.H.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "İZNİK",
+      "name": "T.C. Sağlık Bakanlığı İznik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "OSMANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Bursa Çekirge Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "İNEGÖL",
+      "name": "T.C. Sağlık Bakanlığı İnegöl Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "GÜRSU",
+      "name": "T.C. Sağlık Bakanlığı Gürsu Cüneyt Yıldız Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "KESTEL",
+      "name": "T.C. Sağlık Bakanlığı Kestel Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "OSMANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Bursa İlker Çelikcan Fizik Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "BÜYÜKORHAN",
+      "name": "T.C. Sağlık Bakanlığı Büyükorhan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "KELES",
+      "name": "T.C. Sağlık Bakanlığı Keles İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "BURSA",
+      "ilce": "HARMANCIK",
+      "name": "T.C. Sağlık Bakanlığı Harmancık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "GÖKÇEADA",
+      "name": "T.C. Sağlık Bakanlığı Gökçeada Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "LAPSEKİ",
+      "name": "T.C. Sağlık Bakanlığı Lapseki Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "YENİCE",
+      "name": "T.C. Sağlık Bakanlığı Çanakkale Yenice Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "EZİNE",
+      "name": "T.C. Sağlık Bakanlığı Ezine Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "GELİBOLU",
+      "name": "T.C. Sağlık Bakanlığı Gelibolu Şehit Koray Onay Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "ÇAN",
+      "name": "T.C. Sağlık Bakanlığı Çan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Çanakkale Mehmet Akif Ersoy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "AYVACIK",
+      "name": "T.C. Sağlık Bakanlığı Çanakkale Ayvacık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "BAYRAMİÇ",
+      "name": "T.C. Sağlık Bakanlığı Bayramiç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "BİGA",
+      "name": "T.C. Sağlık Bakanlığı Biga Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANAKKALE",
+      "ilce": "ECEABAT",
+      "name": "T.C. Sağlık Bakanlığı Eceabat İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "ILGAZ",
+      "name": "T.C. Sağlık Bakanlığı Ilgaz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "ÇERKEŞ",
+      "name": "T.C. Sağlık Bakanlığı Çerkeş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Çankırı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "KURŞUNLU",
+      "name": "T.C. Sağlık Bakanlığı Kurşunlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "KIZILIRMAK",
+      "name": "T.C. Sağlık Bakanlığı Kızılırmak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "ŞABANÖZÜ",
+      "name": "T.C. Sağlık Bakanlığı Şabanözü Dr. Sami Baran İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "ORTA",
+      "name": "T.C. Sağlık Bakanlığı Orta İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇANKIRI",
+      "ilce": "ATKARACALAR",
+      "name": "T.C. Sağlık Bakanlığı Atkaracalar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Çorum Erol Olçok Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "OSMANCIK",
+      "name": "T.C. Sağlık Bakanlığı Osmancık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "SUNGURLU",
+      "name": "T.C. Sağlık Bakanlığı Sungurlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "İSKİLİP",
+      "name": "T.C. Sağlık Bakanlığı İskilip Atıf Hoca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "KARGI",
+      "name": "T.C. Sağlık Bakanlığı Kargı Ahmet Hamdi Akpınar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "ALACA",
+      "name": "T.C. Sağlık Bakanlığı Alaca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "BAYAT",
+      "name": "T.C. Sağlık Bakanlığı Bayat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Çorum Göğüs Hastalıkları Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "MECİTÖZÜ",
+      "name": "T.C. Sağlık Bakanlığı Mecitözü İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "ORTAKÖY",
+      "name": "T.C. Sağlık Bakanlığı Çorum Ortaköy İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "OĞUZLAR",
+      "name": "T.C. Sağlık Bakanlığı Oğuzlar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "DODURGA",
+      "name": "T.C. Sağlık Bakanlığı Dodurga İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "UĞURLUDAĞ",
+      "name": "T.C. Sağlık Bakanlığı Uğurludağ Şehit Sami Saygı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ÇORUM",
+      "ilce": "BOĞAZKALE",
+      "name": "T.C. Sağlık Bakanlığı Boğazkale İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "KALE",
+      "name": "T.C. Sağlık Bakanlığı Denizli Kale İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "TAVAS",
+      "name": "T.C. Sağlık Bakanlığı Tavas Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "ÇAL",
+      "name": "T.C. Sağlık Bakanlığı Çal Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "ÇİVRİL",
+      "name": "T.C. Sağlık Bakanlığı Çivril Şehit Hilmi Öz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "BULDAN",
+      "name": "T.C. Sağlık Bakanlığı Buldan Göğüs Hastalıkları Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "ACIPAYAM",
+      "name": "T.C. Sağlık Bakanlığı Acıpayam Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "MERKEZEFENDİ",
+      "name": "T.C. Sağlık Bakanlığı Denizli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "ÇAMELİ",
+      "name": "T.C. Sağlık Bakanlığı Çameli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "HONAZ",
+      "name": "T.C. Sağlık Bakanlığı Honaz İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "MERKEZEFENDİ",
+      "name": "T.C. Sağlık Bakanlığı Denizli Servergazi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "MERKEZEFENDİ",
+      "name": "T.C. Sağlık Bakanlığı Denizli Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "SERİNHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Serinhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "GÜNEY",
+      "name": "T.C. Sağlık Bakanlığı Güney İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DENİZLİ",
+      "ilce": "ÇARDAK",
+      "name": "T.C. Sağlık Bakanlığı Çardak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "YENİŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Diyarbakır Gazi Yaşargil Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "SİLVAN",
+      "name": "T.C. Sağlık Bakanlığı Silvan Dr.Yusuf Azizoğlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "BİSMİL",
+      "name": "T.C. Sağlık Bakanlığı Bismil Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "YENİŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Diyarbakır Selahaddin Eyyubi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "YENİŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Diyarbakır Çocuk Hastalıkları Hastanesi",
+      "type": "Ç.H.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "ERGANİ",
+      "name": "T.C. Sağlık Bakanlığı Ergani Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "KAYAPINAR",
+      "name": "T.C. Sağlık Bakanlığı Diyarbakır Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "YENİŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Diyarbakır Dağ Kapı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "ÇERMİK",
+      "name": "T.C. Sağlık Bakanlığı Çermik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "ÇINAR",
+      "name": "T.C. Sağlık Bakanlığı Çınar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "DİCLE",
+      "name": "T.C. Sağlık Bakanlığı Dicle Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "HANİ",
+      "name": "T.C. Sağlık Bakanlığı Hani İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "EĞİL",
+      "name": "T.C. Sağlık Bakanlığı Eğil İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "LİCE",
+      "name": "T.C. Sağlık Bakanlığı Lice Halis Toprak Vakfı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "KULP",
+      "name": "T.C. Sağlık Bakanlığı Kulp Dr. Abdullah Biroğul İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "HAZRO",
+      "name": "T.C. Sağlık Bakanlığı Hazro İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "KOCAKÖY",
+      "name": "T.C. Sağlık Bakanlığı Kocaköy İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "ÇÜNGÜŞ",
+      "name": "T.C. Sağlık Bakanlığı Çüngüş İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DİYARBAKIR",
+      "ilce": "BİSMİL",
+      "name": "T.C. Sağlık Bakanlığı Bismil Tepe İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Düzce Atatürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "AKÇAKOCA",
+      "name": "T.C. Sağlık Bakanlığı Akçakoca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "KAYNAŞLI",
+      "name": "T.C. Sağlık Bakanlığı Kaynaşlı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "GÜMÜŞOVA",
+      "name": "T.C. Sağlık Bakanlığı Gümüşova İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "GÖLYAKA",
+      "name": "T.C. Sağlık Bakanlığı Gölyaka İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "ÇİLİMLİ",
+      "name": "T.C. Sağlık Bakanlığı Çilimli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "DÜZCE",
+      "ilce": "YIĞILCA",
+      "name": "T.C. Sağlık Bakanlığı Yığılca İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Edirne Sultan 1. Murat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "UZUNKÖPRÜ",
+      "name": "T.C. Sağlık Bakanlığı Uzunköprü Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "KEŞAN",
+      "name": "T.C. Sağlık Bakanlığı Keşan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "İPSALA",
+      "name": "T.C. Sağlık Bakanlığı İpsala Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "ENEZ",
+      "name": "T.C. Sağlık Bakanlığı Enez İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "SÜLOĞLU",
+      "name": "T.C. Sağlık Bakanlığı Süloğlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "MERİÇ",
+      "name": "T.C. Sağlık Bakanlığı Meriç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "EDİRNE",
+      "ilce": "LALAPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Lalapaşa İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Elazığ Fethi Sekin Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Elazığ Ruh Sağlığı ve Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "PALU",
+      "name": "T.C. Sağlık Bakanlığı Palu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "KARAKOÇAN",
+      "name": "T.C. Sağlık Bakanlığı Karakoçan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "KOVANCILAR",
+      "name": "T.C. Sağlık Bakanlığı Kovancılar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "MADEN",
+      "name": "T.C. Sağlık Bakanlığı Maden Şehit Cengiz Erdur İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "ARICAK",
+      "name": "T.C. Sağlık Bakanlığı Arıcak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Elazığ Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ELAZIĞ",
+      "ilce": "BASKİL",
+      "name": "T.C. Sağlık Bakanlığı Baskil İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Erzincan Mengücek Gazi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Erzincan  Ağız ve Diş Sağlığı Eğitim ve Araştırma Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "TERCAN",
+      "name": "T.C. Sağlık Bakanlığı Tercan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "REFAHİYE",
+      "name": "T.C. Sağlık Bakanlığı Refahiye Dr. Fahrettin Uğur İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "ÜZÜMLÜ",
+      "name": "T.C. Sağlık Bakanlığı Üzümlü İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "ÇAYIRLI",
+      "name": "T.C. Sağlık Bakanlığı Çayırlı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "KEMAH",
+      "name": "T.C. Sağlık Bakanlığı Kemah İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "İLİÇ",
+      "name": "T.C. Sağlık Bakanlığı İliç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "OTLUKBELİ",
+      "name": "T.C. Sağlık Bakanlığı Otlukbeli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZİNCAN",
+      "ilce": "KEMALİYE",
+      "name": "T.C. Sağlık Bakanlığı Kemaliye İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "YAKUTİYE",
+      "name": "T.C. Sağlık Bakanlığı Erzurum Bölge Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "PASİNLER",
+      "name": "T.C. Sağlık Bakanlığı Pasinler İbrahim Hakkı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "OLTU",
+      "name": "T.C. Sağlık Bakanlığı Oltu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "İSPİR",
+      "name": "T.C. Sağlık Bakanlığı İspir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "HINIS",
+      "name": "T.C. Sağlık Bakanlığı Hınıs Şehit Yavuz Yürekseven Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "HORASAN",
+      "name": "T.C. Sağlık Bakanlığı Horasan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "ÇAT",
+      "name": "T.C. Sağlık Bakanlığı Çat İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "KARAÇOBAN",
+      "name": "T.C. Sağlık Bakanlığı Karaçoban İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "AŞKALE",
+      "name": "T.C. Sağlık Bakanlığı Aşkale İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "TORTUM",
+      "name": "T.C. Sağlık Bakanlığı Tortum İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "KARAYAZI",
+      "name": "T.C. Sağlık Bakanlığı Karayazı Türk Eczacıları Birliği İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "TEKMAN",
+      "name": "T.C. Sağlık Bakanlığı Tekman Şehit Piyade Çavuş Muhammet Binici Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "PALANDÖKEN",
+      "name": "T.C.Sağlık Bakanlığı Erzurum Mareşal Çakmak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "NARMAN",
+      "name": "T.C. Sağlık Bakanlığı Narman İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "ŞENKAYA",
+      "name": "T.C. Sağlık Bakanlığı Şenkaya İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "KÖPRÜKÖY",
+      "name": "T.C. Sağlık Bakanlığı Köprüköy İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "UZUNDERE",
+      "name": "T.C. Sağlık Bakanlığı Uzundere Şehit İhsan Erdoğan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "OLUR",
+      "name": "T.C. Sağlık Bakanlığı Olur İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ERZURUM",
+      "ilce": "PAZARYOLU",
+      "name": "T.C. Sağlık Bakanlığı Pazaryolu Hasan Basri Demirbağ İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "SİVRİHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Sivrihisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "ÇİFTELER",
+      "name": "T.C. Sağlık Bakanlığı Çifteler Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "TEPEBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Eskişehir Yunus Emre Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "ODUNPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Eskişehir Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "ODUNPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Eskişehir Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "MİHALIÇÇIK",
+      "name": "T.C. Sağlık Bakanlığı Mihalıççık Gün Sazak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "MAHMUDİYE",
+      "name": "T.C. Sağlık Bakanlığı Mahmudiye İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "ALPU",
+      "name": "T.C. Sağlık Bakanlığı Alpu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "GÜNYÜZÜ",
+      "name": "T.C. Sağlık Bakanlığı Günyüzü Şehit Melih Özcan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ESKİŞEHİR",
+      "ilce": "BEYLİKOVA",
+      "name": "T.C. Sağlık Bakanlığı Beylikova İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "NİZİP",
+      "name": "T.C. Sağlık Bakanlığı Nizip Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "İSLAHİYE",
+      "name": "T.C. Sağlık Bakanlığı İslahiye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "KARKAMIŞ",
+      "name": "T.C. Sağlık Bakanlığı Karkamış Şehit Fuat Oğuzcan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "YAVUZELİ",
+      "name": "T.C. Sağlık Bakanlığı Yavuzeli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ŞEHİTKAMİL",
+      "name": "T.C. Sağlık Bakanlığı Gaziantep 25 Aralık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "OĞUZELİ",
+      "name": "T.C. Sağlık Bakanlığı Oğuzeli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ARABAN",
+      "name": "T.C. Sağlık Bakanlığı Araban İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "NURDAĞI",
+      "name": "T.C. Sağlık Bakanlığı Nurdağı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ŞEHİTKAMİL",
+      "name": "T.C. Sağlık Bakanlığı Gaziantep Şehitkamil Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ŞAHİNBEY",
+      "name": "T.C. Sağlık Bakanlığı Şahinbey Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ŞAHİNBEY",
+      "name": "T.C. Sağlık Bakanlığı Gaziantep Abdulkadir Yüksel Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ŞEHİTKAMİL",
+      "name": "T.C. Sağlık Bakanlığı Gaziantep Cengiz Gökçek Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "GAZİANTEP",
+      "ilce": "ŞAHİNBEY",
+      "name": "T.C. Sağlık Bakanlığı Gaziantep Dr. Ersin Arslan Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Giresun  Prof. Dr. A. İlhan Özdemir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Giresun Kadın Doğum ve Çocuk Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Giresun Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Giresun Dr. Ali Menekşe Göğüs Hastalıkları Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Giresun Fizik Tedavi ve Rehabilitasyon Merkezi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "ŞEBİNKARAHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Şebinkarahisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "TİREBOLU",
+      "name": "T.C. Sağlık Bakanlığı Tirebolu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "ESPİYE",
+      "name": "T.C. Sağlık Bakanlığı Espiye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "GÖRELE",
+      "name": "T.C. Sağlık Bakanlığı Görele Op. Dr. Ergun Özdemir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "BULANCAK",
+      "name": "T.C. Sağlık Bakanlığı Bulancak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "YAĞLIDERE",
+      "name": "T.C. Sağlık Bakanlığı Yağlıdere İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "ALUCRA",
+      "name": "T.C. Sağlık Bakanlığı Alucra İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "DERELİ",
+      "name": "T.C. Sağlık Bakanlığı Dereli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "EYNESİL",
+      "name": "T.C. Sağlık Bakanlığı Eynesil İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "ÇAMOLUK",
+      "name": "T.C. Sağlık Bakanlığı Çamoluk İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GİRESUN",
+      "ilce": "GÜCE",
+      "name": "T.C. Sağlık Bakanlığı Güce İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GÜMÜŞHANE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Gümüşhane Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GÜMÜŞHANE",
+      "ilce": "ŞİRAN",
+      "name": "T.C. Sağlık Bakanlığı Şiran Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GÜMÜŞHANE",
+      "ilce": "KELKİT",
+      "name": "T.C. Sağlık Bakanlığı Kelkit Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "GÜMÜŞHANE",
+      "ilce": "KÜRTÜN",
+      "name": "T.C. Sağlık Bakanlığı Kürtün İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GÜMÜŞHANE",
+      "ilce": "TORUL",
+      "name": "T.C. Sağlık Bakanlığı Torul İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "GÜMÜŞHANE",
+      "ilce": "KÖSE",
+      "name": "T.C. Sağlık Bakanlığı Köse İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "HAKKARİ",
+      "ilce": "ŞEMDİNLİ",
+      "name": "T.C. Sağlık Bakanlığı Şemdinli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HAKKARİ",
+      "ilce": "YÜKSEKOVA",
+      "name": "T.C. Sağlık Bakanlığı Yüksekova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HAKKARİ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Hakkari Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HAKKARİ",
+      "ilce": "ÇUKURCA",
+      "name": "T.C. Sağlık Bakanlığı Çukurca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HAKKARİ",
+      "ilce": "DERECİK",
+      "name": "T.C.Sağlık Bakanlığı Derecik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "REYHANLI",
+      "name": "T.C. Sağlık Bakanlığı Reyhanlı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "SAMANDAĞ",
+      "name": "T.C. Sağlık Bakanlığı Samandağ Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "KIRIKHAN",
+      "name": "T.C. Sağlık Bakanlığı Kırıkhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "DÖRTYOL",
+      "name": "T.C. Sağlık Bakanlığı Dörtyol Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "İSKENDERUN",
+      "name": "T.C. Sağlık Bakanlığı İskenderun Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "HASSA",
+      "name": "T.C. Sağlık Bakanlığı Hassa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "ALTINÖZÜ",
+      "name": "T.C. Sağlık Bakanlığı Altınözü Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "ERZİN",
+      "name": "T.C. Sağlık Bakanlığı Erzin Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "KUMLU",
+      "name": "T.C. Sağlık Bakanlığı Kumlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "ARSUZ",
+      "name": "T.C. Sağlık Bakanlığı Arsuz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "YAYLADAĞI",
+      "name": "T.C. Sağlık Bakanlığı Yayladağı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "HATAY",
+      "ilce": "ANTAKYA",
+      "name": "T.C. Sağlık Bakanlığı Hatay Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "IĞDIR",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Iğdır Dr.Nevruz Erez Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "IĞDIR",
+      "ilce": "TUZLUCA",
+      "name": "T.C. Sağlık Bakanlığı Tuzluca İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "IĞDIR",
+      "ilce": "ARALIK",
+      "name": "T.C. Sağlık Bakanlığı Aralık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "YALVAÇ",
+      "name": "T.C. Sağlık Bakanlığı Yalvaç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "ŞARKİKARAAĞAÇ",
+      "name": "T.C. Sağlık Bakanlığı Şarkikaraağaç Dr. Sadettin Bilgiç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "EĞİRDİR",
+      "name": "T.C. Sağlık Bakanlığı Eğirdir Kemik Eklem Hastalıkları Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "K.H.H"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Isparta Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Isparta Şehit Yunus Emre Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "GELENDOST",
+      "name": "T.C. Sağlık Bakanlığı Gelendost İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "SÜTÇÜLER",
+      "name": "T.C. Sağlık Bakanlığı Sütçüler İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "SENİRKENT",
+      "name": "T.C. Sağlık Bakanlığı Senirkent İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "KEÇİBORLU",
+      "name": "T.C. Sağlık Bakanlığı Keçiborlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ISPARTA",
+      "ilce": "ULUBORLU",
+      "name": "T.C. Sağlık Bakanlığı Uluborlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "PENDİK",
+      "name": "T.C. Sağlık Bakanlığı Pendik Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KADIKÖY",
+      "name": "T.C. Sağlık Bakanlığı  Göztepe Prof. Dr. Süleyman Yalçın Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAHÇELİEVLER",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Fizik Tedavi ve Rehabilitasyon Eğitim ve Araştırma Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÜSKÜDAR",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Zeynep Kamil Kadın ve Çocuk Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÜSKÜDAR",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Haydarpaşa Numune Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ZEYTİNBURNU",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Yedikule Göğüs Hastalıkları ve Göğüs Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ŞİŞLİ",
+      "name": "T.C. Sağlık Bakanlığı  Şişli Hamidiye Etfal Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SARIYER",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Baltalimanı Metin Sabancı Kemik Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "K.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KARTAL",
+      "name": "T.C. Sağlık Bakanlığı  Kartal Dr. Lütfi Kırdar Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "FATİH",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Haseki Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KARTAL",
+      "name": "T.C. Sağlık Bakanlığı  Kartal Koşuyolu Yüksek İhtisas Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "GAZİOSMANPAŞA",
+      "name": "T.C. Sağlık Bakanlığı  Gaziosmanpaşa Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAKIRKÖY",
+      "name": "T.C. Sağlık Bakanlığı  Bakırköy Dr. Sadi Konuk Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAKIRKÖY",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Prof. Dr. Mazhar Osman Ruh Sağlığı ve Sinir Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÜSKÜDAR",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Dr. Siyami Ersek Göğüs Kalp ve Damar Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BEYOĞLU",
+      "name": "T.C. Sağlık Bakanlığı  Beyoğlu Göz Eğitim ve Araştırma Hastanesi",
+      "type": "GÖZ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÜMRANİYE",
+      "name": "T.C. Sağlık Bakanlığı  Ümraniye Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KADIKÖY",
+      "name": "T.C. Sağlık Bakanlığı  Erenköy Ruh ve Sinir Hastalıkları Eğitim ve Araştırma Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "FATİH",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ŞİŞLİ",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Prof. Dr. Cemil Taşcıoğlu Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "MALTEPE",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Süreyyapaşa Göğüs Hastalıkları ve Göğüs Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ATAŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Fatih Sultan Mehmet Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAĞCILAR",
+      "name": "T.C. Sağlık Bakanlığı   Bağcılar Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KÜÇÜKÇEKMECE",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Mehmet Akif Ersoy Göğüs Kalp ve Damar Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KÜÇÜKÇEKMECE",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Kanuni Sultan Süleyman Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÜSKÜDAR",
+      "name": "T.C. Sağlık Bakanlığı  İstanbul Sultan 2. Abdülhamid Han Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAŞAKŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Başakşehir Çam ve Sakura Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SANCAKTEPE",
+      "name": "T.C. Sağlık Bakanlığı Sancaktepe Şehit Prof. Dr. İlhan Varank Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BEYOĞLU",
+      "name": "T.C. Sağlık Bakanlığı Taksim Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SULTANBEYLİ",
+      "name": "T.C. Sağlık Bakanlığı Sultanbeyli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ŞİLE",
+      "name": "T.C. Sağlık Bakanlığı Şile Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÇATALCA",
+      "name": "T.C. Sağlık Bakanlığı Çatalca İlyas Çokay Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SİLİVRİ",
+      "name": "T.C. Sağlık Bakanlığı Silivri Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "PENDİK",
+      "name": "T.C. Sağlık Bakanlığı Pendik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SARIYER",
+      "name": "T.C. Sağlık Bakanlığı İstinye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAKIRKÖY",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Lepra Deri ve Zührevi Hastalıkları Hastanesi",
+      "type": "LEPRA"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAYRAMPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Bayrampaşa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ATAŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Ataşehir Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BÜYÜKÇEKMECE",
+      "name": "T.C. Sağlık Bakanlığı Beylikdüzü Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KAĞITHANE",
+      "name": "T.C. Sağlık Bakanlığı İstanbul Okmeydanı Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KADIKÖY",
+      "name": "T.C. Sağlık Bakanlığı Erenköy Fizik Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "EYÜPSULTAN",
+      "name": "T.C. Sağlık Bakanlığı Eyüpsultan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BEYKOZ",
+      "name": "T.C. Sağlık Bakanlığı Beykoz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "TUZLA",
+      "name": "T.C. Sağlık Bakanlığı Tuzla Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ÜSKÜDAR",
+      "name": "T.C. Sağlık Bakanlığı Üsküdar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KAĞITHANE",
+      "name": "T.C. Sağlık Bakanlığı Kağıthane Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ESENLER",
+      "name": "T.C. Sağlık Bakanlığı Başakşehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ESENYURT",
+      "name": "T.C. Sağlık Bakanlığı Esenyurt Necmi Kadıoğlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SULTANBEYLİ",
+      "name": "T.C.Sağlık Bakanlığı Tacirler Eğitim Vakfı Sultanbeyli Ağız ve Diş Sağlığı Eğitim ve Araştırma Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "FATİH",
+      "name": "T.C. Sağlık Bakanlığı Arnavutköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BEŞİKTAŞ",
+      "name": "T.C. Sağlık Bakanlığı Beşiktaş Sait Çiftçi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "PENDİK",
+      "name": "T.C. Sağlık Bakanlığı Pendik Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SULTANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Sultangazi Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BÜYÜKÇEKMECE",
+      "name": "T.C. Sağlık Bakanlığı  Büyükçekmece Mimar Sinan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "MALTEPE",
+      "name": "T.C. Sağlık Bakanlığı Maltepe Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "SİLİVRİ",
+      "name": "T.C. Sağlık Bakanlığı Marmara Ceza İnfaz Kurumu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "ESENLER",
+      "name": "T.C. Sağlık Bakanlığı Esenler Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAHÇELİEVLER",
+      "name": "T.C. Sağlık Bakanlığı Bahçelievler Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "AVCILAR",
+      "name": "T.C. Sağlık Bakanlığı Avcılar Murat Kölük Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "BAĞCILAR",
+      "name": "T.C. Sağlık Bakanlığı Bağcılar Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İSTANBUL",
+      "ilce": "KÜÇÜKÇEKMECE",
+      "name": "T.C. Sağlık Bakanlığı Küçükçekmece Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "ÇİĞLİ",
+      "name": "T.C. Sağlık Bakanlığı Çiğli Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "BUCA",
+      "name": "T.C. Sağlık Bakanlığı Buca Seyfi Demirsoy Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KONAK",
+      "name": "T.C. Sağlık Bakanlığı İzmir Atatürk Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KONAK",
+      "name": "T.C. Sağlık Bakanlığı  İzmir Dr. Suat Seren Göğüs Hastalıkları ve Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KONAK",
+      "name": "T.C. Sağlık Bakanlığı  İzmir Dr. Behçet Uz Çocuk Hastalıkları ve Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "Ç.H.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KARABAĞLAR",
+      "name": "T.C. Sağlık Bakanlığı  İzmir Bozyaka Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KONAK",
+      "name": "T.C. Sağlık Bakanlığı  İzmir Tepecik Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "TORBALI",
+      "name": "T.C. Sağlık Bakanlığı Torbalı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "URLA",
+      "name": "T.C. Sağlık Bakanlığı Urla Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "TİRE",
+      "name": "T.C. Sağlık Bakanlığı Tire Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "ÖDEMİŞ",
+      "name": "T.C. Sağlık Bakanlığı Ödemiş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KİRAZ",
+      "name": "T.C. Sağlık Bakanlığı Kiraz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "MENEMEN",
+      "name": "T.C. Sağlık Bakanlığı Menemen Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "FOÇA",
+      "name": "T.C. Sağlık Bakanlığı Foça Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "BERGAMA",
+      "name": "T.C. Sağlık Bakanlığı Bergama Necla Mithat Öztüre Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "BAYINDIR",
+      "name": "T.C. Sağlık Bakanlığı Bayındır Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KONAK",
+      "name": "T.C. Sağlık Bakanlığı İzmir Eğitim Diş Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KONAK",
+      "name": "T.C. Sağlık Bakanlığı İzmir Alsancak Nevvar Salih İşgören Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "SELÇUK",
+      "name": "T.C. Sağlık Bakanlığı Selçuk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "ÇEŞME",
+      "name": "T.C. Sağlık Bakanlığı Çeşme Alper Çizgenakat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "SEFERİHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Seferihisar Nejat Hepkon Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "ALİAĞA",
+      "name": "T.C. Sağlık Bakanlığı Aliağa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KEMALPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Kemalpaşa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "DİKİLİ",
+      "name": "T.C. Sağlık Bakanlığı Dikili Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "BORNOVA",
+      "name": "T.C. Sağlık Bakanlığı Bornova Türkan Özilhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KINIK",
+      "name": "T.C. Sağlık Bakanlığı Kınık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "MENDERES",
+      "name": "T.C. Sağlık Bakanlığı Menderes Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "GAZİEMİR",
+      "name": "T.C. Sağlık Bakanlığı Gaziemir Nevvar Salih İşgören Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "ALİAĞA",
+      "name": "T.C. Sağlık Bakanlığı Aliağa Ceza İnfaz Kurumları Kampüs Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "BEYDAĞ",
+      "name": "T.C. Sağlık Bakanlığı Beydağ İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "İZMİR",
+      "ilce": "KARABURUN",
+      "name": "T.C. Sağlık Bakanlığı Karaburun İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "GÖKSUN",
+      "name": "T.C. Sağlık Bakanlığı Göksun Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "PAZARCIK",
+      "name": "T.C. Sağlık Bakanlığı Pazarcık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "ANDIRIN",
+      "name": "T.C. Sağlık Bakanlığı Andırın Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "ELBİSTAN",
+      "name": "T.C. Sağlık Bakanlığı Elbistan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "AFŞİN",
+      "name": "T.C. Sağlık Bakanlığı Afşin Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "TÜRKOĞLU",
+      "name": "T.C. Sağlık Bakanlığı Türkoğlu Dr. Kemal Beyazıt Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "DULKADİROĞLU",
+      "name": "T.C. Sağlık Bakanlığı Kahramanmaraş Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "ÇAĞLAYANCERİT",
+      "name": "T.C. Sağlık Bakanlığı Çağlayancerit İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "DULKADİROĞLU",
+      "name": "T.C. Sağlık Bakanlığı Kahramanmaraş Necip Fazıl Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "NURHAK",
+      "name": "T.C. Sağlık Bakanlığı Nurhak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAHRAMANMARAŞ",
+      "ilce": "EKİNÖZÜ",
+      "name": "T.C. Sağlık Bakanlığı Ekinözü İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARABÜK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Karabük  Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARABÜK",
+      "ilce": "SAFRANBOLU",
+      "name": "T.C. Sağlık Bakanlığı Safranbolu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARABÜK",
+      "ilce": "YENİCE",
+      "name": "T.C. Sağlık Bakanlığı Karabük Yenice İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARABÜK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Karabük Ağız ve Diş Sağlığı Eğitim ve Araştırma Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "KARABÜK",
+      "ilce": "ESKİPAZAR",
+      "name": "T.C. Sağlık Bakanlığı Eskipazar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARABÜK",
+      "ilce": "EFLANİ",
+      "name": "T.C. Sağlık Bakanlığı Eflani İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARAMAN",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Karaman Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARAMAN",
+      "ilce": "ERMENEK",
+      "name": "T.C. Sağlık Bakanlığı Ermenek Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARAMAN",
+      "ilce": "SARIVELİLER",
+      "name": "T.C. Sağlık Bakanlığı Sarıveliler İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARAMAN",
+      "ilce": "AYRANCI",
+      "name": "T.C. Sağlık Bakanlığı Ayrancı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARAMAN",
+      "ilce": "KAZIMKARABEKİR",
+      "name": "T.C. Sağlık Bakanlığı Kazımkarabekir İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARS",
+      "ilce": "KAĞIZMAN",
+      "name": "T.C. Sağlık Bakanlığı Kağızman Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARS",
+      "ilce": "SARIKAMIŞ",
+      "name": "T.C. Sağlık Bakanlığı Sarıkamış Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARS",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Harakani Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KARS",
+      "ilce": "SELİM",
+      "name": "T.C. Sağlık Bakanlığı Selim İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARS",
+      "ilce": "DİGOR",
+      "name": "T.C. Sağlık Bakanlığı Digor İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARS",
+      "ilce": "ARPAÇAY",
+      "name": "T.C. Sağlık Bakanlığı Arpaçay İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KARS",
+      "ilce": "AKYAKA",
+      "name": "T.C. Sağlık Bakanlığı Akyaka İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kastamonu Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "TOSYA",
+      "name": "T.C. Sağlık Bakanlığı Tosya Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "İNEBOLU",
+      "name": "T.C. Sağlık Bakanlığı İnebolu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "TAŞKÖPRÜ",
+      "name": "T.C. Sağlık Bakanlığı Taşköprü Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "CİDE",
+      "name": "T.C. Sağlık Bakanlığı Cide İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "DADAY",
+      "name": "T.C. Sağlık Bakanlığı Daday İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "DEVREKANİ",
+      "name": "T.C. Sağlık Bakanlığı Devrekani İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "ARAÇ",
+      "name": "T.C. Sağlık Bakanlığı Araç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "BOZKURT",
+      "name": "T.C. Sağlık Bakanlığı Bozkurt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kastamonu Fizik Tedavi ve Rehabilitasyon Merkezi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "AZDAVAY",
+      "name": "T.C. Sağlık Bakanlığı Azdavay İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "ÇATALZEYTİN",
+      "name": "T.C. Sağlık Bakanlığı Çatalzeytin İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "PINARBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Kastamonu Pınarbaşı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "KÜRE",
+      "name": "T.C. Sağlık Bakanlığı Küre İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "İHSANGAZİ",
+      "name": "T.C. Sağlık Bakanlığı İhsangazi İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "DOĞANYURT",
+      "name": "T.C. Sağlık Bakanlığı Doğanyurt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "ŞENPAZAR",
+      "name": "T.C. Sağlık Bakanlığı Şenpazar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "HANÖNÜ",
+      "name": "T.C. Sağlık Bakanlığı Hanönü İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KASTAMONU",
+      "ilce": "ABANA",
+      "name": "T.C. Sağlık Bakanlığı Abana İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "KOCASİNAN",
+      "name": "T.C. Sağlık Bakanlığı  Kayseri Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "YAHYALI",
+      "name": "T.C. Sağlık Bakanlığı Yahyalı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "YEŞİLHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Yeşilhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "TOMARZA",
+      "name": "T.C. Sağlık Bakanlığı Tomarza Yaşar Karayel Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "BÜNYAN",
+      "name": "T.C. Sağlık Bakanlığı Bünyan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "DEVELİ",
+      "name": "T.C. Sağlık Bakanlığı Develi Dr. Ekrem Karakaya Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "KOCASİNAN",
+      "name": "T.C. Sağlık Bakanlığı Kayseri Nimet Bayraktar Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "İNCESU",
+      "name": "T.C. Sağlık Bakanlığı İncesu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "SARIZ",
+      "name": "T.C. Sağlık Bakanlığı Sarız İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "PINARBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Kayseri Pınarbaşı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "KOCASİNAN",
+      "name": "T.C. Sağlık Bakanlığı Kayseri Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "SARIOĞLAN",
+      "name": "T.C. Sağlık Bakanlığı Sarıoğlan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "FELAHİYE",
+      "name": "T.C. Sağlık Bakanlığı Felahiye İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "AKKIŞLA",
+      "name": "T.C. Sağlık Bakanlığı Akkışla İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KAYSERİ",
+      "ilce": "ÖZVATAN",
+      "name": "T.C. Sağlık Bakanlığı Özvatan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRIKKALE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kırıkkale Yüksek İhtisas Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRIKKALE",
+      "ilce": "KESKİN",
+      "name": "T.C. Sağlık Bakanlığı Keskin İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRIKKALE",
+      "ilce": "SULAKYURT",
+      "name": "T.C. Sağlık Bakanlığı Sulakyurt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRIKKALE",
+      "ilce": "DELİCE",
+      "name": "T.C. Sağlık Bakanlığı Delice İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRIKKALE",
+      "ilce": "KARAKEÇİLİ",
+      "name": "T.C. Sağlık Bakanlığı Karakeçili İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRKLARELİ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kırklareli Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRKLARELİ",
+      "ilce": "PINARHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Pınarhisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRKLARELİ",
+      "ilce": "LÜLEBURGAZ",
+      "name": "T.C. Sağlık Bakanlığı Lüleburgaz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRKLARELİ",
+      "ilce": "BABAESKİ",
+      "name": "T.C. Sağlık Bakanlığı Babaeski Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRKLARELİ",
+      "ilce": "VİZE",
+      "name": "T.C. Sağlık Bakanlığı Vize Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRKLARELİ",
+      "ilce": "DEMİRKÖY",
+      "name": "T.C. Sağlık Bakanlığı Demirköy İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRŞEHİR",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kırşehir  Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRŞEHİR",
+      "ilce": "KAMAN",
+      "name": "T.C. Sağlık Bakanlığı Kaman Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRŞEHİR",
+      "ilce": "MUCUR",
+      "name": "T.C. Sağlık Bakanlığı Mucur Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KIRŞEHİR",
+      "ilce": "ÇİÇEKDAĞI",
+      "name": "T.C. Sağlık Bakanlığı Çiçekdağı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KIRŞEHİR",
+      "ilce": "AKPINAR",
+      "name": "T.C. Sağlık Bakanlığı Akpınar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KİLİS",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kilis Prof. Dr. Alaeddin Yavaşca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KİLİS",
+      "ilce": "MUSABEYLİ",
+      "name": "T.C. Sağlık Bakanlığı Musabeyli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "DERİNCE",
+      "name": "T.C. Sağlık Bakanlığı  Derince Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "DARICA",
+      "name": "T.C. Sağlık Bakanlığı Darıca Farabi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "KANDIRA",
+      "name": "T.C. Sağlık Bakanlığı Kandıra Ecz. Kazım Dinç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "KARAMÜRSEL",
+      "name": "T.C. Sağlık Bakanlığı Karamürsel Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "GÖLCÜK",
+      "name": "T.C. Sağlık Bakanlığı Gölcük Necati Çelik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "İZMİT",
+      "name": "T.C. Sağlık Bakanlığı Kocaeli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "KÖRFEZ",
+      "name": "T.C. Sağlık Bakanlığı Körfez Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "GEBZE",
+      "name": "T.C. Sağlık Bakanlığı Gebze Fatih Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "İZMİT",
+      "name": "T.C. Sağlık Bakanlığı Kocaeli İzmit Seka Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KOCAELİ",
+      "ilce": "DİLOVASI",
+      "name": "T.C. Sağlık Bakanlığı Dilovası Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "KARATAY",
+      "name": "T.C. Sağlık Bakanlığı Konya Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "MERAM",
+      "name": "T.C. Sağlık Bakanlığı Konya Meram Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "ALTINEKİN",
+      "name": "T.C. Sağlık Bakanlığı Altınekin İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "SEYDİŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Seydişehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "YUNAK",
+      "name": "T.C. Sağlık Bakanlığı Yunak Hacı İzzet Baysal Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "KARAPINAR",
+      "name": "T.C. Sağlık Bakanlığı Karapınar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "SARAYÖNÜ",
+      "name": "T.C. Sağlık Bakanlığı Sarayönü Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "ILGIN",
+      "name": "T.C. Sağlık Bakanlığı Ilgın Dr.Vefa Tanır Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "KADINHANI",
+      "name": "T.C. Sağlık Bakanlığı Kadınhanı Refik Saime Koyuncu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "EREĞLİ",
+      "name": "T.C. Sağlık Bakanlığı Ereğli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "EREĞLİ",
+      "name": "T.C. Sağlık Bakanlığı Ereğli Ceza İnfaz Kurumu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "ÇUMRA",
+      "name": "T.C. Sağlık Bakanlığı Çumra Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "DOĞANHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Doğanhisar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "BOZKIR",
+      "name": "T.C. Sağlık Bakanlığı Bozkır Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "CİHANBEYLİ",
+      "name": "T.C. Sağlık Bakanlığı Cihanbeyli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "BEYŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Beyşehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "AKŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Akşehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "SELÇUKLU",
+      "name": "T.C. Sağlık Bakanlığı Konya Numune Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "SELÇUKLU",
+      "name": "T.C. Sağlık Bakanlığı Konya Dr. Ali Kemal Belviranlı Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "KULU",
+      "name": "T.C. Sağlık Bakanlığı Kulu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "SELÇUKLU",
+      "name": "T.C. Sağlık Bakanlığı Konya Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "HÜYÜK",
+      "name": "T.C. Sağlık Bakanlığı Hüyük Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "HADİM",
+      "name": "T.C. Sağlık Bakanlığı Hadim Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "SELÇUKLU",
+      "name": "T.C. Sağlık Bakanlığı Konya Beyhekim Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "GÜNEYSINIR",
+      "name": "T.C. Sağlık Bakanlığı Güneysınır Vali İhsan Dede İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "EMİRGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Emirgazi İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "DEREBUCAK",
+      "name": "T.C. Sağlık Bakanlığı Derebucak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "AKÖREN",
+      "name": "T.C. Sağlık Bakanlığı Akören İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "TUZLUKÇU",
+      "name": "T.C. Sağlık Bakanlığı Tuzlukçu Şehit Halim Ünal İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "TAŞKENT",
+      "name": "T.C. Sağlık Bakanlığı Taşkent İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "ÇUMRA",
+      "name": "T.C. Sağlık Bakanlığı Çumra Şehit Ahmet Elbuğa İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KONYA",
+      "ilce": "ÇELTİK",
+      "name": "T.C. Sağlık Bakanlığı Çeltik Şehit Jandarma Uzman Çavuş Ramazan Gülle İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kütahya  Evliya Çelebi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "TAVŞANLI",
+      "name": "T.C. Sağlık Bakanlığı Tavşanlı Doç. Dr.Mustafa Kalemli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "SİMAV",
+      "name": "T.C. Sağlık Bakanlığı Simav Doç. Dr.İsmail Karakuyu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "EMET",
+      "name": "T.C. Sağlık Bakanlığı Emet Dr.Fazıl Doğan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "GEDİZ",
+      "name": "T.C. Sağlık Bakanlığı Gediz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kütahya Yoncalı Fizik Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Kütahya Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "ALTINTAŞ",
+      "name": "T.C. Sağlık Bakanlığı Altıntaş İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "HİSARCIK",
+      "name": "T.C. Sağlık Bakanlığı Hisarcık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "DOMANİÇ",
+      "name": "T.C. Sağlık Bakanlığı Domaniç İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "ÇAVDARHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Çavdarhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "ASLANAPA",
+      "name": "T.C. Sağlık Bakanlığı Aslanapa İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "KÜTAHYA",
+      "ilce": "ŞAPHANE",
+      "name": "T.C. Sağlık Bakanlığı Şaphane İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "YEŞİLYURT",
+      "name": "T.C. Sağlık Bakanlığı Malatya Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "BATTALGAZİ",
+      "name": "T.C. Sağlık Bakanlığı Battalgazi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "PÜTÜRGE",
+      "name": "T.C. Sağlık Bakanlığı Pütürge Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "DARENDE",
+      "name": "T.C. Sağlık Bakanlığı Darende Hulusi Efendi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "HEKİMHAN",
+      "name": "T.C. Sağlık Bakanlığı Hekimhan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "YEŞİLYURT",
+      "name": "T.C. Sağlık Bakanlığı Malatya Yeşilyurt Hasan Çalık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "AKÇADAĞ",
+      "name": "T.C. Sağlık Bakanlığı Akçadağ Şehit Gökhan Aslan  Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "DOĞANŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Doğanşehir Şehit Esra Köse Başaran Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "YEŞİLYURT",
+      "name": "T.C. Sağlık Bakanlığı Malatya Şehit Mehmet Kılınç Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "ARAPGİR",
+      "name": "T.C. Sağlık Bakanlığı Arapgir Ali Özge Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "YAZIHAN",
+      "name": "T.C. Sağlık Bakanlığı Yazıhan Şehit Eyüp Hacıoğlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "KALE",
+      "name": "T.C. Sağlık Bakanlığı Malatya Kale İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MALATYA",
+      "ilce": "KULUNCAK",
+      "name": "T.C. Sağlık Bakanlığı Kuluncak Şehit Mehmet Ali Şekerci İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "SELENDİ",
+      "name": "T.C. Sağlık Bakanlığı Selendi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "SOMA",
+      "name": "T.C. Sağlık Bakanlığı Soma Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "TURGUTLU",
+      "name": "T.C. Sağlık Bakanlığı Turgutlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "KULA",
+      "name": "T.C. Sağlık Bakanlığı Kula Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "SALİHLİ",
+      "name": "T.C. Sağlık Bakanlığı Salihli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "DEMİRCİ",
+      "name": "T.C. Sağlık Bakanlığı Demirci Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "GÖRDES",
+      "name": "T.C. Sağlık Bakanlığı Gördes Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "KIRKAĞAÇ",
+      "name": "T.C. Sağlık Bakanlığı Kırkağaç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "ALAŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Alaşehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "ŞEHZADELER",
+      "name": "T.C. Sağlık Bakanlığı Manisa Ruh Sağlığı ve Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "SARIGÖL",
+      "name": "T.C. Sağlık Bakanlığı Sarıgöl Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "AKHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Akhisar Mustafa Kirazoğlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "SARUHANLI",
+      "name": "T.C. Sağlık Bakanlığı Saruhanlı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "YUNUSEMRE",
+      "name": "T.C. Sağlık Bakanlığı Manisa Merkezefendi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "ŞEHZADELER",
+      "name": "T.C. Sağlık Bakanlığı Manisa Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "GÖLMARMARA",
+      "name": "T.C. Sağlık Bakanlığı Gölmarmara İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "AHMETLİ",
+      "name": "T.C. Sağlık Bakanlığı Ahmetli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MANİSA",
+      "ilce": "KÖPRÜBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Köprübaşı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "MİDYAT",
+      "name": "T.C. Sağlık Bakanlığı Midyat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "NUSAYBİN",
+      "name": "T.C. Sağlık Bakanlığı Nusaybin Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "DERİK",
+      "name": "T.C. Sağlık Bakanlığı Derik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "KIZILTEPE",
+      "name": "T.C. Sağlık Bakanlığı Kızıltepe Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "ARTUKLU",
+      "name": "T.C. Sağlık Bakanlığı Mardin Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "MAZIDAĞI",
+      "name": "T.C. Sağlık Bakanlığı Mazıdağı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "DARGEÇİT",
+      "name": "T.C. Sağlık Bakanlığı Dargeçit İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "SAVUR",
+      "name": "T.C. Sağlık Bakanlığı Savur  Prof. Dr. Aziz Sancar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MARDİN",
+      "ilce": "ÖMERLİ",
+      "name": "T.C. Sağlık Bakanlığı Ömerli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "TOROSLAR",
+      "name": "T.C. Sağlık Bakanlığı Mersin Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "TARSUS",
+      "name": "T.C. Sağlık Bakanlığı Tarsus Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "GÜLNAR",
+      "name": "T.C. Sağlık Bakanlığı Gülnar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "MUT",
+      "name": "T.C. Sağlık Bakanlığı Mut Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "SİLİFKE",
+      "name": "T.C. Sağlık Bakanlığı Silifke Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "ERDEMLİ",
+      "name": "T.C. Sağlık Bakanlığı Erdemli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "ANAMUR",
+      "name": "T.C. Sağlık Bakanlığı Anamur Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "AYDINCIK",
+      "name": "T.C. Sağlık Bakanlığı Mersin Aydıncık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "AKDENİZ",
+      "name": "T.C. Sağlık Bakanlığı Mersin Ağız Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "AKDENİZ",
+      "name": "T.C. Sağlık Bakanlığı Toros Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "BOZYAZI",
+      "name": "T.C. Sağlık Bakanlığı Bozyazı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MERSİN",
+      "ilce": "ÇAMLIYAYLA",
+      "name": "T.C. Sağlık Bakanlığı Çamlıyayla İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "MENTEŞE",
+      "name": "T.C. Sağlık Bakanlığı Muğla Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "ORTACA",
+      "name": "T.C. Sağlık Bakanlığı Ortaca Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "YATAĞAN",
+      "name": "T.C. Sağlık Bakanlığı Yatağan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "MARMARİS",
+      "name": "T.C. Sağlık Bakanlığı Marmaris Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "MİLAS",
+      "name": "T.C. Sağlık Bakanlığı Milas Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "KÖYCEĞİZ",
+      "name": "T.C. Sağlık Bakanlığı Köyceğiz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "BODRUM",
+      "name": "T.C. Sağlık Bakanlığı Bodrum Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "DATÇA",
+      "name": "T.C. Sağlık Bakanlığı Datça Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "FETHİYE",
+      "name": "T.C. Sağlık Bakanlığı Fethiye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "DALAMAN",
+      "name": "T.C. Sağlık Bakanlığı Dalaman Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "MENTEŞE",
+      "name": "T.C. Sağlık Bakanlığı Menteşe Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "MARMARİS",
+      "name": "T.C. Sağlık Bakanlığı Marmaris Nedip Cengiz Eker Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUĞLA",
+      "ilce": "KAVAKLIDERE",
+      "name": "T.C. Sağlık Bakanlığı Kavaklıdere İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "MUŞ",
+      "ilce": "VARTO",
+      "name": "T.C. Sağlık Bakanlığı Varto Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUŞ",
+      "ilce": "BULANIK",
+      "name": "T.C. Sağlık Bakanlığı Bulanık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUŞ",
+      "ilce": "HASKÖY",
+      "name": "T.C. Sağlık Bakanlığı Hasköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUŞ",
+      "ilce": "MALAZGİRT",
+      "name": "T.C. Sağlık Bakanlığı Malazgirt Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUŞ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Muş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "MUŞ",
+      "ilce": "KORKUT",
+      "name": "T.C. Sağlık Bakanlığı Korkut İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "ÜRGÜP",
+      "name": "T.C. Sağlık Bakanlığı Ürgüp Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Nevşehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "KOZAKLI",
+      "name": "T.C. Sağlık Bakanlığı Kozaklı Fizik Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "GÜLŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Gülşehir İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "DERİNKUYU",
+      "name": "T.C. Sağlık Bakanlığı Derinkuyu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "ACIGÖL",
+      "name": "T.C. Sağlık Bakanlığı Acıgöl İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "HACIBEKTAŞ",
+      "name": "T.C. Sağlık Bakanlığı Hacıbektaş İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NEVŞEHİR",
+      "ilce": "AVANOS",
+      "name": "T.C. Sağlık Bakanlığı Avanos İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı  Niğde Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "BOR",
+      "name": "T.C. Sağlık Bakanlığı  Bor Fizik Tedavi ve Rehabilitasyon Eğitim ve Araştırma Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "BOR",
+      "name": "T.C. Sağlık Bakanlığı Bor Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "ULUKIŞLA",
+      "name": "T.C. Sağlık Bakanlığı Ulukışla İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "ÇİFTLİK",
+      "name": "T.C. Sağlık Bakanlığı Çiftlik İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "ÇAMARDI",
+      "name": "T.C. Sağlık Bakanlığı Çamardı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "NİĞDE",
+      "ilce": "ALTUNHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Altunhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "ALTINORDU",
+      "name": "T.C. Sağlık Bakanlığı Ordu  Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "ÜNYE",
+      "name": "T.C. Sağlık Bakanlığı Ünye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "GÖLKÖY",
+      "name": "T.C. Sağlık Bakanlığı Gölköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "AKKUŞ",
+      "name": "T.C. Sağlık Bakanlığı Akkuş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "AYBASTI",
+      "name": "T.C. Sağlık Bakanlığı Aybastı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "FATSA",
+      "name": "T.C. Sağlık Bakanlığı Fatsa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "ALTINORDU",
+      "name": "T.C. Sağlık Bakanlığı Ordu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "KORGAN",
+      "name": "T.C. Sağlık Bakanlığı Korgan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "PERŞEMBE",
+      "name": "T.C. Sağlık Bakanlığı Perşembe İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "ULUBEY",
+      "name": "T.C. Sağlık Bakanlığı Ordu Ulubey İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "GÜRGENTEPE",
+      "name": "T.C. Sağlık Bakanlığı Gürgentepe İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "KUMRU",
+      "name": "T.C. Sağlık Bakanlığı Kumru Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ORDU",
+      "ilce": "MESUDİYE",
+      "name": "T.C. Sağlık Bakanlığı Mesudiye İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "OSMANİYE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Osmaniye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "OSMANİYE",
+      "ilce": "KADİRLİ",
+      "name": "T.C. Sağlık Bakanlığı Kadirli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "OSMANİYE",
+      "ilce": "DÜZİÇİ",
+      "name": "T.C. Sağlık Bakanlığı Düziçi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "OSMANİYE",
+      "ilce": "BAHÇE",
+      "name": "T.C. Sağlık Bakanlığı Bahçe Fizik Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "OSMANİYE",
+      "ilce": "TOPRAKKALE",
+      "name": "T.C. Sağlık Bakanlığı Toprakkale İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Rize Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "ÇAYELİ",
+      "name": "T.C. Sağlık Bakanlığı Çayeli İshakoğlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "FINDIKLI",
+      "name": "T.C. Sağlık Bakanlığı Fındıklı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "GÜNEYSU",
+      "name": "T.C. Sağlık Bakanlığı Güneysu Tenzile Erdoğan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "PAZAR",
+      "name": "T.C. Sağlık Bakanlığı Kaçkar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Rize Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "İYİDERE",
+      "name": "T.C. Sağlık Bakanlığı İyidere Mukaddes Kalkavan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "İKİZDERE",
+      "name": "T.C. Sağlık Bakanlığı İkizdere Hakkı-Emine Ekşi İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "ÇAMLIHEMŞİN",
+      "name": "T.C. Sağlık Bakanlığı Çamlıhemşin İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "RİZE",
+      "ilce": "KALKANDERE",
+      "name": "T.C. Sağlık Bakanlığı Kalkandere Şaban Cengiz İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "ADAPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Sakarya Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "KARASU",
+      "name": "T.C. Sağlık Bakanlığı Karasu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "GEYVE",
+      "name": "T.C. Sağlık Bakanlığı Geyve Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "HENDEK",
+      "name": "T.C. Sağlık Bakanlığı Hendek Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "ARİFİYE",
+      "name": "T.C. Sağlık Bakanlığı Sakarya Sadıka Sabancı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "SERDİVAN",
+      "name": "T.C. Sağlık Bakanlığı Serdivan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "AKYAZI",
+      "name": "T.C. Sağlık Bakanlığı Akyazı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "PAMUKOVA",
+      "name": "T.C. Sağlık Bakanlığı Pamukova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "ADAPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Yenikent Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "SERDİVAN",
+      "name": "T.C. Sağlık Bakanlığı Sakarya Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "KOCAALİ",
+      "name": "T.C. Sağlık Bakanlığı Kocaali İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "KAYNARCA",
+      "name": "T.C. Sağlık Bakanlığı Kaynarca Şehit Gökhan Ayder İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "SAPANCA",
+      "name": "T.C. Sağlık Bakanlığı Sapanca İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "FERİZLİ",
+      "name": "T.C. Sağlık Bakanlığı Ferizli İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAKARYA",
+      "ilce": "TARAKLI",
+      "name": "T.C. Sağlık Bakanlığı Taraklı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "İLKADIM",
+      "name": "T.C. Sağlık Bakanlığı  Samsun Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "VEZİRKÖPRÜ",
+      "name": "T.C. Sağlık Bakanlığı Vezirköprü Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "TERME",
+      "name": "T.C. Sağlık Bakanlığı Terme Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "HAVZA",
+      "name": "T.C. Sağlık Bakanlığı Havza Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "KAVAK",
+      "name": "T.C. Sağlık Bakanlığı Kavak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "LADİK",
+      "name": "T.C. Sağlık Bakanlığı Ladik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "ALAÇAM",
+      "name": "T.C. Sağlık Bakanlığı Alaçam Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "BAFRA",
+      "name": "T.C. Sağlık Bakanlığı Bafra Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "ÇARŞAMBA",
+      "name": "T.C. Sağlık Bakanlığı Çarşamba Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "İLKADIM",
+      "name": "T.C. Sağlık Bakanlığı Samsun Ruh Sağlığı ve Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "İLKADIM",
+      "name": "T.C. Sağlık Bakanlığı Samsun Fiziksel Tıp Rehabilitasyon Hastalıkları Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "AYVACIK",
+      "name": "T.C. Sağlık Bakanlığı Samsun Ayvacık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "İLKADIM",
+      "name": "T.C. Sağlık Bakanlığı Samsun Gazi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "ASARCIK",
+      "name": "T.C. Sağlık Bakanlığı Asarcık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "ONDOKUZ MAYIS",
+      "name": "T.C. Sağlık Bakanlığı 19 Mayıs İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "SALIPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Salıpazarı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SAMSUN",
+      "ilce": "İLKADIM",
+      "name": "T.C. Sağlık Bakanlığı Samsun Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "SİİRT",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Siirt Eğitim ve Araştırma   Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİİRT",
+      "ilce": "KURTALAN",
+      "name": "T.C. Sağlık Bakanlığı Kurtalan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİİRT",
+      "ilce": "BAYKAN",
+      "name": "T.C. Sağlık Bakanlığı Baykan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİİRT",
+      "ilce": "ERUH",
+      "name": "T.C. Sağlık Bakanlığı Eruh Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİİRT",
+      "ilce": "PERVARİ",
+      "name": "T.C. Sağlık Bakanlığı Pervari Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİİRT",
+      "ilce": "ŞİRVAN",
+      "name": "T.C. Sağlık Bakanlığı Şirvan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "BOYABAT",
+      "name": "T.C. Sağlık Bakanlığı Boyabat 75.Yıl Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "DURAĞAN",
+      "name": "T.C. Sağlık Bakanlığı Durağan Şehit Hakan Tanrıkulu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Sinop Atatürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "AYANCIK",
+      "name": "T.C. Sağlık Bakanlığı Ayancık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "TÜRKELİ",
+      "name": "T.C. Sağlık Bakanlığı Türkeli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "GERZE",
+      "name": "T.C. Sağlık Bakanlığı Gerze Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİNOP",
+      "ilce": "ERFELEK",
+      "name": "T.C. Sağlık Bakanlığı Erfelek İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "YILDIZELİ",
+      "name": "T.C. Sağlık Bakanlığı Yıldızeli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "ZARA",
+      "name": "T.C. Sağlık Bakanlığı Zara Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "SUŞEHRİ",
+      "name": "T.C. Sağlık Bakanlığı Suşehri Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "ŞARKIŞLA",
+      "name": "T.C. Sağlık Bakanlığı Şarkışla Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "GÜRÜN",
+      "name": "T.C. Sağlık Bakanlığı Gürün Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "KANGAL",
+      "name": "T.C. Sağlık Bakanlığı Kangal Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "DİVRİĞİ",
+      "name": "T.C. Sağlık Bakanlığı Divriği Sadık Özgür Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Sivas Numune Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Sivas Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "GEMEREK",
+      "name": "T.C. Sağlık Bakanlığı Gemerek Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Sivas Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "ULAŞ",
+      "name": "T.C. Sağlık Bakanlığı Ulaş İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "HAFİK",
+      "name": "T.C. Sağlık Bakanlığı Hafik Hacı Esma Kocacık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "ALTINYAYLA",
+      "name": "T.C. Sağlık Bakanlığı Altınyayla İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "KOYULHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Koyulhisar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "İMRANLI",
+      "name": "T.C. Sağlık Bakanlığı İmranlı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "AKINCILAR",
+      "name": "T.C. Sağlık Bakanlığı Akıncılar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "GÖLOVA",
+      "name": "T.C. Sağlık Bakanlığı Gölova İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "SİVAS",
+      "ilce": "DOĞANŞAR",
+      "name": "T.C. Sağlık Bakanlığı Doğanşar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "KARAKÖPRÜ",
+      "name": "T.C. Sağlık Bakanlığı Şanlıurfa Mehmet Akif İnan Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "SURUÇ",
+      "name": "T.C. Sağlık Bakanlığı Suruç Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "VİRANŞEHİR",
+      "name": "T.C. Sağlık Bakanlığı Viranşehir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "CEYLANPINAR",
+      "name": "T.C. Sağlık Bakanlığı Ceylanpınar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "SİVEREK",
+      "name": "T.C. Sağlık Bakanlığı Siverek Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "AKÇAKALE",
+      "name": "T.C. Sağlık Bakanlığı Akçakale Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "BİRECİK",
+      "name": "T.C. Sağlık Bakanlığı Birecik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "HİLVAN",
+      "name": "T.C. Sağlık Bakanlığı Hilvan Şehit Halit Şiltak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "HARRAN",
+      "name": "T.C. Sağlık Bakanlığı Harran Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "EYYÜBİYE",
+      "name": "T.C. Sağlık Bakanlığı Şanlıurfa Balıklıgöl Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "BOZOVA",
+      "name": "T.C. Sağlık Bakanlığı Bozova Mehmet-Enver Yıldırım Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "HALFETİ",
+      "name": "T.C. Sağlık Bakanlığı Halfeti Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "KARAKÖPRÜ",
+      "name": "T.C. Sağlık Bakanlığı Şanlıurfa Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "ŞANLIURFA",
+      "ilce": "EYYÜBİYE",
+      "name": "T.C. Sağlık Bakanlığı Şanlıurfa Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Şırnak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "CİZRE",
+      "name": "T.C. Sağlık Bakanlığı Cizre Dr. Selahattin Cizrelioğlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "İDİL",
+      "name": "T.C. Sağlık Bakanlığı İdil Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "SİLOPİ",
+      "name": "T.C. Sağlık Bakanlığı Silopi Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "BEYTÜŞŞEBAP",
+      "name": "T.C. Sağlık Bakanlığı Beytüşşebap İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Şırnak Şehit Aydoğan Aydın Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "ULUDERE",
+      "name": "T.C. Sağlık Bakanlığı Uludere Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ŞIRNAK",
+      "ilce": "GÜÇLÜKONAK",
+      "name": "T.C. Sağlık Bakanlığı Güçlükonak İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "SARAY",
+      "name": "T.C. Sağlık Bakanlığı Tekirdağ Saray Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "ŞARKÖY",
+      "name": "T.C. Sağlık Bakanlığı Şarköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "HAYRABOLU",
+      "name": "T.C. Sağlık Bakanlığı Hayrabolu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "MALKARA",
+      "name": "T.C. Sağlık Bakanlığı Malkara Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "ÇORLU",
+      "name": "T.C. Sağlık Bakanlığı Çorlu Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "SÜLEYMANPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Tekirdağ Dr. İsmail Fehmi Cumalıoğlu Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "SÜLEYMANPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Tekirdağ Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "ÇERKEZKÖY",
+      "name": "T.C. Sağlık Bakanlığı Çerkezköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "MURATLI",
+      "name": "T.C. Sağlık Bakanlığı Muratlı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "SÜLEYMANPAŞA",
+      "name": "T.C. Sağlık Bakanlığı Tekirdağ Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "MARMARA EREĞLİSİ",
+      "name": "T.C. Sağlık Bakanlığı Marmara Ereğlisi İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TEKİRDAĞ",
+      "ilce": "KAPAKLI",
+      "name": "T.C. Sağlık Bakanlığı Kapaklı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "ERBAA",
+      "name": "T.C. Sağlık Bakanlığı Erbaa Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "TURHAL",
+      "name": "T.C. Sağlık Bakanlığı Turhal Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "ZİLE",
+      "name": "T.C. Sağlık Bakanlığı Zile Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "REŞADİYE",
+      "name": "T.C. Sağlık Bakanlığı Reşadiye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "NİKSAR",
+      "name": "T.C. Sağlık Bakanlığı Niksar Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Tokat Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Tokat Dr. Cevdet Aykan Ruh Sağlığı ve Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "ALMUS",
+      "name": "T.C. Sağlık Bakanlığı Almus Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "PAZAR",
+      "name": "T.C. Sağlık Bakanlığı Pazar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "YEŞİLYURT",
+      "name": "T.C. Sağlık Bakanlığı Yeşilyurt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "SULUSARAY",
+      "name": "T.C. Sağlık Bakanlığı Sulusaray İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "BAŞÇİFTLİK",
+      "name": "T.C. Sağlık Bakanlığı Başçiftlik İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TOKAT",
+      "ilce": "ARTOVA",
+      "name": "T.C. Sağlık Bakanlığı Artova İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ORTAHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Trabzon Ahi Evren Göğüs Kalp ve Damar Cerrahisi Eğitim ve Araştırma Hastanesi",
+      "type": "G.H.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ORTAHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Trabzon Kanuni Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "TONYA",
+      "name": "T.C. Sağlık Bakanlığı Tonya Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "VAKFIKEBİR",
+      "name": "T.C. Sağlık Bakanlığı Vakfıkebir Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "SÜRMENE",
+      "name": "T.C. Sağlık Bakanlığı Sürmene Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ÇAYKARA",
+      "name": "T.C. Sağlık Bakanlığı Trabzon Ataköy Ruh ve Sinir Hastalıkları Hastanesi",
+      "type": "R.S.H.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ORTAHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Trabzon Yavuz Selim Kemik Hastalıkları ve Rehabilitasyon Hastanesi",
+      "type": "K.H.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "OF",
+      "name": "T.C. Sağlık Bakanlığı Of Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ORTAHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Trabzon Ağız ve Diş Sağlığı Hastanesi",
+      "type": "DİŞ"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ARAKLI",
+      "name": "T.C. Sağlık Bakanlığı Araklı Bayram Halil Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ORTAHİSAR",
+      "name": "T.C. Sağlık Bakanlığı Trabzon Fatih Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "AKÇAABAT",
+      "name": "T.C. Sağlık Bakanlığı Akçaabat Haçkalı Baba Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "MAÇKA",
+      "name": "T.C. Sağlık Bakanlığı Maçka Ömer Burhanoğlu Fizik Tedavi ve Rehabilitasyon Hastanesi",
+      "type": "F.T.R"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ÇAYKARA",
+      "name": "T.C. Sağlık Bakanlığı Çaykara Dr. M. İlhan Durgun İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "DÜZKÖY",
+      "name": "T.C. Sağlık Bakanlığı Düzköy İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ŞALPAZARI",
+      "name": "T.C. Sağlık Bakanlığı Şalpazarı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "KÖPRÜBAŞI",
+      "name": "T.C. Sağlık Bakanlığı Köprübaşı Vali Recep Yazıcıoğlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TRABZON",
+      "ilce": "ARSİN",
+      "name": "T.C. Sağlık Bakanlığı Arsin İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TUNCELİ",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Tunceli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "TUNCELİ",
+      "ilce": "PERTEK",
+      "name": "TC Sağlık Bakanlığı Pertek 70.Yıl Cumhuriyet İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TUNCELİ",
+      "ilce": "MAZGİRT",
+      "name": "T.C. Sağlık Bakanlığı Mazgirt İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TUNCELİ",
+      "ilce": "HOZAT",
+      "name": "T.C. Sağlık Bakanlığı Hozat İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TUNCELİ",
+      "ilce": "OVACIK",
+      "name": "T.C. Sağlık Bakanlığı Ovacık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "TUNCELİ",
+      "ilce": "ÇEMİŞGEZEK",
+      "name": "T.C. Sağlık Bakanlığı Çemişgezek İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "UŞAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Uşak Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "UŞAK",
+      "ilce": "BANAZ",
+      "name": "T.C. Sağlık Bakanlığı Banaz Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "UŞAK",
+      "ilce": "EŞME",
+      "name": "T.C. Sağlık Bakanlığı Eşme Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "UŞAK",
+      "ilce": "SİVASLI",
+      "name": "T.C. Sağlık Bakanlığı Sivaslı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "UŞAK",
+      "ilce": "ULUBEY",
+      "name": "T.C. Sağlık Bakanlığı Uşak Ulubey İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "UŞAK",
+      "ilce": "KARAHALLI",
+      "name": "T.C. Sağlık Bakanlığı Karahallı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "VAN",
+      "ilce": "İPEKYOLU",
+      "name": "T.C. Sağlık Bakanlığı Van Eğitim ve Araştırma Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "BAŞKALE",
+      "name": "T.C. Sağlık Bakanlığı Başkale Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "MURADİYE",
+      "name": "T.C. Sağlık Bakanlığı Muradiye Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "ÖZALP",
+      "name": "T.C. Sağlık Bakanlığı Özalp Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "ERCİŞ",
+      "name": "T.C. Sağlık Bakanlığı Erciş Şehit Rıdvan Çevik Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "ÇATAK",
+      "name": "T.C. Sağlık Bakanlığı Çatak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "BAHÇESARAY",
+      "name": "T.C. Sağlık Bakanlığı Bahçesaray İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "VAN",
+      "ilce": "ÇALDIRAN",
+      "name": "T.C. Sağlık Bakanlığı Çaldıran Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "GEVAŞ",
+      "name": "T.C. Sağlık Bakanlığı Gevaş Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "VAN",
+      "ilce": "GÜRPINAR",
+      "name": "T.C. Sağlık Bakanlığı Gürpınar İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "VAN",
+      "ilce": "SARAY",
+      "name": "T.C. Sağlık Bakanlığı Van Saray İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YALOVA",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Yalova Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YALOVA",
+      "ilce": "ALTINOVA",
+      "name": "T.C. Sağlık Bakanlığı Altınova İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YALOVA",
+      "ilce": "ÇINARCIK",
+      "name": "T.C. Sağlık Bakanlığı Çınarcık Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YALOVA",
+      "ilce": "ARMUTLU",
+      "name": "T.C. Sağlık Bakanlığı Armutlu İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "SARIKAYA",
+      "name": "T.C. Sağlık Bakanlığı Sarıkaya Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "ŞEFAATLİ",
+      "name": "T.C. Sağlık Bakanlığı Şefaatli Şehit Osman Belkaya Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "YERKÖY",
+      "name": "T.C. Sağlık Bakanlığı Yerköy Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "SORGUN",
+      "name": "T.C. Sağlık Bakanlığı Sorgun Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "ÇEKEREK",
+      "name": "T.C. Sağlık Bakanlığı Çekerek Şehit Harun Koçak Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "AKDAĞMADENİ",
+      "name": "T.C. Sağlık Bakanlığı Akdağmadeni Şehit Sinan Babacan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "BOĞAZLIYAN",
+      "name": "T.C. Sağlık Bakanlığı Boğazlıyan Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "ÇAYIRALAN",
+      "name": "T.C. Sağlık Bakanlığı Çayıralan İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "SARAYKENT",
+      "name": "T.C. Sağlık Bakanlığı Saraykent Şehit Beytullah Yeşilay İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Yozgat Şehir Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "KADIŞEHRİ",
+      "name": "T.C. Sağlık Bakanlığı Kadışehri İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "AYDINCIK",
+      "name": "T.C. Sağlık Bakanlığı Yozgat Aydıncık İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "YENİFAKILI",
+      "name": "T.C. Sağlık Bakanlığı Yenifakılı İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "YOZGAT",
+      "ilce": "ÇANDIR",
+      "name": "T.C. Sağlık Bakanlığı Çandır İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "EREĞLİ",
+      "name": "T.C. Sağlık Bakanlığı Karadeniz Ereğli Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "ÇAYCUMA",
+      "name": "T.C. Sağlık Bakanlığı Çaycuma Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "DEVREK",
+      "name": "T.C. Sağlık Bakanlığı Devrek Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "ALAPLI",
+      "name": "T.C. Sağlık Bakanlığı Alaplı Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Zonguldak Uzun Mehmet Göğüs ve Meslek Hastalıkları Hastanesi",
+      "type": "M.H.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Zonguldak Atatürk Devlet Hastanesi",
+      "type": "G.H"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "MERKEZ",
+      "name": "T.C. Sağlık Bakanlığı Zonguldak Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+      "type": "K.D.Ç"
+    },
+    {
+      "il": "ZONGULDAK",
+      "ilce": "GÖKÇEBEY",
+      "name": "T.C. Sağlık Bakanlığı Gökçebey İlçe Devlet Hastanesi",
+      "type": "ENTEGRE"
+    }
+  ]
+}

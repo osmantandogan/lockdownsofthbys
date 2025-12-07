@@ -8,6 +8,9 @@ from datetime import datetime
 
 router = APIRouter()
 
+class SignatureUpdate(BaseModel):
+    signature: str  # Base64 encoded signature
+
 class NotificationSettings(BaseModel):
     sms_enabled: bool = True
     email_enabled: bool = True
@@ -41,6 +44,29 @@ async def update_profile(data: UserUpdate, request: Request):
     
     result["id"] = result.pop("_id")
     return User(**result)
+
+@router.post("/profile/signature")
+async def update_signature(data: SignatureUpdate, request: Request):
+    """Update user signature"""
+    user = await get_current_user(request)
+    
+    result = await users_collection.find_one_and_update(
+        {"_id": user.id},
+        {
+            "$set": {
+                "signature": data.signature,
+                "signature_updated_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+        },
+        return_document=True
+    )
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    result["id"] = result.pop("_id")
+    return {"message": "Signature updated successfully", "user": User(**result)}
 
 @router.get("/system")
 async def get_system_info(request: Request):

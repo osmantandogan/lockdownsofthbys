@@ -5,7 +5,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { User, Info } from 'lucide-react';
+import { User, Info, PenTool } from 'lucide-react';
+import SignaturePad from '../components/SignaturePad';
+import axios from 'axios';
 
 const Settings = () => {
   const [profile, setProfile] = useState(null);
@@ -16,6 +18,8 @@ const Settings = () => {
     phone: '',
     tc_no: ''
   });
+  const [signature, setSignature] = useState(null);
+  const [signatureSaving, setSignatureSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -50,6 +54,28 @@ const Settings = () => {
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Profil güncellenemedi');
+    }
+  };
+
+  const handleSignatureUpdate = async () => {
+    if (!signature) {
+      toast.error('Lütfen önce imza atınız');
+      return;
+    }
+    
+    setSignatureSaving(true);
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+      await axios.post(`${API_URL}/settings/profile/signature`, 
+        { signature },
+        { withCredentials: true }
+      );
+      toast.success('İmza kaydedildi! Artık formlarda otomatik kullanılacak.');
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'İmza kaydedilemedi');
+    } finally {
+      setSignatureSaving(false);
     }
   };
 
@@ -139,6 +165,56 @@ const Settings = () => {
             </div>
             <Button type="submit" data-testid="save-profile-button">Kaydet</Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Signature */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <PenTool className="h-5 w-5" />
+            <span>İmza Ayarları</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-900">
+              ℹ️ Buradan kaydedeceğiniz imza, tüm formlarda otomatik olarak kullanılacaktır.
+            </p>
+          </div>
+          
+          {profile?.signature && (
+            <div className="space-y-2">
+              <Label>Mevcut İmzanız</Label>
+              <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
+                <img 
+                  src={profile.signature} 
+                  alt="Kayıtlı İmza" 
+                  className="h-32 w-full object-contain"
+                />
+              </div>
+              <p className="text-xs text-green-600">
+                ✓ İmza kayıtlı - Güncellenme: {profile.signature_updated_at ? new Date(profile.signature_updated_at).toLocaleDateString('tr-TR') : 'N/A'}
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label>Yeni İmza</Label>
+            <SignaturePad 
+              label="" 
+              onSignature={setSignature}
+              required={false}
+            />
+          </div>
+          
+          <Button 
+            onClick={handleSignatureUpdate} 
+            disabled={!signature || signatureSaving}
+            data-testid="save-signature-button"
+          >
+            {signatureSaving ? 'Kaydediliyor...' : 'İmzayı Kaydet'}
+          </Button>
         </CardContent>
       </Card>
 

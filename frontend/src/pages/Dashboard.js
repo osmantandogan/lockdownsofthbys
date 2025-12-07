@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { casesAPI, vehiclesAPI, stockAPI } from '../api';
+import { casesAPI, vehiclesAPI, stockAPI, shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Activity, Truck, Package, AlertTriangle } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { Activity, Truck, Package, AlertTriangle, Users, Building2, Clock, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -13,10 +14,32 @@ const Dashboard = () => {
     expired: 0,
     expiringSoon: 0
   });
+  const [todayAssignments, setTodayAssignments] = useState({
+    vehicle_assignments: [],
+    health_center_assignments: [],
+    total_count: 0,
+    date: ''
+  });
   const [loading, setLoading] = useState(true);
+
+  // Rol isimlerini Türkçeleştirme
+  const roleLabels = {
+    sofor: 'Şoför',
+    bas_sofor: 'Baş Şoför',
+    hemsire: 'Hemşire',
+    doktor: 'Doktor',
+    paramedik: 'Paramedik',
+    att: 'ATT',
+    merkez_ofis: 'Merkez Ofis',
+    operasyon_muduru: 'Operasyon Müdürü',
+    cagri_merkezi: 'Çağrı Merkezi'
+  };
+
+  const getRoleLabel = (role) => roleLabels[role] || role;
 
   useEffect(() => {
     loadStats();
+    loadTodayAssignments();
   }, []);
 
   const loadStats = async () => {
@@ -41,6 +64,32 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadTodayAssignments = async () => {
+    try {
+      const response = await shiftsAPI.getTodayAssignments();
+      setTodayAssignments(response.data);
+    } catch (error) {
+      console.error('Error loading today assignments:', error);
+    }
+  };
+
+  // Araç atamalarını araç plakasına göre grupla
+  const groupByVehicle = (assignments) => {
+    const grouped = {};
+    assignments.forEach(a => {
+      const plate = a.vehicle_plate || 'Bilinmeyen Araç';
+      if (!grouped[plate]) {
+        grouped[plate] = {
+          plate,
+          vehicle_type: a.vehicle_type || '',
+          staff: []
+        };
+      }
+      grouped[plate].staff.push(a);
+    });
+    return Object.values(grouped);
   };
 
   const StatCard = ({ title, value, icon: Icon, color, testId }) => (
@@ -130,6 +179,143 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Bugünkü Görevli Personel */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xl font-bold">Bugün Sahada</span>
+                <p className="text-indigo-100 text-sm font-normal mt-0.5">
+                  {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+              </div>
+            </div>
+            <Badge className="bg-white/20 text-white border-0 text-lg px-3 py-1">
+              {todayAssignments.total_count} Personel
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          {todayAssignments.total_count === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <Users className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500">Bugün için atama yok</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Araçlardaki Personel */}
+              <div>
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <Truck className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900">Araçlarda Görevli</h3>
+                  <Badge variant="secondary" className="ml-auto">
+                    {todayAssignments.vehicle_assignments?.length || 0}
+                  </Badge>
+                </div>
+                
+                {groupByVehicle(todayAssignments.vehicle_assignments || []).length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                    Araçta görevli personel yok
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {groupByVehicle(todayAssignments.vehicle_assignments || []).map((vehicle, idx) => (
+                      <div 
+                        key={idx}
+                        className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100"
+                      >
+                        <div className="flex items-center space-x-2 mb-3">
+                          <span className="text-2xl">🚑</span>
+                          <span className="font-bold text-blue-700">{vehicle.plate}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {vehicle.staff.map((person, pIdx) => (
+                            <div 
+                              key={pIdx}
+                              className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                                  {(person.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                </div>
+                                <span className="font-medium text-sm">{person.user_name}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {getRoleLabel(person.user_role)}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Sağlık Merkezindeki Personel */}
+              <div>
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="p-1.5 bg-emerald-100 rounded-lg">
+                    <Building2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900">Sağlık Merkezinde</h3>
+                  <Badge variant="secondary" className="ml-auto">
+                    {todayAssignments.health_center_assignments?.length || 0}
+                  </Badge>
+                </div>
+                
+                {(todayAssignments.health_center_assignments || []).length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                    Sağlık merkezinde görevli yok
+                  </p>
+                ) : (
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <span className="text-2xl">🏥</span>
+                      <span className="font-bold text-emerald-700">Sağlık Merkezi</span>
+                    </div>
+                    <div className="space-y-2">
+                      {(todayAssignments.health_center_assignments || []).map((person, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                              {(person.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            </div>
+                            <div>
+                              <span className="font-medium text-sm block">{person.user_name}</span>
+                              {person.start_time && person.end_time && (
+                                <span className="text-xs text-gray-500 flex items-center">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {person.start_time} - {person.end_time}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200 text-emerald-700">
+                            {getRoleLabel(person.user_role)}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Hızlı Aksiyonlar */}
       <Card>

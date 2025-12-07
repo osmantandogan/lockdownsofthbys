@@ -30,6 +30,8 @@ class User(BaseModel):
     tc_no: Optional[str] = None
     temp_roles: List[str] = Field(default_factory=list)  # Temporary roles
     is_active: bool = True
+    signature: Optional[str] = None  # Base64 signature data
+    signature_updated_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -76,13 +78,14 @@ class PatientInfo(BaseModel):
     phone: Optional[str] = None
     clinic: Optional[str] = None
     preliminary_diagnosis: Optional[str] = None
+    patient_type: Optional[Literal["proje_calisani", "disaridan_vatandas"]] = "disaridan_vatandas"  # New field
 
 class LocationInfo(BaseModel):
     address: str
     district: Optional[str] = None
     village_or_neighborhood: Optional[str] = None
-    coordinates: Optional[dict] = None
-    address_description: Optional[str] = None
+    coordinates: Optional[dict] = None  # {"lat": 41.0082, "lng": 28.9784}
+    address_description: Optional[str] = None  # Adres tarifi
     pickup_location: Optional[str] = None
     first_dropoff: Optional[str] = None
     final_dropoff: Optional[str] = None
@@ -102,6 +105,55 @@ class CaseStatusUpdate(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     location: Optional[dict] = None  # GPS coordinates
 
+class MedicalFormData(BaseModel):
+    """Real-time editable medical form data"""
+    # Vital signs
+    blood_pressure: Optional[str] = None
+    pulse: Optional[int] = None
+    spo2: Optional[int] = None
+    temperature: Optional[float] = None
+    respiration_rate: Optional[int] = None
+    blood_sugar: Optional[int] = None
+    gcs: Optional[int] = None  # Glasgow Coma Scale
+    
+    # Diagnosis
+    preliminary_diagnosis: Optional[List[dict]] = None  # [{code, name}] - ICD codes
+    final_diagnosis: Optional[List[dict]] = None
+    
+    # Treatment
+    treatments: Optional[List[dict]] = None  # List of treatments applied
+    medications: Optional[List[dict]] = None  # List of medications given
+    
+    # Transfer info
+    transfer_hospital: Optional[dict] = None  # {name, type, il, ilce}
+    transfer_time: Optional[datetime] = None
+    
+    # Notes
+    anamnesis: Optional[str] = None  # History
+    physical_exam: Optional[str] = None
+    notes: Optional[str] = None
+    
+    # Signatures
+    patient_signature: Optional[str] = None  # Base64
+    staff_signature: Optional[str] = None
+    
+class DoctorApproval(BaseModel):
+    """Doctor approval status"""
+    status: Literal["pending", "approved", "rejected"] = "pending"
+    doctor_id: Optional[str] = None
+    doctor_name: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    notes: Optional[str] = None
+
+class CaseParticipant(BaseModel):
+    """Active participant in case form"""
+    user_id: str
+    user_name: str
+    user_role: str
+    joined_at: datetime = Field(default_factory=datetime.utcnow)
+    last_activity: datetime = Field(default_factory=datetime.utcnow)
+
 class Case(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     
@@ -115,6 +167,17 @@ class Case(BaseModel):
     assigned_team: Optional[AssignedTeam] = None
     status_history: List[CaseStatusUpdate] = Field(default_factory=list)
     case_details: Optional[dict] = None  # Extra form fields
+    
+    # Real-time collaboration
+    medical_form: Optional[MedicalFormData] = None
+    participants: List[CaseParticipant] = Field(default_factory=list)
+    doctor_approval: Optional[DoctorApproval] = None
+    last_form_update: Optional[datetime] = None
+    last_form_updater: Optional[str] = None
+    
+    # Video call
+    video_room_id: Optional[str] = None
+    
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -184,32 +247,114 @@ class StockItem(BaseModel):
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str
-    code: str
+    code: str  # Internal code
+    gtin: Optional[str] = None  # GS1 GTIN (14 digits) - from barcode
     quantity: int
     min_quantity: int
     location: StockLocation
     location_detail: Optional[str] = None  # e.g., vehicle plate, room number
     lot_number: Optional[str] = None
+    serial_number: Optional[str] = None  # From barcode (21)
     expiry_date: Optional[datetime] = None
     qr_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    unit: str = "adet"  # adet, kutu, ampul, ml, etc.
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class StockItemCreate(BaseModel):
     name: str
     code: str
+    gtin: Optional[str] = None
     quantity: int
     min_quantity: int
     location: StockLocation
     location_detail: Optional[str] = None
     lot_number: Optional[str] = None
+    serial_number: Optional[str] = None
     expiry_date: Optional[datetime] = None
+    unit: str = "adet"
 
 class StockItemUpdate(BaseModel):
+    name: Optional[str] = None
     quantity: Optional[int] = None
     min_quantity: Optional[int] = None
     location: Optional[StockLocation] = None
     location_detail: Optional[str] = None
+    gtin: Optional[str] = None
+    lot_number: Optional[str] = None
+    serial_number: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    unit: Optional[str] = None
+
+# Medication Usage Models (Case-specific)
+class MedicationUsage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    case_id: str
+    stock_item_id: Optional[str] = None  # Reference to stock item (if matched)
+    
+    # From barcode/manual entry
+    name: str
+    gtin: Optional[str] = None
+    lot_number: Optional[str] = None
+    serial_number: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    
+    # Usage info
+    quantity: int = 1
+    unit: str = "adet"
+    dosage: Optional[str] = None  # e.g., "500mg", "10ml"
+    route: Optional[str] = None  # IV, IM, oral, etc.
+    
+    # Tracking
+    added_by: str
+    added_by_name: str
+    added_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Stock deduction
+    stock_deducted: bool = False
+    vehicle_plate: Optional[str] = None  # Which vehicle's stock
+
+class MedicationUsageCreate(BaseModel):
+    name: str
+    gtin: Optional[str] = None
+    lot_number: Optional[str] = None
+    serial_number: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    quantity: int = 1
+    unit: str = "adet"
+    dosage: Optional[str] = None
+    route: Optional[str] = None
+    stock_item_id: Optional[str] = None
+
+# Stock Usage Log (for audit)
+class StockUsageLog(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    stock_item_id: str
+    case_id: Optional[str] = None
+    medication_usage_id: Optional[str] = None
+    
+    action: Literal["kullanim", "iade", "duzeltme", "transfer", "sayim"]
+    quantity_change: int  # Negative for usage, positive for return
+    previous_quantity: int
+    new_quantity: int
+    
+    reason: Optional[str] = None
+    performed_by: str
+    performed_by_name: str
+    performed_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Parsed Barcode Data
+class ParsedBarcodeData(BaseModel):
+    gtin: Optional[str] = None
+    lot_number: Optional[str] = None
+    serial_number: Optional[str] = None
+    expiry_date: Optional[str] = None  # YYMMDD format from barcode
+    expiry_date_parsed: Optional[datetime] = None  # Parsed datetime
+    raw_data: str
 
 # Shift Models
 class ShiftAssignment(BaseModel):
@@ -217,9 +362,14 @@ class ShiftAssignment(BaseModel):
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     user_id: str
-    vehicle_id: str
+    vehicle_id: Optional[str] = None
+    location_type: Literal["arac", "saglik_merkezi"] = "arac"
+    health_center_name: Optional[str] = None
     assigned_by: str
     shift_date: datetime
+    start_time: Optional[str] = None  # HH:MM format
+    end_time: Optional[str] = None  # HH:MM format
+    end_date: Optional[datetime] = None  # For night shifts that span to next day
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -229,11 +379,24 @@ class Shift(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     assignment_id: Optional[str] = None
     user_id: str
-    vehicle_id: str
-    start_time: datetime
+    vehicle_id: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    start_time: datetime = Field(default_factory=datetime.utcnow)
     end_time: Optional[datetime] = None
     duration_minutes: Optional[int] = None
+    start_km: Optional[int] = None
+    end_km: Optional[int] = None
+    status: Literal["active", "on_break", "completed", "cancelled"] = "active"
     notes: Optional[str] = None
+    
+    # Location info (for health center shifts)
+    location_type: Optional[Literal["arac", "saglik_merkezi"]] = "arac"
+    health_center_name: Optional[str] = None
+    
+    # Admin started shift
+    started_by_admin: bool = False
+    admin_id: Optional[str] = None
+    admin_note: Optional[str] = None
     
     # Vehicle inspection photos
     photos: Optional[dict] = None  # {"front": "url", "back": "url", "left": "url", "right": "url", "trunk": "url", "interior": "url", "damages": ["url1", "url2"]}
@@ -281,12 +444,58 @@ class AuditLog(BaseModel):
     ip_address: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Vehicle KM Log Models
+class VehicleKmLog(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    vehicle_id: str
+    case_id: Optional[str] = None
+    shift_id: Optional[str] = None
+    user_id: str
+    start_km: int
+    end_km: int
+    km_difference: int
+    log_type: Literal["case", "shift", "maintenance", "other"]
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Document Metadata Models
+class DocumentMetadata(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    form_type: str  # Form türü (kvkk, ambulance_case, etc.)
+    doc_no: str  # Döküman numarası
+    publish_date: datetime  # Yayın tarihi
+    page_count: int  # Sayfa sayısı
+    page_no: str  # Sayfa no (örn: "1-5")
+    revision_no: int  # Revizyon numarası
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class DocumentMetadataCreate(BaseModel):
+    form_type: str
+    doc_no: str
+    publish_date: datetime
+    page_count: int
+    page_no: str
+    revision_no: int
+
+class DocumentMetadataUpdate(BaseModel):
+    doc_no: Optional[str] = None
+    publish_date: Optional[datetime] = None
+    page_count: Optional[int] = None
+    page_no: Optional[str] = None
+    revision_no: Optional[int] = None
+
 # Form Models
 FormType = Literal[
     "kvkk", "injection", "puncture", "minor_surgery", "general_consent",
     "medicine_request", "material_request", "medical_gas_request",
     "ambulance_equipment", "pre_case_check", "ambulance_case",
-    "daily_control", "handover"
+    "daily_control", "handover", "zimmet", "siparis_talep"
 ]
 
 class FormSubmission(BaseModel):

@@ -15,9 +15,14 @@ import {
   X,
   FileText,
   History,
-  UserCog
+  UserCog,
+  Users,
+  Archive as ArchiveIcon,
+  FileCog,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
@@ -31,7 +36,7 @@ const DashboardLayout = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis'] },
+    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'doktor'] },
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar' },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar' },
     { path: '/dashboard/stock', icon: Package, label: 'Stok' },
@@ -40,6 +45,10 @@ const DashboardLayout = () => {
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },
     { path: '/dashboard/form-history', icon: History, label: 'Form Geçmişi', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor'] },
     { path: '/dashboard/user-management', icon: UserCog, label: 'Kullanıcı Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
+    { path: '/dashboard/staff', icon: Users, label: 'Personel Performansı', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
+    { path: '/dashboard/documents', icon: FileCog, label: 'Döküman Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
+    { path: '/dashboard/archive', icon: ArchiveIcon, label: 'Form Arşivi', roles: ['merkez_ofis', 'operasyon_muduru'] },
+    { path: '/dashboard/notifications', icon: Bell, label: 'Bildirim Ayarları' },
     { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }
   ];
 
@@ -69,14 +78,22 @@ const DashboardLayout = () => {
           <img src="/logo.svg" alt="HealMedy" className="h-8 w-8" />
           <span className="font-bold text-lg">HealMedy</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
+        <div className="flex items-center space-x-2">
+          <NotificationDropdown />
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Desktop header with notifications */}
+      <div className="hidden lg:flex fixed top-0 left-64 right-0 bg-white border-b z-30 px-6 py-3 items-center justify-end">
+        <NotificationDropdown />
       </div>
 
       {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r transform transition-transform duration-200 ease-in-out z-40
+        fixed top-0 left-0 h-full w-64 bg-white border-r transform transition-transform duration-200 ease-in-out z-40 flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
@@ -106,7 +123,7 @@ const DashboardLayout = () => {
           </div>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           {filteredMenuItems.map((item) => (
             <NavLink
               key={item.path}
@@ -122,13 +139,13 @@ const DashboardLayout = () => {
               }
               data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-5 w-5 flex-shrink-0" />
               <span className="text-sm font-medium">{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+        <div className="border-t bg-white p-4">
           <Button
             variant="ghost"
             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -142,7 +159,7 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64 pt-16 lg:pt-0">
+      <div className="lg:pl-64 pt-16 lg:pt-14">
         <main className="p-6">
           <Outlet />
         </main>

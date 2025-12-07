@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { formsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -8,8 +8,15 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
-import { FileText, Search, Trash2, Eye } from 'lucide-react';
+import { FileText, Search, Trash2, Eye, Download, User, Briefcase, FileSignature } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+
+// Onam Form Bileşenleri
+import KVKKConsentForm from '../components/forms/KVKKConsentForm';
+import InjectionConsentForm from '../components/forms/InjectionConsentForm';
+import PunctureConsentForm from '../components/forms/PunctureConsentForm';
+import MinorSurgeryConsentForm from '../components/forms/MinorSurgeryConsentForm';
+import GeneralConsentForm from '../components/forms/GeneralConsentForm';
 
 const FormHistory = () => {
   const { user } = useAuth();
@@ -18,6 +25,8 @@ const FormHistory = () => {
   const [loading, setLoading] = useState(true);
   const [selectedForm, setSelectedForm] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('details'); // 'details' or 'form'
+  const printRef = useRef(null);
   const [filters, setFilters] = useState({
     form_type: '',
     patient_name: '',
@@ -58,7 +67,124 @@ const FormHistory = () => {
 
   const viewForm = async (form) => {
     setSelectedForm(form);
+    setViewMode('details');
     setDialogOpen(true);
+  };
+
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${formTypeLabels[selectedForm?.form_type]} - ${selectedForm?.patient_name || 'Form'}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+            .info-section { margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px; }
+            .info-row { display: flex; margin-bottom: 8px; }
+            .info-label { font-weight: bold; min-width: 150px; }
+            h1 { font-size: 24px; margin: 0; }
+            h2 { font-size: 18px; color: #333; margin-top: 20px; }
+            .form-data { margin-top: 20px; }
+            .field { margin-bottom: 10px; padding: 8px; border-bottom: 1px solid #eee; }
+            .field-label { font-weight: bold; color: #555; }
+            .signature-section { margin-top: 30px; }
+            .signature-img { max-width: 300px; border: 1px solid #ddd; }
+            @media print { body { -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>HEALMEDY HBYS</h1>
+            <h2>${formTypeLabels[selectedForm?.form_type]}</h2>
+          </div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">Form Tipi:</span> ${formTypeLabels[selectedForm?.form_type]}</div>
+            <div class="info-row"><span class="info-label">Tarih:</span> ${new Date(selectedForm?.created_at).toLocaleString('tr-TR')}</div>
+            ${selectedForm?.case_number ? `<div class="info-row"><span class="info-label">Vaka No:</span> ${selectedForm.case_number}</div>` : ''}
+            ${selectedForm?.patient_name ? `<div class="info-row"><span class="info-label">Hasta:</span> ${selectedForm.patient_name}</div>` : ''}
+            ${selectedForm?.vehicle_plate ? `<div class="info-row"><span class="info-label">Araç:</span> ${selectedForm.vehicle_plate}</div>` : ''}
+            <div class="info-row"><span class="info-label">Gönderen:</span> ${selectedForm?.submitter_name || selectedForm?.submitted_by} ${selectedForm?.submitter_role ? `(${selectedForm.submitter_role})` : ''}</div>
+          </div>
+          <div class="form-data">
+            <h2>Form Verileri</h2>
+            ${Object.entries(selectedForm?.form_data || {}).map(([key, value]) => {
+              if (key === 'signature' && value) {
+                return `<div class="signature-section"><p class="field-label">İmza:</p><img class="signature-img" src="${value}" alt="İmza" /></div>`;
+              }
+              return `<div class="field"><span class="field-label">${formatFieldLabel(key)}:</span> ${formatFieldValue(value)}</div>`;
+            }).join('')}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const formatFieldLabel = (key) => {
+    const labels = {
+      patientName: 'Hasta Adı',
+      informed: 'Bilgilendirilme',
+      consent: 'Onay',
+      approvedRelatives: 'Onaylı Yakınlar',
+      approvedEntities: 'Onaylı Kurumlar',
+      signatoryName: 'İmza Sahibi',
+      signDate: 'İmza Tarihi',
+      procedure: 'İşlem',
+      description: 'Açıklama'
+    };
+    return labels[key] || key;
+  };
+
+  const formatFieldValue = (value) => {
+    if (value === 'informed') return 'Bilgilendirildi';
+    if (value === 'not-informed') return 'Bilgilendirilmedi';
+    if (value === 'consent') return 'Onay Verildi';
+    if (value === 'no-consent') return 'Onay Verilmedi';
+    if (typeof value === 'boolean') return value ? 'Evet' : 'Hayır';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return value || '-';
+  };
+
+  // Form bileşenini render et (readonly)
+  const renderFormComponent = (formType) => {
+    // Form bileşenlerini okuma modunda göster
+    const formProps = {
+      readOnly: true,
+      initialData: selectedForm?.form_data || {}
+    };
+    
+    switch(formType) {
+      case 'kvkk':
+        return <KVKKConsentForm {...formProps} />;
+      case 'injection':
+        return <InjectionConsentForm {...formProps} />;
+      case 'puncture':
+        return <PunctureConsentForm {...formProps} />;
+      case 'minor_surgery':
+        return <MinorSurgeryConsentForm {...formProps} />;
+      case 'general_consent':
+        return <GeneralConsentForm {...formProps} />;
+      default:
+        return (
+          <div className="space-y-4">
+            {Object.entries(selectedForm?.form_data || {}).map(([key, value]) => (
+              <div key={key} className="border-b pb-2">
+                <p className="text-sm font-medium text-gray-500">{formatFieldLabel(key)}</p>
+                {key === 'signature' && value ? (
+                  <img src={value} alt="İmza" className="max-w-xs border rounded mt-2" />
+                ) : (
+                  <p className="text-base">{formatFieldValue(value)}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+    }
   };
 
   const formTypeLabels = {
@@ -174,10 +300,15 @@ const FormHistory = () => {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2 flex-1">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 flex-wrap gap-2">
                       <Badge className="bg-blue-100 text-blue-800">
                         {formTypeLabels[form.form_type]}
                       </Badge>
+                      {form.case_number && (
+                        <Badge variant="outline" className="text-purple-700 border-purple-300">
+                          Vaka: {form.case_number}
+                        </Badge>
+                      )}
                       <span className="text-sm text-gray-500">
                         {new Date(form.created_at).toLocaleString('tr-TR')}
                       </span>
@@ -188,13 +319,22 @@ const FormHistory = () => {
                     {form.vehicle_plate && (
                       <p className="text-sm"><span className="font-medium">Araç:</span> {form.vehicle_plate}</p>
                     )}
-                    <p className="text-xs text-gray-500">Gönderen: {form.submitted_by}</p>
+                    {/* Gönderen bilgisi - isim ve rol */}
+                    <div className="flex items-center space-x-2 text-sm">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="font-medium">{form.submitter_name || form.submitted_by}</span>
+                        {form.submitter_role && (
+                          <span className="text-gray-500 ml-2">({form.submitter_role})</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => viewForm(form)}>
+                    <Button variant="ghost" size="icon" onClick={() => viewForm(form)} title="Görüntüle">
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(form.id)} className="text-red-600">
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(form.id)} className="text-red-600" title="Sil">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -205,32 +345,86 @@ const FormHistory = () => {
         )}
       </div>
 
+      {/* Form Detay Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-5xl max-h-[95vh]">
           <DialogHeader>
-            <DialogTitle>
-              {selectedForm && formTypeLabels[selectedForm.form_type]} - Detaylar
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl flex items-center space-x-2">
+                <FileSignature className="h-5 w-5" />
+                <span>{selectedForm && formTypeLabels[selectedForm.form_type]}</span>
+              </DialogTitle>
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm" onClick={handlePrint}>
+                  <Download className="h-4 w-4 mr-2" />
+                  İndir / Yazdır
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
-          <ScrollArea className="h-[70vh] pr-4">
+          <ScrollArea className="h-[80vh] pr-4">
             {selectedForm && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader><CardTitle className="text-sm">Genel Bilgiler</CardTitle></CardHeader>
-                  <CardContent className="text-sm space-y-2">
-                    <p><span className="font-medium">Form Tipi:</span> {formTypeLabels[selectedForm.form_type]}</p>
-                    <p><span className="font-medium">Tarih:</span> {new Date(selectedForm.created_at).toLocaleString('tr-TR')}</p>
-                    {selectedForm.patient_name && <p><span className="font-medium">Hasta:</span> {selectedForm.patient_name}</p>}
-                    {selectedForm.vehicle_plate && <p><span className="font-medium">Araç:</span> {selectedForm.vehicle_plate}</p>}
-                    <p><span className="font-medium">Gönderen:</span> {selectedForm.submitted_by}</p>
+              <div className="space-y-4" ref={printRef}>
+                {/* Genel Bilgiler Kartı */}
+                <Card className="border-2 border-blue-200 bg-blue-50/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-blue-800">Genel Bilgiler</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Form Tipi</p>
+                        <p className="font-medium">{formTypeLabels[selectedForm.form_type]}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Tarih</p>
+                        <p className="font-medium">{new Date(selectedForm.created_at).toLocaleString('tr-TR')}</p>
+                      </div>
+                      {selectedForm.case_number && (
+                        <div>
+                          <p className="text-xs text-gray-500">Vaka No</p>
+                          <p className="font-medium text-purple-700">{selectedForm.case_number}</p>
+                        </div>
+                      )}
+                      {selectedForm.patient_name && (
+                        <div>
+                          <p className="text-xs text-gray-500">Hasta</p>
+                          <p className="font-medium">{selectedForm.patient_name}</p>
+                        </div>
+                      )}
+                      {selectedForm.vehicle_plate && (
+                        <div>
+                          <p className="text-xs text-gray-500">Araç</p>
+                          <p className="font-medium">{selectedForm.vehicle_plate}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Gönderen Bilgisi */}
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-gray-500 mb-1">Gönderen</p>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                          {(selectedForm.submitter_name || selectedForm.submitted_by || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{selectedForm.submitter_name || selectedForm.submitted_by}</p>
+                          {selectedForm.submitter_role && (
+                            <p className="text-sm text-gray-500">{selectedForm.submitter_role}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
+
+                {/* Form İçeriği */}
                 <Card>
-                  <CardHeader><CardTitle className="text-sm">Form Verileri</CardTitle></CardHeader>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Form İçeriği</CardTitle>
+                  </CardHeader>
                   <CardContent>
-                    <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto">
-                      {JSON.stringify(selectedForm.form_data, null, 2)}
-                    </pre>
+                    {renderFormComponent(selectedForm.form_type)}
                   </CardContent>
                 </Card>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +11,9 @@ import { Switch } from '../ui/switch';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+import { casesAPI, vehiclesAPI } from '../../api';
+import { useParams } from 'react-router-dom';
 
 
   const handleSave = async () => {
@@ -27,7 +30,10 @@ import { toast } from 'sonner';
   };
 
   const AmbulanceCaseFormFull = () => {
+  const { user } = useAuth();
+  const { caseId } = useParams(); // URL'den case ID çek
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     atnNo: '',
@@ -75,6 +81,52 @@ import { toast } from 'sonner';
     referringInstitution: '',
     roundTrip: ''
   });
+
+  // Otomatik vaka ve araç bilgisi yükleme
+  useEffect(() => {
+    const loadCaseData = async () => {
+      if (!caseId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Vaka bilgisini çek
+        const caseData = await casesAPI.getById(caseId);
+        
+        // Araç bilgisini çek
+        let vehicle = null;
+        if (caseData.assigned_team?.vehicle_id) {
+          vehicle = await vehiclesAPI.getById(caseData.assigned_team.vehicle_id);
+        }
+        
+        // Form verilerini otomatik doldur
+        setFormData(prev => ({
+          ...prev,
+          healmedyProtocol: caseData.case_number,
+          patientName: `${caseData.patient.name} ${caseData.patient.surname}`,
+          tcNo: caseData.patient.tc_no || '',
+          gender: caseData.patient.gender,
+          age: caseData.patient.age.toString(),
+          phone: caseData.patient.phone || caseData.caller.phone,
+          address: caseData.location.address,
+          pickupLocation: caseData.location.pickup_location || caseData.location.address,
+          complaint: caseData.patient.complaint,
+          vehicleType: vehicle?.plate || '',
+          startKm: vehicle?.km || '' // Aracın mevcut KM'si
+        }));
+        
+        toast.success('Vaka bilgileri otomatik yüklendi');
+      } catch (error) {
+        console.error('Vaka bilgisi yüklenemedi:', error);
+        toast.error('Vaka bilgisi yüklenemedi');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadCaseData();
+  }, [caseId]);
 
   const [vitalSigns, setVitalSigns] = useState([
     { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },
@@ -144,10 +196,21 @@ import { toast } from 'sonner';
 
   const isConscious = formData.consciousStatus;
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-6">
       <div className="text-center space-y-2 border-b pb-4">
         <h1 className="text-2xl font-bold">AMBULANS VAKA FORMU</h1>
+        {caseId && (
+          <p className="text-sm text-green-600">✓ Vaka bilgileri otomatik yüklendi</p>
+        )}
       </div>
 
       <Card>

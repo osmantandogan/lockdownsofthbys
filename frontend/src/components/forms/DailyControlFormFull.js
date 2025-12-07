@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +11,8 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { ChevronDown } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { shiftsAPI, vehiclesAPI } from '../../api';
 
 
   const handleSave = async () => {
@@ -27,7 +29,9 @@ import { ChevronDown } from 'lucide-react';
   };
 
   const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [localFormData, setLocalFormData] = useState({
     istasyonAdi: '',
     plaka: '',
@@ -42,6 +46,43 @@ import { ChevronDown } from 'lucide-react';
 
   const formData = externalFormData || localFormData;
   const setFormData = onChange || setLocalFormData;
+
+  // Otomatik araç ve KM bilgisi yükleme
+  useEffect(() => {
+    const loadVehicleData = async () => {
+      try {
+        // Aktif vardiya bilgisini çek
+        const activeShift = await shiftsAPI.getActive();
+        
+        if (activeShift) {
+          // Araç bilgisini çek
+          const vehicle = await vehiclesAPI.getById(activeShift.vehicle_id);
+          
+          // Form verilerini otomatik doldur (Devir formundan gelen KM)
+          const newData = {
+            ...formData,
+            plaka: vehicle.plate,
+            km: vehicle.km, // Mevcut KM (devir formunda güncellenen)
+            teslimAlan: user.name
+          };
+          
+          if (onChange) {
+            onChange(newData);
+          } else {
+            setLocalFormData(newData);
+          }
+          
+          toast.success('Araç bilgileri otomatik yüklendi');
+        }
+      } catch (error) {
+        console.error('Araç bilgisi yüklenemedi:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadVehicleData();
+  }, []);
 
   const handleCheck = (item, value) => {
     setChecks({...checks, [item]: value});

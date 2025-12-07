@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+import { shiftsAPI, vehiclesAPI } from '../../api';
 
 
   const handleSave = async () => {
@@ -24,6 +27,7 @@ import { toast } from 'sonner';
   };
 
   const MaterialRequestForm = () => {
+  const { user } = useAuth();
   const [materials, setMaterials] = useState([
     { id: 1, name: '', quantity: '' }
   ]);
@@ -32,8 +36,42 @@ import { toast } from 'sonner';
     consciousnessStatus: 'conscious',
     date: new Date().toISOString().split('T')[0],
     managerName: '',
-    managerTitle: ''
+    managerTitle: '',
+    requestType: '', // ilac, medikal, ofis, personel, arac
+    vehiclePlate: '' // Şoför için otomatik
   });
+
+  // Rol bazlı otomatik doldurmalar
+  useEffect(() => {
+    const loadData = async () => {
+      if (user) {
+        setFormData(prev => ({
+          ...prev,
+          managerName: user.name,
+          managerTitle: user.role
+        }));
+
+        // Şoför ise otomatik aracını seç
+        if (user.role === 'sofor' || user.role === 'bas_sofor') {
+          try {
+            const shift = await shiftsAPI.getActive();
+            if (shift && shift.vehicle_id) {
+              const vehicle = await vehiclesAPI.getById(shift.vehicle_id);
+              setFormData(prev => ({
+                ...prev,
+                requestType: 'arac',
+                vehiclePlate: vehicle.plate
+              }));
+              toast.success('Aracınız otomatik seçildi');
+            }
+          } catch (error) {
+            console.error('Araç bilgisi alınamadı:', error);
+          }
+        }
+      }
+    };
+    loadData();
+  }, [user]);
 
   const addMaterial = () => {
     if (materials.length < 18) {
@@ -57,17 +95,37 @@ import { toast } from 'sonner';
         <h1 className="text-2xl font-bold">MALZEME TALEP VE TESLİM FORMU</h1>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Hasta Bilinci</CardTitle></CardHeader>
-        <CardContent>
-          <RadioGroup value={formData.consciousnessStatus} onValueChange={(v) => setFormData({...formData, consciousnessStatus: v})}>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="conscious" id="conscious-mat" />
-              <Label htmlFor="conscious-mat">Bilinçli</Label>
-            </div>
-          </RadioGroup>
-        </CardContent>
-      </Card>
+      {/* Talep Türü - Şoför dışındaki roller için */}
+      {user && user.role !== 'sofor' && user.role !== 'bas_sofor' && (
+        <Card>
+          <CardHeader><CardTitle>Talep Türü</CardTitle></CardHeader>
+          <CardContent>
+            <Select value={formData.requestType} onValueChange={(v) => setFormData({...formData, requestType: v})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Ne için talep oluşturuyorsunuz?" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ilac">İlaç</SelectItem>
+                <SelectItem value="medikal">Medikal Malzeme</SelectItem>
+                <SelectItem value="ofis">Ofis Malzemeleri</SelectItem>
+                <SelectItem value="personel">Personel Malzemeleri</SelectItem>
+                <SelectItem value="arac">Araç İçin</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Şoför için otomatik araç gösterimi */}
+      {formData.vehiclePlate && (
+        <Card className="bg-green-50">
+          <CardContent className="pt-6">
+            <p className="text-sm text-green-900">
+              ✓ Talep türü: <strong>Araç İçin</strong> - Aracınız: <strong>{formData.vehiclePlate}</strong>
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

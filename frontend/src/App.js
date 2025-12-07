@@ -2,19 +2,20 @@ import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import { Toaster } from "./components/ui/sonner";
 
 // Pages
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AuthRedirect from "./pages/AuthRedirect";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import CallCenterNew from "./pages/CallCenterNew";
+import CallCenterSimple from "./pages/CallCenterSimple";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
-import VehiclesNew from "./pages/VehiclesNew";
-import Stock from "./pages/Stock";
+import Vehicles from "./pages/Vehicles";
+import StockManagement from "./pages/StockManagement";
 import Shifts from "./pages/Shifts";
 import ShiftAssignments from "./pages/ShiftAssignments";
 import ShiftStartNew from "./pages/ShiftStartNew";
@@ -24,6 +25,10 @@ import Forms from "./pages/Forms";
 import FormHistory from "./pages/FormHistory";
 import UserManagement from "./pages/UserManagement";
 import Settings from "./pages/Settings";
+import Staff from "./pages/Staff";
+import DocumentManagement from "./pages/DocumentManagement";
+import Archive from "./pages/Archive";
+import NotificationSettings from "./pages/NotificationSettings";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -66,6 +71,7 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
+      <NotificationProvider>
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
@@ -85,8 +91,6 @@ function App() {
               </PublicRoute>
             }
           />
-          <Route path="/auth-redirect" element={<AuthRedirect />} />
-
           {/* Protected Routes */}
           <Route
             path="/dashboard"
@@ -97,11 +101,11 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="call-center" element={<CallCenterNew />} />
+            <Route path="call-center" element={<CallCenterSimple />} />
             <Route path="cases" element={<Cases />} />
             <Route path="cases/:id" element={<CaseDetail />} />
-            <Route path="vehicles" element={<VehiclesNew />} />
-            <Route path="stock" element={<Stock />} />
+            <Route path="vehicles" element={<Vehicles />} />
+            <Route path="stock" element={<StockManagement />} />
             <Route path="shifts" element={<Shifts />} />
             <Route path="shift-assignments" element={<ShiftAssignments />} />
             <Route path="shift-start" element={<ShiftStartNew />} />
@@ -110,6 +114,10 @@ function App() {
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
             <Route path="user-management" element={<UserManagement />} />
+            <Route path="staff" element={<Staff />} />
+            <Route path="documents" element={<DocumentManagement />} />
+            <Route path="archive" element={<Archive />} />
+            <Route path="notifications" element={<NotificationSettings />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
@@ -121,6 +129,7 @@ function App() {
         </Routes>
       </BrowserRouter>
       <Toaster />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

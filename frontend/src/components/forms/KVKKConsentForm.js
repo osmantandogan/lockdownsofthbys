@@ -9,26 +9,31 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 
-const KVKKConsentForm = () => {
+const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, caseNumber = null, patientName: defaultPatientName = '' }) => {
   const [formData, setFormData] = useState({
-    patientName: '',
-    informed: '',
-    consent: '',
-    approvedRelatives: '',
-    approvedEntities: '',
-    signatoryName: '',
-    signDate: new Date().toISOString().split('T')[0],
-    signature: null
+    patientName: initialData.patientName || defaultPatientName || '',
+    informed: initialData.informed || '',
+    consent: initialData.consent || '',
+    approvedRelatives: initialData.approvedRelatives || '',
+    approvedEntities: initialData.approvedEntities || '',
+    signatoryName: initialData.signatoryName || '',
+    signDate: initialData.signDate || new Date().toISOString().split('T')[0],
+    signature: initialData.signature || null
   });
 
   const [saving, setSaving] = useState(false);
+  
+  // caseId prop'u varsa form kaydetme fonksiyonuna ekle
+  const extraSaveData = caseId ? { caseId, caseNumber } : {};
 
   const handleSave = async () => {
+    if (readOnly) return;
     setSaving(true);
-    const saveFunc = handleFormSave('kvkk', formData, {
+    const saveFunc = handleFormSave('kvkk', { ...formData, ...extraSaveData }, {
       validateFields: ['patientName'],
       validateSignature: true,
-      onSuccess: handleClear
+      onSuccess: handleClear,
+      extraData: { caseId, patientName: formData.patientName }
     });
     await saveFunc();
     setSaving(false);
@@ -39,9 +44,10 @@ const KVKKConsentForm = () => {
   };
 
   const handleClear = () => {
+    if (readOnly) return;
     if (confirm('Formu temizlemek istediğinizden emin misiniz?')) {
       setFormData({
-        patientName: '',
+        patientName: defaultPatientName || '',
         informed: '',
         consent: '',
         approvedRelatives: '',
@@ -293,18 +299,20 @@ const KVKKConsentForm = () => {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline" onClick={handleClear}>
-          🗑 Temizle
-        </Button>
-        <Button variant="outline" onClick={handlePrint}>
-          🖨 Yazdır
-        </Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Kaydediliyor...' : '✓ Kaydet'}
-        </Button>
-      </div>
+      {/* Action Buttons - sadece readOnly değilse göster */}
+      {!readOnly && (
+        <div className="flex justify-end space-x-2 pt-4 border-t">
+          <Button variant="outline" onClick={handleClear}>
+            🗑 Temizle
+          </Button>
+          <Button variant="outline" onClick={handlePrint}>
+            🖨 Yazdır
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Kaydediliyor...' : '✓ Kaydet'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

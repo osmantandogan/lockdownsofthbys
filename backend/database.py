@@ -3,12 +3,16 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# Load .env from the backend directory
+ROOT_DIR = Path(__file__).parent.resolve()
+env_path = ROOT_DIR / '.env'
+load_dotenv(env_path, override=True)
 
-mongo_url = os.environ['MONGO_URL']
+# Fallback to hardcoded values if env vars not found
+mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://healmedy_user:H3alm3dy2024!@abro.lwzasyg.mongodb.net/')
+db_name = os.environ.get('DB_NAME', 'healmedy_hbys')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
 
 # Collections
 users_collection = db.users
@@ -21,3 +25,7 @@ shift_assignments_collection = db.shift_assignments
 audit_logs_collection = db.audit_logs
 notifications_collection = db.notifications
 forms_collection = db.forms  # New: Form submissions
+vehicle_km_logs_collection = db.vehicle_km_logs  # New: Vehicle KM tracking
+document_metadata_collection = db.document_metadata  # New: Document management
+medication_usage_collection = db.medication_usage  # Vakada kullanılan ilaçlar
+stock_usage_logs_collection = db.stock_usage_logs  # Stok hareket logları

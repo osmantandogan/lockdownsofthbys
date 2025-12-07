@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +8,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 
 
   const handleSave = async () => {
@@ -24,6 +25,7 @@ import { toast } from 'sonner';
   };
 
   const MedicineRequestForm = () => {
+  const { user } = useAuth();
   const [medicines, setMedicines] = useState([
     { id: 1, name: '', form: '', quantity: '' }
   ]);
@@ -31,8 +33,36 @@ import { toast } from 'sonner';
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     managerName: '',
-    managerTitle: ''
+    managerTitle: '',
+    requesterSignature: null
   });
+
+  // Otomatik kullanıcı bilgisi ve imza yükleme
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        managerName: user.name,
+        managerTitle: getRoleLabel(user.role),
+        requesterSignature: user.signature || null
+      }));
+    }
+  }, [user]);
+
+  const getRoleLabel = (role) => {
+    const labels = {
+      'merkez_ofis': 'Merkez Ofis Yöneticisi',
+      'operasyon_muduru': 'Operasyon Müdürü',
+      'doktor': 'Doktor',
+      'hemsire': 'Hemşire',
+      'paramedik': 'Paramedik',
+      'att': 'ATT',
+      'bas_sofor': 'Baş Şoför',
+      'sofor': 'Şoför',
+      'cagri_merkezi': 'Çağrı Merkezi Operatörü'
+    };
+    return labels[role] || role;
+  };
 
   const medicineForms = [
     'Tablet', 'Kapsül', 'Şurup', 'Ampul', 'Flakon', 'Krem', 'Pomad', 'Damla', 'Sprey', 'Jel'
@@ -155,7 +185,33 @@ import { toast } from 'sonner';
             <Label>Ünvan</Label>
             <Input value={formData.managerTitle} onChange={(e) => setFormData({...formData, managerTitle: e.target.value})} placeholder="Ünvan" />
           </div>
-          <SignaturePad label="İmza" required />
+          
+          {formData.requesterSignature ? (
+            <div className="space-y-2">
+              <Label>İmza (Otomatik Yüklendi)</Label>
+              <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
+                <img 
+                  src={formData.requesterSignature} 
+                  alt="İmza" 
+                  className="h-32 w-full object-contain"
+                />
+              </div>
+              <p className="text-xs text-green-600">
+                ✓ Kayıtlı imzanız otomatik olarak kullanılıyor
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <SignaturePad 
+                label="İmza" 
+                required
+                onSignature={(sig) => setFormData({...formData, requesterSignature: sig})}
+              />
+              <p className="text-xs text-amber-600">
+                ⚠️ Ayarlar sayfasından imzanızı kaydederseniz, gelecek formlarda otomatik kullanılır.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

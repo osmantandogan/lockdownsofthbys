@@ -5,7 +5,8 @@ import os
 from database import user_sessions_collection, users_collection
 from models import User
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+# Fallback secret key for development - CHANGE THIS IN PRODUCTION!
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "healmedy_super_secret_key_2024_dev_only")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_DAYS", 7))
 
