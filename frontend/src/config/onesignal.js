@@ -3,8 +3,9 @@
  * Tüm push bildirimleri OneSignal üzerinden yönetilir
  */
 
-// OneSignal App ID (environment'tan alınır)
-const ONESIGNAL_APP_ID = process.env.REACT_APP_ONESIGNAL_APP_ID || '';
+// OneSignal App ID (public identifier - not a secret)
+// Environment variable veya hardcoded değer kullan
+const ONESIGNAL_APP_ID = process.env.REACT_APP_ONESIGNAL_APP_ID || '207f0010-c2d6-4903-9e9d-1e72dfbc3ae2';
 
 // Production domain kontrolü
 const ALLOWED_DOMAINS = ['abro.ldserp.com', 'healmedy.com'];
