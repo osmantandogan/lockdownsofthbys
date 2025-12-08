@@ -17,7 +17,7 @@ const ShiftStartNew = () => {
   const [step, setStep] = useState(1);
   const [qrCode, setQrCode] = useState('');
   const [vehicleInfo, setVehicleInfo] = useState(null);
-  const [scanner, setScanner] = useState(null);
+  const scannerRef = React.useRef(null);
   const [scannerActive, setScannerActive] = useState(false);
   const [manualQrInput, setManualQrInput] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
@@ -63,16 +63,35 @@ const ShiftStartNew = () => {
       return;
     }
 
+    // Önce mevcut scanner'ı durdur
+    await stopQRScanner();
+
     try {
+      // DOM elementi var mı kontrol et
+      const qrReaderElement = document.getElementById('qr-reader');
+      if (!qrReaderElement) {
+        console.error('QR reader element not found');
+        toast.error('QR okuyucu elementi bulunamadı');
+        return;
+      }
+
       const html5QrCode = new Html5Qrcode('qr-reader');
-      setScanner(html5QrCode);
+      scannerRef.current = html5QrCode;
       setScannerActive(true);
 
       await html5QrCode.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
-          await html5QrCode.stop();
+          // Scanner'ı durdur
+          try {
+            if (scannerRef.current) {
+              await scannerRef.current.stop();
+              scannerRef.current = null;
+            }
+          } catch (e) {
+            console.log('Scanner stop in callback:', e);
+          }
           setScannerActive(false);
           setQrCode(decodedText);
           
@@ -87,6 +106,7 @@ const ShiftStartNew = () => {
     } catch (err) {
       console.error('QR error:', err);
       setScannerActive(false);
+      scannerRef.current = null;
       
       let errorMsg = 'Kamera açılamadı. ';
       if (err.name === 'NotAllowedError') {
@@ -117,21 +137,37 @@ const ShiftStartNew = () => {
   };
 
   const stopQRScanner = async () => {
-    if (scanner) {
+    if (scannerRef.current) {
       try {
-        await scanner.stop();
-        setScannerActive(false);
+        const state = scannerRef.current.getState();
+        // State: NOT_STARTED = 1, SCANNING = 2, PAUSED = 3
+        if (state === 2 || state === 3) {
+          await scannerRef.current.stop();
+          console.log('Scanner stopped successfully');
+        }
       } catch (err) {
-        console.error('Stop error:', err);
+        // Scanner zaten durmuş olabilir, ignore
+        console.log('Stop scanner (may be already stopped):', err.message);
+      } finally {
+        scannerRef.current = null;
+        setScannerActive(false);
       }
     }
   };
 
+  // Component unmount olduğunda scanner'ı durdur
   useEffect(() => {
     return () => {
-      stopQRScanner();
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop().catch(() => {});
+        } catch (e) {
+          // Ignore
+        }
+        scannerRef.current = null;
+      }
     };
-  }, [scanner]);
+  }, []);
 
   const handlePhotoUpdate = (key, value) => {
     setPhotos(prev => ({ ...prev, [key]: value }));
