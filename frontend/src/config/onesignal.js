@@ -4,66 +4,84 @@
  */
 
 // OneSignal App ID (public identifier - not a secret)
-// Environment variable veya hardcoded değer kullan
 const ONESIGNAL_APP_ID = process.env.REACT_APP_ONESIGNAL_APP_ID || '207f0010-c2d6-4903-9e9d-1e72dfbc3ae2';
 
-// Production domain kontrolü
-const ALLOWED_DOMAINS = ['abro.ldserp.com', 'healmedy.com'];
+// Production domain kontrolü - daha geniş kontrol
+const ALLOWED_DOMAINS = ['abro.ldserp.com', 'healmedy.com', 'ldserp.com'];
 const isProductionDomain = () => {
-  return ALLOWED_DOMAINS.some(domain => window.location.hostname.includes(domain));
+  const hostname = window.location.hostname;
+  const isProduction = ALLOWED_DOMAINS.some(domain => hostname.includes(domain));
+  console.log('[OneSignal] Domain check:', hostname, '- Is production:', isProduction);
+  return isProduction;
 };
 
 let isInitialized = false;
 let initPromise = null;
 let initError = null;
+let sdkLoadAttempted = false;
 
 /**
  * OneSignal SDK script'ini yükle
  */
 const loadOneSignalScript = () => {
   return new Promise((resolve, reject) => {
+    console.log('[OneSignal] Loading SDK script...');
+    
     // SDK zaten yüklü mü?
-    if (window.OneSignalDeferred) {
-      console.log('[OneSignal] SDK already loaded');
+    if (window.OneSignal) {
+      console.log('[OneSignal] SDK already available (window.OneSignal exists)');
+      resolve();
+      return;
+    }
+    
+    if (window.OneSignalDeferred && window.OneSignalDeferred.length > 0) {
+      console.log('[OneSignal] OneSignalDeferred already exists');
       resolve();
       return;
     }
 
-    if (document.getElementById('onesignal-sdk')) {
-      // Script tag var ama henüz yüklenmemiş olabilir
+    // Script tag zaten varsa bekle
+    const existingScript = document.getElementById('onesignal-sdk');
+    if (existingScript) {
+      console.log('[OneSignal] Script tag already exists, waiting for load...');
       const checkLoaded = setInterval(() => {
-        if (window.OneSignalDeferred) {
+        if (window.OneSignal || window.OneSignalDeferred) {
           clearInterval(checkLoaded);
+          console.log('[OneSignal] SDK loaded after waiting');
           resolve();
         }
       }, 100);
       
       setTimeout(() => {
         clearInterval(checkLoaded);
+        console.error('[OneSignal] SDK load timeout');
         reject(new Error('OneSignal SDK load timeout'));
-      }, 10000);
+      }, 15000);
       return;
     }
 
     // OneSignalDeferred array'ini oluştur
     window.OneSignalDeferred = window.OneSignalDeferred || [];
+    console.log('[OneSignal] Created OneSignalDeferred array');
 
     const script = document.createElement('script');
     script.id = 'onesignal-sdk';
     script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
     script.async = true;
-    script.defer = true;
     
     script.onload = () => {
-      console.log('[OneSignal] SDK script loaded');
+      console.log('[OneSignal] SDK script loaded successfully');
+      sdkLoadAttempted = true;
       resolve();
     };
     
     script.onerror = (err) => {
       console.error('[OneSignal] SDK load error:', err);
-      reject(err);
+      sdkLoadAttempted = true;
+      reject(new Error('Failed to load OneSignal SDK'));
     };
     
+    console.log('[OneSignal] Appending script to head...');
     document.head.appendChild(script);
   });
 };
@@ -74,44 +92,59 @@ const loadOneSignalScript = () => {
  * @param {object} userTags - Kullanıcı tag'leri (rol, vb.)
  */
 export const initOneSignal = async (userId, userTags = {}) => {
+  console.log('[OneSignal] initOneSignal called with userId:', userId);
+  
   if (!ONESIGNAL_APP_ID) {
     console.warn('[OneSignal] App ID not configured');
     initError = 'App ID yapılandırılmamış';
     return null;
   }
+  
+  console.log('[OneSignal] App ID:', ONESIGNAL_APP_ID);
 
   // Localhost kontrolü - OneSignal sadece production domain'de çalışır
-  if (!isProductionDomain()) {
-    console.warn('[OneSignal] OneSignal sadece production domaininde çalışır (abro.ldserp.com)');
+  const isProd = isProductionDomain();
+  if (!isProd) {
+    console.warn('[OneSignal] Not production domain - skipping initialization');
     initError = 'localhost';
-    // Localhost'ta çalışmıyor, simüle edelim
     isInitialized = true;
     return { isLocalhost: true };
   }
 
   // Zaten başlatıldıysa tekrar başlatma
   if (isInitialized && window.OneSignal) {
-    console.log('[OneSignal] Already initialized');
+    console.log('[OneSignal] Already initialized, returning existing instance');
     return window.OneSignal;
   }
 
   // Eğer şu anda başlatılıyorsa bekle
   if (initPromise) {
+    console.log('[OneSignal] Init already in progress, waiting...');
     return initPromise;
   }
+
+  console.log('[OneSignal] Starting initialization...');
 
   initPromise = (async () => {
     try {
       // SDK'yı yükle
+      console.log('[OneSignal] Step 1: Loading SDK...');
       await loadOneSignalScript();
+      console.log('[OneSignal] Step 1 complete: SDK loaded');
 
       // OneSignal'i başlat (v16 API)
+      console.log('[OneSignal] Step 2: Initializing OneSignal...');
       await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('OneSignal init timeout - SDK may not have loaded correctly'));
+        }, 20000);
+        
         window.OneSignalDeferred.push(async function(OneSignal) {
           try {
+            console.log('[OneSignal] Inside OneSignalDeferred callback');
             await OneSignal.init({
               appId: ONESIGNAL_APP_ID,
-              allowLocalhostAsSecureOrigin: false,
+              allowLocalhostAsSecureOrigin: true, // Development için true
               serviceWorkerPath: '/OneSignalSDKWorker.js',
               notifyButton: {
                 enable: false
@@ -121,42 +154,50 @@ export const initOneSignal = async (userId, userTags = {}) => {
               }
             });
             
-            console.log('[OneSignal] Initialized successfully');
+            clearTimeout(timeoutId);
+            console.log('[OneSignal] Step 2 complete: Initialized successfully');
             isInitialized = true;
             window.OneSignal = OneSignal;
             resolve(OneSignal);
           } catch (err) {
+            clearTimeout(timeoutId);
+            console.error('[OneSignal] Init error inside callback:', err);
             reject(err);
           }
         });
       });
 
       // Kullanıcıyı login et
+      console.log('[OneSignal] Step 3: Logging in user...');
       if (userId) {
         try {
           await window.OneSignal.login(userId);
-          console.log('[OneSignal] User logged in:', userId);
+          console.log('[OneSignal] Step 3 complete: User logged in:', userId);
         } catch (e) {
           console.warn('[OneSignal] Login error (may be expected):', e);
         }
       }
 
       // Tag'leri kaydet
+      console.log('[OneSignal] Step 4: Setting tags...');
       if (userTags && Object.keys(userTags).length > 0) {
         try {
           await window.OneSignal.User.addTags(userTags);
-          console.log('[OneSignal] Tags set:', userTags);
+          console.log('[OneSignal] Step 4 complete: Tags set:', userTags);
         } catch (e) {
           console.warn('[OneSignal] Add tags error:', e);
         }
       }
 
+      console.log('[OneSignal] Initialization complete!');
+      initError = null;
       return window.OneSignal;
 
     } catch (error) {
-      console.error('[OneSignal] Initialization error:', error);
+      console.error('[OneSignal] Initialization failed:', error);
       initError = error.message || 'Başlatma hatası';
       initPromise = null;
+      isInitialized = false;
       return null;
     }
   })();

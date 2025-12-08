@@ -42,7 +42,12 @@ export const NotificationProvider = ({ children }) => {
   // OneSignal'i başlat (kullanıcı login olduğunda)
   useEffect(() => {
     const initializeOneSignal = async () => {
-      if (!isAuthenticated || !user) return;
+      if (!isAuthenticated || !user) {
+        console.log('[NotificationContext] User not authenticated, skipping OneSignal init');
+        return;
+      }
+
+      console.log('[NotificationContext] Starting OneSignal initialization for user:', user.id);
 
       try {
         // OneSignal'i başlat
@@ -51,33 +56,41 @@ export const NotificationProvider = ({ children }) => {
           name: user.name
         });
 
+        console.log('[NotificationContext] initOneSignal returned:', onesignal ? 'success' : 'null');
+
         // Hata durumunu kontrol et
         const error = getInitError();
         if (error) {
+          console.log('[NotificationContext] Init error:', error);
           setOneSignalError(error);
           if (error === 'localhost') {
             // Localhost'ta simüle et - ready olarak işaretle
             setOneSignalReady(true);
-            console.log('[OneSignal] Localhost modunda çalışıyor - Push bildirimleri production ortamında aktif olacak');
+            setIsLocalhost(true);
+            console.log('[NotificationContext] Localhost mode - simulating ready state');
           }
           return;
         }
 
         if (onesignal && !onesignal.isLocalhost) {
+          console.log('[NotificationContext] OneSignal ready, checking push status...');
           setOneSignalReady(true);
           
           // Mevcut push durumunu kontrol et
           const enabled = await isPushEnabled();
+          console.log('[NotificationContext] Push enabled:', enabled);
           setPushEnabled(enabled);
 
           // Player ID'yi backend'e kaydet
           if (enabled) {
             const playerId = await getPlayerId();
+            console.log('[NotificationContext] Player ID:', playerId);
             if (playerId) {
               try {
                 await notificationsAPI.subscribe({ player_id: playerId });
+                console.log('[NotificationContext] Player ID saved to backend');
               } catch (e) {
-                console.warn('Player ID backend kayıt hatası:', e);
+                console.warn('[NotificationContext] Player ID backend kayıt hatası:', e);
               }
             }
           }
@@ -90,13 +103,19 @@ export const NotificationProvider = ({ children }) => {
             // In-app bildirimleri yenile
             loadNotifications();
           });
+          
+          console.log('[NotificationContext] OneSignal fully initialized');
         } else if (onesignal?.isLocalhost) {
           // Localhost simülasyonu
+          console.log('[NotificationContext] Localhost simulation mode');
           setOneSignalReady(true);
           setIsLocalhost(true);
+        } else {
+          console.warn('[NotificationContext] OneSignal initialization returned null or invalid');
+          setOneSignalError('Başlatma başarısız');
         }
       } catch (error) {
-        console.error('OneSignal initialization error:', error);
+        console.error('[NotificationContext] OneSignal initialization error:', error);
         setOneSignalError(error.message);
       }
     };
