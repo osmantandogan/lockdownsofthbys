@@ -53,30 +53,36 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
     const loadVehicleData = async () => {
       try {
         // Aktif vardiya bilgisini çek
-        const activeShift = await shiftsAPI.getActive();
+        const response = await shiftsAPI.getActive();
+        const activeShift = response?.data;
         
-        if (activeShift) {
+        // Aktif vardiya ve araç ID'si varsa
+        const vehicleId = activeShift?.vehicle_id;
+        if (activeShift && vehicleId) {
           // Araç bilgisini çek
-          const vehicle = await vehiclesAPI.getById(activeShift.vehicle_id);
+          const vehicleRes = await vehiclesAPI.getById(vehicleId);
+          const vehicle = vehicleRes?.data;
           
-          // Form verilerini otomatik doldur (Devir formundan gelen KM)
-          const newData = {
-            ...formData,
-            plaka: vehicle.plate,
-            km: vehicle.km, // Mevcut KM (devir formunda güncellenen)
-            teslimAlan: user.name
-          };
-          
-          if (onChange) {
-            onChange(newData);
-          } else {
-            setLocalFormData(newData);
+          if (vehicle) {
+            // Form verilerini otomatik doldur (Devir formundan gelen KM)
+            const newData = {
+              ...formData,
+              plaka: vehicle.plate || '',
+              km: vehicle.km || '', // Mevcut KM (devir formunda güncellenen)
+              teslimAlan: user?.name || ''
+            };
+            
+            if (onChange) {
+              onChange(newData);
+            } else {
+              setLocalFormData(newData);
+            }
+            
+            toast.success('Araç bilgileri otomatik yüklendi');
           }
-          
-          toast.success('Araç bilgileri otomatik yüklendi');
         }
       } catch (error) {
-        console.error('Araç bilgisi yüklenemedi:', error);
+        console.log('Araç bilgisi yüklenemedi (aktif vardiya yok olabilir):', error.message);
       } finally {
         setLoading(false);
       }

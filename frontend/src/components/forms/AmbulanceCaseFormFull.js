@@ -200,26 +200,38 @@ const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, 
 
       try {
         // Vaka bilgisini çek
-        const caseData = await casesAPI.getById(caseId);
+        const caseRes = await casesAPI.getById(caseId);
+        const caseData = caseRes?.data;
+        
+        if (!caseData) {
+          console.log('Vaka bilgisi bulunamadı');
+          setLoading(false);
+          return;
+        }
         
         // Araç bilgisini çek
         let vehicle = null;
         if (caseData.assigned_team?.vehicle_id) {
-          vehicle = await vehiclesAPI.getById(caseData.assigned_team.vehicle_id);
+          try {
+            const vehicleRes = await vehiclesAPI.getById(caseData.assigned_team.vehicle_id);
+            vehicle = vehicleRes?.data;
+          } catch (err) {
+            console.log('Araç bilgisi alınamadı:', err.message);
+          }
         }
         
         // Form verilerini otomatik doldur
         setFormData(prev => ({
           ...prev,
-          healmedyProtocol: caseData.case_number,
-          patientName: `${caseData.patient.name} ${caseData.patient.surname}`,
-          tcNo: caseData.patient.tc_no || '',
-          gender: caseData.patient.gender,
-          age: caseData.patient.age.toString(),
-          phone: caseData.patient.phone || caseData.caller.phone,
-          address: caseData.location.address,
-          pickupLocation: caseData.location.pickup_location || caseData.location.address,
-          complaint: caseData.patient.complaint,
+          healmedyProtocol: caseData.case_number || '',
+          patientName: `${caseData.patient?.name || ''} ${caseData.patient?.surname || ''}`.trim(),
+          tcNo: caseData.patient?.tc_no || '',
+          gender: caseData.patient?.gender || '',
+          age: caseData.patient?.age?.toString() || '',
+          phone: caseData.patient?.phone || caseData.caller?.phone || '',
+          address: caseData.location?.address || '',
+          pickupLocation: caseData.location?.pickup_location || caseData.location?.address || '',
+          complaint: caseData.patient?.complaint || '',
           vehicleType: vehicle?.plate || '',
           startKm: vehicle?.km || '' // Aracın mevcut KM'si
         }));

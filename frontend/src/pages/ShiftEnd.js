@@ -77,25 +77,36 @@ const ShiftEnd = () => {
 
       setActiveShift(shiftRes.data);
 
-      // Araç bilgisi
-      const vehicleRes = await vehiclesAPI.getById(shiftRes.data.vehicle_id);
-      setVehicle(vehicleRes.data);
-      
-      // Form verilerini otomatik doldur
-      setFormData(prev => ({
-        ...prev,
-        teslimAlinanKm: vehicleRes.data?.km || shiftRes.data.start_km || '',
-        servisYapilacakKm: vehicleRes.data?.next_maintenance_km || ''
-      }));
-
-      // Sonraki vardiya görevlisini bul
-      try {
-        const nextUserRes = await approvalsAPI.getNextShiftUser(shiftRes.data.vehicle_id);
-        if (nextUserRes.data?.found) {
-          setNextShiftUser(nextUserRes.data.user);
+      // Araç bilgisi - vehicle_id varsa çek
+      const vehicleId = shiftRes.data.vehicle_id;
+      if (vehicleId) {
+        try {
+          const vehicleRes = await vehiclesAPI.getById(vehicleId);
+          if (vehicleRes.data) {
+            setVehicle(vehicleRes.data);
+            
+            // Form verilerini otomatik doldur
+            setFormData(prev => ({
+              ...prev,
+              teslimAlinanKm: vehicleRes.data?.km || shiftRes.data.start_km || '',
+              servisYapilacakKm: vehicleRes.data?.next_maintenance_km || ''
+            }));
+          }
+        } catch (err) {
+          console.log('Araç bilgisi yüklenemedi:', err.message);
         }
-      } catch (err) {
-        console.log('Sonraki vardiya görevlisi bulunamadı:', err);
+
+        // Sonraki vardiya görevlisini bul
+        try {
+          const nextUserRes = await approvalsAPI.getNextShiftUser(vehicleId);
+          if (nextUserRes.data?.found) {
+            setNextShiftUser(nextUserRes.data.user);
+          }
+        } catch (err) {
+          console.log('Sonraki vardiya görevlisi bulunamadı:', err.message);
+        }
+      } else {
+        console.log('Vehicle ID bulunamadı, araç bilgisi çekilemedi');
       }
 
     } catch (error) {

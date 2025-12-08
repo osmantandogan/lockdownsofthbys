@@ -54,18 +54,22 @@ import { shiftsAPI, vehiclesAPI } from '../../api';
         // Şoför ise otomatik aracını seç
         if (user.role === 'sofor' || user.role === 'bas_sofor') {
           try {
-            const shift = await shiftsAPI.getActive();
-            if (shift && shift.vehicle_id) {
-              const vehicle = await vehiclesAPI.getById(shift.vehicle_id);
-              setFormData(prev => ({
-                ...prev,
-                requestType: 'arac',
-                vehiclePlate: vehicle.plate
-              }));
-              toast.success('Aracınız otomatik seçildi');
+            const shiftRes = await shiftsAPI.getActive();
+            const shift = shiftRes?.data;
+            if (shift?.vehicle_id) {
+              const vehicleRes = await vehiclesAPI.getById(shift.vehicle_id);
+              const vehicle = vehicleRes?.data;
+              if (vehicle?.plate) {
+                setFormData(prev => ({
+                  ...prev,
+                  requestType: 'arac',
+                  vehiclePlate: vehicle.plate
+                }));
+                toast.success('Aracınız otomatik seçildi');
+              }
             }
           } catch (error) {
-            console.error('Araç bilgisi alınamadı:', error);
+            console.log('Araç bilgisi alınamadı:', error.message);
           }
         }
       }
