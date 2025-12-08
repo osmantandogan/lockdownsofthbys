@@ -241,7 +241,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
     
     setSendingApproval(true);
     try {
-      await approvalsAPI.createManagerApproval({
+      await approvalsAPI.requestManagerApproval({
         vehicle_id: formData.vehicleId,
         action: 'Vardiya Devir Teslim'
       });

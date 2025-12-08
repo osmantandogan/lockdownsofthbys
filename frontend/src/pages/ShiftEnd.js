@@ -146,7 +146,7 @@ const ShiftEnd = () => {
     
     setSendingApproval(true);
     try {
-      await approvalsAPI.createManagerApproval({
+      await approvalsAPI.requestManagerApproval({
         vehicle_id: activeShift.vehicle_id,
         action: 'Vardiya Devir Teslim'
       });
