@@ -55,7 +55,13 @@ export const referenceAPI = {
 // Vehicles API
 export const vehiclesAPI = {
   getAll: (params) => api.get('/vehicles', { params }),
-  getById: (id) => api.get(`/vehicles/${id}`),
+  getById: (id) => {
+    if (!id || id === 'undefined' || id === 'null') {
+      console.warn('vehiclesAPI.getById called with invalid id:', id);
+      return Promise.resolve({ data: null });
+    }
+    return api.get(`/vehicles/${id}`);
+  },
   getByQR: (qr) => api.get(`/vehicles/qr/${qr}`),
   create: (data) => api.post('/vehicles', data),
   update: (id, data) => api.patch(`/vehicles/${id}`, data),
@@ -230,9 +236,21 @@ export const approvalsAPI = {
   // Yönetici onayı doğrula
   verifyManagerApproval: (data) => api.post('/approvals/verify-manager-approval', data),
   // Sonraki vardiya görevlisini getir
-  getNextShiftUser: (vehicleId) => api.get(`/approvals/next-shift-user/${vehicleId}`),
+  getNextShiftUser: (vehicleId) => {
+    if (!vehicleId || vehicleId === 'undefined') {
+      console.warn('getNextShiftUser called with invalid vehicleId:', vehicleId);
+      return Promise.resolve({ data: { found: false } });
+    }
+    return api.get(`/approvals/next-shift-user/${vehicleId}`);
+  },
   // Devir teslim bilgilerini getir (otomatik doldurma)
-  getHandoverInfo: (vehicleId) => api.get(`/approvals/handover-info/${vehicleId}`)
+  getHandoverInfo: (vehicleId) => {
+    if (!vehicleId || vehicleId === 'undefined') {
+      console.warn('getHandoverInfo called with invalid vehicleId:', vehicleId);
+      return Promise.resolve({ data: null });
+    }
+    return api.get(`/approvals/handover-info/${vehicleId}`);
+  }
 };
 
 export default api;
