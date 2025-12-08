@@ -57,22 +57,84 @@ class VerifyManagerApprovalRequest(BaseModel):
 
 @router.post("/verify")
 async def verify_approval_code(data: VerifyCodeRequest, request: Request):
-    """Onay kodunu doğrula"""
+    """
+    Onay kodunu doğrula
+    Desteklenen yöntemler:
+    1. Approval kaydındaki özel kod
+    2. Yöneticilerin internal OTP'si
+    """
+    from datetime import timedelta
+    
     user = await get_current_user(request)
     
+    # Önce approval_service ile dene
     result = await approval_service.verify_code(
         code=data.code,
         approval_type=data.approval_type,
         verifier_id=user.id
     )
     
-    if not result.get("valid"):
-        raise HTTPException(
-            status_code=400,
-            detail=result.get("error", "Geçersiz onay kodu")
-        )
+    if result.get("valid"):
+        return result
     
-    return result
+    # Approval service'te bulunamadıysa, internal OTP kontrolü yap
+    # Bu kullanıcı için bekleyen onay var mı?
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    pending_approval = await approvals_collection.find_one({
+        "requester_id": user.id,
+        "status": "pending",
+        "expires_at": {"$gt": turkey_now}
+    })
+    
+    if pending_approval:
+        # Bu approval için özel kodu kontrol et
+        if pending_approval.get("code") == data.code:
+            # Onayı tamamla
+            await approvals_collection.update_one(
+                {"_id": pending_approval["_id"]},
+                {"$set": {"status": "approved", "approved_at": turkey_now, "approval_method": "direct_code"}}
+            )
+            return {"valid": True, "message": "Onay kodu doğrulandı", "method": "direct_code"}
+        
+        # Internal OTP kontrolü
+        if pending_approval.get("accept_internal_otp"):
+            from services.otp_service import verify_user_otp, generate_user_otp_secret
+            
+            # Tüm yöneticileri kontrol et
+            managers = await users_collection.find({
+                "role": {"$in": ["bas_sofor", "operasyon_muduru"]}
+            }).to_list(50)
+            
+            for manager in managers:
+                otp_secret = manager.get("otp_secret")
+                if not otp_secret:
+                    otp_secret = generate_user_otp_secret()
+                    await users_collection.update_one(
+                        {"_id": manager.get("_id")},
+                        {"$set": {"otp_secret": otp_secret}}
+                    )
+                
+                if verify_user_otp(otp_secret, data.code):
+                    # Onayı tamamla
+                    await approvals_collection.update_one(
+                        {"_id": pending_approval["_id"]},
+                        {"$set": {
+                            "status": "approved", 
+                            "approved_at": turkey_now, 
+                            "approval_method": f"internal_otp_{manager.get('name', manager.get('_id'))}"
+                        }}
+                    )
+                    return {
+                        "valid": True, 
+                        "message": "Onay kodu doğrulandı", 
+                        "method": f"internal_otp"
+                    }
+    
+    raise HTTPException(
+        status_code=400,
+        detail="Onay kodu yanlış. SMS/Email kodu veya yöneticinin internal OTP'sini kullanabilirsiniz."
+    )
 
 
 @router.get("/pending")
