@@ -83,7 +83,7 @@ const ShiftStartNew = () => {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
-          // Scanner'ı durdur
+          // Scanner'ı durdur ve DOM'un temizlenmesini bekle
           try {
             if (scannerRef.current) {
               await scannerRef.current.stop();
@@ -94,6 +94,9 @@ const ShiftStartNew = () => {
           }
           setScannerActive(false);
           setQrCode(decodedText);
+          
+          // Html5Qrcode'un DOM cleanup'ını tamamlaması için bekle
+          await new Promise(resolve => setTimeout(resolve, 300));
           
           // Fetch vehicle info
           const vehicle = await fetchVehicleInfo(decodedText);
@@ -235,6 +238,9 @@ const ShiftStartNew = () => {
         </CardContent>
       </Card>
 
+      {/* QR Reader div'i her zaman DOM'da kal - sadece görünürlük değişsin */}
+      <div id="qr-reader" style={{ display: step === 1 && !showManualInput && scannerActive ? 'block' : 'none' }} />
+      
       {step === 1 && (
         <Card>
           <CardHeader>
@@ -246,13 +252,21 @@ const ShiftStartNew = () => {
           <CardContent className="space-y-4">
             {!showManualInput ? (
               <>
-                <div id="qr-reader" className="w-full min-h-[250px] bg-gray-100 rounded-lg flex items-center justify-center">
-                  {!scannerActive && (
+                {/* QR Scanner görünüm alanı */}
+                {scannerActive ? (
+                  <div className="w-full min-h-[300px] bg-black rounded-lg overflow-hidden">
+                    {/* Html5Qrcode kendi video'sunu qr-reader div'ine ekler */}
+                    <p className="text-white text-center p-4 text-sm">
+                      📷 Kamera aktif - QR kodu çerçeveye getirin
+                    </p>
+                  </div>
+                ) : (
+                  <div className="w-full min-h-[250px] bg-gray-100 rounded-lg flex items-center justify-center">
                     <p className="text-gray-500 text-center p-4">
                       QR okuyucuyu başlatmak için aşağıdaki butona tıklayın
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button 
                     onClick={startQRScanner} 
