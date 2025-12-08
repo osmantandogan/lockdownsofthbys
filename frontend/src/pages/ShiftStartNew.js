@@ -55,12 +55,21 @@ const ShiftStartNew = () => {
       
       // Kullanıcının atamalarını kontrol et
       const myAssignments = await shiftsAPI.getMyAssignments();
-      const today = new Date().toISOString().split('T')[0];
+      
+      // Türkiye saatine göre bugünün tarihi (UTC+3)
+      const now = new Date();
+      const turkeyOffset = 3 * 60; // UTC+3 dakika cinsinden
+      const turkeyTime = new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
+      const today = turkeyTime.toISOString().split('T')[0];
+      
+      console.log('Bugün (TR):', today, 'Şu an:', turkeyTime.toLocaleString('tr-TR'));
+      console.log('Atamalar:', myAssignments.data);
       
       // Bugün için geçerli atama var mı?
       const todayAssignment = myAssignments.data?.find(assignment => {
         const shiftDate = assignment.shift_date?.split('T')[0];
         const endDate = assignment.end_date?.split('T')[0] || shiftDate;
+        console.log(`Atama: ${shiftDate} - ${endDate}, Araç: ${assignment.vehicle_id}, Durum: ${assignment.status}`);
         return assignment.vehicle_id === vehicle._id && 
                shiftDate <= today && 
                endDate >= today &&

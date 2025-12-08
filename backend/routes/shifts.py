@@ -58,10 +58,13 @@ async def get_today_assignments(request: Request):
     await get_current_user(request)  # Just verify user is logged in
     
     from database import users_collection
+    from datetime import timedelta
     
-    # Get today's date range
-    today = datetime.utcnow().date()
+    # Türkiye saati (UTC+3) kullan
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    today = turkey_now.date()
     today_str = today.isoformat()
+    logger.info(f"Bugünkü atamalar sorgusu - Bugün (TR): {today}")
     
     # Find all assignments that include today
     # Either: shift_date is today OR (shift_date <= today AND end_date >= today)
@@ -385,7 +388,11 @@ async def start_shift(data: ShiftStart, request: Request):
         raise HTTPException(status_code=404, detail="Araç bulunamadı. QR kodu geçersiz.")
     
     # Check if user has TODAY's assignment for this vehicle
-    today = datetime.utcnow().date()
+    # Türkiye saati (UTC+3) kullan
+    from datetime import timedelta
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    today = turkey_now.date()
+    logger.info(f"Vardiya başlatma kontrolü - Bugün (TR): {today}, Kullanıcı: {user.id}, Araç: {vehicle.get('plate')}")
     
     # Get all pending assignments for this user and vehicle
     all_assignments = await shift_assignments_collection.find({

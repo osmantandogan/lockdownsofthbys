@@ -5,6 +5,9 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 from auth_utils import get_current_user, require_roles
 from services.approval_service import (
@@ -151,9 +154,11 @@ async def get_next_shift_user(vehicle_id: str, request: Request):
     
     from datetime import timedelta
     
-    # Bugünün tarihi
-    today = datetime.utcnow().date()
+    # Türkiye saati (UTC+3) kullan
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    today = turkey_now.date()
     today_str = today.isoformat()
+    logger.info(f"Sonraki vardiya kontrolü - Bugün (TR): {today}")
     
     # Bu araç için tüm pending atamaları al
     all_assignments = await shift_assignments_collection.find({
