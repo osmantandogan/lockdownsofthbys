@@ -149,22 +149,58 @@ async def get_next_shift_user(vehicle_id: str, request: Request):
     """
     user = await get_current_user(request)
     
+    from datetime import timedelta
+    
     # Bugünün tarihi
     today = datetime.utcnow().date()
-    tomorrow = today.replace(day=today.day + 1)
+    today_str = today.isoformat()
     
-    # Sonraki vardiya atamasını bul
-    # Önce bugün için başka bir atama var mı kontrol et
-    # Sonra yarın için atama var mı kontrol et
-    next_assignment = await shift_assignments_collection.find_one({
+    # Bu araç için tüm pending atamaları al
+    all_assignments = await shift_assignments_collection.find({
         "vehicle_id": vehicle_id,
         "user_id": {"$ne": user.id},  # Kendisi değil
-        "status": "pending",
-        "$or": [
-            {"shift_date": {"$gte": today.isoformat(), "$lt": tomorrow.isoformat()}},
-            {"shift_date": {"$gte": tomorrow.isoformat()}}
-        ]
-    }, sort=[("shift_date", 1)])
+        "status": "pending"
+    }).to_list(100)
+    
+    # Bugün veya yarın için geçerli atamayı bul
+    next_assignment = None
+    for assignment in all_assignments:
+        shift_date_str = assignment.get("shift_date", "")
+        end_date_str = assignment.get("end_date", "")
+        
+        # Parse shift date
+        if isinstance(shift_date_str, datetime):
+            shift_date = shift_date_str.date()
+        elif isinstance(shift_date_str, str):
+            try:
+                if 'T' in shift_date_str:
+                    shift_date = datetime.fromisoformat(shift_date_str.replace('Z', '+00:00')).date()
+                else:
+                    shift_date = datetime.strptime(shift_date_str, "%Y-%m-%d").date()
+            except:
+                continue
+        else:
+            continue
+        
+        # Parse end date
+        end_date = shift_date
+        if end_date_str:
+            if isinstance(end_date_str, datetime):
+                end_date = end_date_str.date()
+            elif isinstance(end_date_str, str):
+                try:
+                    if 'T' in end_date_str:
+                        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).date()
+                    else:
+                        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                except:
+                    pass
+        
+        # Bugün veya yarın için geçerli mi?
+        tomorrow = today + timedelta(days=1)
+        if shift_date <= tomorrow and end_date >= today:
+            next_assignment = assignment
+            break
     
     if not next_assignment:
         return {

@@ -26,7 +26,10 @@ import {
   Loader2,
   BellRing,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Mail,
+  MessageSquare,
+  Phone
 } from 'lucide-react';
 
 const NotificationSettings = () => {
@@ -282,14 +285,22 @@ const NotificationSettings = () => {
         <CardContent>
           <div className="space-y-6">
             {/* Kanal Başlıkları */}
-            <div className="grid grid-cols-3 gap-4 pb-2 border-b">
+            <div className="grid grid-cols-5 gap-4 pb-2 border-b">
               <div className="col-span-1"></div>
               <div className="text-center">
                 <Globe className="h-4 w-4 mx-auto mb-1 text-blue-500" />
                 <span className="text-xs font-medium">Push</span>
               </div>
               <div className="text-center">
-                <Smartphone className="h-4 w-4 mx-auto mb-1 text-green-500" />
+                <Mail className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+                <span className="text-xs font-medium">Email</span>
+              </div>
+              <div className="text-center">
+                <MessageSquare className="h-4 w-4 mx-auto mb-1 text-green-500" />
+                <span className="text-xs font-medium">SMS</span>
+              </div>
+              <div className="text-center">
+                <Smartphone className="h-4 w-4 mx-auto mb-1 text-gray-500" />
                 <span className="text-xs font-medium">In-App</span>
               </div>
             </div>
@@ -298,7 +309,7 @@ const NotificationSettings = () => {
             {notificationTypes.map((type) => {
               const Icon = type.icon;
               return (
-                <div key={type.id} className="grid grid-cols-3 gap-4 items-center">
+                <div key={type.id} className="grid grid-cols-5 gap-4 items-center">
                   <div className="col-span-1">
                     <div className="flex items-center space-x-2">
                       <Icon className={`h-4 w-4 ${type.color}`} />
@@ -312,6 +323,18 @@ const NotificationSettings = () => {
                     <Switch
                       checked={preferences[type.id]?.push ?? true}
                       onCheckedChange={(checked) => handlePreferenceChange(type.id, 'push', checked)}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <Switch
+                      checked={preferences[type.id]?.email ?? true}
+                      onCheckedChange={(checked) => handlePreferenceChange(type.id, 'email', checked)}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <Switch
+                      checked={preferences[type.id]?.sms ?? false}
+                      onCheckedChange={(checked) => handlePreferenceChange(type.id, 'sms', checked)}
                     />
                   </div>
                   <div className="flex justify-center">
@@ -341,6 +364,68 @@ const NotificationSettings = () => {
                 </>
               )}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SMS ve Email Bilgileri */}
+      <Card className="border-2 border-green-200">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+          <CardTitle className="flex items-center space-x-2">
+            <MessageSquare className="h-5 w-5 text-green-600" />
+            <span>SMS & Email Bildirimleri</span>
+            <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
+              Aktif
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            Kritik onaylar için SMS ve Email bildirimleri
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* SMS Bilgisi */}
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Phone className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium">SMS Servisi</p>
+                  <p className="text-sm text-gray-500">OneSignal SMS Gateway</p>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>✓ Devir teslim onayları</p>
+                <p>✓ Yönetici onay kodları</p>
+                <p>✓ Acil durum bildirimleri</p>
+              </div>
+            </div>
+            
+            {/* Email Bilgisi */}
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <Mail className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Email Servisi</p>
+                  <p className="text-sm text-gray-500">auth@healmedy.tech</p>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>✓ Onay kodu emaili</p>
+                <p>✓ Vardiya bilgilendirme</p>
+                <p>✓ Günlük/haftalık raporlar</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>Not:</strong> SMS bildirimleri sadece onay gerektiren işlemler (devir teslim, yönetici onayı) için gönderilir. 
+              Diğer bildirimler Push ve Email üzerinden iletilir.
+            </p>
           </div>
         </CardContent>
       </Card>

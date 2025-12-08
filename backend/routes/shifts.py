@@ -382,20 +382,78 @@ async def start_shift(data: ShiftStart, request: Request):
     # Find vehicle by QR code
     vehicle = await vehicles_collection.find_one({"qr_code": data.vehicle_qr})
     if not vehicle:
-        raise HTTPException(status_code=404, detail="Vehicle not found")
+        raise HTTPException(status_code=404, detail="Araç bulunamadı. QR kodu geçersiz.")
     
-    # Check if user has assignment for this vehicle
-    assignment = await shift_assignments_collection.find_one({
+    # Check if user has TODAY's assignment for this vehicle
+    today = datetime.utcnow().date()
+    
+    # Get all pending assignments for this user and vehicle
+    all_assignments = await shift_assignments_collection.find({
         "user_id": user.id,
         "vehicle_id": vehicle["_id"],
         "status": "pending"
-    })
+    }).to_list(100)
     
-    if not assignment:
-        raise HTTPException(
-            status_code=403, 
-            detail="Bu araç için vardiya atamanız yok. Lütfen yöneticinizle iletişime geçin."
-        )
+    # Filter to find an assignment that is valid for today
+    valid_assignment = None
+    for assignment in all_assignments:
+        shift_date_str = assignment.get("shift_date", "")
+        end_date_str = assignment.get("end_date", "")
+        
+        # Parse shift date
+        if isinstance(shift_date_str, datetime):
+            shift_date = shift_date_str.date()
+        elif isinstance(shift_date_str, str):
+            try:
+                if 'T' in shift_date_str:
+                    shift_date = datetime.fromisoformat(shift_date_str.replace('Z', '+00:00')).date()
+                else:
+                    shift_date = datetime.strptime(shift_date_str, "%Y-%m-%d").date()
+            except:
+                continue
+        else:
+            continue
+        
+        # Parse end date
+        end_date = shift_date  # Default to same day
+        if end_date_str:
+            if isinstance(end_date_str, datetime):
+                end_date = end_date_str.date()
+            elif isinstance(end_date_str, str):
+                try:
+                    if 'T' in end_date_str:
+                        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).date()
+                    else:
+                        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                except:
+                    pass
+        
+        # Check if today falls within the assignment period
+        if shift_date <= today <= end_date:
+            valid_assignment = assignment
+            break
+    
+    if not valid_assignment:
+        # Get user's actual assignment for today to show in error
+        user_today_assignment = await shift_assignments_collection.find_one({
+            "user_id": user.id,
+            "status": "pending"
+        })
+        
+        if user_today_assignment:
+            assigned_vehicle = await vehicles_collection.find_one({"_id": user_today_assignment.get("vehicle_id")})
+            assigned_plate = assigned_vehicle.get("plate", "Bilinmiyor") if assigned_vehicle else "Bilinmiyor"
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Bu araç ({vehicle.get('plate')}) size atanmamış. Bugün için atanan aracınız: {assigned_plate}"
+            )
+        else:
+            raise HTTPException(
+                status_code=403, 
+                detail="Bu araç için bugün geçerli vardiya atamanız yok. Lütfen yöneticinizle iletişime geçin."
+            )
+    
+    assignment = valid_assignment
     
     # Check if user already has an active shift
     active_shift = await shifts_collection.find_one({

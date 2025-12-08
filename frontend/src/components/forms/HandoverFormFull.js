@@ -65,73 +65,123 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
   useEffect(() => {
     const loadShiftData = async () => {
       try {
-        // Aktif vardiya bilgisini çek
-        const activeShift = await shiftsAPI.getActive();
+        console.log('Vardiya bilgileri yükleniyor...');
         
-        if (activeShift && activeShift.data) {
-          const shift = activeShift.data;
-          const vehicleId = shift.vehicle_id;
+        // Aktif vardiya bilgisini çek
+        const activeShiftResponse = await shiftsAPI.getActive();
+        console.log('Aktif vardiya yanıtı:', activeShiftResponse);
+        
+        // Aktif vardiya yoksa
+        if (!activeShiftResponse || !activeShiftResponse.data) {
+          console.log('Aktif vardiya bulunamadı');
+          toast.warning('Aktif vardiya bulunamadı. Form bilgilerini manuel doldurun.');
           
-          // Devir teslim bilgilerini getir (yeni endpoint)
-          try {
-            const handoverData = await approvalsAPI.getHandoverInfo(vehicleId);
-            if (handoverData.data) {
-              setHandoverInfo(handoverData.data);
-              setReceiverInfo(handoverData.data.receiver);
-              
-              // Form verilerini otomatik doldur
-              const vehicle = handoverData.data.vehicle;
-              const giver = handoverData.data.giver;
-              const receiver = handoverData.data.receiver;
-              
-              const newData = {
-                ...formData,
-                aracPlakasi: vehicle?.plate || '',
-                kayitTarihi: handoverData.data.date,
-                kayitSaati: handoverData.data.time,
-                teslimAlinanKm: vehicle?.km || '',
-                servisYapilacakKm: vehicle?.next_maintenance_km || '',
-                teslimEden: giver?.name || user?.name || '',
-                teslimEdenTelefon: giver?.phone || '',
-                teslimEdenSignature: giver?.signature || user?.signature || null,
-                teslimAlan: receiver?.name || '',
-                teslimAlanTelefon: receiver?.phone || '',
-                vehicleId: vehicleId
-              };
-              
-              if (onChange) {
-                onChange(newData);
-              } else {
-                setLocalFormData(newData);
-              }
-              
-              toast.success('Devir teslim bilgileri otomatik yüklendi');
+          // Mevcut kullanıcı bilgilerini otomatik doldur
+          setLocalFormData(prev => ({
+            ...prev,
+            teslimEden: user?.name || '',
+            teslimEdenTelefon: user?.phone || '',
+            kayitTarihi: new Date().toISOString().split('T')[0],
+            kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+          }));
+          setLoading(false);
+          return;
+        }
+        
+        const shift = activeShiftResponse.data;
+        const vehicleId = shift.vehicle_id;
+        console.log('Aktif vardiya araç ID:', vehicleId);
+        
+        if (!vehicleId) {
+          toast.warning('Vardiya araç bilgisi bulunamadı');
+          setLoading(false);
+          return;
+        }
+        
+        // Devir teslim bilgilerini getir (yeni endpoint)
+        try {
+          console.log('Devir teslim bilgileri çekiliyor...');
+          const handoverData = await approvalsAPI.getHandoverInfo(vehicleId);
+          console.log('Devir teslim yanıtı:', handoverData);
+          
+          if (handoverData && handoverData.data) {
+            setHandoverInfo(handoverData.data);
+            setReceiverInfo(handoverData.data.receiver);
+            
+            // Form verilerini otomatik doldur
+            const vehicle = handoverData.data.vehicle;
+            const giver = handoverData.data.giver;
+            const receiver = handoverData.data.receiver;
+            
+            const newData = {
+              aracPlakasi: vehicle?.plate || shift.vehicle_plate || '',
+              kayitTarihi: handoverData.data.date || new Date().toISOString().split('T')[0],
+              kayitSaati: handoverData.data.time || new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+              teslimAlinanKm: vehicle?.km || shift.start_km || '',
+              servisYapilacakKm: vehicle?.next_maintenance_km || '',
+              teslimEden: giver?.name || user?.name || '',
+              teslimEdenTelefon: giver?.phone || user?.phone || '',
+              teslimEdenSignature: giver?.signature || user?.signature || null,
+              teslimAlan: receiver?.name || '',
+              teslimAlanTelefon: receiver?.phone || '',
+              vehicleId: vehicleId,
+              fosforluYelek: '',
+              takviyeKablosu: '',
+              cekmeKablosu: '',
+              ucgen: '',
+              teslimEdenNotlar: '',
+              hasarBildirimi: '',
+              birimYoneticisi: '',
+              onayTarihi: new Date().toISOString().split('T')[0],
+              teslimAlanSignature: null
+            };
+            
+            if (onChange) {
+              onChange(newData);
+            } else {
+              setLocalFormData(newData);
             }
-          } catch (err) {
-            console.error('Handover info error:', err);
-            // Fallback: Araç bilgisini direkt çek
-            const vehicle = await vehiclesAPI.getById(vehicleId);
-            if (vehicle && vehicle.data) {
-              const newData = {
-                ...formData,
-                aracPlakasi: vehicle.data.plate,
-                teslimAlinanKm: vehicle.data.km,
-                servisYapilacakKm: vehicle.data.next_maintenance_km || '',
-                teslimEden: user?.name || '',
-                teslimEdenSignature: user?.signature || null,
-                vehicleId: vehicleId
-              };
-              
-              if (onChange) {
-                onChange(newData);
-              } else {
-                setLocalFormData(newData);
-              }
-            }
+            
+            toast.success('Devir teslim bilgileri otomatik yüklendi!');
           }
+        } catch (err) {
+          console.error('Handover info error:', err);
+          
+          // Fallback: Vardiya bilgisinden araç plakasını kullan
+          const newData = {
+            aracPlakasi: shift.vehicle_plate || '',
+            kayitTarihi: new Date().toISOString().split('T')[0],
+            kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+            teslimAlinanKm: shift.start_km || '',
+            teslimEden: user?.name || '',
+            teslimEdenTelefon: user?.phone || '',
+            teslimEdenSignature: user?.signature || null,
+            vehicleId: vehicleId,
+            fosforluYelek: '',
+            takviyeKablosu: '',
+            cekmeKablosu: '',
+            ucgen: '',
+            teslimEdenNotlar: '',
+            hasarBildirimi: '',
+            teslimAlan: '',
+            teslimAlanTelefon: '',
+            birimYoneticisi: '',
+            onayTarihi: new Date().toISOString().split('T')[0],
+            teslimAlanSignature: null,
+            servisYapilacakKm: ''
+          };
+          
+          if (onChange) {
+            onChange(newData);
+          } else {
+            setLocalFormData(newData);
+          }
+          
+          toast.info('Araç bilgileri yüklendi, teslim alan bilgisi bulunamadı');
         }
       } catch (error) {
         console.error('Vardiya yüklenemedi:', error);
+        toast.error('Vardiya bilgileri yüklenemedi');
       } finally {
         setLoading(false);
       }
@@ -140,9 +190,16 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
     if (!vehiclePlate && !vehicleKm) {
       loadShiftData();
     } else {
+      // Props'tan gelen bilgilerle doldur
+      setLocalFormData(prev => ({
+        ...prev,
+        aracPlakasi: vehiclePlate || '',
+        teslimAlinanKm: vehicleKm || '',
+        teslimEden: user?.name || ''
+      }));
       setLoading(false);
     }
-  }, []);
+  }, [user, vehiclePlate, vehicleKm]);
 
   const handleChange = (field, value) => {
     const newData = {...formData, [field]: value};
