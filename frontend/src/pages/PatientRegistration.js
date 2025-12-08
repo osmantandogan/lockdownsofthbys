@@ -118,10 +118,21 @@ const PatientRegistration = () => {
       };
 
       const response = await casesAPI.create(caseData);
-      toast.success(`Hasta kaydı oluşturuldu: ${response.data.case_number}`);
+      const caseId = response.data.id || response.data._id;
+      const caseNumber = response.data.case_number;
+      
+      console.log('[PatientRegistration] Created case:', { caseId, caseNumber, response: response.data });
+      
+      if (!caseId) {
+        toast.error('Kayıt oluşturuldu ancak ID alınamadı. Vakalar listesinden erişebilirsiniz.');
+        navigate('/dashboard/cases');
+        return;
+      }
+      
+      toast.success(`Hasta kaydı oluşturuldu: ${caseNumber}`);
       
       // Vaka detayına git
-      navigate(`/dashboard/cases/${response.data.id}`);
+      navigate(`/dashboard/cases/${caseId}`);
       
     } catch (error) {
       console.error('Error creating patient registration:', error);

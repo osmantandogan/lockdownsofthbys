@@ -132,7 +132,16 @@ const CallCenter = () => {
       };
 
       const response = await casesAPI.create(caseData);
-      setCreatedCaseId(response.data.id);
+      const caseId = response.data.id || response.data._id;
+      
+      console.log('[CallCenter] Created case:', { caseId, response: response.data });
+      
+      if (!caseId) {
+        toast.error('Vaka oluşturuldu ancak ID alınamadı');
+        return;
+      }
+      
+      setCreatedCaseId(caseId);
       toast.success(`Vaka oluşturuldu: ${response.data.case_number}`);
       
       // Don't navigate yet, show notification button
