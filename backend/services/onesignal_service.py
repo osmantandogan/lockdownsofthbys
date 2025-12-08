@@ -169,14 +169,19 @@ class OneSignalService:
         Returns:
             Gönderim sonuçları
         """
+        logger.info(f"[OneSignal] send_to_users called: type={notification_type}, users={user_ids}")
+        
         if not self.enabled:
-            return {"success": False, "error": "OneSignal not configured"}
+            logger.error("[OneSignal] Service not enabled - check ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY")
+            return {"success": False, "error": "OneSignal not configured", "detail": "Missing API credentials"}
         
         if not user_ids:
+            logger.warning("[OneSignal] No user IDs provided")
             return {"success": False, "error": "No user IDs provided"}
         
         template = NOTIFICATION_TEMPLATES.get(notification_type)
         if not template:
+            logger.warning(f"[OneSignal] Template not found: {notification_type}")
             return {"success": False, "error": f"Template not found for {notification_type}"}
         
         title = self._format_template(template.get("title", ""), data)
@@ -211,6 +216,9 @@ class OneSignalService:
         payload["chrome_web_badge"] = "https://healmedy.com/badge.png"
         
         try:
+            logger.info(f"[OneSignal] Sending to external_user_ids: {user_ids}")
+            logger.debug(f"[OneSignal] Payload: {json.dumps(payload, indent=2, default=str)}")
+            
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{ONESIGNAL_API_URL}/notifications",
@@ -223,22 +231,32 @@ class OneSignalService:
                 
                 result = response.json()
                 
+                logger.info(f"[OneSignal] Response status: {response.status_code}")
+                logger.info(f"[OneSignal] Response body: {result}")
+                
                 if response.status_code in [200, 201]:
-                    logger.info(f"OneSignal notification sent: {result}")
+                    recipients = result.get("recipients", 0)
+                    if recipients == 0:
+                        logger.warning(f"[OneSignal] Notification sent but 0 recipients - users may not be subscribed")
+                    else:
+                        logger.info(f"[OneSignal] Successfully sent to {recipients} recipients")
+                    
                     return {
                         "success": True,
                         "notification_id": result.get("id"),
-                        "recipients": result.get("recipients", 0)
+                        "recipients": recipients,
+                        "warning": "No recipients - users may not be subscribed" if recipients == 0 else None
                     }
                 else:
-                    logger.error(f"OneSignal error: {result}")
+                    logger.error(f"[OneSignal] API Error: {result}")
                     return {
                         "success": False,
-                        "error": result.get("errors", [result])
+                        "error": result.get("errors", [result]),
+                        "status_code": response.status_code
                     }
                     
         except Exception as e:
-            logger.error(f"OneSignal request error: {e}")
+            logger.error(f"[OneSignal] Request exception: {e}")
             return {"success": False, "error": str(e)}
     
     async def send_to_segments(

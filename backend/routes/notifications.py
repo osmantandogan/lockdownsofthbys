@@ -404,3 +404,97 @@ async def get_notification_status(request: Request):
         "player_id": user_doc.get("onesignal_player_id"),
         "subscribed_at": user_doc.get("onesignal_subscribed_at")
     }
+
+
+@router.get("/debug")
+async def debug_notification_system(request: Request):
+    """Bildirim sistemi debug bilgileri - Sadece yöneticiler"""
+    user = await get_current_user(request)
+    
+    if user.role not in ["merkez_ofis", "operasyon_muduru"]:
+        raise HTTPException(status_code=403, detail="Debug için yetkiniz yok")
+    
+    # OneSignal yapılandırmasını kontrol et
+    app_id = os.environ.get("ONESIGNAL_APP_ID", "")
+    rest_api_key = os.environ.get("ONESIGNAL_REST_API_KEY", "")
+    
+    # Tüm subscribe olan kullanıcıları say
+    subscribed_users = await users_collection.count_documents({
+        "onesignal_player_id": {"$exists": True, "$ne": None}
+    })
+    
+    # Son 5 subscribe olan kullanıcı
+    recent_subscribers = await users_collection.find({
+        "onesignal_player_id": {"$exists": True, "$ne": None}
+    }).sort("onesignal_subscribed_at", -1).limit(5).to_list(5)
+    
+    subscriber_info = []
+    for sub in recent_subscribers:
+        subscriber_info.append({
+            "name": sub.get("name"),
+            "role": sub.get("role"),
+            "player_id": sub.get("onesignal_player_id", "")[:20] + "..." if sub.get("onesignal_player_id") else None,
+            "subscribed_at": sub.get("onesignal_subscribed_at")
+        })
+    
+    return {
+        "config": {
+            "app_id_configured": bool(app_id),
+            "app_id_preview": app_id[:8] + "..." if app_id else "NOT SET",
+            "rest_api_key_configured": bool(rest_api_key),
+            "rest_api_key_preview": "***" + rest_api_key[-8:] if rest_api_key else "NOT SET",
+            "onesignal_enabled": onesignal_service.enabled
+        },
+        "subscribers": {
+            "total_count": subscribed_users,
+            "recent": subscriber_info
+        },
+        "current_user": {
+            "id": user.id,
+            "name": user.name,
+            "role": user.role
+        }
+    }
+
+
+@router.post("/debug-send")
+async def debug_send_notification(request: Request, target_user_id: str = None):
+    """Debug amaçlı bildirim gönder - Detaylı log ile"""
+    user = await get_current_user(request)
+    
+    if user.role not in ["merkez_ofis", "operasyon_muduru"]:
+        raise HTTPException(status_code=403, detail="Debug için yetkiniz yok")
+    
+    target_id = target_user_id or user.id
+    
+    # Hedef kullanıcıyı kontrol et
+    target_user = await users_collection.find_one({"_id": target_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Hedef kullanıcı bulunamadı")
+    
+    debug_info = {
+        "target_user": {
+            "id": target_id,
+            "name": target_user.get("name"),
+            "has_player_id": bool(target_user.get("onesignal_player_id")),
+            "player_id": target_user.get("onesignal_player_id", "")[:20] + "..." if target_user.get("onesignal_player_id") else None
+        },
+        "onesignal_config": {
+            "enabled": onesignal_service.enabled,
+            "app_id_set": bool(os.environ.get("ONESIGNAL_APP_ID")),
+            "api_key_set": bool(os.environ.get("ONESIGNAL_REST_API_KEY"))
+        }
+    }
+    
+    # Bildirim gönder
+    result = await onesignal_service.send_notification(
+        NotificationType.SYSTEM_ALERT,
+        [target_id],
+        {
+            "message": f"Debug test bildirimi - {datetime.now().strftime('%H:%M:%S')}"
+        }
+    )
+    
+    debug_info["send_result"] = result
+    
+    return debug_info
