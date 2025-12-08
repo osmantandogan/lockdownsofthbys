@@ -19,7 +19,7 @@ import {
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -42,12 +42,18 @@ export const NotificationProvider = ({ children }) => {
   // OneSignal'i başlat (kullanıcı login olduğunda)
   useEffect(() => {
     const initializeOneSignal = async () => {
+      // Auth yüklenirken bekle
+      if (authLoading) {
+        console.log('[NotificationContext] Auth still loading, waiting...');
+        return;
+      }
+      
       if (!isAuthenticated || !user) {
-        console.log('[NotificationContext] User not authenticated, skipping OneSignal init');
+        console.log('[NotificationContext] User not authenticated (isAuthenticated:', isAuthenticated, ', user:', !!user, ')');
         return;
       }
 
-      console.log('[NotificationContext] Starting OneSignal initialization for user:', user.id);
+      console.log('[NotificationContext] Starting OneSignal initialization for user:', user.id, user.name);
 
       try {
         // OneSignal'i başlat
@@ -121,7 +127,7 @@ export const NotificationProvider = ({ children }) => {
     };
 
     initializeOneSignal();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, authLoading]);
 
   // Kullanıcı logout olduğunda OneSignal'den çıkış yap
   useEffect(() => {

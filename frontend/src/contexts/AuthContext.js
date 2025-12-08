@@ -54,10 +54,14 @@ export const AuthProvider = ({ children }) => {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
+  // isAuthenticated: user var ve loading bitti
+  const isAuthenticated = !loading && !!user;
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       loading, 
+      isAuthenticated,
       login, 
       register, 
       logout, 
