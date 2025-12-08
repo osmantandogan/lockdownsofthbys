@@ -62,18 +62,35 @@ const ShiftStartNew = () => {
       const turkeyTime = new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
       const today = turkeyTime.toISOString().split('T')[0];
       
-      console.log('Bugün (TR):', today, 'Şu an:', turkeyTime.toLocaleString('tr-TR'));
-      console.log('Atamalar:', myAssignments.data);
+      // Dün (tolerans için)
+      const yesterdayTime = new Date(turkeyTime.getTime() - 24 * 60 * 60 * 1000);
+      const yesterday = yesterdayTime.toISOString().split('T')[0];
       
-      // Bugün için geçerli atama var mı?
+      console.log('=== VARDİYA ATAMA KONTROLÜ ===');
+      console.log('Bugün (TR):', today);
+      console.log('Dün (TR):', yesterday);
+      console.log('Şu an (TR):', turkeyTime.toLocaleString('tr-TR'));
+      console.log('Aranan araç ID:', vehicle._id);
+      console.log('Tüm atamalar:', myAssignments.data);
+      
+      // Bugün VEYA dün için geçerli atama var mı? (vardiya gece yarısını geçebilir)
       const todayAssignment = myAssignments.data?.find(assignment => {
         const shiftDate = assignment.shift_date?.split('T')[0];
         const endDate = assignment.end_date?.split('T')[0] || shiftDate;
-        console.log(`Atama: ${shiftDate} - ${endDate}, Araç: ${assignment.vehicle_id}, Durum: ${assignment.status}`);
-        return assignment.vehicle_id === vehicle._id && 
-               shiftDate <= today && 
-               endDate >= today &&
-               assignment.status === 'pending';
+        
+        // Atama bugün için mi veya dün başlayıp bugüne sarkan mı?
+        const isValidForToday = shiftDate <= today && endDate >= today;
+        const isValidForYesterday = shiftDate <= yesterday && endDate >= yesterday;
+        const isMatchingVehicle = assignment.vehicle_id === vehicle._id;
+        const isPending = assignment.status === 'pending';
+        
+        console.log(`Atama kontrolü: ${shiftDate} - ${endDate}`);
+        console.log(`  Araç eşleşme: ${isMatchingVehicle} (${assignment.vehicle_id} === ${vehicle._id})`);
+        console.log(`  Bugün geçerli: ${isValidForToday}`);
+        console.log(`  Dün geçerli: ${isValidForYesterday}`);
+        console.log(`  Durum: ${assignment.status} (pending: ${isPending})`);
+        
+        return isMatchingVehicle && (isValidForToday || isValidForYesterday) && isPending;
       });
 
       if (!todayAssignment) {

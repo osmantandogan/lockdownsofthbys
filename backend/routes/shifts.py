@@ -392,7 +392,8 @@ async def start_shift(data: ShiftStart, request: Request):
     from datetime import timedelta
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     today = turkey_now.date()
-    logger.info(f"Vardiya başlatma kontrolü - Bugün (TR): {today}, Kullanıcı: {user.id}, Araç: {vehicle.get('plate')}")
+    yesterday = today - timedelta(days=1)  # Dün de kabul et (gece yarısı toleransı)
+    logger.info(f"Vardiya başlatma kontrolü - Bugün (TR): {today}, Dün (TR): {yesterday}, Kullanıcı: {user.id}, Araç: {vehicle.get('plate')}")
     
     # Get all pending assignments for this user and vehicle
     all_assignments = await shift_assignments_collection.find({
@@ -435,8 +436,14 @@ async def start_shift(data: ShiftStart, request: Request):
                 except:
                     pass
         
-        # Check if today falls within the assignment period
-        if shift_date <= today <= end_date:
+        # Check if today OR yesterday falls within the assignment period
+        # (Gece yarısı toleransı - vardiya gece yarısını geçebilir)
+        is_valid_today = shift_date <= today <= end_date
+        is_valid_yesterday = shift_date <= yesterday <= end_date
+        
+        logger.info(f"Atama kontrolü: {shift_date} - {end_date}, Bugün geçerli: {is_valid_today}, Dün geçerli: {is_valid_yesterday}")
+        
+        if is_valid_today or is_valid_yesterday:
             valid_assignment = assignment
             break
     
