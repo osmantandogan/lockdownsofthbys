@@ -226,58 +226,37 @@ async def request_manager_approval_for_shift(data: RequestManagerApprovalRequest
             upsert=True
         )
     
-    # Bildirim göndermeyi dene (hata olursa devam et)
+    # Bildirim göndermeyi arka planda yap (ana isteği bekletme)
     notifications_sent = 0
+    import asyncio
     
-    for manager in managers:
-        try:
-            # Push bildirim dene
+    async def send_notifications_background():
+        """Bildirimleri arka planda gönder"""
+        nonlocal notifications_sent
+        for manager in managers:
             try:
-                from services.notification_service import notification_service
-                await notification_service.send_to_user(
-                    user_id=manager.get("_id"),
-                    title="🚑 Vardiya Başlatma Onayı",
-                    message=f"{data.user_name or user.name} - {vehicle.get('plate', '')} için onay kodu: {code}"
-                )
-                notifications_sent += 1
+                # Push bildirim dene (hızlı)
+                try:
+                    from services.onesignal_service import onesignal_service
+                    await asyncio.wait_for(
+                        onesignal_service.send_to_users(
+                            user_ids=[manager.get("_id")],
+                            title="🚑 Vardiya Başlatma Onayı",
+                            message=f"{data.user_name or user.name} - {vehicle.get('plate', '')} için onay kodu: {code}",
+                            data={"type": "shift_approval", "code": code}
+                        ),
+                        timeout=5.0  # 5 saniye timeout
+                    )
+                    notifications_sent += 1
+                except asyncio.TimeoutError:
+                    logger.warning("Push bildirim timeout")
+                except Exception as e:
+                    logger.warning(f"Push bildirim gönderilemedi: {e}")
             except Exception as e:
-                logger.warning(f"Push bildirim gönderilemedi: {e}")
-            
-            # Email dene
-            if manager.get("email"):
-                try:
-                    from services.email_service import email_service
-                    await email_service.send_email_async(
-                        to_email=manager.get("email"),
-                        subject=f"🚑 Vardiya Başlatma Onay Kodu - {vehicle.get('plate', '')}",
-                        body_html=f"""
-                        <h2>Vardiya Başlatma Onayı</h2>
-                        <p><strong>Kişi:</strong> {data.user_name or user.name}</p>
-                        <p><strong>Araç:</strong> {vehicle.get('plate', '-')}</p>
-                        <p><strong>Tarih:</strong> {turkey_now.strftime('%d.%m.%Y %H:%M')}</p>
-                        <h1 style="color: #dc2626; font-size: 32px; text-align: center;">{code}</h1>
-                        <p>Bu kod 30 dakika geçerlidir.</p>
-                        <p><em>Alternatif: Bildirim sekmenizdeki (sağ üst) internal OTP'nizi de kullanabilirsiniz.</em></p>
-                        """,
-                        body_text=f"Vardiya Onay Kodu: {code} - {data.user_name or user.name} - {vehicle.get('plate', '')}"
-                    )
-                    notifications_sent += 1
-                except Exception as e:
-                    logger.warning(f"Email gönderilemedi: {e}")
-            
-            # SMS dene
-            if manager.get("phone"):
-                try:
-                    from services.sms_service import sms_service
-                    await sms_service.send_sms(
-                        phone_number=manager.get("phone"),
-                        message=f"HealMedy Onay Kodu: {code}\n{data.user_name or user.name} - {vehicle.get('plate', '')}"
-                    )
-                    notifications_sent += 1
-                except Exception as e:
-                    logger.warning(f"SMS gönderilemedi: {e}")
-        except Exception as e:
-            logger.error(f"Manager notification error: {e}")
+                logger.error(f"Manager notification error: {e}")
+    
+    # Bildirimleri arka planda başlat (beklemeden devam et)
+    asyncio.create_task(send_notifications_background())
     
     logger.info(f"Vardiya başlatma onay kodu oluşturuldu: {code} - {len(managers)} yönetici, {notifications_sent} bildirim")
     
