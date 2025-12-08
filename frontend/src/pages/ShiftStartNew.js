@@ -157,8 +157,52 @@ const ShiftStartNew = () => {
         console.log('Aranan araç:', vehicle);
         console.log('Tüm atamalar:', myAssignments.data);
         
-        // Tarihe bakmadan sadece araç ve status kontrolü yap
         const vehicleId = vehicle._id || vehicle.id;
+        
+        // 1. Bu araç için STARTED (zaten başlatılmış) atama var mı?
+        const startedAssignment = myAssignments.data?.find(a => {
+          const aVehicleId = a.vehicle_id;
+          const shiftDate = a.shift_date?.split('T')[0];
+          const endDate = a.end_date?.split('T')[0] || shiftDate;
+          const isValidDate = (shiftDate <= today && endDate >= today) || 
+                              (shiftDate <= yesterday && endDate >= yesterday);
+          return (aVehicleId === vehicleId || String(aVehicleId) === String(vehicleId)) && 
+                 a.status === 'started' && isValidDate;
+        });
+        
+        if (startedAssignment) {
+          console.log('BU ARAÇ İÇİN ZATEN AKTİF VARDİYA VAR:', startedAssignment);
+          toast.error(
+            `⚠️ Bu araç için zaten aktif bir vardiya var!\n\n` +
+            `Önce mevcut vardiyayı bitirin, sonra yeni vardiya başlatabilirsiniz.`,
+            { duration: 8000 }
+          );
+          setValidating(false);
+          return null;
+        }
+        
+        // 2. Bu araç için COMPLETED (tamamlanmış) atama var mı?
+        const completedAssignment = myAssignments.data?.find(a => {
+          const aVehicleId = a.vehicle_id;
+          const shiftDate = a.shift_date?.split('T')[0];
+          const endDate = a.end_date?.split('T')[0] || shiftDate;
+          const isValidDate = (shiftDate <= today && endDate >= today);
+          return (aVehicleId === vehicleId || String(aVehicleId) === String(vehicleId)) && 
+                 a.status === 'completed' && isValidDate;
+        });
+        
+        if (completedAssignment) {
+          console.log('BU ARAÇ İÇİN ATAMA TAMAMLANMIŞ:', completedAssignment);
+          toast.error(
+            `✓ Bugünkü vardiyanız tamamlanmış!\n\n` +
+            `Yeni vardiya için yöneticinizden yeni atama alın.`,
+            { duration: 8000 }
+          );
+          setValidating(false);
+          return null;
+        }
+        
+        // 3. Tarihe bakmadan sadece araç ve pending status kontrolü yap
         const sameVehicleAssignment = myAssignments.data?.find(a => {
           const aVehicleId = a.vehicle_id;
           return (aVehicleId === vehicleId || String(aVehicleId) === String(vehicleId)) && 
@@ -180,7 +224,7 @@ const ShiftStartNew = () => {
           return null;
         }
         
-        // Bu araca atanmamış, hangi araca atanmış göster
+        // 4. Bu araca atanmamış, hangi araca atanmış göster
         const userTodayAssignment = myAssignments.data?.find(assignment => {
           const shiftDate = assignment.shift_date?.split('T')[0];
           const endDate = assignment.end_date?.split('T')[0] || shiftDate;
