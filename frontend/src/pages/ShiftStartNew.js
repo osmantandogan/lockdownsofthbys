@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { shiftsAPI } from '../api';
+import { shiftsAPI, vehiclesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
-import { QrCode, Camera, CheckCircle, AlertCircle } from 'lucide-react';
+import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard } from 'lucide-react';
 
 const ShiftStartNew = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [qrCode, setQrCode] = useState('');
+  const [vehicleInfo, setVehicleInfo] = useState(null);
   const [scanner, setScanner] = useState(null);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [manualQrInput, setManualQrInput] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
   const [photos, setPhotos] = useState({
     front: null,
     back: null,
@@ -27,24 +33,86 @@ const ShiftStartNew = () => {
   const [controlForm, setControlForm] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Fetch vehicle info when QR code is scanned
+  const fetchVehicleInfo = async (qr) => {
+    try {
+      const vehicles = await vehiclesAPI.getAll();
+      const vehicle = vehicles.data?.find(v => v.qr_code === qr);
+      if (vehicle) {
+        setVehicleInfo(vehicle);
+        return vehicle;
+      } else {
+        toast.error('Bu QR koduna ait araç bulunamadı');
+        return null;
+      }
+    } catch (error) {
+      console.error('Vehicle fetch error:', error);
+      return null;
+    }
+  };
+
   const startQRScanner = async () => {
+    // Check if HTTPS or localhost
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure) {
+      toast.error('QR tarayıcı için HTTPS bağlantısı gerekli. Manuel giriş yapabilirsiniz.');
+      setShowManualInput(true);
+      return;
+    }
+
     try {
       const html5QrCode = new Html5Qrcode('qr-reader');
       setScanner(html5QrCode);
+      setScannerActive(true);
 
       await html5QrCode.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
           await html5QrCode.stop();
+          setScannerActive(false);
           setQrCode(decodedText);
-          setStep(2);
-          toast.success('QR kod okundu!');
+          
+          // Fetch vehicle info
+          const vehicle = await fetchVehicleInfo(decodedText);
+          if (vehicle) {
+            setStep(2);
+            toast.success(`${vehicle.plate} aracı bulundu!`);
+          }
         }
       );
     } catch (err) {
       console.error('QR error:', err);
-      toast.error('Kamera açılamadı');
+      setScannerActive(false);
+      
+      let errorMsg = 'Kamera açılamadı. ';
+      if (err.name === 'NotAllowedError') {
+        errorMsg += 'Kamera izni verilmedi.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg += 'Kamera bulunamadı.';
+      } else {
+        errorMsg += 'Manuel giriş yapabilirsiniz.';
+      }
+      
+      toast.error(errorMsg);
+      setShowManualInput(true);
+    }
+  };
+
+  const handleManualQrSubmit = async () => {
+    if (!manualQrInput.trim()) {
+      toast.error('QR kodu girin');
+      return;
+    }
+    
+    setQrCode(manualQrInput.trim());
+    const vehicle = await fetchVehicleInfo(manualQrInput.trim());
+    if (vehicle) {
+      setStep(2);
+      toast.success(`${vehicle.plate} aracı bulundu!`);
     }
   };
 
@@ -52,6 +120,7 @@ const ShiftStartNew = () => {
     if (scanner) {
       try {
         await scanner.stop();
+        setScannerActive(false);
       } catch (err) {
         console.error('Stop error:', err);
       }
@@ -62,7 +131,7 @@ const ShiftStartNew = () => {
     return () => {
       stopQRScanner();
     };
-  }, []);
+  }, [scanner]);
 
   const handlePhotoUpdate = (key, value) => {
     setPhotos(prev => ({ ...prev, [key]: value }));
@@ -133,20 +202,94 @@ const ShiftStartNew = () => {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Araç QR Kodunu Okutun</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Araç QR Kodunu Okutun
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div id="qr-reader" className="w-full"></div>
-            <Button onClick={startQRScanner} className="w-full">
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Okuyucuyu Başlat
-            </Button>
+            {!showManualInput ? (
+              <>
+                <div id="qr-reader" className="w-full min-h-[250px] bg-gray-100 rounded-lg flex items-center justify-center">
+                  {!scannerActive && (
+                    <p className="text-gray-500 text-center p-4">
+                      QR okuyucuyu başlatmak için aşağıdaki butona tıklayın
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={startQRScanner} 
+                    className="flex-1"
+                    disabled={scannerActive}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    {scannerActive ? 'Taranıyor...' : 'QR Okuyucuyu Başlat'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowManualInput(true)}
+                  >
+                    <Keyboard className="h-4 w-4 mr-2" />
+                    Manuel
+                  </Button>
+                </div>
+                {scannerActive && (
+                  <Button variant="outline" onClick={stopQRScanner} className="w-full">
+                    İptal
+                  </Button>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    Kamera kullanılamıyorsa, araç üzerindeki QR kodunu manuel olarak girebilirsiniz.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>QR Kod</Label>
+                  <Input
+                    value={manualQrInput}
+                    onChange={(e) => setManualQrInput(e.target.value)}
+                    placeholder="QR kodunu girin..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleManualQrSubmit} className="flex-1">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Onayla
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowManualInput(false)}
+                  >
+                    QR Tara
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {step === 2 && (
         <div className="space-y-4">
+          {/* Vehicle Info Banner */}
+          {vehicleInfo && (
+            <Card className="border-blue-500 bg-blue-50">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-3">
+                  <Truck className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <p className="font-bold text-lg text-blue-900">{vehicleInfo.plate}</p>
+                    <p className="text-sm text-blue-700">{vehicleInfo.type}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -215,7 +358,15 @@ const ShiftStartNew = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span>QR Kod: {qrCode.substring(0, 20)}...</span>
+                <div className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-gray-600" />
+                  <span className="font-medium">
+                    Araç: {vehicleInfo?.plate || 'Bilinmiyor'}
+                  </span>
+                  {vehicleInfo?.type && (
+                    <span className="text-sm text-gray-500">({vehicleInfo.type})</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />

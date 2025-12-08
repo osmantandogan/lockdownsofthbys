@@ -1,0 +1,79 @@
+====================================================================================================
+HEALMEDY PERSONEL LISTESI
+====================================================================================================
+
+ISIM                                EMAIL                                         SIFRE           ROL                 
+-------------------------------------------------------------------------------------------------------------------
+Aleyna Özdemi̇r                     aleyna.ozdemir@healmedy.tech                  9tqB2ZqijNf#    paramedik           
+Ali̇can Tülübaş                     alican.tulubas@healmedy.tech                  tE#CnG6KzF@c    paramedik           
+Anil Balci                          anil.balci@healmedy.tech                      RtTUJzCy%MH4    att                 
+Asli Koçoğlu                        asli.kocoglu@healmedy.tech                    W2gfzSu@#nQO    att                 
+Ayşegül Beyza Yilmaz                aysegul.yilmaz@healmedy.tech                  5c9uDDMxF1nR    paramedik           
+Ayşegül Oral                        aysegul.oral@healmedy.tech                    UfQAondA06HD    att                 
+Bariş Vatansever                    baris.vatansever@healmedy.tech                YTBkQUa$4X7s    doktor              
+Berkecan Turpçu                     berkecan.turpcu@healmedy.tech                 ztciGOS4OwJd    att                 
+Burak İli̇k                         burak.ilik@healmedy.tech                      wlgROkb1mpkX    paramedik           
+Burak Ti̇ryaki̇oğlu                 burak.tiryakioglu@healmedy.tech               %4owLOu3rrj4    sofor               
+Burakcan Şahi̇ntürk                 burakcan.sahinturk@healmedy.tech              IIhAn6O$xP#1    paramedik           
+Buse Topcu                          buse.topcu@healmedy.tech                      C#EmdDE$BPI9    paramedik           
+Büşra Aydemi̇r                      busra.aydemir@healmedy.tech                   vGgvk0w806U#    att                 
+Büşra Bahti̇yar Güzel               busra.guzel@healmedy.tech                     JF4h3N3otsF4    paramedik           
+Can Çeti̇nkaya                      can.cetinkaya@healmedy.tech                   Er9NUA%WJq30    hemsire             
+Cansel Petek Şahi̇n                 cansel.sahin@healmedy.tech                    l%iMMJG%m9LS    doktor              
+Cem Balat                           cem.balat@healmedy.tech                       w6I$3QreoNBJ    att                 
+Ceren Yi̇ği̇t                       ceren.yigit@healmedy.tech                     du2qju$wArt%    att                 
+Derya Gömleksi̇zoğlu                derya.gomleksizoglu@healmedy.tech             lAq#H@C@QZ8z    att                 
+Efe Talha Akkaş                     efe.akkas@healmedy.tech                       7vURGt7Bo6ES    att                 
+Eli̇f Kurban                        elif.kurban@healmedy.tech                     dKTAHtcEQ0SQ    paramedik           
+Eli̇f Yildirim                      elif.yildirim@healmedy.tech                   n6%uJn0ajNPc    hemsire             
+Emi̇ne Kaçar                        emine.kacar@healmedy.tech                     9uthPYsFDdl#    hemsire             
+Emi̇rhan Doğan                      emirhan.dogan@healmedy.tech                   ScaCZIAUlwQl    sofor               
+Fati̇h Meki̇kci̇                    fatih.mekikci@healmedy.tech                   I7XaIyTA@gzS    att                 
+Feyzi̇ Fi̇dan                       feyzi.fidan@healmedy.tech                     3foUhvd25eO0    sofor               
+Gamze Hande Boz                     gamze.boz@healmedy.tech                       LVml!CJEdiBJ    paramedik           
+Görkem Gürpüzer                     gorkem.gurpuzer@healmedy.tech                 MPvjBh7nasa4    sofor               
+Haci Mehmet Güleç                   haci.gulec@healmedy.tech                      ejke0qkNn8in    operasyon_muduru    
+Hamza Tarik Ermi̇ş                  hamza.ermis@healmedy.tech                     ICJT5A7b9ulD    paramedik           
+Hasan Güney                         hasan.guney@healmedy.tech                     %8I6CNI!EFd5    paramedik           
+Hati̇ce Acar Canbaz                 hatice.canbaz@healmedy.tech                   I7$t@18vqb8T    paramedik           
+Hayrullah İnce                      hayrullah.ince@healmedy.tech                  Iq8aRzrQ2zeR    bas_sofor           
+İrem Hodullar                       irem.hodullar@healmedy.tech                   voMKDqV1jVZ0    doktor              
+İrem Özdede                         irem.ozdede@healmedy.tech                     mjxx5Dgpyzqm    hemsire             
+Kadi̇r Artar                        kadir.artar@healmedy.tech                     G%SbhAL7V6We    paramedik           
+Kadi̇rhan Alkan                     kadirhan.alkan@healmedy.tech                  WEVCuiOTjcVo    sofor               
+Kubi̇lay Eli̇çora                   kubilay.elicora@healmedy.tech                 $%BtLfipS53X    sofor               
+Mehmetcan Şavli                     mehmetcan.savli@healmedy.tech                 WUXJ8MVSiiDw    sofor               
+Meli̇h Can Doğan                    melih.dogan@healmedy.tech                     pAm2#Gy!f9zg    att                 
+Meli̇ke Karatepe                    melike.karatepe@healmedy.tech                 uYQ!$FLX5TWP    paramedik           
+Mert Çinar                          mert.cinar@healmedy.tech                      cY$0j$#ktkxY    sofor               
+Merve Gi̇rgi̇n                      merve.girgin@healmedy.tech                    Fv8%uU6f1xSq    cagri_merkezi       
+Merve Nur Saygili                   merve.saygili@healmedy.tech                   llozBhR69zPZ    paramedik           
+Mesut Ci̇nkavuk                     mesut.cinkavuk@healmedy.tech                  yGargyXQNuXs    sofor               
+Muhammet Bi̇li̇ci̇                  muhammet.bilici@healmedy.tech                 zAEBD3i3A0k@    att                 
+Murat Gülşen                        murat.gulsen@healmedy.tech                    $GF!O4J!A26R    sofor               
+Murat Keser                         murat.keser@healmedy.tech                     xOKxpd5Jhemv    paramedik           
+Mustafa Karagöl                     mustafa.karagol@healmedy.tech                 d#dqXE9UJw%%    att                 
+Muzaffer Özcan                      muzaffer.ozcan@healmedy.tech                  2bbcaL@FCpeP    att                 
+Mügenur Soykan                      mugenur.soykan@healmedy.tech                  5DW1Slm00fVQ    att                 
+Nesri̇n Tüysüz                      nesrin.tuysuz@healmedy.tech                   EeRg5kA$92oZ    paramedik           
+Neşe Veri̇mci̇k                     nese.verimcik@healmedy.tech                   pHzo4qd9sPB@    hemsire             
+Nuri̇ Işik                          nuri.isik@healmedy.tech                       SmR1aufF3EGk    att                 
+Oktay Tütüncüoğlu                   oktay.tutuncuoglu@healmedy.tech               RskSqL2W0GM2    sofor               
+Onur Yalin                          onur.yalin@healmedy.tech                      nH5BV!suqCl5    sofor               
+Rümeysa Uzunay                      rumeysa.uzunay@healmedy.tech                  g3sG6mkHYuv3    att                 
+Samet Kocapinar                     samet.kocapinar@healmedy.tech                 b7##KZ3WcjNV    sofor               
+Serkan Bi̇lal Battal                serkan.battal@healmedy.tech                   DQ!HD8w$MRS9    sofor               
+Serkan Kami̇t                       serkan.kamit@healmedy.tech                    9qfFdOJgVLHt    att                 
+Şeni̇z Kandemi̇r                    seniz.kandemir@healmedy.tech                  Q#U#3iK9P5aP    att                 
+Şule Karaman                        sule.karaman@healmedy.tech                    5@y7M2JpYi8m    att                 
+Talha Doğukan Kartal                talha.kartal@healmedy.tech                    yAWkZ3Me2W#p    sofor               
+Tayfun Kocaman                      tayfun.kocaman@healmedy.tech                  VFHzPZQc@iiR    att                 
+Turgay Köse                         turgay.kose@healmedy.tech                     phlv!EBtep$e    sofor               
+Uğur Var                            ugur.var@healmedy.tech                        %jYDQsNNHsaO    paramedik           
+Umutcan Özdal                       umutcan.ozdal@healmedy.tech                   up4kD9YPSxvv    hemsire             
+Yasemi̇n Baştürk                    yasemin.basturk@healmedy.tech                 Lo4Gejs1MjDI    cagri_merkezi       
+
+====================================================================================================
+Toplam: 68 personel eklendi
+Atlanan: 0 (zaten mevcut)
+====================================================================================================

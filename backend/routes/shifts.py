@@ -148,7 +148,23 @@ async def get_my_assignments(request: Request):
         "status": {"$in": ["pending", "started"]}
     }).sort("shift_date", -1).to_list(100)
     
-    result = [serialize_assignment(a) for a in assignments]
+    result = []
+    for a in assignments:
+        serialized = serialize_assignment(a)
+        # Araç bilgisini ekle
+        vehicle_id = a.get("vehicle_id")
+        if vehicle_id:
+            vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+            if vehicle:
+                serialized["vehicle_plate"] = vehicle.get("plate", "")
+                serialized["vehicle_type"] = vehicle.get("type", "")
+                serialized["vehicle"] = {
+                    "plate": vehicle.get("plate"),
+                    "type": vehicle.get("type"),
+                    "km": vehicle.get("km")
+                }
+        result.append(serialized)
+    
     return result
 
 @router.get("/assignments")
@@ -447,9 +463,9 @@ async def end_shift(data: ShiftEnd, request: Request):
     result["id"] = result.pop("_id")
     return Shift(**result)
 
-@router.get("/active", response_model=Optional[Shift])
+@router.get("/active")
 async def get_active_shift(request: Request):
-    """Get user's active shift"""
+    """Get user's active shift with vehicle info"""
     user = await get_current_user(request)
     
     shift_doc = await shifts_collection.find_one({
@@ -461,15 +477,29 @@ async def get_active_shift(request: Request):
         return None
     
     shift_doc["id"] = shift_doc.pop("_id")
-    return Shift(**shift_doc)
+    
+    # Araç bilgisini ekle
+    vehicle_id = shift_doc.get("vehicle_id")
+    if vehicle_id and not shift_doc.get("vehicle_plate"):
+        vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+        if vehicle:
+            shift_doc["vehicle_plate"] = vehicle.get("plate", "")
+            shift_doc["vehicle_type"] = vehicle.get("type", "")
+            shift_doc["vehicle"] = {
+                "plate": vehicle.get("plate"),
+                "type": vehicle.get("type"),
+                "km": vehicle.get("km")
+            }
+    
+    return shift_doc
 
-@router.get("/history", response_model=List[Shift])
+@router.get("/history")
 async def get_shift_history(
     request: Request,
     user_id: Optional[str] = None,
     limit: int = 50
 ):
-    """Get shift history"""
+    """Get shift history with vehicle info"""
     current_user = await get_current_user(request)
     
     # If user_id provided, check permission
@@ -483,10 +513,18 @@ async def get_shift_history(
         {"user_id": user_id}
     ).sort("start_time", -1).limit(limit).to_list(limit)
     
+    result = []
     for shift in shifts:
         shift["id"] = shift.pop("_id")
+        # Araç bilgisini ekle
+        vehicle_id = shift.get("vehicle_id")
+        if vehicle_id and not shift.get("vehicle_plate"):
+            vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+            if vehicle:
+                shift["vehicle_plate"] = vehicle.get("plate", "")
+        result.append(shift)
     
-    return shifts
+    return result
 
 @router.get("/stats/summary")
 async def get_shift_stats(request: Request, user_id: Optional[str] = None):

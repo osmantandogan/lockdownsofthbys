@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Camera, X, Check, Upload, AlertCircle } from 'lucide-react';
+import { Camera, X, Check, Upload, AlertCircle, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = null }) => {
@@ -12,6 +12,10 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null); // Mobil için doğrudan kamera açan input
+
+  // Mobil cihaz kontrolü
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // Cleanup camera on unmount
   useEffect(() => {
@@ -195,6 +199,21 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
     fileInputRef.current?.click();
   };
 
+  const openCameraDialog = () => {
+    cameraInputRef.current?.click();
+  };
+
+  // Mobil için doğrudan kamera açma
+  const handleMobileCameraClick = () => {
+    if (isMobile) {
+      // Mobilde doğrudan kamera input'unu aç
+      openCameraDialog();
+    } else {
+      // Desktop'ta web kamerasını başlat
+      startCamera();
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -216,9 +235,18 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
         )}
       </div>
       
-      {/* Hidden file input */}
+      {/* Hidden file input for gallery */}
       <input
         ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+      
+      {/* Hidden camera input for mobile - directly opens camera */}
+      <input
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -238,10 +266,11 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
               )}
               
               <div className="flex gap-2">
+                {/* Ana kamera butonu - mobilde doğrudan kamera açar */}
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={startCamera}
+                  onClick={handleMobileCameraClick}
                   className="flex-1"
                   disabled={cameraLoading}
                 >
@@ -252,8 +281,8 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
                     </>
                   ) : (
                     <>
-                      <Camera className="h-4 w-4 mr-2" />
-                      Fotoğraf Çek
+                      {isMobile ? <Smartphone className="h-4 w-4 mr-2" /> : <Camera className="h-4 w-4 mr-2" />}
+                      {isMobile ? 'Kamerayla Çek' : 'Fotoğraf Çek'}
                     </>
                   )}
                 </Button>
@@ -266,6 +295,13 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
                   Yükle
                 </Button>
               </div>
+              
+              {/* Mobil için alternatif butonlar */}
+              {isMobile && (
+                <p className="text-xs text-gray-500 text-center">
+                  📱 Kamera açılmazsa "Yükle" butonuyla galeriden seçebilirsiniz
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

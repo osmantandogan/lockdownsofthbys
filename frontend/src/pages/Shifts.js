@@ -102,7 +102,7 @@ const Shifts = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <p><span className="font-medium">Araç:</span> {activeShift.vehicle_id}</p>
+              <p><span className="font-medium">Araç:</span> {activeShift.vehicle_plate || activeShift.vehicle?.plate || activeShift.vehicle_id}</p>
               <p><span className="font-medium">Başlangıç:</span> {new Date(activeShift.start_time).toLocaleString('tr-TR')}</p>
               <p>
                 <span className="font-medium">Süre:</span> 
@@ -146,7 +146,9 @@ const Shifts = () => {
                         <p className="font-medium">
                           {new Date(assignment.shift_date).toLocaleDateString('tr-TR')}
                         </p>
-                        <p className="text-sm text-gray-600">Araç: {assignment.vehicle_id}</p>
+                        <p className="text-sm text-gray-600">
+                          Araç: {assignment.vehicle_plate || assignment.vehicle?.plate || 'Atanmadı'}
+                        </p>
                       </div>
                       <Badge className="bg-yellow-100 text-yellow-800">
                         {assignment.status === 'pending' ? 'Bekliyor' : 'Başladı'}
@@ -194,7 +196,7 @@ const Shifts = () => {
                   {shift.duration_minutes && (
                     <div className="text-right">
                       <p className="font-medium">{formatDuration(shift.duration_minutes)}</p>
-                      <p className="text-sm text-gray-500">Araç: {shift.vehicle_id}</p>
+                      <p className="text-sm text-gray-500">Araç: {shift.vehicle_plate || shift.vehicle_id}</p>
                     </div>
                   )}
                 </div>
