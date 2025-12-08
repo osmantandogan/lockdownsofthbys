@@ -61,79 +61,89 @@ async def verify_approval_code(data: VerifyCodeRequest, request: Request):
     Onay kodunu doğrula
     Desteklenen yöntemler:
     1. Approval kaydındaki özel kod
-    2. Yöneticilerin internal OTP'si
+    2. Yöneticilerin internal OTP'si (her zaman geçerli)
     """
     from datetime import timedelta
+    from services.otp_service import verify_user_otp, generate_user_otp_secret
     
     user = await get_current_user(request)
-    
-    # Önce approval_service ile dene
-    result = await approval_service.verify_code(
-        code=data.code,
-        approval_type=data.approval_type,
-        verifier_id=user.id
-    )
-    
-    if result.get("valid"):
-        return result
-    
-    # Approval service'te bulunamadıysa, internal OTP kontrolü yap
-    # Bu kullanıcı için bekleyen onay var mı?
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     
+    logger.info(f"Verifying code: {data.code} for user: {user.id}, type: {data.approval_type}")
+    
+    # Yöntem 1: Herhangi bir yöneticinin internal OTP'sini kontrol et (EN ÖNCELİKLİ)
+    managers = await users_collection.find({
+        "role": {"$in": ["bas_sofor", "operasyon_muduru"]}
+    }).to_list(50)
+    
+    logger.info(f"Found {len(managers)} managers to check OTP")
+    
+    for manager in managers:
+        otp_secret = manager.get("otp_secret")
+        if not otp_secret:
+            otp_secret = generate_user_otp_secret()
+            await users_collection.update_one(
+                {"_id": manager.get("_id")},
+                {"$set": {"otp_secret": otp_secret}}
+            )
+            logger.info(f"Generated new OTP secret for manager: {manager.get('name')}")
+        
+        if verify_user_otp(otp_secret, data.code):
+            logger.info(f"✅ OTP verified for manager: {manager.get('name')}")
+            
+            # Eğer pending approval varsa güncelle
+            pending = await approvals_collection.find_one({
+                "requester_id": user.id,
+                "status": "pending"
+            })
+            if pending:
+                await approvals_collection.update_one(
+                    {"_id": pending["_id"]},
+                    {"$set": {
+                        "status": "approved", 
+                        "approved_at": turkey_now, 
+                        "approval_method": f"internal_otp_{manager.get('name')}"
+                    }}
+                )
+            
+            return {
+                "valid": True, 
+                "message": f"Onay kodu doğrulandı ({manager.get('name')} OTP)", 
+                "method": "internal_otp",
+                "approver": manager.get("name")
+            }
+    
+    # Yöntem 2: Özel onay kodu kontrolü
     pending_approval = await approvals_collection.find_one({
         "requester_id": user.id,
         "status": "pending",
         "expires_at": {"$gt": turkey_now}
     })
     
-    if pending_approval:
-        # Bu approval için özel kodu kontrol et
-        if pending_approval.get("code") == data.code:
-            # Onayı tamamla
-            await approvals_collection.update_one(
-                {"_id": pending_approval["_id"]},
-                {"$set": {"status": "approved", "approved_at": turkey_now, "approval_method": "direct_code"}}
-            )
-            return {"valid": True, "message": "Onay kodu doğrulandı", "method": "direct_code"}
-        
-        # Internal OTP kontrolü
-        if pending_approval.get("accept_internal_otp"):
-            from services.otp_service import verify_user_otp, generate_user_otp_secret
-            
-            # Tüm yöneticileri kontrol et
-            managers = await users_collection.find({
-                "role": {"$in": ["bas_sofor", "operasyon_muduru"]}
-            }).to_list(50)
-            
-            for manager in managers:
-                otp_secret = manager.get("otp_secret")
-                if not otp_secret:
-                    otp_secret = generate_user_otp_secret()
-                    await users_collection.update_one(
-                        {"_id": manager.get("_id")},
-                        {"$set": {"otp_secret": otp_secret}}
-                    )
-                
-                if verify_user_otp(otp_secret, data.code):
-                    # Onayı tamamla
-                    await approvals_collection.update_one(
-                        {"_id": pending_approval["_id"]},
-                        {"$set": {
-                            "status": "approved", 
-                            "approved_at": turkey_now, 
-                            "approval_method": f"internal_otp_{manager.get('name', manager.get('_id'))}"
-                        }}
-                    )
-                    return {
-                        "valid": True, 
-                        "message": "Onay kodu doğrulandı", 
-                        "method": f"internal_otp"
-                    }
+    if pending_approval and pending_approval.get("code") == data.code:
+        await approvals_collection.update_one(
+            {"_id": pending_approval["_id"]},
+            {"$set": {"status": "approved", "approved_at": turkey_now, "approval_method": "direct_code"}}
+        )
+        logger.info(f"✅ Direct code verified for user: {user.id}")
+        return {"valid": True, "message": "Onay kodu doğrulandı", "method": "direct_code"}
     
+    # Yöntem 3: Approval service (legacy)
+    try:
+        result = await approval_service.verify_code(
+            code=data.code,
+            approval_type=data.approval_type,
+            verifier_id=user.id
+        )
+        if result.get("valid"):
+            return result
+    except Exception as e:
+        logger.warning(f"Approval service error: {e}")
+    
+    logger.warning(f"❌ No valid code found for: {data.code}")
     raise HTTPException(
         status_code=400,
-        detail="Onay kodu yanlış. SMS/Email kodu veya yöneticinin internal OTP'sini kullanabilirsiniz."
+        detail="Onay kodu yanlış. Yöneticinin bildirim panelindeki (🔔) OTP kodunu kullanın."
     )
 
 
