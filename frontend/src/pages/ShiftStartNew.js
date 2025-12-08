@@ -238,9 +238,6 @@ const ShiftStartNew = () => {
         </CardContent>
       </Card>
 
-      {/* QR Reader div'i her zaman DOM'da kal - sadece görünürlük değişsin */}
-      <div id="qr-reader" style={{ display: step === 1 && !showManualInput && scannerActive ? 'block' : 'none' }} />
-      
       {step === 1 && (
         <Card>
           <CardHeader>
@@ -252,21 +249,37 @@ const ShiftStartNew = () => {
           <CardContent className="space-y-4">
             {!showManualInput ? (
               <>
-                {/* QR Scanner görünüm alanı */}
-                {scannerActive ? (
-                  <div className="w-full min-h-[300px] bg-black rounded-lg overflow-hidden">
-                    {/* Html5Qrcode kendi video'sunu qr-reader div'ine ekler */}
-                    <p className="text-white text-center p-4 text-sm">
-                      📷 Kamera aktif - QR kodu çerçeveye getirin
-                    </p>
-                  </div>
-                ) : (
-                  <div className="w-full min-h-[250px] bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500 text-center p-4">
-                      QR okuyucuyu başlatmak için aşağıdaki butona tıklayın
-                    </p>
-                  </div>
-                )}
+                {/* QR Scanner görünüm alanı - div her zaman burada ama görünürlük değişir */}
+                <div className="w-full min-h-[300px] bg-gray-900 rounded-lg overflow-hidden relative">
+                  {/* QR Reader div - Html5Qrcode buraya video ekler */}
+                  <div 
+                    id="qr-reader" 
+                    className="w-full h-full"
+                    style={{ 
+                      minHeight: '300px',
+                      display: scannerActive ? 'block' : 'none' 
+                    }} 
+                  />
+                  
+                  {/* Scanner aktif değilken placeholder göster */}
+                  {!scannerActive && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                      <p className="text-gray-500 text-center p-4">
+                        QR okuyucuyu başlatmak için aşağıdaki butona tıklayın
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Scanner aktifken bilgi mesajı */}
+                  {scannerActive && (
+                    <div className="absolute bottom-2 left-0 right-0 text-center">
+                      <span className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                        📷 QR kodu çerçeveye getirin
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
                 <div className="flex gap-2">
                   <Button 
                     onClick={startQRScanner} 
@@ -322,6 +335,9 @@ const ShiftStartNew = () => {
           </CardContent>
         </Card>
       )}
+      
+      {/* Step 1'de değilken qr-reader div'i gizli tut - ama DOM'da kalsın */}
+      {step !== 1 && <div id="qr-reader" style={{ display: 'none' }} />}
 
       {step === 2 && (
         <div className="space-y-4">
