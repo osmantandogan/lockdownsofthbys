@@ -80,9 +80,11 @@ async def get_forms(
         if submitter:
             form["submitter_name"] = submitter.get("name", "Bilinmiyor")
             form["submitter_role"] = ROLE_LABELS.get(submitter.get("role"), submitter.get("role", ""))
+            form["submitter_photo"] = submitter.get("profile_photo")  # Profil fotoğrafı
         else:
             form["submitter_name"] = form.get("submitted_by", "Bilinmiyor")
             form["submitter_role"] = ""
+            form["submitter_photo"] = None
         
         # Vaka bilgilerini al
         if form.get("case_id"):

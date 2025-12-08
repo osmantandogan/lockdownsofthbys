@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { casesAPI, vehiclesAPI, stockAPI, shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Activity, Truck, Package, AlertTriangle, Users, Building2, Clock, User } from 'lucide-react';
+import { Activity, Truck, Package, AlertTriangle, Users, Building2, Clock, FileText, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     activeCases: 0,
     availableVehicles: 0,
@@ -92,14 +94,16 @@ const Dashboard = () => {
     return Object.values(grouped);
   };
 
-  const StatCard = ({ title, value, icon: Icon, color, testId }) => (
-    <Card data-testid={testId}>
+  const StatCard = ({ title, value, icon: Icon, color, bgColor, testId }) => (
+    <Card data-testid={testId} className="border-0 shadow-md hover:shadow-lg transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${color}`} />
+        <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>
+        <div className={`p-2 rounded-lg ${bgColor}`}>
+          <Icon className={`h-4 w-4 ${color}`} />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{loading ? '...' : value}</div>
+        <div className="text-3xl font-bold text-gray-900">{loading ? '...' : value}</div>
       </CardContent>
     </Card>
   );
@@ -107,16 +111,18 @@ const Dashboard = () => {
   return (
     <div className="space-y-6" data-testid="dashboard-page">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500">Sistem durumuna genel bakış</p>
       </div>
 
+      {/* 1. STAT KARTLARI (En Üstte) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Aktif Vakalar"
           value={stats.activeCases}
           icon={Activity}
-          color="text-blue-600"
+          color="text-red-600"
+          bgColor="bg-red-100"
           testId="stat-active-cases"
         />
         <StatCard
@@ -124,65 +130,83 @@ const Dashboard = () => {
           value={stats.availableVehicles}
           icon={Truck}
           color="text-green-600"
+          bgColor="bg-green-100"
           testId="stat-available-vehicles"
         />
         <StatCard
           title="Yüksek Öncelikli"
           value={stats.highPriorityCases}
           icon={AlertTriangle}
-          color="text-red-600"
+          color="text-orange-600"
+          bgColor="bg-orange-100"
           testId="stat-high-priority"
         />
         <StatCard
           title="Kritik Stok"
           value={stats.criticalStock}
           icon={Package}
-          color="text-orange-600"
+          color="text-purple-600"
+          bgColor="bg-purple-100"
           testId="stat-critical-stock"
         />
       </div>
 
-      {/* Stok Uyarıları */}
-      {(stats.criticalStock > 0 || stats.expired > 0 || stats.expiringSoon > 0) && (
-        <Card data-testid="stock-alerts">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-orange-600" />
-              <span>Stok Uyarıları</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {stats.criticalStock > 0 && (
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <span className="text-sm font-medium text-red-900">
-                  Kritik Seviyede Stok
-                </span>
-                <span className="text-sm font-bold text-red-600">{stats.criticalStock}</span>
-              </div>
-            )}
-            {stats.expired > 0 && (
-              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                <span className="text-sm font-medium text-orange-900">
-                  Süresi Dolmuş Ürünler
-                </span>
-                <span className="text-sm font-bold text-orange-600">{stats.expired}</span>
-              </div>
-            )}
-            {stats.expiringSoon > 0 && (
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <span className="text-sm font-medium text-yellow-900">
-                  Süresi Dolacak Ürünler (30 gün)
-                </span>
-                <span className="text-sm font-bold text-yellow-600">{stats.expiringSoon}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* 2. HIZLI AKSİYONLAR (Stat kartlarının hemen altında) */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-semibold text-gray-800">Hızlı Aksiyonlar</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <button
+            onClick={() => navigate('/dashboard/call-center')}
+            className="p-4 text-left rounded-xl border-2 border-red-100 hover:border-red-500 hover:bg-red-50 transition-all group"
+            data-testid="quick-action-new-case"
+          >
+            <div className="p-2 w-fit rounded-lg bg-red-100 group-hover:bg-red-500 transition-colors mb-3">
+              <Activity className="h-5 w-5 text-red-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="font-semibold text-gray-900">Yeni Vaka</div>
+            <div className="text-xs text-gray-500 mt-1">Vaka oluştur</div>
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/cases')}
+            className="p-4 text-left rounded-xl border-2 border-gray-100 hover:border-red-500 hover:bg-red-50 transition-all group"
+            data-testid="quick-action-cases"
+          >
+            <div className="p-2 w-fit rounded-lg bg-gray-100 group-hover:bg-red-500 transition-colors mb-3">
+              <FileText className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="font-semibold text-gray-900">Vakalar</div>
+            <div className="text-xs text-gray-500 mt-1">Vaka listesi</div>
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/stock')}
+            className="p-4 text-left rounded-xl border-2 border-gray-100 hover:border-red-500 hover:bg-red-50 transition-all group"
+            data-testid="quick-action-stock"
+          >
+            <div className="p-2 w-fit rounded-lg bg-gray-100 group-hover:bg-red-500 transition-colors mb-3">
+              <Package className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="font-semibold text-gray-900">Stok</div>
+            <div className="text-xs text-gray-500 mt-1">Stok yönetimi</div>
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/shifts')}
+            className="p-4 text-left rounded-xl border-2 border-gray-100 hover:border-red-500 hover:bg-red-50 transition-all group"
+            data-testid="quick-action-shift"
+          >
+            <div className="p-2 w-fit rounded-lg bg-gray-100 group-hover:bg-red-500 transition-colors mb-3">
+              <Calendar className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="font-semibold text-gray-900">Vardiya</div>
+            <div className="text-xs text-gray-500 mt-1">Vardiya başlat</div>
+          </button>
+        </CardContent>
+      </Card>
 
-      {/* Bugünkü Görevli Personel */}
+      {/* 3. BUGÜNKÜ GÖREVLİ PERSONEL (Kırmızı Tema) */}
       <Card className="overflow-hidden border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-white/20 rounded-lg">
@@ -190,7 +214,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <span className="text-xl font-bold">Bugün Sahada</span>
-                <p className="text-indigo-100 text-sm font-normal mt-0.5">
+                <p className="text-red-100 text-sm font-normal mt-0.5">
                   {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
               </div>
@@ -213,11 +237,11 @@ const Dashboard = () => {
               {/* Araçlardaki Personel */}
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <div className="p-1.5 bg-blue-100 rounded-lg">
-                    <Truck className="h-4 w-4 text-blue-600" />
+                  <div className="p-1.5 bg-red-100 rounded-lg">
+                    <Truck className="h-4 w-4 text-red-600" />
                   </div>
                   <h3 className="font-semibold text-gray-900">Araçlarda Görevli</h3>
-                  <Badge variant="secondary" className="ml-auto">
+                  <Badge variant="secondary" className="ml-auto bg-red-100 text-red-700">
                     {todayAssignments.vehicle_assignments?.length || 0}
                   </Badge>
                 </div>
@@ -231,11 +255,11 @@ const Dashboard = () => {
                     {groupByVehicle(todayAssignments.vehicle_assignments || []).map((vehicle, idx) => (
                       <div 
                         key={idx}
-                        className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100"
+                        className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 border border-red-100"
                       >
                         <div className="flex items-center space-x-2 mb-3">
                           <span className="text-2xl">🚑</span>
-                          <span className="font-bold text-blue-700">{vehicle.plate}</span>
+                          <span className="font-bold text-red-700">{vehicle.plate}</span>
                         </div>
                         <div className="space-y-2">
                           {vehicle.staff.map((person, pIdx) => (
@@ -244,12 +268,16 @@ const Dashboard = () => {
                               className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm"
                             >
                               <div className="flex items-center space-x-2">
-                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                                  {(person.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                </div>
+                                {person.profile_photo ? (
+                                  <img src={person.profile_photo} alt={person.user_name} className="w-8 h-8 rounded-full object-cover border-2 border-red-200" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
+                                    {(person.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                  </div>
+                                )}
                                 <span className="font-medium text-sm">{person.user_name}</span>
                               </div>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs border-red-200 text-red-700">
                                 {getRoleLabel(person.user_role)}
                               </Badge>
                             </div>
@@ -264,11 +292,11 @@ const Dashboard = () => {
               {/* Sağlık Merkezindeki Personel */}
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <div className="p-1.5 bg-emerald-100 rounded-lg">
-                    <Building2 className="h-4 w-4 text-emerald-600" />
+                  <div className="p-1.5 bg-red-100 rounded-lg">
+                    <Building2 className="h-4 w-4 text-red-600" />
                   </div>
                   <h3 className="font-semibold text-gray-900">Sağlık Merkezinde</h3>
-                  <Badge variant="secondary" className="ml-auto">
+                  <Badge variant="secondary" className="ml-auto bg-red-100 text-red-700">
                     {todayAssignments.health_center_assignments?.length || 0}
                   </Badge>
                 </div>
@@ -278,10 +306,10 @@ const Dashboard = () => {
                     Sağlık merkezinde görevli yok
                   </p>
                 ) : (
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100">
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 border border-red-100">
                     <div className="flex items-center space-x-2 mb-3">
                       <span className="text-2xl">🏥</span>
-                      <span className="font-bold text-emerald-700">Sağlık Merkezi</span>
+                      <span className="font-bold text-red-700">Sağlık Merkezi</span>
                     </div>
                     <div className="space-y-2">
                       {(todayAssignments.health_center_assignments || []).map((person, idx) => (
@@ -290,9 +318,13 @@ const Dashboard = () => {
                           className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm"
                         >
                           <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
-                              {(person.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
-                            </div>
+                            {person.profile_photo ? (
+                              <img src={person.profile_photo} alt={person.user_name} className="w-8 h-8 rounded-full object-cover border-2 border-red-200" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
+                                {(person.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
+                              </div>
+                            )}
                             <div>
                               <span className="font-medium text-sm block">{person.user_name}</span>
                               {person.start_time && person.end_time && (
@@ -303,7 +335,7 @@ const Dashboard = () => {
                               )}
                             </div>
                           </div>
-                          <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200 text-emerald-700">
+                          <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700">
                             {getRoleLabel(person.user_role)}
                           </Badge>
                         </div>
@@ -317,50 +349,43 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Hızlı Aksiyonlar */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Hızlı Aksiyonlar</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <button
-            onClick={() => window.location.href = '/dashboard/call-center'}
-            className="p-4 text-left rounded-lg border hover:border-blue-500 hover:bg-blue-50 transition-colors"
-            data-testid="quick-action-new-case"
-          >
-            <Activity className="h-6 w-6 text-blue-600 mb-2" />
-            <div className="font-medium">Yeni Vaka</div>
-            <div className="text-xs text-gray-500">Vaka oluştur</div>
-          </button>
-          <button
-            onClick={() => window.location.href = '/dashboard/cases'}
-            className="p-4 text-left rounded-lg border hover:border-green-500 hover:bg-green-50 transition-colors"
-            data-testid="quick-action-cases"
-          >
-            <Activity className="h-6 w-6 text-green-600 mb-2" />
-            <div className="font-medium">Vakalar</div>
-            <div className="text-xs text-gray-500">Vaka listesi</div>
-          </button>
-          <button
-            onClick={() => window.location.href = '/dashboard/stock'}
-            className="p-4 text-left rounded-lg border hover:border-orange-500 hover:bg-orange-50 transition-colors"
-            data-testid="quick-action-stock"
-          >
-            <Package className="h-6 w-6 text-orange-600 mb-2" />
-            <div className="font-medium">Stok</div>
-            <div className="text-xs text-gray-500">Stok yönetimi</div>
-          </button>
-          <button
-            onClick={() => window.location.href = '/dashboard/shifts'}
-            className="p-4 text-left rounded-lg border hover:border-purple-500 hover:bg-purple-50 transition-colors"
-            data-testid="quick-action-shift"
-          >
-            <Activity className="h-6 w-6 text-purple-600 mb-2" />
-            <div className="font-medium">Vardiya</div>
-            <div className="text-xs text-gray-500">Vardiya başlat</div>
-          </button>
-        </CardContent>
-      </Card>
+      {/* 4. STOK UYARILARI (Varsa) */}
+      {(stats.criticalStock > 0 || stats.expired > 0 || stats.expiringSoon > 0) && (
+        <Card data-testid="stock-alerts" className="border-0 shadow-md border-l-4 border-l-orange-500">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <span>Stok Uyarıları</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {stats.criticalStock > 0 && (
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                <span className="text-sm font-medium text-red-900">
+                  Kritik Seviyede Stok
+                </span>
+                <Badge className="bg-red-600 text-white">{stats.criticalStock}</Badge>
+              </div>
+            )}
+            {stats.expired > 0 && (
+              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100">
+                <span className="text-sm font-medium text-orange-900">
+                  Süresi Dolmuş Ürünler
+                </span>
+                <Badge className="bg-orange-600 text-white">{stats.expired}</Badge>
+              </div>
+            )}
+            {stats.expiringSoon > 0 && (
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                <span className="text-sm font-medium text-yellow-900">
+                  Süresi Dolacak Ürünler (30 gün)
+                </span>
+                <Badge className="bg-yellow-600 text-white">{stats.expiringSoon}</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -8,7 +8,8 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
-import { Phone, User, MapPin, AlertCircle, Truck, Bell } from 'lucide-react';
+import { Phone, User, MapPin, AlertCircle, Truck, Bell, FileText, Building2, Hash } from 'lucide-react';
+import { COMPANIES, searchCompanies } from '../constants/companies';
 
 const CallCenter = () => {
   const navigate = useNavigate();
@@ -16,6 +17,10 @@ const CallCenter = () => {
   const [vehicles, setVehicles] = useState([]);
   const [createdCaseId, setCreatedCaseId] = useState(null);
   const [sendingNotification, setSendingNotification] = useState(false);
+  const [nextCaseNumber, setNextCaseNumber] = useState('');
+  const [companySearch, setCompanySearch] = useState('');
+  const [filteredCompanies, setFilteredCompanies] = useState(COMPANIES);
+  
   const [formData, setFormData] = useState({
     // Caller Info
     callerName: '',
@@ -28,6 +33,9 @@ const CallCenter = () => {
     patientAge: '',
     patientGender: '',
     patientComplaint: '',
+    // Company
+    companyId: '',
+    companyName: '',
     // Location
     locationAddress: '',
     locationDistrict: '',
@@ -40,7 +48,23 @@ const CallCenter = () => {
 
   useEffect(() => {
     loadVehicles();
+    generateNextCaseNumber();
   }, []);
+
+  // Sonraki vaka numarasını oluştur (YYYYMMDD-XXXXX formatında, 10001'den başlar)
+  const generateNextCaseNumber = async () => {
+    try {
+      // Backend'den son vaka numarasını alıyoruz
+      const response = await casesAPI.getNextCaseNumber();
+      setNextCaseNumber(response.data.next_case_number);
+    } catch (error) {
+      // Fallback: Eğer endpoint yoksa local olarak oluştur
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+      const baseNumber = 10001;
+      setNextCaseNumber(`${dateStr}-${baseNumber}`);
+    }
+  };
 
   const loadVehicles = async () => {
     try {
@@ -53,6 +77,30 @@ const CallCenter = () => {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Sadece numerik giriş için telefon handler
+  const handlePhoneChange = (value) => {
+    // Sadece rakamları al
+    const numericValue = value.replace(/[^0-9]/g, '');
+    // Maksimum 11 karakter (Türkiye telefon formatı)
+    const limitedValue = numericValue.slice(0, 11);
+    handleChange('callerPhone', limitedValue);
+  };
+
+  // Firma arama
+  const handleCompanySearch = (value) => {
+    setCompanySearch(value);
+    setFilteredCompanies(searchCompanies(value));
+  };
+
+  // Firma seçimi
+  const handleCompanySelect = (companyId) => {
+    const company = COMPANIES.find(c => c.id.toString() === companyId);
+    if (company) {
+      handleChange('companyId', company.id.toString());
+      handleChange('companyName', company.name);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -74,6 +122,7 @@ const CallCenter = () => {
           gender: formData.patientGender,
           complaint: formData.patientComplaint
         },
+        company: formData.companyName || null,
         location: {
           address: formData.locationAddress,
           district: formData.locationDistrict || null,
@@ -120,9 +169,21 @@ const CallCenter = () => {
 
   return (
     <div className="space-y-6" data-testid="call-center-page">
-      <div>
-        <h1 className="text-3xl font-bold">Çağrı Merkezi</h1>
-        <p className="text-gray-500">Yeni vaka oluştur</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Çağrı Merkezi</h1>
+          <p className="text-gray-500">Yeni vaka oluştur</p>
+        </div>
+        {/* Vaka Numarası Önizleme */}
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+          <div className="flex items-center space-x-2">
+            <Hash className="h-5 w-5 text-red-600" />
+            <div>
+              <p className="text-xs text-red-600 font-medium">Yeni Vaka No</p>
+              <p className="text-lg font-bold text-red-700">{nextCaseNumber || 'Yükleniyor...'}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -130,41 +191,101 @@ const CallCenter = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Phone className="h-5 w-5" />
-              <span>Arayan Bilgileri</span>
+              <Phone className="h-5 w-5 text-red-600" />
+              <span>Arayan Kişi Bilgileri</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="callerName">Ad Soyad *</Label>
+              <Label htmlFor="callerName">Arayan Kişi Ad Soyad *</Label>
               <Input
                 id="callerName"
                 value={formData.callerName}
                 onChange={(e) => handleChange('callerName', e.target.value)}
+                placeholder="Arayan kişinin adı soyadı"
                 required
                 data-testid="caller-name"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="callerPhone">Telefon *</Label>
+              <Label htmlFor="callerPhone">Telefon * (Sadece Rakam)</Label>
               <Input
                 id="callerPhone"
+                type="tel"
+                inputMode="numeric"
                 value={formData.callerPhone}
-                onChange={(e) => handleChange('callerPhone', e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="05XXXXXXXXX"
                 required
                 data-testid="caller-phone"
+                maxLength={11}
               />
+              <p className="text-xs text-gray-500">Örn: 05301234567</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="callerRelationship">Yakınlık *</Label>
-              <Input
-                id="callerRelationship"
-                placeholder="Örn: Eşi, Arkadaşı, Komşusu"
-                value={formData.callerRelationship}
-                onChange={(e) => handleChange('callerRelationship', e.target.value)}
-                required
-                data-testid="caller-relationship"
-              />
+              <Label htmlFor="callerRelationship">Hastaya Yakınlığı *</Label>
+              <Select value={formData.callerRelationship} onValueChange={(value) => handleChange('callerRelationship', value)} required>
+                <SelectTrigger data-testid="caller-relationship">
+                  <SelectValue placeholder="Seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kendisi">Kendisi</SelectItem>
+                  <SelectItem value="esi">Eşi</SelectItem>
+                  <SelectItem value="annesi">Annesi</SelectItem>
+                  <SelectItem value="babasi">Babası</SelectItem>
+                  <SelectItem value="cocugu">Çocuğu</SelectItem>
+                  <SelectItem value="kardesi">Kardeşi</SelectItem>
+                  <SelectItem value="arkadasi">Arkadaşı</SelectItem>
+                  <SelectItem value="komsusu">Komşusu</SelectItem>
+                  <SelectItem value="is_arkadasi">İş Arkadaşı</SelectItem>
+                  <SelectItem value="diger">Diğer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Firma Seçimi */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building2 className="h-5 w-5 text-red-600" />
+              <span>Firma Bilgisi *</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="company">Firma Seçin *</Label>
+              <Select value={formData.companyId} onValueChange={handleCompanySelect} required>
+                <SelectTrigger data-testid="company-select">
+                  <SelectValue placeholder="Firma seçin veya arayın..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  <div className="px-2 py-2 sticky top-0 bg-white border-b">
+                    <Input
+                      placeholder="Firma ara..."
+                      value={companySearch}
+                      onChange={(e) => handleCompanySearch(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  {filteredCompanies.map((company) => (
+                    <SelectItem key={company.id} value={company.id.toString()}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                  {filteredCompanies.length === 0 && (
+                    <div className="px-2 py-4 text-center text-gray-500 text-sm">
+                      Firma bulunamadı
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              {formData.companyName && (
+                <p className="text-sm text-green-600 font-medium">
+                  Seçilen: {formData.companyName}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -173,28 +294,30 @@ const CallCenter = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
+              <User className="h-5 w-5 text-red-600" />
               <span>Hasta Bilgileri</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="patientName">Ad *</Label>
+                <Label htmlFor="patientName">Hastanın Adı *</Label>
                 <Input
                   id="patientName"
                   value={formData.patientName}
                   onChange={(e) => handleChange('patientName', e.target.value)}
+                  placeholder="Hastanın adı"
                   required
                   data-testid="patient-name"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="patientSurname">Soyad *</Label>
+                <Label htmlFor="patientSurname">Hastanın Soyadı *</Label>
                 <Input
                   id="patientSurname"
                   value={formData.patientSurname}
                   onChange={(e) => handleChange('patientSurname', e.target.value)}
+                  placeholder="Hastanın soyadı"
                   required
                   data-testid="patient-surname"
                 />
@@ -203,8 +326,11 @@ const CallCenter = () => {
                 <Label htmlFor="patientTcNo">TC Kimlik No</Label>
                 <Input
                   id="patientTcNo"
+                  type="tel"
+                  inputMode="numeric"
                   value={formData.patientTcNo}
-                  onChange={(e) => handleChange('patientTcNo', e.target.value)}
+                  onChange={(e) => handleChange('patientTcNo', e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                  placeholder="Opsiyonel"
                   maxLength={11}
                   data-testid="patient-tc"
                 />
@@ -216,8 +342,11 @@ const CallCenter = () => {
                 <Input
                   id="patientAge"
                   type="number"
+                  min="0"
+                  max="150"
                   value={formData.patientAge}
                   onChange={(e) => handleChange('patientAge', e.target.value)}
+                  placeholder="Yaş"
                   required
                   data-testid="patient-age"
                 />
@@ -237,10 +366,10 @@ const CallCenter = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="patientComplaint">Şikayet *</Label>
+              <Label htmlFor="patientComplaint">Şikayet / Olay Açıklaması *</Label>
               <Textarea
                 id="patientComplaint"
-                placeholder="Hastanın şikayetini detaylı açıklayın"
+                placeholder="Hastanın şikayetini veya olayı detaylı açıklayın"
                 value={formData.patientComplaint}
                 onChange={(e) => handleChange('patientComplaint', e.target.value)}
                 required
@@ -255,7 +384,7 @@ const CallCenter = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5" />
+              <MapPin className="h-5 w-5 text-red-600" />
               <span>Konum Bilgileri</span>
             </CardTitle>
           </CardHeader>
@@ -279,6 +408,7 @@ const CallCenter = () => {
                   id="locationDistrict"
                   value={formData.locationDistrict}
                   onChange={(e) => handleChange('locationDistrict', e.target.value)}
+                  placeholder="İlçe adı"
                   data-testid="location-district"
                 />
               </div>
@@ -288,6 +418,7 @@ const CallCenter = () => {
                   id="locationVillage"
                   value={formData.locationVillage}
                   onChange={(e) => handleChange('locationVillage', e.target.value)}
+                  placeholder="Köy veya mahalle adı"
                   data-testid="location-village"
                 />
               </div>
@@ -299,7 +430,7 @@ const CallCenter = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5" />
+              <AlertCircle className="h-5 w-5 text-red-600" />
               <span>Öncelik Seviyesi</span>
             </CardTitle>
           </CardHeader>
@@ -312,7 +443,7 @@ const CallCenter = () => {
                 <SelectItem value="yuksek">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span>Yüksek (Kırmızı)</span>
+                    <span>Yüksek (Kırmızı) - Acil</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="orta">
@@ -336,7 +467,7 @@ const CallCenter = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Truck className="h-5 w-5" />
+              <Truck className="h-5 w-5 text-red-600" />
               <span>Araç Seçimi (Opsiyonel)</span>
             </CardTitle>
           </CardHeader>
@@ -378,6 +509,7 @@ const CallCenter = () => {
             <Button
               type="submit"
               disabled={loading}
+              className="bg-red-600 hover:bg-red-700"
               data-testid="create-case-button"
             >
               {loading ? 'Oluşturuluyor...' : 'Vaka Oluştur'}

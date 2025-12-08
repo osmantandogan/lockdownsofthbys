@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { shiftsAPI, vehiclesAPI } from '../../api';
+import PDFExportButton from '../PDFExportButton';
+import { exportDailyControlForm } from '../../utils/pdfExport';
 
 
   const handleSave = async () => {
@@ -309,9 +311,35 @@ import { shiftsAPI, vehiclesAPI } from '../../api';
       </div>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline">🗑 Temizle</Button>
-        <Button variant="outline">💾 PDF Önizleme</Button>
-        <Button variant="outline">🖨 Yazdır</Button>
+        <Button variant="outline" onClick={() => {
+          const initialData = {
+            istasyonAdi: '',
+            plaka: '',
+            km: '',
+            tarih: new Date().toISOString().split('T')[0],
+            aciklama: '',
+            teslimEden: '',
+            teslimAlan: ''
+          };
+          if (onChange) onChange(initialData);
+          else setLocalFormData(initialData);
+          setChecks({});
+          toast.success('Form temizlendi');
+        }}>🗑 Temizle</Button>
+        <PDFExportButton 
+          formType="daily_control"
+          formData={{...formData, ...checks}}
+          filename={`gunluk_kontrol_${formData.plaka || 'form'}`}
+          variant="outline"
+        >
+          📄 PDF İndir
+        </PDFExportButton>
+        <Button variant="outline" onClick={() => {
+          const doc = exportDailyControlForm({...formData, ...checks});
+          const blob = doc.output('blob');
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        }}>🔍 PDF Önizleme</Button>
         <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>

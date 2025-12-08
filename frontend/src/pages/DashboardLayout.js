@@ -20,7 +20,8 @@ import {
   Archive as ArchiveIcon,
   FileCog,
   Bell,
-  Gauge
+  Gauge,
+  UserPlus
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationDropdown from '../components/NotificationDropdown';
@@ -37,11 +38,12 @@ const DashboardLayout = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'doktor'] },
+    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis'] },
+    { path: '/dashboard/patient-registration', icon: UserPlus, label: 'Kayıt', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
+    { path: '/dashboard/my-stock', icon: Package, label: 'Lokasyon Stoğum', roles: ['att', 'paramedik', 'hemsire', 'sofor'] },
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar' },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar' },
-    { path: '/dashboard/vehicle-km-report', icon: Gauge, label: 'Araç KM Raporu', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
-    { path: '/dashboard/stock', icon: Package, label: 'Stok' },
+    { path: '/dashboard/stock', icon: Package, label: 'Stok', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },
@@ -111,11 +113,11 @@ const DashboardLayout = () => {
 
         <div className="p-4 border-b">
           <div className="flex items-center space-x-3">
-            {user?.picture ? (
-              <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
+            {user?.profile_photo || user?.picture ? (
+              <img src={user.profile_photo || user.picture} alt={user.name} className="w-10 h-10 rounded-full object-cover border-2 border-red-200" />
             ) : (
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-medium">{user?.name?.[0]}</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold">{user?.name?.[0]?.toUpperCase()}</span>
               </div>
             )}
             <div className="flex-1 min-w-0">

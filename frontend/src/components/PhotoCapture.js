@@ -1,27 +1,118 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Camera, X, Check } from 'lucide-react';
+import { Camera, X, Check, Upload, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
-const PhotoCapture = ({ title, onPhotoCapture, required = false }) => {
-  const [photo, setPhoto] = useState(null);
+const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = null }) => {
+  const [photo, setPhoto] = useState(initialPhoto);
   const [showCamera, setShowCamera] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  // Update photo when initialPhoto changes
+  useEffect(() => {
+    if (initialPhoto) {
+      setPhoto(initialPhoto);
+    }
+  }, [initialPhoto]);
+
+  const checkCameraSupport = () => {
+    // Check if we're on HTTPS or localhost
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure) {
+      return { supported: false, reason: 'Kamera için HTTPS bağlantısı gerekli. Dosya yükleyebilirsiniz.' };
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return { supported: false, reason: 'Tarayıcınız kamera erişimini desteklemiyor. Dosya yükleyebilirsiniz.' };
+    }
+
+    return { supported: true };
+  };
 
   const startCamera = async () => {
+    const check = checkCameraSupport();
+    if (!check.supported) {
+      setCameraError(check.reason);
+      toast.error(check.reason);
+      return;
+    }
+
+    setCameraLoading(true);
+    setCameraError(null);
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 1280, height: 720 }
-      });
+      // Try back camera first, then any camera
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+      } catch {
+        // Fallback to any available camera
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
+
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Wait for video to be ready
+        await new Promise((resolve, reject) => {
+          videoRef.current.onloadedmetadata = resolve;
+          videoRef.current.onerror = reject;
+          setTimeout(reject, 5000); // 5 second timeout
+        });
+        
+        await videoRef.current.play();
       }
+      
       setShowCamera(true);
     } catch (error) {
       console.error('Camera error:', error);
-      alert('Kamera açılamadı. Lütfen izin verin.');
+      
+      let errorMessage = 'Kamera açılamadı. ';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += 'Kamera izni reddedildi. Tarayıcı ayarlarından izin verin veya dosya yükleyin.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += 'Kamera bulunamadı. Dosya yükleyebilirsiniz.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += 'Kamera başka bir uygulama tarafından kullanılıyor olabilir.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage += 'Kamera gereksinimleri karşılanamadı.';
+      } else {
+        errorMessage += 'Dosya yükleyerek devam edebilirsiniz.';
+      }
+      
+      setCameraError(errorMessage);
+      toast.error(errorMessage);
+      stopCamera();
+    } finally {
+      setCameraLoading(false);
     }
   };
 
@@ -30,6 +121,9 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false }) => {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setShowCamera(false);
   };
 
@@ -37,6 +131,12 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false }) => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
+      
+      // Ensure video has dimensions
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        toast.error('Video henüz hazır değil, lütfen tekrar deneyin');
+        return;
+      }
       
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -48,12 +148,51 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false }) => {
       setPhoto(photoData);
       onPhotoCapture(photoData);
       stopCamera();
+      toast.success('Fotoğraf çekildi!');
     }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen bir resim dosyası seçin');
+      return;
+    }
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Dosya boyutu 10MB\'dan küçük olmalıdır');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const photoData = e.target?.result;
+      if (photoData) {
+        setPhoto(photoData);
+        onPhotoCapture(photoData);
+        toast.success('Fotoğraf yüklendi!');
+      }
+    };
+    reader.onerror = () => {
+      toast.error('Dosya okunamadı');
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    event.target.value = '';
   };
 
   const removePhoto = () => {
     setPhoto(null);
     onPhotoCapture(null);
+  };
+
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -77,18 +216,57 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false }) => {
         )}
       </div>
       
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+      
       {!photo ? (
         <div>
           {!showCamera ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={startCamera}
-              className="w-full"
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Fotoğraf Çek
-            </Button>
+            <div className="space-y-2">
+              {cameraError && (
+                <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{cameraError}</span>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={startCamera}
+                  className="flex-1"
+                  disabled={cameraLoading}
+                >
+                  {cameraLoading ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Kamera Açılıyor...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Fotoğraf Çek
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openFileDialog}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Yükle
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               <div className="relative bg-black rounded-lg overflow-hidden">
@@ -96,14 +274,21 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false }) => {
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-64 object-cover"
                 />
+                {cameraLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <div className="h-8 w-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
               </div>
               <div className="flex space-x-2">
                 <Button
                   type="button"
                   onClick={capturePhoto}
-                  className="flex-1"
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={cameraLoading}
                 >
                   <Camera className="h-4 w-4 mr-2" />
                   Çek

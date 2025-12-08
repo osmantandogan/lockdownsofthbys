@@ -21,20 +21,59 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-def generate_case_number() -> str:
-    """Generate case number in format YYYYMMDD-XXXX"""
+# Vaka numarası başlangıç değeri
+CASE_NUMBER_START = 10001
+
+async def get_next_case_sequence() -> int:
+    """Günlük sıralı vaka numarası al - 10001'den başlar"""
+    today = datetime.utcnow().strftime("%Y%m%d")
+    
+    # Bugünkü en yüksek vaka numarasını bul
+    pipeline = [
+        {"$match": {"case_number": {"$regex": f"^{today}-"}}},
+        {"$project": {
+            "seq": {
+                "$toInt": {
+                    "$arrayElemAt": [{"$split": ["$case_number", "-"]}, 1]
+                }
+            }
+        }},
+        {"$sort": {"seq": -1}},
+        {"$limit": 1}
+    ]
+    
+    result = await cases_collection.aggregate(pipeline).to_list(1)
+    
+    if result and len(result) > 0:
+        return result[0]["seq"] + 1
+    else:
+        return CASE_NUMBER_START
+
+async def generate_case_number() -> str:
+    """Generate case number in format YYYYMMDD-XXXXX (starting from 10001)"""
     now = datetime.utcnow()
     date_str = now.strftime("%Y%m%d")
-    # This is simplified - in production, use atomic counter
-    return f"{date_str}-{now.strftime('%H%M%S')}"
+    seq = await get_next_case_sequence()
+    return f"{date_str}-{seq}"
+
+@router.get("/next-case-number")
+async def get_next_case_number(request: Request):
+    """Sonraki vaka numarasını döndür (önizleme için)"""
+    user = await get_current_user(request)
+    
+    now = datetime.utcnow()
+    date_str = now.strftime("%Y%m%d")
+    seq = await get_next_case_sequence()
+    
+    return {"next_case_number": f"{date_str}-{seq}"}
 
 @router.post("", response_model=Case)
 async def create_case(data: CaseCreate, request: Request):
     """Create new case (Call Center)"""
     user = await get_current_user(request)
     
-    # Generate case number
-    case_number = generate_case_number()
+    # Generate case number (async - sıralı numara)
+    case_number = await generate_case_number()
     
     # Create case
     new_case = Case(
@@ -152,17 +191,190 @@ async def get_cases(
     
     return cases
 
-@router.get("/{case_id}", response_model=Case)
+@router.get("/{case_id}")
 async def get_case(case_id: str, request: Request):
-    """Get case by ID"""
-    await get_current_user(request)
+    """Get case by ID with 36-hour access restriction"""
+    user = await get_current_user(request)
     
     case_doc = await cases_collection.find_one({"_id": case_id})
     if not case_doc:
         raise HTTPException(status_code=404, detail="Case not found")
     
+    # 36 saat erişim kısıtı kontrolü
+    access_info = await check_case_access(case_doc, user)
+    
     case_doc["id"] = case_doc.pop("_id")
-    return Case(**case_doc)
+    case_doc["access_info"] = access_info
+    
+    return case_doc
+
+
+async def check_case_access(case_doc: dict, user) -> dict:
+    """
+    36 saat erişim kısıtı kontrolü
+    Returns: access_info dict with can_edit, is_restricted, reason
+    """
+    # Varsayılan: tam erişim
+    access_info = {
+        "can_view": True,
+        "can_edit": True,
+        "is_restricted": False,
+        "reason": None,
+        "requires_approval": False
+    }
+    
+    # Operasyon Müdürü ve Merkez Ofis için her zaman tam erişim
+    exempt_roles = ['operasyon_muduru', 'merkez_ofis']
+    if user.role in exempt_roles:
+        return access_info
+    
+    # Vakanın oluşturulma zamanını kontrol et
+    created_at = case_doc.get("created_at")
+    if not created_at:
+        return access_info
+    
+    # 36 saat kontrolü
+    hours_36 = timedelta(hours=36)
+    now = datetime.utcnow()
+    
+    # Eğer created_at string ise parse et
+    if isinstance(created_at, str):
+        try:
+            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+        except:
+            return access_info
+    
+    time_elapsed = now - created_at.replace(tzinfo=None)
+    
+    if time_elapsed > hours_36:
+        # 36 saat geçmiş - kısıtlı erişim
+        access_info["can_edit"] = False
+        access_info["is_restricted"] = True
+        access_info["reason"] = "36 saat geçtiği için düzenleme yetkisi kaldırıldı"
+        access_info["requires_approval"] = True
+        access_info["hours_elapsed"] = int(time_elapsed.total_seconds() / 3600)
+    
+    return access_info
+
+
+class CaseAccessApprovalRequest(BaseModel):
+    """Vaka erişim onayı isteği"""
+    case_id: str
+    otp_code: str
+    approver_id: str  # Onaylayan müdürün ID'si
+
+
+@router.post("/{case_id}/request-access")
+async def request_case_access(case_id: str, data: CaseAccessApprovalRequest, request: Request):
+    """
+    36 saat sonrası vaka erişimi için OTP onayı al
+    Müdürün OTP koduyla onay gerektirir
+    """
+    user = await get_current_user(request)
+    
+    # Vakayı kontrol et
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Onaylayıcıyı kontrol et (müdür veya merkez ofis olmalı)
+    approver = await users_collection.find_one({"_id": data.approver_id})
+    if not approver:
+        raise HTTPException(status_code=404, detail="Onaylayıcı bulunamadı")
+    
+    if approver.get("role") not in ['operasyon_muduru', 'merkez_ofis']:
+        raise HTTPException(status_code=403, detail="Sadece müdür veya merkez ofis onaylayabilir")
+    
+    # OTP kodunu doğrula
+    from services.otp_service import verify_user_otp
+    
+    otp_secret = approver.get("otp_secret")
+    if not otp_secret:
+        raise HTTPException(status_code=400, detail="Onaylayıcının OTP'si oluşturulmamış")
+    
+    if not verify_user_otp(otp_secret, data.otp_code):
+        raise HTTPException(status_code=400, detail="Geçersiz onay kodu")
+    
+    # Erişim izni ver - vakaya geçici erişim kaydı ekle
+    access_grant = {
+        "user_id": user.id,
+        "granted_by": data.approver_id,
+        "granted_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(hours=4),  # 4 saatlik erişim
+        "otp_verified": True
+    }
+    
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$push": {"access_grants": access_grant}}
+    )
+    
+    logger.info(f"Case {case_id} access granted to {user.id} by {data.approver_id}")
+    
+    return {
+        "success": True,
+        "message": "Erişim onaylandı. 4 saat boyunca düzenleme yapabilirsiniz.",
+        "expires_at": access_grant["expires_at"].isoformat()
+    }
+
+
+class PatientInfoUpdate(BaseModel):
+    """Hasta bilgisi güncelleme"""
+    name: Optional[str] = None
+    surname: Optional[str] = None
+    tc_no: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+
+
+@router.patch("/{case_id}/patient")
+async def update_patient_info(case_id: str, data: PatientInfoUpdate, request: Request):
+    """
+    Hasta bilgilerini güncelle (Ad-Soyad, TC, Yaş, Cinsiyet)
+    Düzenleme yetkisi olan tüm roller erişebilir
+    """
+    user = await get_current_user(request)
+    
+    # Düzenleme yetkisi kontrolü
+    edit_roles = ['operasyon_muduru', 'merkez_ofis', 'doktor', 'hemsire', 'paramedik', 'att']
+    if user.role not in edit_roles:
+        raise HTTPException(status_code=403, detail="Bu işlemi yapmaya yetkiniz yok")
+    
+    # Vakayı kontrol et
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Güncellenecek alanları hazırla
+    update_fields = {}
+    if data.name is not None:
+        update_fields["patient.name"] = data.name
+    if data.surname is not None:
+        update_fields["patient.surname"] = data.surname
+    if data.tc_no is not None:
+        update_fields["patient.tc_no"] = data.tc_no
+    if data.age is not None:
+        update_fields["patient.age"] = data.age
+    if data.gender is not None:
+        update_fields["patient.gender"] = data.gender
+    
+    if not update_fields:
+        return {"message": "Güncellenecek alan yok"}
+    
+    update_fields["updated_at"] = datetime.utcnow()
+    
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {"$set": update_fields}
+    )
+    
+    logger.info(f"Patient info updated for case {case_id} by {user.id}")
+    
+    return {
+        "success": True,
+        "message": "Hasta bilgileri güncellendi"
+    }
+
 
 @router.post("/{case_id}/assign-team")
 async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
@@ -493,7 +705,7 @@ async def leave_case(case_id: str, request: Request):
 
 @router.get("/{case_id}/participants")
 async def get_participants(case_id: str, request: Request):
-    """Get active participants in case"""
+    """Get active participants in case with profile photos"""
     await get_current_user(request)
     
     case_doc = await cases_collection.find_one({"_id": case_id})
@@ -510,6 +722,12 @@ async def get_participants(case_id: str, request: Request):
         if isinstance(last_activity, str):
             last_activity = datetime.fromisoformat(last_activity.replace('Z', '+00:00'))
         if last_activity and last_activity > cutoff:
+            # Kullanıcının profil fotoğrafını al
+            user_id = p.get("user_id")
+            if user_id:
+                user_doc = await users_collection.find_one({"_id": user_id})
+                if user_doc:
+                    p["profile_photo"] = user_doc.get("profile_photo")
             active_participants.append(p)
     
     return {"participants": active_participants}
@@ -684,3 +902,100 @@ async def start_video_call(case_id: str, request: Request):
         "started_by": user.name,
         "message": "Görüntülü görüşme başlatıldı."
     }
+
+
+# ============================================================================
+# EXCEL EXPORT ENDPOINT
+# ============================================================================
+
+from fastapi.responses import StreamingResponse
+from services.excel_export_service import export_case_to_excel
+
+@router.get("/{case_id}/export-excel")
+async def export_case_excel(case_id: str, request: Request):
+    """Vaka formunu Excel şablonuna doldurarak indir"""
+    user = await get_current_user(request)
+    
+    # Vakayı getir
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Vaka verilerini hazırla
+    case_data = {
+        "case_number": case_doc.get("case_number", ""),
+        "created_at": case_doc.get("created_at"),
+        "priority": case_doc.get("priority", ""),
+        "status": case_doc.get("status", ""),
+        "patient": case_doc.get("patient", {}),
+        "caller": case_doc.get("caller", {}),
+        "location": case_doc.get("location", {}),
+        "assigned_team": case_doc.get("assigned_team", {}),
+        "vehicle_info": case_doc.get("vehicle_info", {}),
+        "time_info": case_doc.get("time_info", {}),
+        "company": case_doc.get("company", ""),
+        "call_type": case_doc.get("call_type", ""),
+        "call_reason": case_doc.get("call_reason", ""),
+        "complaint": case_doc.get("complaint", case_doc.get("patient", {}).get("complaint", "")),
+        "chronic_diseases": case_doc.get("chronic_diseases", ""),
+        "blood_sugar": case_doc.get("blood_sugar", ""),
+        "body_temperature": case_doc.get("body_temperature", ""),
+        "is_forensic": case_doc.get("is_forensic", False),
+        "case_result": case_doc.get("case_result", ""),
+        "transfer_hospital": case_doc.get("transfer_hospital", ""),
+        "transfer_type": case_doc.get("transfer_type", ""),
+        "referring_institution": case_doc.get("referring_institution", ""),
+    }
+    
+    # Medical form verilerini al
+    medical_form = case_doc.get("medical_form", {})
+    
+    # Vital signs
+    vital_signs = case_doc.get("vital_signs", [])
+    
+    # Clinical observations
+    clinical_obs = case_doc.get("clinical_observations", {})
+    
+    # CPR data
+    cpr_data = case_doc.get("cpr_data", {})
+    
+    # Procedures
+    procedures = case_doc.get("procedures", [])
+    
+    # Medications
+    medications = case_doc.get("medications", [])
+    
+    # Materials
+    materials = case_doc.get("materials", [])
+    
+    # Signatures
+    signatures = case_doc.get("signatures", {})
+    
+    # Excel oluştur
+    try:
+        excel_buffer = export_case_to_excel(
+            case_data=case_data,
+            medical_form=medical_form,
+            vital_signs=vital_signs,
+            clinical_obs=clinical_obs,
+            cpr_data=cpr_data,
+            procedures=procedures,
+            medications=medications,
+            materials=materials,
+            signatures=signatures
+        )
+        
+        # Dosya adı
+        case_number = case_doc.get("case_number", case_id[:8])
+        date_str = datetime.utcnow().strftime("%Y-%m-%d")
+        filename = f"VAKA_FORMU_{case_number}_{date_str}.xlsx"
+        
+        return StreamingResponse(
+            excel_buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Excel export hatası: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")

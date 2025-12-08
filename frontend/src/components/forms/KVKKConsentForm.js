@@ -8,6 +8,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import PDFExportButton from '../PDFExportButton';
+import { exportConsentForm } from '../../utils/pdfExport';
 
 const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, caseNumber = null, patientName: defaultPatientName = '' }) => {
   const [formData, setFormData] = useState({
@@ -305,6 +307,21 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
           <Button variant="outline" onClick={handleClear}>
             🗑 Temizle
           </Button>
+          <PDFExportButton 
+            formType="kvkk"
+            formData={formData}
+            extraData={{
+              consentText: `6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, kişisel verilerimin işlenmesi hakkında aydınlatıldım. 
+              
+Sağlık hizmeti sunumu, tedavi planlaması ve takibi amacıyla özel nitelikli kişisel verilerim dahil tüm kişisel verilerimin toplanmasına, işlenmesine, saklanmasına ve gerekli durumlarda yetkili kişi, kurum ve kuruluşlarla paylaşılmasına açık rıza veriyorum.
+
+Bu onam formu kapsamında verilerimin işlenmesine ilişkin haklarım hakkında bilgilendirildim ve bu hakları kullanma yollarını öğrendim.`
+            }}
+            filename={`kvkk_onam_${formData.patientName || 'form'}`}
+            variant="outline"
+          >
+            📄 PDF İndir
+          </PDFExportButton>
           <Button variant="outline" onClick={handlePrint}>
             🖨 Yazdır
           </Button>

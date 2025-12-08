@@ -30,6 +30,8 @@ import DocumentManagement from "./pages/DocumentManagement";
 import Archive from "./pages/Archive";
 import NotificationSettings from "./pages/NotificationSettings";
 import VehicleKmReport from "./pages/VehicleKmReport";
+import PatientRegistration from "./pages/PatientRegistration";
+import MyLocationStock from "./pages/MyLocationStock";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -103,6 +105,8 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="call-center" element={<CallCenterSimple />} />
+            <Route path="patient-registration" element={<PatientRegistration />} />
+            <Route path="my-stock" element={<MyLocationStock />} />
             <Route path="cases" element={<Cases />} />
             <Route path="cases/:id" element={<CaseDetail />} />
             <Route path="vehicles" element={<Vehicles />} />

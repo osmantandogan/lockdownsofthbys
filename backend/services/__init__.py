@@ -4,7 +4,6 @@ from .notification_service import (
     NotificationChannel,
     send_case_notification,
     send_shift_reminder,
-    send_handover_approval,
     send_stock_alert,
     send_master_code
 )
@@ -15,8 +14,6 @@ __all__ = [
     "NotificationChannel",
     "send_case_notification",
     "send_shift_reminder",
-    "send_handover_approval",
     "send_stock_alert",
     "send_master_code"
 ]
-

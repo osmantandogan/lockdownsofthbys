@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
+import { otpAPI } from '../api';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
@@ -20,8 +21,12 @@ import {
   Package,
   FileText,
   Shield,
-  RefreshCw
+  RefreshCw,
+  Key,
+  Copy,
+  CheckCircle
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Bildirim tipi ikonu
 const getNotificationIcon = (type) => {
@@ -61,6 +66,124 @@ const formatTime = (dateString) => {
   if (diff < 604800000) return `${Math.floor(diff / 86400000)} gün önce`;
   
   return date.toLocaleDateString('tr-TR');
+};
+
+// OTP Bileşeni - Google Authenticator tarzı
+const OTPDisplay = () => {
+  const [otpData, setOtpData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  const fetchOTP = useCallback(async () => {
+    try {
+      const response = await otpAPI.getMyCode();
+      setOtpData(response.data);
+      setTimeLeft(response.data.remaining_seconds);
+    } catch (error) {
+      console.error('OTP fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOTP();
+    
+    // Her saniye güncelle
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          // Yeni kod al
+          fetchOTP();
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [fetchOTP]);
+
+  const handleCopy = async () => {
+    if (otpData?.code) {
+      try {
+        await navigator.clipboard.writeText(otpData.code);
+        setCopied(true);
+        toast.success('Kod kopyalandı');
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        toast.error('Kopyalama başarısız');
+      }
+    }
+  };
+
+  // Progress bar rengi
+  const getProgressColor = () => {
+    if (timeLeft > 20) return 'bg-green-500';
+    if (timeLeft > 10) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  if (loading) {
+    return (
+      <div className="p-3 bg-gray-50 animate-pulse">
+        <div className="h-12 bg-gray-200 rounded"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t bg-gradient-to-r from-red-50 to-orange-50">
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <Key className="h-4 w-4 text-red-600" />
+            <span className="text-xs font-medium text-gray-600">Onay Kodu</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <Clock className="h-3 w-3 text-gray-400" />
+            <span className="text-xs text-gray-500">{timeLeft}s</span>
+          </div>
+        </div>
+        
+        {/* OTP Kodu */}
+        <div className="flex items-center justify-between">
+          <div 
+            className="text-2xl font-mono font-bold tracking-widest text-red-700 cursor-pointer hover:text-red-800"
+            onClick={handleCopy}
+            title="Kopyalamak için tıkla"
+          >
+            {otpData?.code?.slice(0, 3)} {otpData?.code?.slice(3)}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            className="h-8 px-2"
+          >
+            {copied ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <Copy className="h-4 w-4 text-gray-500" />
+            )}
+          </Button>
+        </div>
+        
+        {/* Progress bar */}
+        <div className="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-1000 ${getProgressColor()}`}
+            style={{ width: `${(timeLeft / 30) * 100}%` }}
+          />
+        </div>
+        
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          Onay gerektiren işlemlerde bu kodu kullanın
+        </p>
+      </div>
+    </div>
+  );
 };
 
 const NotificationDropdown = () => {
@@ -120,7 +243,7 @@ const NotificationDropdown = () => {
           </div>
         </div>
         
-        <ScrollArea className="h-96">
+        <ScrollArea className="h-72">
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <Bell className="h-12 w-12 mx-auto mb-3 opacity-20" />
@@ -174,6 +297,9 @@ const NotificationDropdown = () => {
           )}
         </ScrollArea>
         
+        {/* OTP Section - Ayırıcı çizgi ile */}
+        <OTPDisplay />
+        
         <div className="p-2 border-t">
           <Button 
             variant="ghost" 
@@ -192,4 +318,3 @@ const NotificationDropdown = () => {
 };
 
 export default NotificationDropdown;
-

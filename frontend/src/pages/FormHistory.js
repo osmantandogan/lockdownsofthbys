@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { formsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { toast } from 'sonner';
-import { FileText, Search, Trash2, Eye, Download, User, Briefcase, FileSignature } from 'lucide-react';
+import { FileText, Search, Trash2, Eye, Download, User, Briefcase, FileSignature, FileDown, Printer, FolderOpen, ChevronRight, ChevronDown, Folder, LayoutList, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { generateGeneralFormPDF, generateCaseFormPDF, downloadPDF, openPDFInNewTab } from '../services/pdfService';
 
 // Onam Form Bileşenleri
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
@@ -26,12 +28,45 @@ const FormHistory = () => {
   const [selectedForm, setSelectedForm] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('details'); // 'details' or 'form'
+  const [viewType, setViewType] = useState('folder'); // 'folder' veya 'list'
+  const [openFolders, setOpenFolders] = useState({});
   const printRef = useRef(null);
   const [filters, setFilters] = useState({
     form_type: '',
     patient_name: '',
     vehicle_plate: ''
   });
+
+  // Formları vaka numarasına göre grupla
+  const groupedForms = useMemo(() => {
+    const groups = {};
+    
+    forms.forEach(form => {
+      const key = form.case_number || 'Vakasız Formlar';
+      if (!groups[key]) {
+        groups[key] = {
+          case_number: form.case_number,
+          patient_name: form.patient_name,
+          forms: [],
+          created_at: form.created_at
+        };
+      }
+      groups[key].forms.push(form);
+      // En eski tarihi al
+      if (new Date(form.created_at) < new Date(groups[key].created_at)) {
+        groups[key].created_at = form.created_at;
+      }
+    });
+    
+    // Tarihe göre sırala (en yeni önce)
+    return Object.entries(groups)
+      .sort(([, a], [, b]) => new Date(b.created_at) - new Date(a.created_at))
+      .map(([key, value]) => ({ key, ...value }));
+  }, [forms]);
+
+  const toggleFolder = (key) => {
+    setOpenFolders(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   useEffect(() => {
     loadData();
@@ -125,6 +160,165 @@ const FormHistory = () => {
     printWindow.print();
   };
 
+  // PDF İndir
+  const handlePDFDownload = () => {
+    if (!selectedForm) return;
+    
+    try {
+      // Form verilerini hazırla
+      const pdfFormData = {
+        ...selectedForm.form_data,
+        date: selectedForm.created_at ? new Date(selectedForm.created_at).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR'),
+        formNo: selectedForm.id?.slice(-8) || '',
+        submitterName: selectedForm.submitter_name,
+        patientName: selectedForm.patient_name,
+        vehiclePlate: selectedForm.vehicle_plate,
+      };
+      
+      let doc;
+      
+      // Vaka formu için özel şablon
+      if (selectedForm.form_type === 'ambulance_case') {
+        doc = generateCaseFormPDF(
+          { case_number: selectedForm.case_number },
+          pdfFormData
+        );
+      } else {
+        // Diğer formlar için genel şablon
+        const formTypeMapping = {
+          'kvkk': 'kvkk',
+          'injection': 'injection',
+          'puncture': 'puncture',
+          'minor_surgery': 'minor-surgery',
+          'general_consent': 'general-consent',
+          'medicine_request': 'medicine-request',
+          'material_request': 'material-request',
+          'medical_gas_request': 'medical-gas-request',
+          'ambulance_equipment': 'ambulance-equipment-check',
+          'pre_case_check': 'pre-case-check',
+          'daily_control': 'daily-control',
+          'handover': 'handover',
+        };
+        
+        const pdfFormType = formTypeMapping[selectedForm.form_type] || selectedForm.form_type;
+        doc = generateGeneralFormPDF(pdfFormType, pdfFormData);
+      }
+      
+      // Dosya adı oluştur
+      const date = new Date().toISOString().split('T')[0];
+      const formTypeName = formTypeLabels[selectedForm.form_type] || 'form';
+      const patientName = selectedForm.patient_name?.replace(/\s+/g, '-') || '';
+      const filename = `healmedy-${formTypeName}${patientName ? '-' + patientName : ''}-${date}.pdf`;
+      
+      downloadPDF(doc, filename);
+      toast.success('PDF başarıyla indirildi');
+    } catch (error) {
+      console.error('PDF oluşturma hatası:', error);
+      toast.error('PDF oluşturulurken hata oluştu');
+    }
+  };
+
+  // PDF'i yeni sekmede aç
+  const handlePDFPreview = () => {
+    if (!selectedForm) return;
+    
+    try {
+      const pdfFormData = {
+        ...selectedForm.form_data,
+        date: selectedForm.created_at ? new Date(selectedForm.created_at).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR'),
+        formNo: selectedForm.id?.slice(-8) || '',
+        submitterName: selectedForm.submitter_name,
+        patientName: selectedForm.patient_name,
+        vehiclePlate: selectedForm.vehicle_plate,
+      };
+      
+      let doc;
+      
+      if (selectedForm.form_type === 'ambulance_case') {
+        doc = generateCaseFormPDF(
+          { case_number: selectedForm.case_number },
+          pdfFormData
+        );
+      } else {
+        const formTypeMapping = {
+          'kvkk': 'kvkk',
+          'injection': 'injection',
+          'puncture': 'puncture',
+          'minor_surgery': 'minor-surgery',
+          'general_consent': 'general-consent',
+          'medicine_request': 'medicine-request',
+          'material_request': 'material-request',
+          'medical_gas_request': 'medical-gas-request',
+          'ambulance_equipment': 'ambulance-equipment-check',
+          'pre_case_check': 'pre-case-check',
+          'daily_control': 'daily-control',
+          'handover': 'handover',
+        };
+        
+        const pdfFormType = formTypeMapping[selectedForm.form_type] || selectedForm.form_type;
+        doc = generateGeneralFormPDF(pdfFormType, pdfFormData);
+      }
+      
+      openPDFInNewTab(doc);
+      toast.success('PDF yeni sekmede açıldı');
+    } catch (error) {
+      console.error('PDF oluşturma hatası:', error);
+      toast.error('PDF oluşturulurken hata oluştu');
+    }
+  };
+
+  // Doğrudan form ile PDF indir (liste için)
+  const downloadFormPDF = (form) => {
+    try {
+      const pdfFormData = {
+        ...form.form_data,
+        date: form.created_at ? new Date(form.created_at).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR'),
+        formNo: form.id?.slice(-8) || '',
+        submitterName: form.submitter_name,
+        patientName: form.patient_name,
+        vehiclePlate: form.vehicle_plate,
+      };
+      
+      let doc;
+      
+      if (form.form_type === 'ambulance_case') {
+        doc = generateCaseFormPDF(
+          { case_number: form.case_number },
+          pdfFormData
+        );
+      } else {
+        const formTypeMapping = {
+          'kvkk': 'kvkk',
+          'injection': 'injection',
+          'puncture': 'puncture',
+          'minor_surgery': 'minor-surgery',
+          'general_consent': 'general-consent',
+          'medicine_request': 'medicine-request',
+          'material_request': 'material-request',
+          'medical_gas_request': 'medical-gas-request',
+          'ambulance_equipment': 'ambulance-equipment-check',
+          'pre_case_check': 'pre-case-check',
+          'daily_control': 'daily-control',
+          'handover': 'handover',
+        };
+        
+        const pdfFormType = formTypeMapping[form.form_type] || form.form_type;
+        doc = generateGeneralFormPDF(pdfFormType, pdfFormData);
+      }
+      
+      const date = new Date().toISOString().split('T')[0];
+      const formTypeName = formTypeLabels[form.form_type] || 'form';
+      const patientName = form.patient_name?.replace(/\s+/g, '-') || '';
+      const filename = `healmedy-${formTypeName}${patientName ? '-' + patientName : ''}-${date}.pdf`;
+      
+      downloadPDF(doc, filename);
+      toast.success('PDF başarıyla indirildi');
+    } catch (error) {
+      console.error('PDF oluşturma hatası:', error);
+      toast.error('PDF oluşturulurken hata oluştu');
+    }
+  };
+
   const formatFieldLabel = (key) => {
     const labels = {
       patientName: 'Hasta Adı',
@@ -213,9 +407,29 @@ const FormHistory = () => {
 
   return (
     <div className="space-y-6" data-testid="form-history-page">
-      <div>
-        <h1 className="text-3xl font-bold">Form Geçmişi</h1>
-        <p className="text-gray-500">Tüm kayıtlı formları görüntüle</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Form Geçmişi</h1>
+          <p className="text-gray-500">Tüm kayıtlı formları görüntüle</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant={viewType === 'folder' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewType('folder')}
+          >
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Klasör
+          </Button>
+          <Button
+            variant={viewType === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewType('list')}
+          >
+            <LayoutList className="h-4 w-4 mr-2" />
+            Liste
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -287,61 +501,160 @@ const FormHistory = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4">
+      <div className="space-y-4">
         {forms.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
+              <FolderOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500">Form kaydı bulunamadı</p>
             </CardContent>
           </Card>
-        ) : (
-          forms.map((form) => (
-            <Card key={form.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center space-x-3 flex-wrap gap-2">
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {formTypeLabels[form.form_type]}
-                      </Badge>
-                      {form.case_number && (
-                        <Badge variant="outline" className="text-purple-700 border-purple-300">
-                          Vaka: {form.case_number}
-                        </Badge>
-                      )}
-                      <span className="text-sm text-gray-500">
-                        {new Date(form.created_at).toLocaleString('tr-TR')}
-                      </span>
-                    </div>
-                    {form.patient_name && (
-                      <p className="text-sm"><span className="font-medium">Hasta:</span> {form.patient_name}</p>
-                    )}
-                    {form.vehicle_plate && (
-                      <p className="text-sm"><span className="font-medium">Araç:</span> {form.vehicle_plate}</p>
-                    )}
-                    {/* Gönderen bilgisi - isim ve rol */}
-                    <div className="flex items-center space-x-2 text-sm">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <span className="font-medium">{form.submitter_name || form.submitted_by}</span>
-                        {form.submitter_role && (
-                          <span className="text-gray-500 ml-2">({form.submitter_role})</span>
+        ) : viewType === 'folder' ? (
+          // KLASÖR GÖRÜNÜMÜ
+          <div className="space-y-3">
+            {groupedForms.map((group) => (
+              <Collapsible 
+                key={group.key} 
+                open={openFolders[group.key]} 
+                onOpenChange={() => toggleFolder(group.key)}
+              >
+                <Card className="overflow-hidden">
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center space-x-3">
+                        {openFolders[group.key] ? (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-gray-400" />
                         )}
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <Folder className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-semibold">
+                            {group.case_number ? `Vaka: ${group.case_number}` : 'Vakasız Formlar'}
+                          </p>
+                          {group.patient_name && (
+                            <p className="text-sm text-gray-500">Hasta: {group.patient_name}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="secondary">
+                          {group.forms.length} form
+                        </Badge>
+                        <span className="text-sm text-gray-400">
+                          {new Date(group.created_at).toLocaleDateString('tr-TR')}
+                        </span>
                       </div>
                     </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t bg-gray-50/50 divide-y">
+                      {group.forms.map((form) => (
+                        <div key={form.id} className="p-4 pl-14 hover:bg-white transition-colors">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-3">
+                              <FileText className="h-4 w-4 text-gray-400" />
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                    {formTypeLabels[form.form_type]}
+                                  </Badge>
+                                  <span className="text-sm text-gray-500">
+                                    {new Date(form.created_at).toLocaleString('tr-TR')}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {form.submitter_name || form.submitted_by}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-1">
+                              <Button variant="ghost" size="sm" onClick={() => viewForm(form)} title="Görüntüle">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => downloadFormPDF(form)} 
+                                className="text-red-600" 
+                                title="PDF İndir"
+                              >
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDelete(form.id)} className="text-red-600 hover:text-red-700" title="Sil">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            ))}
+          </div>
+        ) : (
+          // LİSTE GÖRÜNÜMÜ (eski görünüm)
+          <div className="grid gap-4">
+            {forms.map((form) => (
+              <Card key={form.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center space-x-3 flex-wrap gap-2">
+                        <Badge className="bg-blue-100 text-blue-800">
+                          {formTypeLabels[form.form_type]}
+                        </Badge>
+                        {form.case_number && (
+                          <Badge variant="outline" className="text-purple-700 border-purple-300">
+                            Vaka: {form.case_number}
+                          </Badge>
+                        )}
+                        <span className="text-sm text-gray-500">
+                          {new Date(form.created_at).toLocaleString('tr-TR')}
+                        </span>
+                      </div>
+                      {form.patient_name && (
+                        <p className="text-sm"><span className="font-medium">Hasta:</span> {form.patient_name}</p>
+                      )}
+                      {form.vehicle_plate && (
+                        <p className="text-sm"><span className="font-medium">Araç:</span> {form.vehicle_plate}</p>
+                      )}
+                      <div className="flex items-center space-x-2 text-sm">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <span className="font-medium">{form.submitter_name || form.submitted_by}</span>
+                          {form.submitter_role && (
+                            <span className="text-gray-500 ml-2">({form.submitter_role})</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="ghost" size="icon" onClick={() => viewForm(form)} title="Görüntüle">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => downloadFormPDF(form)} 
+                        className="text-red-600" 
+                        title="PDF İndir"
+                      >
+                        <FileDown className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(form.id)} className="text-red-600 hover:text-red-700" title="Sil">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => viewForm(form)} title="Görüntüle">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(form.id)} className="text-red-600" title="Sil">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
 
@@ -355,9 +668,17 @@ const FormHistory = () => {
                 <span>{selectedForm && formTypeLabels[selectedForm.form_type]}</span>
               </DialogTitle>
               <div className="flex space-x-2">
+                <Button variant="outline" size="sm" onClick={handlePDFPreview}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Önizle
+                </Button>
+                <Button variant="default" size="sm" onClick={handlePDFDownload} className="bg-red-600 hover:bg-red-700">
+                  <FileDown className="h-4 w-4 mr-2" />
+                  PDF İndir
+                </Button>
                 <Button variant="outline" size="sm" onClick={handlePrint}>
-                  <Download className="h-4 w-4 mr-2" />
-                  İndir / Yazdır
+                  <Printer className="h-4 w-4 mr-2" />
+                  Yazdır
                 </Button>
               </div>
             </div>
@@ -404,9 +725,13 @@ const FormHistory = () => {
                     <div className="pt-3 border-t">
                       <p className="text-xs text-gray-500 mb-1">Gönderen</p>
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                          {(selectedForm.submitter_name || selectedForm.submitted_by || '?').charAt(0).toUpperCase()}
-                        </div>
+                        {selectedForm.submitter_photo ? (
+                          <img src={selectedForm.submitter_photo} alt={selectedForm.submitter_name} className="w-10 h-10 rounded-full object-cover border-2 border-red-200" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold">
+                            {(selectedForm.submitter_name || selectedForm.submitted_by || '?').charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <div>
                           <p className="font-semibold">{selectedForm.submitter_name || selectedForm.submitted_by}</p>
                           {selectedForm.submitter_role && (

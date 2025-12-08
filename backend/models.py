@@ -24,7 +24,8 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     email: EmailStr
     name: str
-    picture: Optional[str] = None
+    picture: Optional[str] = None  # Google picture
+    profile_photo: Optional[str] = None  # Custom uploaded photo (Base64)
     role: Optional[UserRole] = None
     phone: Optional[str] = None
     tc_no: Optional[str] = None
@@ -240,7 +241,10 @@ class VehicleUpdate(BaseModel):
     next_maintenance_km: Optional[int] = None
 
 # Stock Models
-StockLocation = Literal["ambulans", "saha_ofis", "acil_canta", "merkez_depo"]
+# Eski sabit lokasyonlar (geriye dönük uyumluluk için)
+# StockLocation = Literal["ambulans", "saha_ofis", "acil_canta", "merkez_depo"]
+# Artık dinamik lokasyonlar kullanıyoruz (araç plakaları, bekleme noktaları vb.)
+StockLocation = str  # Dinamik lokasyon desteği
 
 class StockItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

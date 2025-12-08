@@ -6,20 +6,24 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Truck, Plus, Edit, QrCode, Download } from 'lucide-react';
+import { Truck, Plus, Edit, QrCode, Download, Trash2, AlertTriangle } from 'lucide-react';
 import VehicleKmReport from './VehicleKmReport';
 import { QRCodeCanvas } from 'qrcode.react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Vehicles = () => {
+  const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState(null);
   const [formData, setFormData] = useState({
     plate: '',
     type: 'ambulans',
@@ -29,6 +33,10 @@ const Vehicles = () => {
     last_inspection_date: '',
     next_maintenance_km: 0
   });
+
+  // Yetki kontrolleri
+  const canManageVehicles = ['operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
+  const canViewKmReport = ['operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
 
   useEffect(() => {
     loadData();
@@ -78,6 +86,24 @@ const Vehicles = () => {
       toast.success('Araç güncellendi');
       setDialogOpen(false);
       setEditMode(false);
+      setSelectedVehicle(null);
+      loadData();
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error.response?.data?.detail || 'Araç güncellenemedi');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!vehicleToDelete) return;
+    
+    const vehicleId = vehicleToDelete.id || vehicleToDelete._id;
+    
+    try {
+      await vehiclesAPI.delete(vehicleId);
+      toast.success('Araç silindi');
+      setDeleteDialogOpen(false);
+      setVehicleToDelete(null);
       loadData();
     } catch (error) {
       console.error('Update error:', error);
@@ -255,21 +281,38 @@ const Vehicles = () => {
                 </div>
               )}
 
-              <Button 
-                onClick={editMode ? handleUpdate : handleCreate} 
-                className="w-full"
-              >
-                {editMode ? 'Güncelle' : 'Araç Oluştur'}
-              </Button>
+              <div className={`flex ${editMode && canManageVehicles ? 'justify-between' : 'justify-end'} space-x-2`}>
+                {editMode && canManageVehicles && (
+                  <Button 
+                    variant="destructive"
+                    onClick={() => {
+                      setVehicleToDelete(selectedVehicle);
+                      setDialogOpen(false);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Aracı Sil
+                  </Button>
+                )}
+                <Button 
+                  onClick={editMode ? handleUpdate : handleCreate} 
+                  className="flex-1 max-w-xs"
+                >
+                  {editMode ? 'Güncelle' : 'Araç Oluştur'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
       <Tabs defaultValue="list" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className={`grid w-full max-w-md ${canViewKmReport ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <TabsTrigger value="list">Araç Listesi</TabsTrigger>
-          <TabsTrigger value="km-report">KM Raporu</TabsTrigger>
+          {canViewKmReport && (
+            <TabsTrigger value="km-report">KM Raporu</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="space-y-6 mt-6">
@@ -360,10 +403,41 @@ const Vehicles = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="km-report" className="mt-6">
-          <VehicleKmReport />
-        </TabsContent>
+        {canViewKmReport && (
+          <TabsContent value="km-report" className="mt-6">
+            <VehicleKmReport />
+          </TabsContent>
+        )}
       </Tabs>
+
+      {/* Silme Onay Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              <span>Aracı Sil</span>
+            </DialogTitle>
+            <DialogDescription>
+              Bu işlem geri alınamaz. Araç kalıcı olarak silinecektir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              <strong>{vehicleToDelete?.plate}</strong> plakalı aracı silmek istediğinize emin misiniz?
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Aracı Sil
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

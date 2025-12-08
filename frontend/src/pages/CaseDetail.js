@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
 import { Switch } from '../components/ui/switch';
 import { Checkbox } from '../components/ui/checkbox';
@@ -21,11 +21,15 @@ import {
   Check, X, Search, Building2, Stethoscope, Activity, FileText,
   Heart, Thermometer, Droplet, Brain, AlertCircle, Eye, Syringe,
   Ambulance, ClipboardList, VideoOff, FileSignature, Shield, Scissors, Save,
-  Package, QrCode, Trash2, Plus, Pill, Camera
+  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import VideoCall from '../components/VideoCall';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { generateCaseFormPDF, downloadPDF, openPDFInNewTab } from '../services/pdfService';
+import { downloadCaseExcel } from '../services/excelExport';
+import CaseAccessRestriction from '../components/CaseAccessRestriction';
+import { saveAs } from 'file-saver';
 
 // Onam Form Bileşenleri
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
@@ -50,6 +54,17 @@ const CaseDetail = () => {
   // Real-time collaboration
   const [participants, setParticipants] = useState([]);
   const [medicalForm, setMedicalForm] = useState({});
+  
+  // Patient info editing
+  const [patientInfo, setPatientInfo] = useState({
+    name: '',
+    surname: '',
+    tc_no: '',
+    age: '',
+    gender: ''
+  });
+  const [patientInfoChanged, setPatientInfoChanged] = useState(false);
+  const [savingPatientInfo, setSavingPatientInfo] = useState(false);
   const [icdSearch, setIcdSearch] = useState('');
   const [icdResults, setIcdResults] = useState([]);
   const [hospitalSearch, setHospitalSearch] = useState('');
@@ -137,6 +152,24 @@ const CaseDetail = () => {
     consciousStatus: true
   });
   
+  // Excel Form için ek alanlar
+  const [extendedForm, setExtendedForm] = useState({
+    chronicDiseases: '',       // Kronik hastalıklar
+    callType: '',              // Çağrı tipi: telsiz, telefon, diger
+    callReason: '',            // Çağrı nedeni (detaylı)
+    sceneType: '',             // Olay yeri tipi
+    bloodSugar: '',            // Kan şekeri (mg/dL)
+    bodyTemp: '',              // Vücut sıcaklığı
+    isForensic: false,         // Adli vaka
+    outcome: '',               // Sonuç
+    transferType: '',          // İlçe içi/dışı/il dışı
+    accidentVehicles: ['', '', '', ''], // Kazaya karışan araç plakaları (4 adet)
+    referralSource: '',        // Vakayı veren kurum
+    patientArrivalTime: '',    // Hastaya varış saati
+    stationReturnTime: '',     // İstasyona dönüş saati
+    materialsUsed: []          // Kullanılan malzemeler
+  });
+  
   // CPR data
   const [cprData, setCprData] = useState({
     cprBy: '',
@@ -162,9 +195,11 @@ const CaseDetail = () => {
   // Time tracking
   const [timeInfo, setTimeInfo] = useState({
     callTime: '',
-    arrivalTime: '',
-    departureTime: '',
-    hospitalArrivalTime: ''
+    arrivalTime: '',       // Olay yerine varış
+    patientArrivalTime: '', // Hastaya varış
+    departureTime: '',     // Olay yerinden ayrılış
+    hospitalArrivalTime: '', // Hastaneye varış
+    stationReturnTime: ''  // İstasyona dönüş
   });
   
   // Isolation and chronic diseases
@@ -275,23 +310,55 @@ const CaseDetail = () => {
     };
   }, [id]);
   
-  // Start polling for real-time updates
+  // Start polling for real-time updates - only when page is visible and case is open
   useEffect(() => {
-    if (caseData) {
-      // Join case
-      casesAPI.joinCase(id).catch(console.error);
-      
-      // Poll for updates every 3 seconds
+    if (!caseData) return;
+    
+    // Join case
+    casesAPI.joinCase(id).catch(console.error);
+    
+    // Vaka kapalıysa polling yapma
+    const closedStatuses = ['tamamlandi', 'iptal_edildi', 'kapandi'];
+    if (closedStatuses.includes(caseData.status)) {
+      return;
+    }
+    
+    // Visibility change handler - sayfa görünür değilse polling durdur
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (pollInterval.current) {
+          clearInterval(pollInterval.current);
+          pollInterval.current = null;
+        }
+      } else {
+        // Sayfa tekrar görünür olduğunda polling başlat
+        if (!pollInterval.current) {
+          pollInterval.current = setInterval(() => {
+            loadMedicalForm();
+            loadParticipants();
+          }, 5000); // 5 saniyeye çıkardık
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Initial polling - only if page is visible
+    if (!document.hidden) {
       pollInterval.current = setInterval(() => {
         loadMedicalForm();
         loadParticipants();
-      }, 3000);
+      }, 5000); // 5 saniyede bir
     }
     
     return () => {
-      if (pollInterval.current) clearInterval(pollInterval.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (pollInterval.current) {
+        clearInterval(pollInterval.current);
+        pollInterval.current = null;
+      }
     };
-  }, [caseData, id]);
+  }, [caseData?.status, id]);
 
   const loadData = async () => {
     try {
@@ -303,6 +370,17 @@ const CaseDetail = () => {
       setCaseData(caseRes.data);
       setVehicles(vehiclesRes.data);
       setUsers(usersRes.data);
+      
+      // Set patient info for editing
+      if (caseRes.data.patient) {
+        setPatientInfo({
+          name: caseRes.data.patient.name || '',
+          surname: caseRes.data.patient.surname || '',
+          tc_no: caseRes.data.patient.tc_no || '',
+          age: caseRes.data.patient.age || '',
+          gender: caseRes.data.patient.gender || ''
+        });
+      }
       
       // Load medical form
       await loadMedicalForm();
@@ -464,7 +542,39 @@ const CaseDetail = () => {
       setStatusUpdating(false);
     }
   };
-  
+
+  // Hasta bilgisi güncelleme
+  const handlePatientInfoChange = (field, value) => {
+    setPatientInfo(prev => ({ ...prev, [field]: value }));
+    setPatientInfoChanged(true);
+  };
+
+  const savePatientInfo = async () => {
+    if (!patientInfoChanged || savingPatientInfo) return;
+    
+    setSavingPatientInfo(true);
+    try {
+      await casesAPI.updatePatientInfo(id, {
+        name: patientInfo.name,
+        surname: patientInfo.surname,
+        tc_no: patientInfo.tc_no || null,
+        age: parseInt(patientInfo.age) || null,
+        gender: patientInfo.gender
+      });
+      toast.success('Hasta bilgileri güncellendi');
+      setPatientInfoChanged(false);
+      
+      // Reload case data
+      const res = await casesAPI.getById(id);
+      setCaseData(res.data);
+    } catch (error) {
+      console.error('Error updating patient info:', error);
+      toast.error('Hasta bilgileri güncellenemedi');
+    } finally {
+      setSavingPatientInfo(false);
+    }
+  };
+
   // Status labels
   const getStatusLabel = (status) => {
     const labels = {
@@ -516,6 +626,7 @@ const CaseDetail = () => {
       if (formData.vehicle_info) setVehicleInfo(formData.vehicle_info);
       if (formData.time_info) setTimeInfo(formData.time_info);
       if (formData.isolation) setIsolation(formData.isolation);
+      if (formData.extended_form) setExtendedForm(prev => ({ ...prev, ...formData.extended_form }));
       if (formData.chronic_diseases) setChronicDiseases(formData.chronic_diseases);
       if (formData.applications) setApplications(formData.applications);
     } catch (error) {
@@ -565,6 +676,13 @@ const CaseDetail = () => {
     const newObs = { ...clinicalObs, [field]: value };
     setClinicalObs(newObs);
     updateFormField('clinical_obs', newObs);
+  };
+  
+  // Update extended form fields
+  const updateExtendedForm = async (field, value) => {
+    const newForm = { ...extendedForm, [field]: value };
+    setExtendedForm(newForm);
+    updateFormField('extended_form', newForm);
   };
   
   // Update CPR data
@@ -900,8 +1018,11 @@ const CaseDetail = () => {
             <span className="text-sm text-gray-500">Katılanlar:</span>
             <div className="flex -space-x-2">
               {participants.slice(0, 5).map((p, idx) => (
-                <Avatar key={idx} className="w-8 h-8 border-2 border-white">
-                  <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                <Avatar key={idx} className="w-8 h-8 border-2 border-white" title={p.user_name}>
+                  {p.profile_photo ? (
+                    <AvatarImage src={p.profile_photo} alt={p.user_name} />
+                  ) : null}
+                  <AvatarFallback className="text-xs bg-gradient-to-br from-red-500 to-red-700 text-white">
                     {p.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
                   </AvatarFallback>
                 </Avatar>
@@ -915,6 +1036,77 @@ const CaseDetail = () => {
           </div>
           
           {/* Video Call Button */}
+          {/* PDF Export Button */}
+          <Button 
+            variant="outline"
+            onClick={() => {
+              try {
+                const doc = generateCaseFormPDF(caseData, medicalForm);
+                const date = new Date().toISOString().split('T')[0];
+                downloadPDF(doc, `vaka-${caseData.case_number}-${date}.pdf`);
+                toast.success('PDF başarıyla indirildi');
+              } catch (error) {
+                console.error('PDF oluşturma hatası:', error);
+                toast.error('PDF oluşturulurken hata oluştu');
+              }
+            }}
+            className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF İndir
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                toast.info('Excel dosyası hazırlanıyor...');
+                const response = await casesAPI.exportExcel(id);
+                
+                // Response'un gerçekten Excel olup olmadığını kontrol et
+                const contentType = response.headers?.['content-type'] || '';
+                
+                if (!contentType.includes('spreadsheet') && !contentType.includes('octet-stream')) {
+                  // Hata mesajı olabilir, blob'u text olarak oku
+                  const text = await response.data.text();
+                  console.error('Excel API hatası:', text);
+                  try {
+                    const errorData = JSON.parse(text);
+                    toast.error(errorData.detail || 'Excel oluşturulurken hata oluştu');
+                  } catch {
+                    toast.error('Excel oluşturulurken hata oluştu');
+                  }
+                  return;
+                }
+                
+                // Dosya adını oluştur
+                const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                
+                // file-saver ile indir
+                saveAs(response.data, fileName);
+                
+                toast.success(`Excel dosyası indirildi: ${fileName}`);
+              } catch (error) {
+                console.error('Excel oluşturma hatası:', error);
+                // Axios error durumunda response data'yı kontrol et
+                if (error.response?.data) {
+                  try {
+                    const text = await error.response.data.text?.() || '';
+                    const errorData = JSON.parse(text);
+                    toast.error(errorData.detail || 'Excel oluşturulurken hata oluştu');
+                  } catch {
+                    toast.error('Excel oluşturulurken hata oluştu');
+                  }
+                } else {
+                  toast.error('Excel oluşturulurken hata oluştu');
+                }
+              }
+            }}
+            className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Excel İndir
+          </Button>
+
           {videoCallActive ? (
             <Button 
               onClick={endVideoCall}
@@ -947,6 +1139,13 @@ const CaseDetail = () => {
           />
         </div>
       )}
+      
+      {/* 36 Saat Erişim Kısıtı Uyarısı */}
+      <CaseAccessRestriction 
+        accessInfo={caseData?.access_info}
+        caseId={id}
+        onAccessGranted={() => window.location.reload()}
+      />
       
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -1042,24 +1241,72 @@ const CaseDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
-              <div className="grid gap-4 md:grid-cols-4">
+              {/* Düzenlenebilir Hasta Bilgileri */}
+              <div className="grid gap-4 md:grid-cols-5">
                 <div>
-                  <Label>Adı Soyadı</Label>
-                  <Input value={`${caseData.patient.name} ${caseData.patient.surname}`} disabled className="bg-gray-50" />
+                  <Label>Ad</Label>
+                  <Input 
+                    value={patientInfo.name} 
+                    onChange={(e) => handlePatientInfoChange('name', e.target.value)}
+                    placeholder="Hasta adı"
+                  />
+                </div>
+                <div>
+                  <Label>Soyad</Label>
+                  <Input 
+                    value={patientInfo.surname} 
+                    onChange={(e) => handlePatientInfoChange('surname', e.target.value)}
+                    placeholder="Hasta soyadı"
+                  />
                 </div>
                 <div>
                   <Label>T.C. Kimlik No</Label>
-                  <Input value={caseData.patient.tc_no || ''} disabled className="bg-gray-50" />
+                  <Input 
+                    value={patientInfo.tc_no} 
+                    onChange={(e) => handlePatientInfoChange('tc_no', e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                    placeholder="TC Kimlik"
+                    maxLength={11}
+                  />
                 </div>
                 <div>
                   <Label>Yaş</Label>
-                  <Input value={caseData.patient.age} disabled className="bg-gray-50" />
+                  <Input 
+                    type="number"
+                    min="0"
+                    max="150"
+                    value={patientInfo.age} 
+                    onChange={(e) => handlePatientInfoChange('age', e.target.value)}
+                    placeholder="Yaş"
+                  />
                 </div>
                 <div>
                   <Label>Cinsiyet</Label>
-                  <Input value={caseData.patient.gender === 'erkek' ? 'Erkek' : caseData.patient.gender === 'kadin' ? 'Kadın' : 'Diğer'} disabled className="bg-gray-50" />
+                  <Select value={patientInfo.gender} onValueChange={(value) => handlePatientInfoChange('gender', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="erkek">Erkek</SelectItem>
+                      <SelectItem value="kadin">Kadın</SelectItem>
+                      <SelectItem value="diger">Diğer</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+              
+              {/* Kaydet Butonu */}
+              {patientInfoChanged && (
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={savePatientInfo}
+                    disabled={savingPatientInfo}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingPatientInfo ? 'Kaydediliyor...' : 'Hasta Bilgilerini Kaydet'}
+                  </Button>
+                </div>
+              )}
               
               <div className="grid gap-4 md:grid-cols-4">
                 <div>
@@ -1072,7 +1319,7 @@ const CaseDetail = () => {
                   />
                 </div>
                 <div>
-                  <Label>Varış Saati</Label>
+                  <Label>Olay Yerine Varış</Label>
                   <Input 
                     type="time" 
                     value={timeInfo.arrivalTime} 
@@ -1081,7 +1328,16 @@ const CaseDetail = () => {
                   />
                 </div>
                 <div>
-                  <Label>Ayrılış Saati</Label>
+                  <Label>Hastaya Varış</Label>
+                  <Input 
+                    type="time" 
+                    value={timeInfo.patientArrivalTime} 
+                    onChange={(e) => updateTimeInfo('patientArrivalTime', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Olay Yerinden Ayrılış</Label>
                   <Input 
                     type="time" 
                     value={timeInfo.departureTime} 
@@ -1089,12 +1345,23 @@ const CaseDetail = () => {
                     disabled={!canEditForm}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <Label>Hastane Varış Saati</Label>
+                  <Label>Hastaneye Varış</Label>
                   <Input 
                     type="time" 
                     value={timeInfo.hospitalArrivalTime} 
                     onChange={(e) => updateTimeInfo('hospitalArrivalTime', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>İstasyona Dönüş</Label>
+                  <Input 
+                    type="time" 
+                    value={timeInfo.stationReturnTime} 
+                    onChange={(e) => updateTimeInfo('stationReturnTime', e.target.value)}
                     disabled={!canEditForm}
                   />
                 </div>
@@ -1108,6 +1375,101 @@ const CaseDetail = () => {
               <div>
                 <Label>Hastanın Şikayeti</Label>
                 <Textarea value={caseData.patient.complaint} disabled className="bg-gray-50" rows={2} />
+              </div>
+              
+              <div>
+                <Label>Kronik Hastalıklar</Label>
+                <Textarea 
+                  placeholder="Kronik hastalıkları yazın..."
+                  value={extendedForm.chronicDiseases}
+                  onChange={(e) => updateExtendedForm('chronicDiseases', e.target.value)}
+                  disabled={!canEditForm}
+                  rows={2}
+                />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Çağrı Tipi</Label>
+                  <Select 
+                    value={extendedForm.callType} 
+                    onValueChange={(v) => updateExtendedForm('callType', v)}
+                    disabled={!canEditForm}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="telsiz">Telsiz</SelectItem>
+                      <SelectItem value="telefon">Telefon</SelectItem>
+                      <SelectItem value="diger">Diğer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Çağrı Nedeni</Label>
+                  <Select 
+                    value={extendedForm.callReason} 
+                    onValueChange={(v) => updateExtendedForm('callReason', v)}
+                    disabled={!canEditForm}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="medikal">Medikal</SelectItem>
+                      <SelectItem value="trafik_kazasi">Trafik Kazası</SelectItem>
+                      <SelectItem value="is_kazasi">İş Kazası</SelectItem>
+                      <SelectItem value="diger_kaza">Diğer Kaza</SelectItem>
+                      <SelectItem value="yangin">Yangın</SelectItem>
+                      <SelectItem value="intihar">İntihar</SelectItem>
+                      <SelectItem value="kimyasal">Kimyasal</SelectItem>
+                      <SelectItem value="kesici_delici">Kesici-Delici</SelectItem>
+                      <SelectItem value="elektrik">Elektrik Çarpması</SelectItem>
+                      <SelectItem value="atesli_silah">Ateşli Silah</SelectItem>
+                      <SelectItem value="bogulma">Boğulma</SelectItem>
+                      <SelectItem value="allerji">Allerji</SelectItem>
+                      <SelectItem value="dusme">Düşme</SelectItem>
+                      <SelectItem value="alkol_ilac">Alkol/İlaç</SelectItem>
+                      <SelectItem value="kunt_travma">Künt Travma</SelectItem>
+                      <SelectItem value="yanik">Yanık</SelectItem>
+                      <SelectItem value="lpg">LPG</SelectItem>
+                      <SelectItem value="tedbir">Tedbir</SelectItem>
+                      <SelectItem value="protokol">Protokol</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Olay Yeri</Label>
+                  <Select 
+                    value={extendedForm.sceneType} 
+                    onValueChange={(v) => updateExtendedForm('sceneType', v)}
+                    disabled={!canEditForm}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ev">Ev</SelectItem>
+                      <SelectItem value="yaya">Yaya</SelectItem>
+                      <SelectItem value="aracta">Araçta</SelectItem>
+                      <SelectItem value="sokak">Sokak</SelectItem>
+                      <SelectItem value="fabrika">Fabrika</SelectItem>
+                      <SelectItem value="buro">Büro</SelectItem>
+                      <SelectItem value="suda">Suda</SelectItem>
+                      <SelectItem value="arazi">Arazi</SelectItem>
+                      <SelectItem value="stadyum">Stadyum</SelectItem>
+                      <SelectItem value="huzurevi">Huzurevi</SelectItem>
+                      <SelectItem value="cami">Cami</SelectItem>
+                      <SelectItem value="yurt">Yurt</SelectItem>
+                      <SelectItem value="saglik_kurumu">Sağlık Kurumu</SelectItem>
+                      <SelectItem value="resmi_daire">Resmi Daire</SelectItem>
+                      <SelectItem value="egitim_kurumu">Eğitim Kurumu</SelectItem>
+                      <SelectItem value="spor_salonu">Spor Salonu</SelectItem>
+                      <SelectItem value="liman_santiye">Liman/Şantiye</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <div className="flex items-center space-x-3 bg-yellow-50 p-3 rounded">
@@ -1351,6 +1713,66 @@ const CaseDetail = () => {
                   </div>
                 </div>
               )}
+              
+              {/* Sonuç ve Transfer Tipi */}
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label>Sonuç</Label>
+                  <Select 
+                    value={extendedForm.outcome} 
+                    onValueChange={(v) => updateExtendedForm('outcome', v)}
+                    disabled={!canEditForm}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sonuç seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yerinde_mudahale">Yerinde Müdahale</SelectItem>
+                      <SelectItem value="hastaneye_nakil">Hastaneye Nakil</SelectItem>
+                      <SelectItem value="hastaneler_arasi">Hastaneler Arası Nakil</SelectItem>
+                      <SelectItem value="tibbi_tetkik">Tıbbi Tetkik İçin Nakil</SelectItem>
+                      <SelectItem value="eve_nakil">Eve Nakil</SelectItem>
+                      <SelectItem value="ex_terinde">Ex Terinde Bırakıldı</SelectItem>
+                      <SelectItem value="ex_morga">Ex Morga Nakil</SelectItem>
+                      <SelectItem value="nakil_reddi">Nakil Reddi</SelectItem>
+                      <SelectItem value="diger_ulasilan">Diğer Ulaşılan</SelectItem>
+                      <SelectItem value="gorev_iptali">Görev İptali</SelectItem>
+                      <SelectItem value="baska_aracla_nakil">Başka Araçla Nakil</SelectItem>
+                      <SelectItem value="asilsiz_ihbar">Asılsız İhbar</SelectItem>
+                      <SelectItem value="yaralanan_yok">Yaralanan Yok</SelectItem>
+                      <SelectItem value="olay_yerinde_bekleme">Olay Yerinde Bekleme</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Transfer Tipi</Label>
+                  <Select 
+                    value={extendedForm.transferType} 
+                    onValueChange={(v) => updateExtendedForm('transferType', v)}
+                    disabled={!canEditForm}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Transfer tipi seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ilce_ici">İlçe İçi</SelectItem>
+                      <SelectItem value="ilce_disi">İlçe Dışı</SelectItem>
+                      <SelectItem value="il_disi">İl Dışı</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {/* Vakayı Veren Kurum */}
+              <div className="mt-4">
+                <Label>Vakayı Veren Kurum</Label>
+                <Input 
+                  placeholder="Kurumu yazınız..."
+                  value={extendedForm.referralSource}
+                  onChange={(e) => updateExtendedForm('referralSource', e.target.value)}
+                  disabled={!canEditForm}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1580,6 +2002,42 @@ const CaseDetail = () => {
                     <div className="h-9 flex items-center justify-center bg-blue-100 rounded font-bold text-blue-800">
                       {gksPuani || 0}
                     </div>
+                  </div>
+                </div>
+                
+                {/* Kan Şekeri ve Vücut Sıcaklığı */}
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div>
+                    <Label>Kan Şekeri (mg/dL)</Label>
+                    <Input 
+                      type="number"
+                      placeholder="mg/dL"
+                      value={extendedForm.bloodSugar}
+                      onChange={(e) => updateExtendedForm('bloodSugar', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div>
+                    <Label>Vücut Sıcaklığı (°C)</Label>
+                    <Input 
+                      type="number"
+                      step="0.1"
+                      placeholder="36.5"
+                      value={extendedForm.bodyTemp}
+                      onChange={(e) => updateExtendedForm('bodyTemp', e.target.value)}
+                      disabled={!canEditForm}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="forensic" 
+                      checked={extendedForm.isForensic} 
+                      onCheckedChange={(v) => updateExtendedForm('isForensic', v)}
+                      disabled={!canEditForm}
+                    />
+                    <Label htmlFor="forensic" className="font-semibold text-red-700">
+                      Adli Vaka
+                    </Label>
                   </div>
                 </div>
                 

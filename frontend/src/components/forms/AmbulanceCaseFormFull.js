@@ -12,8 +12,70 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { casesAPI, vehiclesAPI } from '../../api';
+import { casesAPI, vehiclesAPI, settingsAPI } from '../../api';
 import { useParams } from 'react-router-dom';
+import PDFExportButton from '../PDFExportButton';
+import { exportAmbulanceCaseForm, downloadPDF } from '../../utils/pdfExport';
+import { Check } from 'lucide-react';
+
+/**
+ * Otomatik İmza Bileşeni
+ * Kullanıcının kayıtlı imzası varsa gösterir, yoksa SignaturePad gösterir
+ */
+const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, onSignature, currentSignature }) => {
+  // Bu imza kutusu için uygun rol mü kontrol et
+  const isTargetRole = targetRoles.some(role => userRole?.includes(role));
+  
+  // Otomatik imza gösterilmeli mi?
+  const showAutoSignature = isTargetRole && userSignature;
+  
+  if (showAutoSignature) {
+    return (
+      <div className="space-y-2">
+        <Label>{label} (Otomatik)</Label>
+        <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
+          <img 
+            src={userSignature} 
+            alt="Kayıtlı İmza" 
+            className="h-24 w-full object-contain"
+          />
+        </div>
+        <p className="text-xs text-green-600 flex items-center gap-1">
+          <Check className="h-3 w-3" />
+          {userName} - Kayıtlı imza otomatik kullanılıyor
+        </p>
+      </div>
+    );
+  }
+  
+  // Manuel imza
+  return (
+    <div className="space-y-2">
+      {currentSignature ? (
+        <>
+          <Label>{label}</Label>
+          <div className="border-2 border-blue-500 rounded-lg p-2 bg-blue-50">
+            <img 
+              src={currentSignature} 
+              alt="İmza" 
+              className="h-24 w-full object-contain"
+            />
+          </div>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => onSignature(null)}
+          >
+            İmzayı Sil
+          </Button>
+        </>
+      ) : (
+        <SignaturePad label={label} onSignature={onSignature} />
+      )}
+    </div>
+  );
+};
 
 
   const handleSave = async () => {
@@ -34,6 +96,25 @@ import { useParams } from 'react-router-dom';
   const { caseId } = useParams(); // URL'den case ID çek
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Kullanıcının kayıtlı imzası
+  const [userSignature, setUserSignature] = useState(null);
+  
+  // Personel imzaları
+  const [staffSignatures, setStaffSignatures] = useState({
+    receiver: null,      // Hastayı teslim alan
+    doctorParamedic: null, // Doktor/Paramedik
+    healthStaff: null,   // Sağlık personeli (ATT/Hemşire)
+    driver: null         // Sürücü
+  });
+  
+  // Hasta imzaları
+  const [patientSignatures, setPatientSignatures] = useState({
+    companion: null,     // Refakatçi bilgilendirme
+    hospitalReject: null, // Hastane reddi
+    patientReject: null  // Hasta reddi
+  });
+  
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     atnNo: '',
@@ -82,6 +163,33 @@ import { useParams } from 'react-router-dom';
     roundTrip: ''
   });
 
+  // Kullanıcının kayıtlı imzasını yükle
+  useEffect(() => {
+    const loadUserSignature = async () => {
+      try {
+        // Kullanıcının profil bilgisini al (imza dahil)
+        const response = await settingsAPI.getProfile();
+        if (response.data?.signature) {
+          setUserSignature(response.data.signature);
+          
+          // Kullanıcının rolüne göre otomatik imzayı ilgili alana yerleştir
+          const role = user?.role;
+          if (role === 'doktor' || role === 'paramedik') {
+            setStaffSignatures(prev => ({ ...prev, doctorParamedic: response.data.signature }));
+          } else if (role === 'att' || role === 'hemsire') {
+            setStaffSignatures(prev => ({ ...prev, healthStaff: response.data.signature }));
+          } else if (role === 'sofor') {
+            setStaffSignatures(prev => ({ ...prev, driver: response.data.signature }));
+          }
+        }
+      } catch (error) {
+        console.log('Kullanıcı imzası yüklenemedi:', error);
+      }
+    };
+    
+    loadUserSignature();
+  }, [user?.role]);
+  
   // Otomatik vaka ve araç bilgisi yükleme
   useEffect(() => {
     const loadCaseData = async () => {
@@ -507,22 +615,80 @@ import { useParams } from 'react-router-dom';
 
           <div className="space-y-4 border-t pt-4">
             <h3 className="font-semibold">Personel İmza Bölümü</h3>
+            {userSignature && (
+              <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                ℹ️ Kayıtlı imzanız otomatik olarak ilgili alana yerleştirildi.
+              </p>
+            )}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-3">
                 <div className="space-y-2"><Label>Hastayı Teslim Alanın Ünvanı Adı Soyadı</Label><Input /></div>
-                <SignaturePad label="İmza" />
+                <AutoSignature 
+                  label="İmza"
+                  userSignature={userSignature}
+                  userName={user?.name}
+                  userRole={user?.role}
+                  targetRoles={[]} // Teslim alan hastane personeli - otomatik imza yok
+                  currentSignature={staffSignatures.receiver}
+                  onSignature={(sig) => setStaffSignatures(prev => ({ ...prev, receiver: sig }))}
+                />
               </div>
               <div className="space-y-3">
-                <div className="space-y-2"><Label>Doktor/Paramedik Adı Soyadı</Label><Input /></div>
-                <SignaturePad label="İmza" />
+                <div className="space-y-2">
+                  <Label>Doktor/Paramedik Adı Soyadı</Label>
+                  <Input 
+                    value={(user?.role === 'doktor' || user?.role === 'paramedik') ? user?.name : ''}
+                    readOnly={(user?.role === 'doktor' || user?.role === 'paramedik')}
+                    className={(user?.role === 'doktor' || user?.role === 'paramedik') ? 'bg-green-50' : ''}
+                  />
+                </div>
+                <AutoSignature 
+                  label="İmza"
+                  userSignature={userSignature}
+                  userName={user?.name}
+                  userRole={user?.role}
+                  targetRoles={['doktor', 'paramedik']}
+                  currentSignature={staffSignatures.doctorParamedic}
+                  onSignature={(sig) => setStaffSignatures(prev => ({ ...prev, doctorParamedic: sig }))}
+                />
               </div>
               <div className="space-y-3">
-                <div className="space-y-2"><Label>Sağlık Personeli Adı Soyadı</Label><Input /></div>
-                <SignaturePad label="İmza" />
+                <div className="space-y-2">
+                  <Label>Sağlık Personeli (ATT/Hemşire) Adı Soyadı</Label>
+                  <Input 
+                    value={(user?.role === 'att' || user?.role === 'hemsire') ? user?.name : ''}
+                    readOnly={(user?.role === 'att' || user?.role === 'hemsire')}
+                    className={(user?.role === 'att' || user?.role === 'hemsire') ? 'bg-green-50' : ''}
+                  />
+                </div>
+                <AutoSignature 
+                  label="İmza"
+                  userSignature={userSignature}
+                  userName={user?.name}
+                  userRole={user?.role}
+                  targetRoles={['att', 'hemsire']}
+                  currentSignature={staffSignatures.healthStaff}
+                  onSignature={(sig) => setStaffSignatures(prev => ({ ...prev, healthStaff: sig }))}
+                />
               </div>
               <div className="space-y-3">
-                <div className="space-y-2"><Label>Sürücü/Pilot Adı Soyadı</Label><Input /></div>
-                <SignaturePad label="İmza" />
+                <div className="space-y-2">
+                  <Label>Sürücü/Pilot Adı Soyadı</Label>
+                  <Input 
+                    value={user?.role === 'sofor' ? user?.name : ''}
+                    readOnly={user?.role === 'sofor'}
+                    className={user?.role === 'sofor' ? 'bg-green-50' : ''}
+                  />
+                </div>
+                <AutoSignature 
+                  label="İmza"
+                  userSignature={userSignature}
+                  userName={user?.name}
+                  userRole={user?.role}
+                  targetRoles={['sofor']}
+                  currentSignature={staffSignatures.driver}
+                  onSignature={(sig) => setStaffSignatures(prev => ({ ...prev, driver: sig }))}
+                />
               </div>
             </div>
           </div>
@@ -576,9 +742,42 @@ import { useParams } from 'react-router-dom';
       </Card>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline">🗑 Temizle</Button>
-        <Button variant="outline">💾 PDF Önizleme</Button>
-        <Button variant="outline">🖨 Yazdır</Button>
+        <Button variant="outline" onClick={() => {
+          setFormData({
+            date: new Date().toISOString().split('T')[0],
+            atnNo: '', healmedyProtocol: '', patientName: '', tcNo: '', gender: '', age: '',
+            callTime: '', arrivalTime: '', departureTime: '', hospitalArrivalTime: '',
+            phone: '', address: '', pickupLocation: '', transfer1: '', transfer2: '',
+            complaint: '', consciousStatus: true, diagnosis: '', chronicDiseases: '',
+            applications: '', isolation: [], emotionalState: '', pupils: '', skin: '',
+            respiration: '', pulse: '', motorResponse: '', verbalResponse: '', eyeOpening: '',
+            cprBy: '', cprStart: '', cprEnd: '', cprReason: '', companions: '',
+            waitHours: '', waitMinutes: '', vehicleType: '', startKm: '', endKm: '',
+            institution: '', protocol112: '', hospitalProtocol: '', referringInstitution: '', roundTrip: ''
+          });
+          setVitalSigns([
+            { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },
+            { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },
+            { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' }
+          ]);
+          setProcedures({});
+          toast.success('Form temizlendi');
+        }}>🗑 Temizle</Button>
+        <PDFExportButton 
+          formType="ambulance_case"
+          formData={formData}
+          extraData={{ vitalSigns, procedures }}
+          filename={`ambulans_vaka_${formData.healmedyProtocol || formData.patientName || 'form'}`}
+          variant="outline"
+        >
+          📄 PDF İndir
+        </PDFExportButton>
+        <Button variant="outline" onClick={() => {
+          const doc = exportAmbulanceCaseForm(formData, vitalSigns, procedures);
+          const blob = doc.output('blob');
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        }}>🔍 PDF Önizleme</Button>
         <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>

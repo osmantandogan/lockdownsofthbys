@@ -5,10 +5,10 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
@@ -29,6 +29,11 @@ const UserManagement = () => {
     phone: '',
     tc_no: ''
   });
+  
+  // Silme işlemi için state'ler
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const roles = [
     { value: 'merkez_ofis', label: 'Merkez Ofis' },
@@ -72,8 +77,14 @@ const UserManagement = () => {
   };
 
   const handleUpdate = async () => {
+    const userId = selectedUser?.id || selectedUser?._id;
+    if (!userId) {
+      toast.error('Kullanıcı ID bulunamadı');
+      return;
+    }
+    
     try {
-      await usersAPI.update(selectedUser.id, {
+      await usersAPI.update(userId, {
         name: formData.name,
         role: formData.role,
         phone: formData.phone,
@@ -84,12 +95,18 @@ const UserManagement = () => {
       resetForm();
       loadUsers();
     } catch (error) {
-      toast.error('Kullanıcı güncellenemedi');
+      console.error('Güncelleme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Kullanıcı güncellenemedi');
     }
   };
 
   const openEditDialog = (userData) => {
-    setSelectedUser(userData);
+    // ID'yi normalize et
+    const normalizedUser = {
+      ...userData,
+      id: userData.id || userData._id
+    };
+    setSelectedUser(normalizedUser);
     setFormData({
       name: userData.name,
       role: userData.role,
@@ -119,6 +136,48 @@ const UserManagement = () => {
     });
     setSelectedUser(null);
     setEditMode(false);
+  };
+
+  // Silme işlemleri
+  const openDeleteDialog = (userData) => {
+    setUserToDelete(userData);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    
+    const userId = userToDelete.id || userToDelete._id;
+    if (!userId) {
+      toast.error('Kullanıcı ID bulunamadı');
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      await usersAPI.delete(userId);
+      toast.success(`${userToDelete.name} başarıyla silindi`);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      loadUsers();
+    } catch (error) {
+      console.error('Silme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Kullanıcı silinemedi');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Korumalı roller (silinemez)
+  const protectedRoles = ['operasyon_muduru', 'merkez_ofis'];
+  const canDeleteUser = (userData) => {
+    // Korumalı roller silinemez
+    if (protectedRoles.includes(userData.role)) return false;
+    // Kendini silemezsin
+    const currentUserId = user?.id || user?._id;
+    const targetUserId = userData.id || userData._id;
+    if (currentUserId === targetUserId) return false;
+    return true;
   };
 
   const canManage = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
@@ -151,7 +210,7 @@ const UserManagement = () => {
         <CardContent>
           <div className="space-y-3">
             {users.map((userData) => (
-              <Card key={userData.id} className="bg-gray-50">
+              <Card key={userData.id || userData._id} className="bg-gray-50">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="space-y-1">
@@ -166,6 +225,16 @@ const UserManagement = () => {
                       <Button variant="ghost" size="icon" onClick={() => openEditDialog(userData)}>
                         <Edit className="h-4 w-4" />
                       </Button>
+                      {canDeleteUser(userData) && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => openDeleteDialog(userData)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -222,6 +291,50 @@ const UserManagement = () => {
               {editMode ? 'Güncelle' : 'Oluştur'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Silme Onay Dialogu */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Kullanıcı Silme Onayı
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-700">
+              <strong>{userToDelete?.name}</strong> adlı kullanıcıyı silmek istediğinizden emin misiniz?
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Email: {userToDelete?.email}
+            </p>
+            <p className="text-sm text-gray-500">
+              Rol: {roles.find(r => r.value === userToDelete?.role)?.label}
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-4">
+              <p className="text-sm text-red-700">
+                ⚠️ Bu işlem geri alınamaz. Kullanıcının tüm verileri silinecektir.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              İptal
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Siliniyor...' : 'Evet, Sil'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -10,6 +10,8 @@ import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { shiftsAPI, vehiclesAPI } from '../../api';
+import PDFExportButton from '../PDFExportButton';
+import { exportHandoverForm } from '../../utils/pdfExport';
 
 
   const handleSave = async () => {
@@ -354,9 +356,43 @@ import { shiftsAPI, vehiclesAPI } from '../../api';
       </Card>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline">🗑 Temizle</Button>
-        <Button variant="outline">💾 PDF Önizleme</Button>
-        <Button variant="outline">🖨 Yazdır</Button>
+        <Button variant="outline" onClick={() => {
+          const initialData = {
+            aracPlakasi: vehiclePlate || '',
+            kayitTarihi: new Date().toISOString().split('T')[0],
+            teslimAlinanKm: vehicleKm || '',
+            servisYapilacakKm: '',
+            fosforluYelek: '',
+            takviyeKablosu: '',
+            cekmeKablosu: '',
+            ucgen: '',
+            teslimEdenNotlar: '',
+            hasarBildirimi: '',
+            teslimEden: '',
+            teslimAlan: '',
+            birimYoneticisi: '',
+            onayTarihi: new Date().toISOString().split('T')[0],
+            teslimEdenSignature: null,
+            teslimAlanSignature: null
+          };
+          if (onChange) onChange(initialData);
+          else setLocalFormData(initialData);
+          toast.success('Form temizlendi');
+        }}>🗑 Temizle</Button>
+        <PDFExportButton 
+          formType="handover"
+          formData={formData}
+          filename={`devir_teslim_${formData.aracPlakasi || 'form'}`}
+          variant="outline"
+        >
+          📄 PDF İndir
+        </PDFExportButton>
+        <Button variant="outline" onClick={() => {
+          const doc = exportHandoverForm(formData);
+          const blob = doc.output('blob');
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        }}>🔍 PDF Önizleme</Button>
         <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
       </div>
     </div>

@@ -708,9 +708,13 @@ const ShiftAssignments = () => {
                               {/* User info */}
                               <div className="w-44 flex-shrink-0 pr-4">
                                 <div className="flex items-center space-x-3">
-                                  <div className={`w-10 h-10 rounded-full ${colors[idx % colors.length]} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
-                                    {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                  </div>
+                                  {assignment.profile_photo ? (
+                                    <img src={assignment.profile_photo} alt={userName} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md" />
+                                  ) : (
+                                    <div className={`w-10 h-10 rounded-full ${colors[idx % colors.length]} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
+                                      {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                    </div>
+                                  )}
                                   <div className="min-w-0">
                                     <p className="font-semibold text-gray-900 truncate text-sm">{userName}</p>
                                     <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
@@ -1025,9 +1029,13 @@ const ShiftAssignments = () => {
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex items-start space-x-3">
-                                <div className={`w-12 h-12 rounded-full bg-${color}-500 flex items-center justify-center text-white font-bold shadow-md`}>
-                                  {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                </div>
+                                {assignment.profile_photo ? (
+                                  <img src={assignment.profile_photo} alt={userName} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md" />
+                                ) : (
+                                  <div className={`w-12 h-12 rounded-full bg-${color}-500 flex items-center justify-center text-white font-bold shadow-md`}>
+                                    {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                  </div>
+                                )}
                                 <div>
                                   <p className="font-bold text-gray-900 text-lg">{userName}</p>
                                   <Badge variant="outline" className="mt-1 text-xs">

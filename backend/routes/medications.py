@@ -227,13 +227,16 @@ async def add_medication_to_case(case_id: str, data: MedicationUsageCreate, requ
         vehicle_plate=vehicle_plate
     )
     
-    # If we have a stock_item_id, deduct from stock
+    # If we have a stock_item_id, deduct from stock (lokasyon bazlı)
     stock_deducted = False
+    deducted_from_location = None
+    
     if data.stock_item_id:
         stock_item = await stock_collection.find_one({"_id": data.stock_item_id})
         if stock_item:
             previous_qty = stock_item.get("quantity", 0)
             new_qty = max(0, previous_qty - data.quantity)
+            deducted_from_location = stock_item.get("location")
             
             # Update stock
             await stock_collection.update_one(
@@ -255,7 +258,7 @@ async def add_medication_to_case(case_id: str, data: MedicationUsageCreate, requ
                 quantity_change=-data.quantity,
                 previous_quantity=previous_qty,
                 new_quantity=new_qty,
-                reason=f"Vaka kullanımı: {case_doc.get('case_number', case_id)}",
+                reason=f"Vaka kullanımı: {case_doc.get('case_number', case_id)} - Lokasyon: {deducted_from_location}",
                 performed_by=user.id,
                 performed_by_name=user.name
             )
@@ -267,6 +270,56 @@ async def add_medication_to_case(case_id: str, data: MedicationUsageCreate, requ
             if new_qty <= stock_item.get("min_quantity", 0):
                 # TODO: Send notification for critical stock
                 pass
+    else:
+        # Eğer stock_item_id yoksa, araç lokasyonundaki stoktan düşmeyi dene
+        if vehicle_plate:
+            # Araç lokasyonu adını oluştur (örn: "34 ABC 123" → araç lokasyonu)
+            possible_locations = [
+                vehicle_plate,  # Araç plakası
+                f"{vehicle_plate} Aracı",  # "34 ABC 123 Aracı"
+                f"{vehicle_plate} Bekleme Noktası"  # "34 ABC 123 Bekleme Noktası"
+            ]
+            
+            # İlacı bu lokasyonlardan birinde bul
+            for loc in possible_locations:
+                stock_item = await stock_collection.find_one({
+                    "location": loc,
+                    "name": {"$regex": data.name, "$options": "i"},
+                    "quantity": {"$gt": 0}
+                })
+                
+                if stock_item:
+                    previous_qty = stock_item.get("quantity", 0)
+                    new_qty = max(0, previous_qty - data.quantity)
+                    deducted_from_location = loc
+                    
+                    await stock_collection.update_one(
+                        {"_id": stock_item["_id"]},
+                        {
+                            "$set": {
+                                "quantity": new_qty,
+                                "updated_at": datetime.utcnow()
+                            }
+                        }
+                    )
+                    
+                    # Log
+                    log = StockUsageLog(
+                        stock_item_id=stock_item["_id"],
+                        case_id=case_id,
+                        medication_usage_id=medication.id,
+                        action="kullanim",
+                        quantity_change=-data.quantity,
+                        previous_quantity=previous_qty,
+                        new_quantity=new_qty,
+                        reason=f"Vaka kullanımı: {case_doc.get('case_number', case_id)} - Araç: {vehicle_plate} - Lokasyon: {loc}",
+                        performed_by=user.id,
+                        performed_by_name=user.name
+                    )
+                    await stock_usage_logs_collection.insert_one(log.model_dump(by_alias=True))
+                    
+                    stock_deducted = True
+                    break
     
     medication.stock_deducted = stock_deducted
     
@@ -276,7 +329,8 @@ async def add_medication_to_case(case_id: str, data: MedicationUsageCreate, requ
     return {
         "message": "İlaç/malzeme eklendi",
         "medication": medication.model_dump(),
-        "stock_deducted": stock_deducted
+        "stock_deducted": stock_deducted,
+        "deducted_from_location": deducted_from_location
     }
 
 

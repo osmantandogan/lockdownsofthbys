@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { settingsAPI } from '../api';
+import React, { useEffect, useState, useRef } from 'react';
+import { settingsAPI, usersAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { User, Info, PenTool } from 'lucide-react';
+import { User, Info, PenTool, Camera, Trash2, Upload } from 'lucide-react';
 import SignaturePad from '../components/SignaturePad';
 import axios from 'axios';
 
@@ -20,6 +20,11 @@ const Settings = () => {
   });
   const [signature, setSignature] = useState(null);
   const [signatureSaving, setSignatureSaving] = useState(false);
+  
+  // Profil fotoğrafı
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadData();
@@ -27,12 +32,14 @@ const Settings = () => {
 
   const loadData = async () => {
     try {
-      const [profileRes, systemRes] = await Promise.all([
+      const [profileRes, systemRes, photoRes] = await Promise.all([
         settingsAPI.getProfile(),
-        settingsAPI.getSystemInfo()
+        settingsAPI.getSystemInfo(),
+        usersAPI.getMyPhoto().catch(() => ({ data: { photo: null } }))
       ]);
       setProfile(profileRes.data);
       setSystemInfo(systemRes.data);
+      setProfilePhoto(photoRes.data.photo);
       setFormData({
         name: profileRes.data.name || '',
         phone: profileRes.data.phone || '',
@@ -43,6 +50,63 @@ const Settings = () => {
       toast.error('Ayarlar yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Profil fotoğrafı yükleme
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Dosya tipi kontrolü
+    if (!file.type.startsWith('image/')) {
+      toast.error('Sadece resim dosyaları yüklenebilir');
+      return;
+    }
+    
+    // Boyut kontrolü (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Dosya boyutu 2MB\'dan küçük olmalı');
+      return;
+    }
+    
+    setPhotoLoading(true);
+    
+    try {
+      // Resmi base64'e çevir
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        
+        try {
+          await usersAPI.uploadPhoto(base64);
+          setProfilePhoto(base64);
+          toast.success('Profil fotoğrafı güncellendi');
+        } catch (error) {
+          toast.error(error.response?.data?.detail || 'Fotoğraf yüklenemedi');
+        } finally {
+          setPhotoLoading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error('Fotoğraf işlenemedi');
+      setPhotoLoading(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!profilePhoto) return;
+    
+    setPhotoLoading(true);
+    try {
+      await usersAPI.deletePhoto();
+      setProfilePhoto(null);
+      toast.success('Profil fotoğrafı silindi');
+    } catch (error) {
+      toast.error('Fotoğraf silinemedi');
+    } finally {
+      setPhotoLoading(false);
     }
   };
 
@@ -115,6 +179,65 @@ const Settings = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Profil Fotoğrafı */}
+          <div className="flex items-center space-x-6 mb-6 pb-6 border-b">
+            <div className="relative">
+              {profilePhoto ? (
+                <img 
+                  src={profilePhoto} 
+                  alt="Profil" 
+                  className="w-24 h-24 rounded-full object-cover border-4 border-red-100"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-3xl font-bold border-4 border-red-100">
+                  {(profile?.name || '?').charAt(0).toUpperCase()}
+                </div>
+              )}
+              {photoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">Profil Fotoğrafı</h4>
+              <p className="text-sm text-gray-500">Vaka formlarında görünecek fotoğrafınız</p>
+              <div className="flex space-x-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+                <Button 
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photoLoading}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  {profilePhoto ? 'Değiştir' : 'Yükle'}
+                </Button>
+                {profilePhoto && (
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeletePhoto}
+                    disabled={photoLoading}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Sil
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">Max 2MB, JPG/PNG</p>
+            </div>
+          </div>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

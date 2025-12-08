@@ -115,6 +115,7 @@ async def get_today_assignments(request: Request):
         if user_doc:
             serialized["user_name"] = user_doc.get("name", "Bilinmiyor")
             serialized["user_role"] = user_doc.get("role", "-")
+            serialized["profile_photo"] = user_doc.get("profile_photo")  # Profil fotoğrafı
         enriched_assignments.append(serialized)
     
     # Group by location type
@@ -155,9 +156,21 @@ async def get_all_assignments(request: Request):
     """Get all shift assignments (Admin only)"""
     current_user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
     
+    from database import users_collection
+    
     assignments = await shift_assignments_collection.find({}).sort("shift_date", -1).to_list(1000)
     
-    result = [serialize_assignment(a) for a in assignments]
+    result = []
+    for a in assignments:
+        serialized = serialize_assignment(a)
+        # Kullanıcı bilgilerini ekle
+        user_doc = await users_collection.find_one({"_id": a.get("user_id")})
+        if user_doc:
+            serialized["user_name"] = user_doc.get("name", "Bilinmiyor")
+            serialized["user_role"] = user_doc.get("role", "-")
+            serialized["profile_photo"] = user_doc.get("profile_photo")
+        result.append(serialized)
+    
     return result
 
 @router.post("/create-assignment-v2")

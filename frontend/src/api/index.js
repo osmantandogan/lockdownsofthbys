@@ -16,6 +16,7 @@ export const casesAPI = {
   assignTeam: (id, data) => api.post(`/cases/${id}/assign-team`, data),
   updateStatus: (id, data) => api.patch(`/cases/${id}/status`, data),
   getStats: () => api.get('/cases/stats/dashboard'),
+  getNextCaseNumber: () => api.get('/cases/next-case-number'),
   sendNotification: (id, vehicleId) => api.post(`/cases/${id}/send-notification`, null, {
     params: { vehicle_id: vehicleId }
   }),
@@ -28,7 +29,13 @@ export const casesAPI = {
   // Doctor approval
   doctorApproval: (id, data) => api.post(`/cases/${id}/doctor-approval`, data),
   // Video call (legacy - Jitsi)
-  startVideoCall: (id) => api.post(`/cases/${id}/start-video-call`)
+  startVideoCall: (id) => api.post(`/cases/${id}/start-video-call`),
+  // 36 saat erişim onayı
+  requestAccess: (id, data) => api.post(`/cases/${id}/request-access`, data),
+  // Hasta bilgisi güncelleme
+  updatePatientInfo: (id, data) => api.patch(`/cases/${id}/patient`, data),
+  // Excel export - Backend template kullanarak
+  exportExcel: (id) => api.get(`/cases/${id}/export-excel`, { responseType: 'blob' })
 };
 
 // Video Call API (Daily.co)
@@ -69,7 +76,14 @@ export const stockAPI = {
   delete: (id) => api.delete(`/stock/${id}`),
   getAlerts: () => api.get('/stock/alerts/summary'),
   search: (params) => api.get('/medications/stock/search', { params }),
-  getVehicleStock: (vehicleId) => api.get(`/medications/vehicles/${vehicleId}/stock`)
+  getVehicleStock: (vehicleId) => api.get(`/medications/vehicles/${vehicleId}/stock`),
+  // Lokasyon Yönetimi
+  getLocations: (params) => api.get('/stock/locations', { params }),
+  createLocation: (data) => api.post('/stock/locations', data),
+  deleteLocation: (id) => api.delete(`/stock/locations/${id}`),
+  getLocationsSummary: () => api.get('/stock/locations/summary'),
+  getLocationItems: (id) => api.get(`/stock/locations/${id}/items`),
+  getItemBarcodeDetails: (locationId, itemName) => api.get(`/stock/locations/${locationId}/items/${encodeURIComponent(itemName)}/details`)
 };
 
 // Medications API (Vakada kullanılan ilaçlar)
@@ -110,13 +124,19 @@ export const usersAPI = {
   getAll: () => api.get('/users'),
   getById: (id) => api.get(`/users/${id}`),
   update: (id, data) => api.patch(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),  // Personel silme (sadece Op.Müdürü ve Merkez Ofis)
   assignTempRole: (id, role, duration) => api.post(`/users/${id}/assign-temp-role`, null, {
     params: { role, duration_days: duration }
   }),
   removeTempRole: (id, role) => api.delete(`/users/${id}/remove-temp-role`, {
     params: { role }
   }),
-  getStaffPerformance: (params) => api.get('/users/staff-performance', { params })
+  getStaffPerformance: (params) => api.get('/users/staff-performance', { params }),
+  // Profil fotoğrafı
+  uploadPhoto: (photoBase64) => api.post('/users/me/photo', { photo_base64: photoBase64 }),
+  deletePhoto: () => api.delete('/users/me/photo'),
+  getMyPhoto: () => api.get('/users/me/photo'),
+  getUserPhoto: (id) => api.get(`/users/${id}/photo`)
 };
 
 // Settings API
@@ -161,6 +181,40 @@ export const notificationsAPI = {
   // Test & Broadcast
   sendTest: (data) => api.post('/notifications/test', data),
   broadcast: (data) => api.post('/notifications/broadcast', null, { params: data })
+};
+
+// OTP API (Internal Onay Kodu)
+export const otpAPI = {
+  // Kendi OTP kodumu al
+  getMyCode: () => api.get('/otp/my-code'),
+  // OTP doğrula
+  verify: (code, userId = null) => api.post('/otp/verify', { code, user_id: userId }),
+  // Secret yenile
+  regenerateSecret: () => api.post('/otp/regenerate-secret'),
+  // Başka kullanıcının kodunu al (müdür)
+  getUserCode: (userId) => api.get(`/otp/user/${userId}/code`)
+};
+
+// İTS - İlaç Takip Sistemi API
+export const itsAPI = {
+  // Durum
+  getStatus: () => api.get('/its/status'),
+  // Yapılandırma (müdür)
+  configure: (data) => api.post('/its/configure', data),
+  // İlaç senkronizasyonu
+  syncDrugs: () => api.post('/its/sync-drugs'),
+  // İlaç listesi
+  getDrugs: (params) => api.get('/its/drugs', { params }),
+  // GTIN ile ilaç getir
+  getDrugByGtin: (gtin) => api.get(`/its/drugs/${gtin}`),
+  // Karekod parse et
+  parseBarcode: (barcode) => api.post('/its/parse-barcode', { barcode }),
+  // İlaç ara
+  searchDrugs: (query, limit = 20) => api.post('/its/search-drugs', { query, limit }),
+  // Manuel ilaç ekle
+  addManualDrug: (data) => api.post('/its/drugs/manual', data),
+  // Manuel ilacı sil
+  deleteDrug: (gtin) => api.delete(`/its/drugs/${gtin}`)
 };
 
 export default api;

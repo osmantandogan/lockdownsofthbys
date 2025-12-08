@@ -190,3 +190,122 @@ async def remove_temp_role(user_id: str, role: UserRole, request: Request):
     )
     
     return {"message": f"Temporary role '{role}' removed"}
+
+
+# ============ PROFİL FOTOĞRAFI ============
+
+from pydantic import BaseModel
+
+class ProfilePhotoUpload(BaseModel):
+    """Profil fotoğrafı yükleme"""
+    photo_base64: str  # Base64 encoded image data
+
+
+@router.post("/me/photo")
+async def upload_profile_photo(data: ProfilePhotoUpload, request: Request):
+    """
+    Kullanıcının profil fotoğrafını yükle
+    Base64 formatında resim alır
+    """
+    user = await get_current_user(request)
+    
+    # Fotoğrafı kontrol et (max 2MB base64 ~ 2.7MB string)
+    if len(data.photo_base64) > 3000000:
+        raise HTTPException(status_code=400, detail="Fotoğraf çok büyük (max 2MB)")
+    
+    # Base64 formatını kontrol et
+    if not data.photo_base64.startswith('data:image/'):
+        raise HTTPException(status_code=400, detail="Geçersiz fotoğraf formatı")
+    
+    await users_collection.update_one(
+        {"_id": user.id},
+        {"$set": {
+            "profile_photo": data.photo_base64,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    return {"message": "Profil fotoğrafı güncellendi"}
+
+
+@router.delete("/me/photo")
+async def delete_profile_photo(request: Request):
+    """Kullanıcının profil fotoğrafını sil"""
+    user = await get_current_user(request)
+    
+    await users_collection.update_one(
+        {"_id": user.id},
+        {"$unset": {"profile_photo": ""}}
+    )
+    
+    return {"message": "Profil fotoğrafı silindi"}
+
+
+@router.get("/me/photo")
+async def get_profile_photo(request: Request):
+    """Kullanıcının profil fotoğrafını getir"""
+    user = await get_current_user(request)
+    
+    user_doc = await users_collection.find_one({"_id": user.id})
+    
+    return {
+        "photo": user_doc.get("profile_photo"),
+        "has_photo": bool(user_doc.get("profile_photo"))
+    }
+
+
+@router.get("/{user_id}/photo")
+async def get_user_photo(user_id: str, request: Request):
+    """Başka bir kullanıcının profil fotoğrafını getir"""
+    await get_current_user(request)
+    
+    user_doc = await users_collection.find_one({"_id": user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    return {
+        "user_id": user_id,
+        "name": user_doc.get("name"),
+        "photo": user_doc.get("profile_photo"),
+        "has_photo": bool(user_doc.get("profile_photo"))
+    }
+
+
+# ============ PERSONEL SİLME ============
+
+@router.delete("/{user_id}")
+async def delete_user(user_id: str, request: Request):
+    """
+    Personeli sistemden sil
+    Sadece Operasyon Müdürü ve Merkez Ofis yetkilidir
+    """
+    current_user = await require_roles(["operasyon_muduru", "merkez_ofis"])(request)
+    
+    # Kullanıcıyı bul
+    user_doc = await users_collection.find_one({"_id": user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    # Kendini silmeye çalışıyor mu kontrol et
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendinizi silemezsiniz")
+    
+    # Operasyon müdürü veya merkez ofisi silmeye çalışıyor mu kontrol et
+    protected_roles = ["operasyon_muduru", "merkez_ofis"]
+    if user_doc.get("role") in protected_roles:
+        raise HTTPException(
+            status_code=403, 
+            detail="Operasyon Müdürü veya Merkez Ofis kullanıcıları silinemez"
+        )
+    
+    # Kullanıcıyı sil
+    result = await users_collection.delete_one({"_id": user_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Silme işlemi başarısız oldu")
+    
+    return {
+        "message": f"Kullanıcı '{user_doc.get('name')}' başarıyla silindi",
+        "deleted_user_id": user_id,
+        "deleted_by": current_user.id
+    }
