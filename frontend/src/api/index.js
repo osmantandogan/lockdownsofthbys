@@ -8,6 +8,56 @@ const api = axios.create({
   withCredentials: true
 });
 
+// Token yönetimi
+const TOKEN_KEY = 'healmedy_session_token';
+
+export const setAuthToken = (token) => {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
+export const getAuthToken = () => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+// Sayfa yüklendiğinde token'ı header'a ekle
+const savedToken = getAuthToken();
+if (savedToken) {
+  api.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+}
+
+// Request interceptor - her istekte token ekle
+api.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken();
+    if (token && !config.headers['Authorization']) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor - 401 hatalarında token temizle
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token geçersiz - temizle (ama login sayfasına yönlendirme yapma, AuthContext halleder)
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+        console.log('[API] 401 - Token might be invalid');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Cases API
 export const casesAPI = {
   getAll: (params) => api.get('/cases', { params }),
@@ -57,7 +107,7 @@ export const vehiclesAPI = {
   getAll: (params) => api.get('/vehicles', { params }),
   getById: (id) => {
     if (!id || id === 'undefined' || id === 'null') {
-      console.warn('vehiclesAPI.getById called with invalid id:', id);
+      console.warn('vehiclesAPI.getById called with invalid ID:', id);
       return Promise.resolve({ data: null });
     }
     return api.get(`/vehicles/${id}`);
@@ -225,11 +275,11 @@ export const itsAPI = {
 
 // Approvals API - Onay Sistemi (SMS + Email + Push)
 export const approvalsAPI = {
-  // Onay kodu doğrula
+  // Genel onay kodu doğrula (hem SMS/Email hem de Internal OTP destekler)
   verify: (data) => api.post('/approvals/verify', data),
   // Bekleyen onaylarım
   getPending: (type = null) => api.get('/approvals/pending', { params: { approval_type: type } }),
-  // Devir teslim onayı oluştur
+  // Devir teslim onayı oluştur (alıcıya)
   createHandover: (data) => api.post('/approvals/shift-handover', data),
   // Yönetici onayı talep et (Vardiya Başlatma için)
   requestManagerApproval: (data) => api.post('/approvals/request-manager-approval', data),
@@ -238,19 +288,27 @@ export const approvalsAPI = {
   // Sonraki vardiya görevlisini getir
   getNextShiftUser: (vehicleId) => {
     if (!vehicleId || vehicleId === 'undefined') {
-      console.warn('getNextShiftUser called with invalid vehicleId:', vehicleId);
-      return Promise.resolve({ data: { found: false } });
+      console.warn('approvalsAPI.getNextShiftUser called with invalid vehicleId:', vehicleId);
+      return Promise.resolve({ data: null });
     }
     return api.get(`/approvals/next-shift-user/${vehicleId}`);
   },
   // Devir teslim bilgilerini getir (otomatik doldurma)
   getHandoverInfo: (vehicleId) => {
     if (!vehicleId || vehicleId === 'undefined') {
-      console.warn('getHandoverInfo called with invalid vehicleId:', vehicleId);
+      console.warn('approvalsAPI.getHandoverInfo called with invalid vehicleId:', vehicleId);
       return Promise.resolve({ data: null });
     }
     return api.get(`/approvals/handover-info/${vehicleId}`);
   }
+};
+
+// Auth API (token yönetimi için)
+export const authAPI = {
+  login: (email, password) => api.post('/auth/login', { email, password }),
+  register: (data) => api.post('/auth/register', data),
+  logout: () => api.post('/auth/logout'),
+  me: () => api.get('/auth/me')
 };
 
 export default api;
