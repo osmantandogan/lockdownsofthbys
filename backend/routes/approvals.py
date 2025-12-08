@@ -161,8 +161,16 @@ async def request_manager_approval_for_shift(data: RequestManagerApprovalRequest
     """
     Vardiya başlatma için yönetici (Baş Şoför) onayı talep et
     SMS, Email ve Push bildirim gönderir
+    Yönetici kendi internal OTP'sini de kullanabilir
     """
-    user = await get_current_user(request)
+    from datetime import timedelta
+    import random
+    
+    try:
+        user = await get_current_user(request)
+    except Exception as e:
+        logger.error(f"Auth error: {e}")
+        raise HTTPException(status_code=401, detail="Yetkilendirme hatası")
     
     # Araç bilgisini al
     vehicle = await vehicles_collection.find_one({"_id": data.vehicle_id})
@@ -175,19 +183,17 @@ async def request_manager_approval_for_shift(data: RequestManagerApprovalRequest
     }).to_list(50)
     
     if not managers:
-        raise HTTPException(status_code=400, detail="Sistemde onay yetkisi olan yönetici bulunamadı")
+        logger.warning("No managers found, approval will only work with internal OTP")
     
     # Onay kodu oluştur
-    import random
     code = str(random.randint(100000, 999999))
     
     # Türkiye saati (UTC+3)
-    from datetime import timedelta
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     
     # Onay kaydı oluştur
     approval_doc = {
-        "_id": f"shift_start_{user.id}_{data.vehicle_id}_{turkey_now.timestamp()}",
+        "_id": f"shift_start_{user.id}_{data.vehicle_id}_{int(turkey_now.timestamp())}",
         "code": code,
         "approval_type": "shift_start",
         "requester_id": user.id,
@@ -197,68 +203,90 @@ async def request_manager_approval_for_shift(data: RequestManagerApprovalRequest
         "action": data.action,
         "status": "pending",
         "created_at": turkey_now,
-        "expires_at": turkey_now + timedelta(minutes=30)
+        "expires_at": turkey_now + timedelta(minutes=30),
+        # Yönetici internal OTP'lerini de kabul et
+        "accept_internal_otp": True,
+        "manager_ids": [m.get("_id") for m in managers]
     }
     
     try:
         await approvals_collection.insert_one(approval_doc)
-    except:
+    except Exception as e:
+        logger.warning(f"Insert failed, updating: {e}")
         # Mevcut kaydı güncelle
         await approvals_collection.update_one(
             {"requester_id": user.id, "vehicle_id": data.vehicle_id, "approval_type": "shift_start", "status": "pending"},
-            {"$set": {"code": code, "created_at": turkey_now, "expires_at": turkey_now + timedelta(minutes=30)}}
+            {"$set": {
+                "code": code, 
+                "created_at": turkey_now, 
+                "expires_at": turkey_now + timedelta(minutes=30),
+                "accept_internal_otp": True,
+                "manager_ids": [m.get("_id") for m in managers]
+            }},
+            upsert=True
         )
     
-    # SMS, Email ve Push bildirim gönder
-    from services.notification_service import notification_service
-    from services.email_service import send_email
-    from services.sms_service import send_sms
+    # Bildirim göndermeyi dene (hata olursa devam et)
+    notifications_sent = 0
     
     for manager in managers:
-        message = f"🚑 Vardiya Başlatma Onay Kodu\n\n" \
-                  f"Kişi: {data.user_name or user.name}\n" \
-                  f"Araç: {vehicle.get('plate', '-')}\n" \
-                  f"Tarih: {turkey_now.strftime('%d.%m.%Y %H:%M')}\n\n" \
-                  f"ONAY KODU: {code}\n\n" \
-                  f"Bu kod 30 dakika geçerlidir."
-        
-        # Push bildirim
         try:
-            await notification_service.send_to_user(
-                user_id=manager.get("_id"),
-                title="🚑 Vardiya Başlatma Onayı",
-                message=f"{data.user_name or user.name} - {vehicle.get('plate', '')} için onay kodu: {code}"
-            )
+            # Push bildirim dene
+            try:
+                from services.notification_service import notification_service
+                await notification_service.send_to_user(
+                    user_id=manager.get("_id"),
+                    title="🚑 Vardiya Başlatma Onayı",
+                    message=f"{data.user_name or user.name} - {vehicle.get('plate', '')} için onay kodu: {code}"
+                )
+                notifications_sent += 1
+            except Exception as e:
+                logger.warning(f"Push bildirim gönderilemedi: {e}")
+            
+            # Email dene
+            if manager.get("email"):
+                try:
+                    from services.email_service import email_service
+                    await email_service.send_email_async(
+                        to_email=manager.get("email"),
+                        subject=f"🚑 Vardiya Başlatma Onay Kodu - {vehicle.get('plate', '')}",
+                        body_html=f"""
+                        <h2>Vardiya Başlatma Onayı</h2>
+                        <p><strong>Kişi:</strong> {data.user_name or user.name}</p>
+                        <p><strong>Araç:</strong> {vehicle.get('plate', '-')}</p>
+                        <p><strong>Tarih:</strong> {turkey_now.strftime('%d.%m.%Y %H:%M')}</p>
+                        <h1 style="color: #dc2626; font-size: 32px; text-align: center;">{code}</h1>
+                        <p>Bu kod 30 dakika geçerlidir.</p>
+                        <p><em>Alternatif: Bildirim sekmenizdeki (sağ üst) internal OTP'nizi de kullanabilirsiniz.</em></p>
+                        """,
+                        body_text=f"Vardiya Onay Kodu: {code} - {data.user_name or user.name} - {vehicle.get('plate', '')}"
+                    )
+                    notifications_sent += 1
+                except Exception as e:
+                    logger.warning(f"Email gönderilemedi: {e}")
+            
+            # SMS dene
+            if manager.get("phone"):
+                try:
+                    from services.sms_service import sms_service
+                    await sms_service.send_sms(
+                        phone_number=manager.get("phone"),
+                        message=f"HealMedy Onay Kodu: {code}\n{data.user_name or user.name} - {vehicle.get('plate', '')}"
+                    )
+                    notifications_sent += 1
+                except Exception as e:
+                    logger.warning(f"SMS gönderilemedi: {e}")
         except Exception as e:
-            logger.warning(f"Push bildirim gönderilemedi: {e}")
-        
-        # Email
-        if manager.get("email"):
-            try:
-                await send_email(
-                    to_email=manager.get("email"),
-                    subject=f"🚑 Vardiya Başlatma Onay Kodu - {vehicle.get('plate', '')}",
-                    body=message
-                )
-            except Exception as e:
-                logger.warning(f"Email gönderilemedi: {e}")
-        
-        # SMS
-        if manager.get("phone"):
-            try:
-                await send_sms(
-                    to_phone=manager.get("phone"),
-                    message=f"Vardiya Onay Kodu: {code}\n{data.user_name or user.name} - {vehicle.get('plate', '')}"
-                )
-            except Exception as e:
-                logger.warning(f"SMS gönderilemedi: {e}")
+            logger.error(f"Manager notification error: {e}")
     
-    logger.info(f"Vardiya başlatma onay kodu oluşturuldu: {code} - {len(managers)} yöneticiye gönderildi")
+    logger.info(f"Vardiya başlatma onay kodu oluşturuldu: {code} - {len(managers)} yönetici, {notifications_sent} bildirim")
     
     return {
         "success": True,
-        "message": f"Onay kodu {len(managers)} yöneticiye gönderildi",
-        "managers_notified": len(managers)
+        "message": f"Onay kodu {len(managers)} yöneticiye gönderildi. Alternatif: Yöneticiler kendi internal OTP'lerini (bildirim sekmesindeki kod) de kullanabilir.",
+        "managers_notified": len(managers),
+        "notifications_sent": notifications_sent,
+        "code_hint": "Yönetici bildirim sekmesindeki (sağ üst) 30 sn'lik OTP kodunu da kullanabilir"
     }
 
 
@@ -266,13 +294,17 @@ async def request_manager_approval_for_shift(data: RequestManagerApprovalRequest
 async def verify_manager_approval_for_shift(data: VerifyManagerApprovalRequest, request: Request):
     """
     Vardiya başlatma için yönetici onay kodunu doğrula
+    Desteklenen onay yöntemleri:
+    1. SMS/Email ile gönderilen özel kod
+    2. Yöneticinin kendi internal OTP'si (bildirim sekmesindeki 30 sn'lik kod)
     """
+    from datetime import timedelta
+    
     user = await get_current_user(request)
     
-    # Bu kullanıcının bekleyen onayını bul
-    from datetime import timedelta
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     
+    # Bu kullanıcının bekleyen onayını bul
     approval = await approvals_collection.find_one({
         "requester_id": user.id,
         "approval_type": "shift_start",
@@ -283,21 +315,52 @@ async def verify_manager_approval_for_shift(data: VerifyManagerApprovalRequest, 
     if not approval:
         raise HTTPException(status_code=400, detail="Bekleyen onay talebi bulunamadı veya süresi dolmuş")
     
-    if approval.get("code") != data.code:
-        raise HTTPException(status_code=400, detail="Onay kodu yanlış")
+    code_valid = False
+    approval_method = ""
+    
+    # Yöntem 1: Gönderilen özel kodu kontrol et
+    if approval.get("code") == data.code:
+        code_valid = True
+        approval_method = "sms_email_code"
+    
+    # Yöntem 2: Yöneticilerin internal OTP'sini kontrol et
+    if not code_valid and approval.get("accept_internal_otp"):
+        manager_ids = approval.get("manager_ids", [])
+        
+        for manager_id in manager_ids:
+            try:
+                # Internal OTP servisinden doğrula
+                from services.otp_service import verify_user_otp
+                manager = await users_collection.find_one({"_id": manager_id})
+                if manager and manager.get("otp_secret"):
+                    if verify_user_otp(manager.get("otp_secret"), data.code):
+                        code_valid = True
+                        approval_method = f"internal_otp_{manager.get('name', manager_id)}"
+                        logger.info(f"Internal OTP verified for manager: {manager_id}")
+                        break
+            except Exception as e:
+                logger.warning(f"OTP check failed for manager {manager_id}: {e}")
+    
+    if not code_valid:
+        raise HTTPException(status_code=400, detail="Onay kodu yanlış. SMS/Email kodu veya yöneticinin internal OTP'sini kullanabilirsiniz.")
     
     # Onayı tamamla
     await approvals_collection.update_one(
         {"_id": approval["_id"]},
-        {"$set": {"status": "approved", "approved_at": turkey_now}}
+        {"$set": {
+            "status": "approved", 
+            "approved_at": turkey_now,
+            "approval_method": approval_method
+        }}
     )
     
-    logger.info(f"Vardiya başlatma onaylandı: {user.id} - {approval.get('vehicle_plate', '')}")
+    logger.info(f"Vardiya başlatma onaylandı: {user.id} - {approval.get('vehicle_plate', '')} - Method: {approval_method}")
     
     return {
         "valid": True,
         "message": "Onay kodu doğrulandı",
-        "vehicle_plate": approval.get("vehicle_plate")
+        "vehicle_plate": approval.get("vehicle_plate"),
+        "method": approval_method
     }
 
 
