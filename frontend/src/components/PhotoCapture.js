@@ -60,6 +60,12 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
 
     setCameraLoading(true);
     setCameraError(null);
+    
+    // Önce showCamera'yı true yap ki video element DOM'a eklensin
+    setShowCamera(true);
+
+    // Video element'in DOM'a eklenmesi için küçük bir bekle
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       // Try back camera first, then any camera
@@ -72,7 +78,8 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
             height: { ideal: 720 }
           }
         });
-      } catch {
+      } catch (e) {
+        console.log('Back camera failed, trying any camera:', e);
         // Fallback to any available camera
         stream = await navigator.mediaDevices.getUserMedia({
           video: true
@@ -81,20 +88,53 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
 
       streamRef.current = stream;
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        
-        // Wait for video to be ready
+      // Video ref kontrolü
+      if (!videoRef.current) {
+        console.error('Video ref is null!');
+        throw new Error('Video element bulunamadı');
+      }
+      
+      videoRef.current.srcObject = stream;
+      
+      // Wait for video to be ready with proper error handling
+      try {
         await new Promise((resolve, reject) => {
-          videoRef.current.onloadedmetadata = resolve;
-          videoRef.current.onerror = reject;
-          setTimeout(reject, 5000); // 5 second timeout
+          const video = videoRef.current;
+          if (!video) {
+            reject(new Error('Video element kayboldu'));
+            return;
+          }
+          
+          const onLoaded = () => {
+            video.removeEventListener('loadedmetadata', onLoaded);
+            video.removeEventListener('error', onError);
+            resolve();
+          };
+          
+          const onError = (e) => {
+            video.removeEventListener('loadedmetadata', onLoaded);
+            video.removeEventListener('error', onError);
+            reject(e);
+          };
+          
+          video.addEventListener('loadedmetadata', onLoaded);
+          video.addEventListener('error', onError);
+          
+          // Timeout
+          setTimeout(() => {
+            video.removeEventListener('loadedmetadata', onLoaded);
+            video.removeEventListener('error', onError);
+            reject(new Error('Video yüklenme zaman aşımı'));
+          }, 10000);
         });
         
         await videoRef.current.play();
+        console.log('Camera started successfully');
+      } catch (videoError) {
+        console.error('Video playback error:', videoError);
+        throw videoError;
       }
       
-      setShowCamera(true);
     } catch (error) {
       console.error('Camera error:', error);
       
@@ -109,7 +149,7 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
       } else if (error.name === 'OverconstrainedError') {
         errorMessage += 'Kamera gereksinimleri karşılanamadı.';
       } else {
-        errorMessage += 'Dosya yükleyerek devam edebilirsiniz.';
+        errorMessage += error.message || 'Dosya yükleyerek devam edebilirsiniz.';
       }
       
       setCameraError(errorMessage);
@@ -121,14 +161,24 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
   };
 
   const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+    console.log('Stopping camera...');
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('Track stopped:', track.kind);
+        });
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.load(); // Reset video element
+      }
+    } catch (e) {
+      console.error('Error stopping camera:', e);
     }
     setShowCamera(false);
+    setCameraLoading(false);
   };
 
   const capturePhoto = () => {
