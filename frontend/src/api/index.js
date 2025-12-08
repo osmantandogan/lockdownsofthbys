@@ -225,8 +225,10 @@ export const approvalsAPI = {
   getPending: (type = null) => api.get('/approvals/pending', { params: { approval_type: type } }),
   // Devir teslim onayı oluştur
   createHandover: (data) => api.post('/approvals/shift-handover', data),
-  // Yönetici onayı talep et
-  createManagerApproval: (data) => api.post('/approvals/manager-approval', data),
+  // Yönetici onayı talep et (Vardiya Başlatma için)
+  requestManagerApproval: (data) => api.post('/approvals/request-manager-approval', data),
+  // Yönetici onayı doğrula
+  verifyManagerApproval: (data) => api.post('/approvals/verify-manager-approval', data),
   // Sonraki vardiya görevlisini getir
   getNextShiftUser: (vehicleId) => api.get(`/approvals/next-shift-user/${vehicleId}`),
   // Devir teslim bilgilerini getir (otomatik doldurma)

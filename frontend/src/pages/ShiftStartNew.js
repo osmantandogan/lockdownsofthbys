@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { shiftsAPI, vehiclesAPI } from '../api';
+import { shiftsAPI, vehiclesAPI, approvalsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
@@ -10,10 +10,35 @@ import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
-import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard, XCircle, Loader2 } from 'lucide-react';
+import HandoverFormFull from '../components/forms/HandoverFormFull';
+import { useAuth } from '../contexts/AuthContext';
+import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard, XCircle, Loader2, Shield, Send, Clock, User } from 'lucide-react';
+
+// Türkiye saati yardımcı fonksiyonu (UTC+3)
+const getTurkeyTime = () => {
+  const now = new Date();
+  const turkeyOffset = 3 * 60; // UTC+3 dakika cinsinden
+  return new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
+};
+
+const formatTurkeyDate = (date) => {
+  const d = date || getTurkeyTime();
+  return d.toISOString().split('T')[0];
+};
+
+const formatTurkeyTime = (date) => {
+  const d = date || getTurkeyTime();
+  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
+const formatTurkeyDateTime = (date) => {
+  const d = date || getTurkeyTime();
+  return `${formatTurkeyDate(d)} ${formatTurkeyTime(d)}`;
+};
 
 const ShiftStartNew = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [qrCode, setQrCode] = useState('');
   const [vehicleInfo, setVehicleInfo] = useState(null);
@@ -33,7 +58,20 @@ const ShiftStartNew = () => {
     damages: []
   });
   const [controlForm, setControlForm] = useState({});
+  const [handoverForm, setHandoverForm] = useState({});
   const [loading, setLoading] = useState(false);
+  
+  // Devir teslim için önceki vardiya bilgileri
+  const [previousShiftInfo, setPreviousShiftInfo] = useState(null);
+  
+  // Baş Şoför Onay Sistemi
+  const [managerApprovalCode, setManagerApprovalCode] = useState('');
+  const [managerApproved, setManagerApproved] = useState(false);
+  const [sendingApproval, setSendingApproval] = useState(false);
+  const [approvalSent, setApprovalSent] = useState(false);
+  
+  // Türkiye saati (UTC+3)
+  const [turkeyNow, setTurkeyNow] = useState(getTurkeyTime());
 
   // QR okutunca araç ve atama kontrolü yap
   const validateVehicleAssignment = async (qr) => {
@@ -57,14 +95,15 @@ const ShiftStartNew = () => {
       const myAssignments = await shiftsAPI.getMyAssignments();
       
       // Türkiye saatine göre bugünün tarihi (UTC+3)
-      const now = new Date();
-      const turkeyOffset = 3 * 60; // UTC+3 dakika cinsinden
-      const turkeyTime = new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
-      const today = turkeyTime.toISOString().split('T')[0];
+      const turkeyTime = getTurkeyTime();
+      const today = formatTurkeyDate(turkeyTime);
       
       // Dün (tolerans için)
       const yesterdayTime = new Date(turkeyTime.getTime() - 24 * 60 * 60 * 1000);
-      const yesterday = yesterdayTime.toISOString().split('T')[0];
+      const yesterday = formatTurkeyDate(yesterdayTime);
+      
+      // State'i güncelle
+      setTurkeyNow(turkeyTime);
       
       console.log('=== VARDİYA ATAMA KONTROLÜ ===');
       console.log('Bugün (TR):', today);
@@ -277,6 +316,37 @@ const ShiftStartNew = () => {
       }
     };
   }, []);
+  
+  // Önceki vardiya bilgilerini çek (araç seçildiğinde)
+  useEffect(() => {
+    const fetchPreviousShift = async () => {
+      if (!vehicleInfo?._id) return;
+      
+      try {
+        // Bu araç için son aktif/tamamlanmış vardiyayı getir
+        const response = await approvalsAPI.getHandoverInfo(vehicleInfo._id || vehicleInfo.id);
+        if (response.data?.giver) {
+          setPreviousShiftInfo({
+            user_name: response.data.giver.name,
+            phone: response.data.giver.phone,
+            email: response.data.giver.email
+          });
+        }
+      } catch (error) {
+        console.log('Önceki vardiya bilgisi bulunamadı (normal olabilir)');
+      }
+    };
+    
+    fetchPreviousShift();
+  }, [vehicleInfo]);
+  
+  // Türkiye saatini her saniye güncelle
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTurkeyNow(getTurkeyTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handlePhotoUpdate = (key, value) => {
     setPhotos(prev => ({ ...prev, [key]: value }));
@@ -300,9 +370,63 @@ const ShiftStartNew = () => {
     return photos.front && photos.back && photos.left && photos.right && photos.trunk && photos.interior;
   };
 
+  // Baş Şoför onayı iste
+  const handleRequestApproval = async () => {
+    if (!vehicleInfo?._id) {
+      toast.error('Araç bilgisi bulunamadı');
+      return;
+    }
+    
+    setSendingApproval(true);
+    try {
+      await approvalsAPI.requestManagerApproval({
+        vehicle_id: vehicleInfo._id || vehicleInfo.id,
+        action: 'shift_start',
+        user_name: user?.name || 'Bilinmiyor'
+      });
+      
+      setApprovalSent(true);
+      toast.success('✅ Onay kodu Baş Şoför ve Operasyon Müdürüne gönderildi!');
+    } catch (error) {
+      console.error('Approval request error:', error);
+      toast.error(error.response?.data?.detail || 'Onay kodu gönderilemedi');
+    } finally {
+      setSendingApproval(false);
+    }
+  };
+  
+  // Onay kodunu doğrula
+  const handleVerifyApproval = async () => {
+    if (!managerApprovalCode || managerApprovalCode.length !== 6) {
+      toast.error('Geçerli bir 6 haneli kod girin');
+      return;
+    }
+    
+    try {
+      const result = await approvalsAPI.verifyManagerApproval({
+        code: managerApprovalCode,
+        approval_type: 'shift_start'
+      });
+      
+      if (result.data?.valid) {
+        setManagerApproved(true);
+        toast.success('✅ Onay kodu doğrulandı! Vardiya başlatılabilir.');
+      } else {
+        toast.error('Onay kodu geçersiz');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Onay kodu doğrulanamadı');
+    }
+  };
+
   const handleStartShift = async () => {
     if (!photosComplete()) {
       toast.error('Lütfen tüm zorunlu fotoğrafları çekin');
+      return;
+    }
+    
+    if (!managerApproved) {
+      toast.error('Baş Şoför onayı gerekli');
       return;
     }
 
@@ -311,7 +435,8 @@ const ShiftStartNew = () => {
       await shiftsAPI.start({
         vehicle_qr: qrCode,
         photos: photos,
-        daily_control: controlForm
+        daily_control: controlForm,
+        approval_code: managerApprovalCode // Onay kodunu da gönder
       });
       toast.success('🎉 Vardiya başarıyla başlatıldı!');
       navigate('/dashboard/shifts');
@@ -537,7 +662,68 @@ const ShiftStartNew = () => {
               </CardContent>
             </Card>
           )}
+          
+          {/* Devir Teslim Bilgileri (Otomatik) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">📋 Devir Teslim Bilgileri</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Araç ve Tarih Bilgileri */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Araç Plakası</p>
+                  <p className="font-bold text-lg">{vehicleInfo?.plate || '-'}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Tarih (TR)</p>
+                  <p className="font-bold">{formatTurkeyDate()}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Saat (TR)</p>
+                  <p className="font-bold">{formatTurkeyTime()}</p>
+                </div>
+              </div>
+              
+              {/* Devreden Kişi (Önceki vardiya) */}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Devreden (Önceki Vardiya)</h4>
+                {previousShiftInfo ? (
+                  <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <User className="h-10 w-10 text-orange-600" />
+                    <div>
+                      <p className="font-medium">{previousShiftInfo.user_name || 'Bilinmiyor'}</p>
+                      <p className="text-sm text-gray-500">{previousShiftInfo.phone || '-'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-100 rounded-lg text-gray-500 text-center">
+                    <p>Önceki vardiya bilgisi bulunamadı</p>
+                    <p className="text-xs">(İlk vardiya olabilir)</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Devralan Kişi (Şu anki kullanıcı) */}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Devralan (Siz)</h4>
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="h-10 w-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
+                  </div>
+                  <div>
+                    <p className="font-medium">{user?.name || 'Bilinmiyor'}</p>
+                    <p className="text-sm text-gray-500">{user?.phone || user?.email || '-'}</p>
+                  </div>
+                  <CheckCircle className="h-5 w-5 text-green-600 ml-auto" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Günlük Kontrol Formu */}
           <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
+          
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>Geri</Button>
             <Button onClick={() => setStep(4)}>Devam</Button>
@@ -548,10 +734,11 @@ const ShiftStartNew = () => {
       {step === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Vardiyayı Başlat</CardTitle>
+            <CardTitle>Vardiyayı Başlat - Baş Şoför Onayı</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
+            {/* Özet Bilgiler */}
+            <div className="space-y-3 pb-4 border-b">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <div className="flex items-center gap-2">
@@ -572,27 +759,115 @@ const ShiftStartNew = () => {
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <span>Günlük kontrol formu dolduruldu</span>
               </div>
-            </div>
-
-            <div className="border-t pt-4 space-y-2">
-              <div className="flex items-start space-x-2 bg-yellow-50 p-4 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-yellow-900">Vardiyayı başlatmak üzeresiniz</p>
-                  <p className="text-yellow-700">Tüm kontrollerin tamamlandığından emin olun.</p>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <span>Tarih/Saat (TR): {formatTurkeyDateTime()}</span>
               </div>
             </div>
 
-            <div className="flex justify-between">
+            {/* Baş Şoför Onay Sistemi */}
+            <Card className={`border-2 ${managerApproved ? 'border-green-500 bg-green-50' : 'border-purple-300 bg-purple-50'}`}>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Shield className={`h-5 w-5 ${managerApproved ? 'text-green-600' : 'text-purple-600'}`} />
+                  Baş Şoför / Operasyon Müdürü Onayı
+                  {managerApproved && <span className="text-green-600 text-sm ml-2">✓ Onaylandı</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!managerApproved ? (
+                  <>
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ Vardiyayı başlatmak için Baş Şoför veya Operasyon Müdürü onayı gerekli.
+                        <br />
+                        <span className="text-xs">SMS, Email ve Push bildirim gönderilecek.</span>
+                      </p>
+                    </div>
+                    
+                    {!approvalSent ? (
+                      <Button 
+                        onClick={handleRequestApproval} 
+                        disabled={sendingApproval}
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        {sendingApproval ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
+                        ) : (
+                          <><Send className="h-4 w-4 mr-2" /> Onay Kodu İste</>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="p-2 bg-green-100 rounded text-center text-sm text-green-700">
+                          ✓ Onay kodu yöneticilere gönderildi
+                        </div>
+                        <p className="text-xs text-center text-gray-500">
+                          Baş Şoför veya Operasyon Müdürü size onay kodunu verecek
+                        </p>
+                        <div className="flex gap-2">
+                          <Input 
+                            placeholder="6 haneli kod"
+                            value={managerApprovalCode}
+                            onChange={(e) => setManagerApprovalCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="text-center font-mono text-xl tracking-[0.3em] h-12"
+                            maxLength={6}
+                          />
+                          <Button 
+                            onClick={handleVerifyApproval}
+                            disabled={managerApprovalCode.length !== 6}
+                          >
+                            Doğrula
+                          </Button>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full text-gray-500"
+                          onClick={handleRequestApproval}
+                          disabled={sendingApproval}
+                        >
+                          Tekrar Gönder
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-green-300">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-700">Onay Alındı!</p>
+                      <p className="text-sm text-gray-500">Vardiya başlatılabilir</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Uyarı */}
+            {managerApproved && (
+              <div className="flex items-start space-x-2 bg-green-50 p-4 rounded-lg border border-green-200">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-green-900">Tüm onaylar tamamlandı!</p>
+                  <p className="text-green-700">Vardiyayı başlatabilirsiniz.</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between pt-4 border-t">
               <Button variant="outline" onClick={() => setStep(3)}>Geri</Button>
               <Button
                 onClick={handleStartShift}
-                disabled={loading}
-                className="bg-green-600 hover:bg-green-700"
+                disabled={loading || !managerApproved}
+                className={`${managerApproved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
                 data-testid="confirm-start-button"
               >
-                {loading ? 'Başlatılıyor...' : 'Vardiyayı Başlat'}
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Başlatılıyor...</>
+                ) : (
+                  'Vardiyayı Başlat'
+                )}
               </Button>
             </div>
           </CardContent>

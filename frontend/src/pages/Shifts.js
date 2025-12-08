@@ -8,6 +8,13 @@ import { toast } from 'sonner';
 import { Clock, QrCode, Calendar, CheckCircle, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+// Türkiye saati yardımcı fonksiyonu (UTC+3)
+const getTurkeyTime = () => {
+  const now = new Date();
+  const turkeyOffset = 3 * 60; // UTC+3 dakika cinsinden
+  return new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
+};
+
 const Shifts = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -103,10 +110,25 @@ const Shifts = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <p><span className="font-medium">Araç:</span> {activeShift.vehicle_plate || activeShift.vehicle?.plate || activeShift.vehicle_id}</p>
-              <p><span className="font-medium">Başlangıç:</span> {new Date(activeShift.start_time).toLocaleString('tr-TR')}</p>
+              <p><span className="font-medium">Başlangıç:</span> {(() => {
+                // Start time'ı UTC+3'e çevir
+                const startTime = new Date(activeShift.start_time);
+                const turkeyOffset = 3 * 60;
+                const turkeyStartTime = new Date(startTime.getTime() + (turkeyOffset + startTime.getTimezoneOffset()) * 60000);
+                return turkeyStartTime.toLocaleString('tr-TR');
+              })()}</p>
               <p>
-                <span className="font-medium">Süre:</span> 
-                {Math.floor((new Date() - new Date(activeShift.start_time)) / 1000 / 60)} dakika
+                <span className="font-medium">Süre:</span>{' '}
+                {(() => {
+                  // UTC+3 saatine göre süre hesapla
+                  const startTime = new Date(activeShift.start_time);
+                  const turkeyNow = getTurkeyTime();
+                  const durationMs = turkeyNow - startTime;
+                  const durationMinutes = Math.floor(durationMs / 1000 / 60);
+                  const hours = Math.floor(durationMinutes / 60);
+                  const mins = durationMinutes % 60;
+                  return hours > 0 ? `${hours} saat ${mins} dakika` : `${durationMinutes} dakika`;
+                })()}
               </p>
             </div>
             

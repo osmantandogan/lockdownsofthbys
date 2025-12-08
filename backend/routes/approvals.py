@@ -37,6 +37,18 @@ class CreateHandoverApprovalRequest(BaseModel):
 class CreateManagerApprovalRequest(BaseModel):
     vehicle_id: str
     action: str = "Vardiya Başlatma"
+    user_name: Optional[str] = None
+
+
+class RequestManagerApprovalRequest(BaseModel):
+    vehicle_id: str
+    action: str = "shift_start"
+    user_name: Optional[str] = None
+
+
+class VerifyManagerApprovalRequest(BaseModel):
+    code: str
+    approval_type: str = "shift_start"
 
 
 # ============================================================================
@@ -144,6 +156,151 @@ async def request_manager_approval(data: CreateManagerApprovalRequest, request: 
     }
 
 
+@router.post("/request-manager-approval")
+async def request_manager_approval_for_shift(data: RequestManagerApprovalRequest, request: Request):
+    """
+    Vardiya başlatma için yönetici (Baş Şoför) onayı talep et
+    SMS, Email ve Push bildirim gönderir
+    """
+    user = await get_current_user(request)
+    
+    # Araç bilgisini al
+    vehicle = await vehicles_collection.find_one({"_id": data.vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
+    # Baş Şoför ve Operasyon Müdürlerini bul
+    managers = await users_collection.find({
+        "role": {"$in": ["bas_sofor", "operasyon_muduru"]}
+    }).to_list(50)
+    
+    if not managers:
+        raise HTTPException(status_code=400, detail="Sistemde onay yetkisi olan yönetici bulunamadı")
+    
+    # Onay kodu oluştur
+    import random
+    code = str(random.randint(100000, 999999))
+    
+    # Türkiye saati (UTC+3)
+    from datetime import timedelta
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Onay kaydı oluştur
+    approval_doc = {
+        "_id": f"shift_start_{user.id}_{data.vehicle_id}_{turkey_now.timestamp()}",
+        "code": code,
+        "approval_type": "shift_start",
+        "requester_id": user.id,
+        "requester_name": data.user_name or user.name,
+        "vehicle_id": data.vehicle_id,
+        "vehicle_plate": vehicle.get("plate", ""),
+        "action": data.action,
+        "status": "pending",
+        "created_at": turkey_now,
+        "expires_at": turkey_now + timedelta(minutes=30)
+    }
+    
+    try:
+        await approvals_collection.insert_one(approval_doc)
+    except:
+        # Mevcut kaydı güncelle
+        await approvals_collection.update_one(
+            {"requester_id": user.id, "vehicle_id": data.vehicle_id, "approval_type": "shift_start", "status": "pending"},
+            {"$set": {"code": code, "created_at": turkey_now, "expires_at": turkey_now + timedelta(minutes=30)}}
+        )
+    
+    # SMS, Email ve Push bildirim gönder
+    from services.notification_service import notification_service
+    from services.email_service import send_email
+    from services.sms_service import send_sms
+    
+    for manager in managers:
+        message = f"🚑 Vardiya Başlatma Onay Kodu\n\n" \
+                  f"Kişi: {data.user_name or user.name}\n" \
+                  f"Araç: {vehicle.get('plate', '-')}\n" \
+                  f"Tarih: {turkey_now.strftime('%d.%m.%Y %H:%M')}\n\n" \
+                  f"ONAY KODU: {code}\n\n" \
+                  f"Bu kod 30 dakika geçerlidir."
+        
+        # Push bildirim
+        try:
+            await notification_service.send_to_user(
+                user_id=manager.get("_id"),
+                title="🚑 Vardiya Başlatma Onayı",
+                message=f"{data.user_name or user.name} - {vehicle.get('plate', '')} için onay kodu: {code}"
+            )
+        except Exception as e:
+            logger.warning(f"Push bildirim gönderilemedi: {e}")
+        
+        # Email
+        if manager.get("email"):
+            try:
+                await send_email(
+                    to_email=manager.get("email"),
+                    subject=f"🚑 Vardiya Başlatma Onay Kodu - {vehicle.get('plate', '')}",
+                    body=message
+                )
+            except Exception as e:
+                logger.warning(f"Email gönderilemedi: {e}")
+        
+        # SMS
+        if manager.get("phone"):
+            try:
+                await send_sms(
+                    to_phone=manager.get("phone"),
+                    message=f"Vardiya Onay Kodu: {code}\n{data.user_name or user.name} - {vehicle.get('plate', '')}"
+                )
+            except Exception as e:
+                logger.warning(f"SMS gönderilemedi: {e}")
+    
+    logger.info(f"Vardiya başlatma onay kodu oluşturuldu: {code} - {len(managers)} yöneticiye gönderildi")
+    
+    return {
+        "success": True,
+        "message": f"Onay kodu {len(managers)} yöneticiye gönderildi",
+        "managers_notified": len(managers)
+    }
+
+
+@router.post("/verify-manager-approval")
+async def verify_manager_approval_for_shift(data: VerifyManagerApprovalRequest, request: Request):
+    """
+    Vardiya başlatma için yönetici onay kodunu doğrula
+    """
+    user = await get_current_user(request)
+    
+    # Bu kullanıcının bekleyen onayını bul
+    from datetime import timedelta
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    approval = await approvals_collection.find_one({
+        "requester_id": user.id,
+        "approval_type": "shift_start",
+        "status": "pending",
+        "expires_at": {"$gt": turkey_now}
+    })
+    
+    if not approval:
+        raise HTTPException(status_code=400, detail="Bekleyen onay talebi bulunamadı veya süresi dolmuş")
+    
+    if approval.get("code") != data.code:
+        raise HTTPException(status_code=400, detail="Onay kodu yanlış")
+    
+    # Onayı tamamla
+    await approvals_collection.update_one(
+        {"_id": approval["_id"]},
+        {"$set": {"status": "approved", "approved_at": turkey_now}}
+    )
+    
+    logger.info(f"Vardiya başlatma onaylandı: {user.id} - {approval.get('vehicle_plate', '')}")
+    
+    return {
+        "valid": True,
+        "message": "Onay kodu doğrulandı",
+        "vehicle_plate": approval.get("vehicle_plate")
+    }
+
+
 @router.get("/next-shift-user/{vehicle_id}")
 async def get_next_shift_user(vehicle_id: str, request: Request):
     """
@@ -245,7 +402,7 @@ async def get_handover_info(vehicle_id: str, request: Request):
     """
     Devir teslim formu için tüm otomatik bilgileri getir
     - Araç plakası
-    - Tarih ve saat
+    - Tarih ve saat (UTC+3)
     - Teslim eden (mevcut kullanıcı)
     - Teslim alan (sonraki vardiyalı)
     """
@@ -256,7 +413,9 @@ async def get_handover_info(vehicle_id: str, request: Request):
     if not vehicle:
         raise HTTPException(status_code=404, detail="Araç bulunamadı")
     
-    now = datetime.utcnow()
+    # Türkiye saati (UTC+3)
+    from datetime import timedelta
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
     
     # Sonraki vardiya görevlisi
     next_shift_info = await get_next_shift_user(vehicle_id, request)
@@ -268,8 +427,8 @@ async def get_handover_info(vehicle_id: str, request: Request):
             "type": vehicle.get("type"),
             "km": vehicle.get("km")
         },
-        "date": now.strftime("%d.%m.%Y"),
-        "time": now.strftime("%H:%M"),
+        "date": turkey_now.strftime("%d.%m.%Y"),
+        "time": turkey_now.strftime("%H:%M"),
         "giver": {
             "id": user.id,
             "name": user.name,
