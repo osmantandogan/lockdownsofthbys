@@ -16,10 +16,13 @@ import { shiftsAPI, vehiclesAPI } from '../../api';
 import PDFExportButton from '../PDFExportButton';
 import { exportDailyControlForm } from '../../utils/pdfExport';
 
-
+const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  
   const handleSave = async () => {
     setSaving(true);
-    const saveFunc = handleFormSave('daily_control', formData, {
+    const saveFunc = handleFormSave('daily_control', localFormData, {
       validateFields: [],
       validateSignature: false,
       onSuccess: () => {
@@ -29,10 +32,6 @@ import { exportDailyControlForm } from '../../utils/pdfExport';
     await saveFunc();
     setSaving(false);
   };
-
-  const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
-  const { user } = useAuth();
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [localFormData, setLocalFormData] = useState({
     istasyonAdi: '',

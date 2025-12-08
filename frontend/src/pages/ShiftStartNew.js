@@ -17,18 +17,26 @@ import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard, XCircle, Loa
 // Türkiye saati yardımcı fonksiyonu (UTC+3)
 const getTurkeyTime = () => {
   const now = new Date();
-  const turkeyOffset = 3 * 60; // UTC+3 dakika cinsinden
-  return new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
+  // Türkiye saatini hesapla (UTC+3)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (3 * 60 * 60 * 1000));
 };
 
 const formatTurkeyDate = (date) => {
   const d = date || getTurkeyTime();
-  return d.toISOString().split('T')[0];
+  // YYYY-MM-DD formatında döndür (toISOString yerine manuel)
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const formatTurkeyTime = (date) => {
   const d = date || getTurkeyTime();
-  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
 };
 
 const formatTurkeyDateTime = (date) => {
@@ -105,11 +113,13 @@ const ShiftStartNew = () => {
       // State'i güncelle
       setTurkeyNow(turkeyTime);
       
+      const vehicleId = vehicle._id || vehicle.id;
+      
       console.log('=== VARDİYA ATAMA KONTROLÜ ===');
       console.log('Bugün (TR):', today);
       console.log('Dün (TR):', yesterday);
-      console.log('Şu an (TR):', turkeyTime.toLocaleString('tr-TR'));
-      console.log('Aranan araç ID:', vehicle._id);
+      console.log('Şu an (TR):', formatTurkeyDateTime(turkeyTime));
+      console.log('Aranan araç ID:', vehicleId);
       console.log('Tüm atamalar:', myAssignments.data);
       
       // Bugün VEYA dün için geçerli atama var mı? (vardiya gece yarısını geçebilir)
