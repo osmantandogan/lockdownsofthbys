@@ -53,11 +53,19 @@ export const NotificationProvider = ({ children }) => {
         return;
       }
 
-      console.log('[NotificationContext] Starting OneSignal initialization for user:', user.id, user.name);
+      // User ID: id veya _id olabilir
+      const userId = user.id || user._id;
+      console.log('[NotificationContext] Starting OneSignal initialization for user:', userId, user.name);
+
+      if (!userId) {
+        console.error('[NotificationContext] User ID is missing! User object:', user);
+        setOneSignalError('User ID bulunamadı');
+        return;
+      }
 
       try {
         // OneSignal'i başlat
-        const onesignal = await initOneSignal(user.id, {
+        const onesignal = await initOneSignal(userId, {
           role: user.role,
           name: user.name
         });
