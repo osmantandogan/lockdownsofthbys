@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { shiftsAPI, vehiclesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -10,17 +10,19 @@ import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
-import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard } from 'lucide-react';
+import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard, XCircle, Loader2 } from 'lucide-react';
 
 const ShiftStartNew = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [qrCode, setQrCode] = useState('');
   const [vehicleInfo, setVehicleInfo] = useState(null);
-  const scannerRef = React.useRef(null);
+  const [assignmentInfo, setAssignmentInfo] = useState(null);
+  const scannerRef = useRef(null);
   const [scannerActive, setScannerActive] = useState(false);
   const [manualQrInput, setManualQrInput] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [photos, setPhotos] = useState({
     front: null,
     back: null,
@@ -33,26 +35,74 @@ const ShiftStartNew = () => {
   const [controlForm, setControlForm] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Fetch vehicle info when QR code is scanned
-  const fetchVehicleInfo = async (qr) => {
+  // QR okutunca araç ve atama kontrolü yap
+  const validateVehicleAssignment = async (qr) => {
+    setValidating(true);
     try {
-      const vehicles = await vehiclesAPI.getAll();
-      const vehicle = vehicles.data?.find(v => v.qr_code === qr);
-      if (vehicle) {
-        setVehicleInfo(vehicle);
-        return vehicle;
-      } else {
+      // 1. Araç bilgisini bul
+      const vehiclesRes = await vehiclesAPI.getAll();
+      const vehicle = vehiclesRes.data?.find(v => v.qr_code === qr);
+      
+      if (!vehicle) {
         toast.error('Bu QR koduna ait araç bulunamadı');
+        setValidating(false);
         return null;
       }
+
+      // 2. Kullanıcının bugün bu araca atanmış mı kontrol et - Backend'den direkt kontrol
+      // Shift başlatmayı dene - backend kontrol edecek
+      // Ama önce sadece kontrol için bir "dry-run" yapalım
+      
+      // Kullanıcının atamalarını kontrol et
+      const myAssignments = await shiftsAPI.getMyAssignments();
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Bugün için geçerli atama var mı?
+      const todayAssignment = myAssignments.data?.find(assignment => {
+        const shiftDate = assignment.shift_date?.split('T')[0];
+        const endDate = assignment.end_date?.split('T')[0] || shiftDate;
+        return assignment.vehicle_id === vehicle._id && 
+               shiftDate <= today && 
+               endDate >= today &&
+               assignment.status === 'pending';
+      });
+
+      if (!todayAssignment) {
+        // Bu araca atanmamış, hangi araca atanmış göster
+        const userTodayAssignment = myAssignments.data?.find(assignment => {
+          const shiftDate = assignment.shift_date?.split('T')[0];
+          const endDate = assignment.end_date?.split('T')[0] || shiftDate;
+          return shiftDate <= today && endDate >= today && assignment.status === 'pending';
+        });
+
+        if (userTodayAssignment) {
+          toast.error(
+            `❌ Bu araç (${vehicle.plate}) size atanmamış!\n\n` +
+            `Bugün için atanan aracınız: ${userTodayAssignment.vehicle_plate || 'Bilinmiyor'}`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.error('Bugün için vardiya atamanız bulunmuyor. Lütfen yöneticinizle iletişime geçin.');
+        }
+        setValidating(false);
+        return null;
+      }
+
+      // 3. Her şey OK
+      setVehicleInfo(vehicle);
+      setAssignmentInfo(todayAssignment);
+      setValidating(false);
+      return { vehicle, assignment: todayAssignment };
+
     } catch (error) {
-      console.error('Vehicle fetch error:', error);
+      console.error('Validation error:', error);
+      toast.error('Araç kontrolü yapılamadı');
+      setValidating(false);
       return null;
     }
   };
 
   const startQRScanner = async () => {
-    // Check if HTTPS or localhost
     const isSecure = window.location.protocol === 'https:' || 
                      window.location.hostname === 'localhost' || 
                      window.location.hostname === '127.0.0.1';
@@ -63,11 +113,9 @@ const ShiftStartNew = () => {
       return;
     }
 
-    // Önce mevcut scanner'ı durdur
     await stopQRScanner();
 
     try {
-      // DOM elementi var mı kontrol et
       const qrReaderElement = document.getElementById('qr-reader');
       if (!qrReaderElement) {
         console.error('QR reader element not found');
@@ -83,7 +131,6 @@ const ShiftStartNew = () => {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
-          // Scanner'ı durdur ve DOM'un temizlenmesini bekle
           try {
             if (scannerRef.current) {
               await scannerRef.current.stop();
@@ -95,14 +142,13 @@ const ShiftStartNew = () => {
           setScannerActive(false);
           setQrCode(decodedText);
           
-          // Html5Qrcode'un DOM cleanup'ını tamamlaması için bekle
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          // Fetch vehicle info
-          const vehicle = await fetchVehicleInfo(decodedText);
-          if (vehicle) {
+          // Araç ve atama kontrolü yap
+          const result = await validateVehicleAssignment(decodedText);
+          if (result) {
             setStep(2);
-            toast.success(`${vehicle.plate} aracı bulundu!`);
+            toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Devam edebilirsiniz.`);
           }
         }
       );
@@ -132,10 +178,10 @@ const ShiftStartNew = () => {
     }
     
     setQrCode(manualQrInput.trim());
-    const vehicle = await fetchVehicleInfo(manualQrInput.trim());
-    if (vehicle) {
+    const result = await validateVehicleAssignment(manualQrInput.trim());
+    if (result) {
       setStep(2);
-      toast.success(`${vehicle.plate} aracı bulundu!`);
+      toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Devam edebilirsiniz.`);
     }
   };
 
@@ -143,13 +189,11 @@ const ShiftStartNew = () => {
     if (scannerRef.current) {
       try {
         const state = scannerRef.current.getState();
-        // State: NOT_STARTED = 1, SCANNING = 2, PAUSED = 3
         if (state === 2 || state === 3) {
           await scannerRef.current.stop();
           console.log('Scanner stopped successfully');
         }
       } catch (err) {
-        // Scanner zaten durmuş olabilir, ignore
         console.log('Stop scanner (may be already stopped):', err.message);
       } finally {
         scannerRef.current = null;
@@ -158,15 +202,12 @@ const ShiftStartNew = () => {
     }
   };
 
-  // Component unmount olduğunda scanner'ı durdur
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
         try {
           scannerRef.current.stop().catch(() => {});
-        } catch (e) {
-          // Ignore
-        }
+        } catch (e) {}
         scannerRef.current = null;
       }
     };
@@ -207,7 +248,7 @@ const ShiftStartNew = () => {
         photos: photos,
         daily_control: controlForm
       });
-      toast.success('Vardiya başlatıldı!');
+      toast.success('🎉 Vardiya başarıyla başlatıldı!');
       navigate('/dashboard/shifts');
     } catch (error) {
       console.error('Error:', error);
@@ -247,11 +288,16 @@ const ShiftStartNew = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {validating && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="text-blue-800">Araç ve atama kontrolü yapılıyor...</span>
+              </div>
+            )}
+
             {!showManualInput ? (
               <>
-                {/* QR Scanner görünüm alanı - div her zaman burada ama görünürlük değişir */}
                 <div className="w-full min-h-[300px] bg-gray-900 rounded-lg overflow-hidden relative">
-                  {/* QR Reader div - Html5Qrcode buraya video ekler */}
                   <div 
                     id="qr-reader" 
                     className="w-full h-full"
@@ -261,7 +307,6 @@ const ShiftStartNew = () => {
                     }} 
                   />
                   
-                  {/* Scanner aktif değilken placeholder göster */}
                   {!scannerActive && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                       <p className="text-gray-500 text-center p-4">
@@ -270,7 +315,6 @@ const ShiftStartNew = () => {
                     </div>
                   )}
                   
-                  {/* Scanner aktifken bilgi mesajı */}
                   {scannerActive && (
                     <div className="absolute bottom-2 left-0 right-0 text-center">
                       <span className="bg-black/70 text-white px-3 py-1 rounded-full text-sm">
@@ -284,7 +328,7 @@ const ShiftStartNew = () => {
                   <Button 
                     onClick={startQRScanner} 
                     className="flex-1"
-                    disabled={scannerActive}
+                    disabled={scannerActive || validating}
                   >
                     <QrCode className="h-4 w-4 mr-2" />
                     {scannerActive ? 'Taranıyor...' : 'QR Okuyucuyu Başlat'}
@@ -292,6 +336,7 @@ const ShiftStartNew = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => setShowManualInput(true)}
+                    disabled={validating}
                   >
                     <Keyboard className="h-4 w-4 mr-2" />
                     Manuel
@@ -316,16 +361,25 @@ const ShiftStartNew = () => {
                     value={manualQrInput}
                     onChange={(e) => setManualQrInput(e.target.value)}
                     placeholder="QR kodunu girin..."
+                    disabled={validating}
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleManualQrSubmit} className="flex-1">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Onayla
+                  <Button 
+                    onClick={handleManualQrSubmit} 
+                    className="flex-1"
+                    disabled={validating}
+                  >
+                    {validating ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Kontrol ediliyor...</>
+                    ) : (
+                      <><CheckCircle className="h-4 w-4 mr-2" /> Onayla</>
+                    )}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => setShowManualInput(false)}
+                    disabled={validating}
                   >
                     QR Tara
                   </Button>
@@ -336,20 +390,18 @@ const ShiftStartNew = () => {
         </Card>
       )}
       
-      {/* Step 1'de değilken qr-reader div'i gizli tut - ama DOM'da kalsın */}
       {step !== 1 && <div id="qr-reader" style={{ display: 'none' }} />}
 
       {step === 2 && (
         <div className="space-y-4">
-          {/* Vehicle Info Banner */}
           {vehicleInfo && (
-            <Card className="border-blue-500 bg-blue-50">
+            <Card className="border-green-500 bg-green-50">
               <CardContent className="py-3">
                 <div className="flex items-center gap-3">
-                  <Truck className="h-6 w-6 text-blue-600" />
+                  <CheckCircle className="h-6 w-6 text-green-600" />
                   <div>
-                    <p className="font-bold text-lg text-blue-900">{vehicleInfo.plate}</p>
-                    <p className="text-sm text-blue-700">{vehicleInfo.type}</p>
+                    <p className="font-bold text-lg text-green-900">{vehicleInfo.plate}</p>
+                    <p className="text-sm text-green-700">{vehicleInfo.type} - Atama doğrulandı ✓</p>
                   </div>
                 </div>
               </CardContent>
@@ -407,6 +459,19 @@ const ShiftStartNew = () => {
 
       {step === 3 && (
         <div className="space-y-4">
+          {vehicleInfo && (
+            <Card className="border-green-500 bg-green-50">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-3">
+                  <Truck className="h-6 w-6 text-green-600" />
+                  <div>
+                    <p className="font-bold text-lg text-green-900">{vehicleInfo.plate}</p>
+                    <p className="text-sm text-green-700">{vehicleInfo.type}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>Geri</Button>
