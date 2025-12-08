@@ -217,4 +217,20 @@ export const itsAPI = {
   deleteDrug: (gtin) => api.delete(`/its/drugs/${gtin}`)
 };
 
+// Approvals API - Onay Sistemi (SMS + Email + Push)
+export const approvalsAPI = {
+  // Onay kodu doğrula
+  verify: (data) => api.post('/approvals/verify', data),
+  // Bekleyen onaylarım
+  getPending: (type = null) => api.get('/approvals/pending', { params: { approval_type: type } }),
+  // Devir teslim onayı oluştur
+  createHandover: (data) => api.post('/approvals/shift-handover', data),
+  // Yönetici onayı talep et
+  createManagerApproval: (data) => api.post('/approvals/manager-approval', data),
+  // Sonraki vardiya görevlisini getir
+  getNextShiftUser: (vehicleId) => api.get(`/approvals/next-shift-user/${vehicleId}`),
+  // Devir teslim bilgilerini getir (otomatik doldurma)
+  getHandoverInfo: (vehicleId) => api.get(`/approvals/handover-info/${vehicleId}`)
+};
+
 export default api;

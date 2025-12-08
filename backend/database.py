@@ -29,3 +29,4 @@ vehicle_km_logs_collection = db.vehicle_km_logs  # New: Vehicle KM tracking
 document_metadata_collection = db.document_metadata  # New: Document management
 medication_usage_collection = db.medication_usage  # Vakada kullanılan ilaçlar
 stock_usage_logs_collection = db.stock_usage_logs  # Stok hareket logları
+approvals_collection = db.approvals  # Onay kodları ve workflow

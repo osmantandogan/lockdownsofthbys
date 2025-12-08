@@ -5,35 +5,40 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { shiftsAPI, vehiclesAPI } from '../../api';
+import { shiftsAPI, vehiclesAPI, approvalsAPI } from '../../api';
 import PDFExportButton from '../PDFExportButton';
 import { exportHandoverForm } from '../../utils/pdfExport';
+import { CheckCircle, XCircle, Clock, Phone, Mail, User, Send, Shield, Loader2 } from 'lucide-react';
 
-
-  const handleSave = async () => {
-    setSaving(true);
-    const saveFunc = handleFormSave('handover', formData, {
-      validateFields: ['teslimEden'],
-      validateSignature: false,
-      onSuccess: () => {
-        // Form saved successfully
-      }
-    });
-    await saveFunc();
-    setSaving(false);
-  };
-
-  const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
+const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [receiverInfo, setReceiverInfo] = useState(null);
+  const [handoverInfo, setHandoverInfo] = useState(null);
+  
+  // Onay durumları
+  const [receiverApprovalCode, setReceiverApprovalCode] = useState('');
+  const [receiverApproved, setReceiverApproved] = useState(false);
+  const [managerApprovalCode, setManagerApprovalCode] = useState('');
+  const [managerApproved, setManagerApproved] = useState(false);
+  const [sendingApproval, setSendingApproval] = useState(false);
+  const [approvalSent, setApprovalSent] = useState({ receiver: false, manager: false });
+  
+  // Dialog durumları
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [approvalDialogType, setApprovalDialogType] = useState('receiver'); // 'receiver' veya 'manager'
+
   const [localFormData, setLocalFormData] = useState({
     aracPlakasi: vehiclePlate || '',
     kayitTarihi: new Date().toISOString().split('T')[0],
+    kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
     teslimAlinanKm: vehicleKm || '',
     servisYapilacakKm: '',
     fosforluYelek: '',
@@ -43,11 +48,14 @@ import { exportHandoverForm } from '../../utils/pdfExport';
     teslimEdenNotlar: '',
     hasarBildirimi: '',
     teslimEden: '',
+    teslimEdenTelefon: '',
     teslimAlan: '',
+    teslimAlanTelefon: '',
     birimYoneticisi: '',
     onayTarihi: new Date().toISOString().split('T')[0],
     teslimEdenSignature: null,
-    teslimAlanSignature: null
+    teslimAlanSignature: null,
+    vehicleId: ''
   });
 
   const formData = externalFormData || localFormData;
@@ -60,27 +68,67 @@ import { exportHandoverForm } from '../../utils/pdfExport';
         // Aktif vardiya bilgisini çek
         const activeShift = await shiftsAPI.getActive();
         
-        if (activeShift) {
-          // Araç bilgisini çek
-          const vehicle = await vehiclesAPI.getById(activeShift.vehicle_id);
+        if (activeShift && activeShift.data) {
+          const shift = activeShift.data;
+          const vehicleId = shift.vehicle_id;
           
-          // Form verilerini otomatik doldur
-          const newData = {
-            ...formData,
-            aracPlakasi: vehicle.plate,
-            teslimAlinanKm: vehicle.km,
-            servisYapilacakKm: vehicle.next_maintenance_km || '',
-            teslimAlan: user.name,
-            teslimAlanSignature: user.signature || null
-          };
-          
-          if (onChange) {
-            onChange(newData);
-          } else {
-            setLocalFormData(newData);
+          // Devir teslim bilgilerini getir (yeni endpoint)
+          try {
+            const handoverData = await approvalsAPI.getHandoverInfo(vehicleId);
+            if (handoverData.data) {
+              setHandoverInfo(handoverData.data);
+              setReceiverInfo(handoverData.data.receiver);
+              
+              // Form verilerini otomatik doldur
+              const vehicle = handoverData.data.vehicle;
+              const giver = handoverData.data.giver;
+              const receiver = handoverData.data.receiver;
+              
+              const newData = {
+                ...formData,
+                aracPlakasi: vehicle?.plate || '',
+                kayitTarihi: handoverData.data.date,
+                kayitSaati: handoverData.data.time,
+                teslimAlinanKm: vehicle?.km || '',
+                servisYapilacakKm: vehicle?.next_maintenance_km || '',
+                teslimEden: giver?.name || user?.name || '',
+                teslimEdenTelefon: giver?.phone || '',
+                teslimEdenSignature: giver?.signature || user?.signature || null,
+                teslimAlan: receiver?.name || '',
+                teslimAlanTelefon: receiver?.phone || '',
+                vehicleId: vehicleId
+              };
+              
+              if (onChange) {
+                onChange(newData);
+              } else {
+                setLocalFormData(newData);
+              }
+              
+              toast.success('Devir teslim bilgileri otomatik yüklendi');
+            }
+          } catch (err) {
+            console.error('Handover info error:', err);
+            // Fallback: Araç bilgisini direkt çek
+            const vehicle = await vehiclesAPI.getById(vehicleId);
+            if (vehicle && vehicle.data) {
+              const newData = {
+                ...formData,
+                aracPlakasi: vehicle.data.plate,
+                teslimAlinanKm: vehicle.data.km,
+                servisYapilacakKm: vehicle.data.next_maintenance_km || '',
+                teslimEden: user?.name || '',
+                teslimEdenSignature: user?.signature || null,
+                vehicleId: vehicleId
+              };
+              
+              if (onChange) {
+                onChange(newData);
+              } else {
+                setLocalFormData(newData);
+              }
+            }
           }
-          
-          toast.success('Vardiya bilgileri otomatik yüklendi');
         }
       } catch (error) {
         console.error('Vardiya yüklenemedi:', error);
@@ -90,7 +138,6 @@ import { exportHandoverForm } from '../../utils/pdfExport';
     };
     
     if (!vehiclePlate && !vehicleKm) {
-      // Eğer prop olarak gelmediyse, vardiya bilgisini çek
       loadShiftData();
     } else {
       setLoading(false);
@@ -100,6 +147,112 @@ import { exportHandoverForm } from '../../utils/pdfExport';
   const handleChange = (field, value) => {
     const newData = {...formData, [field]: value};
     setFormData(newData);
+  };
+
+  // Teslim alacak kişiye onay kodu gönder
+  const sendReceiverApproval = async () => {
+    if (!receiverInfo?.id || !formData.vehicleId) {
+      toast.error('Teslim alacak kişi bilgisi bulunamadı');
+      return;
+    }
+    
+    setSendingApproval(true);
+    try {
+      await approvalsAPI.createHandover({
+        receiver_id: receiverInfo.id,
+        vehicle_id: formData.vehicleId
+      });
+      
+      setApprovalSent(prev => ({ ...prev, receiver: true }));
+      toast.success(`Onay kodu ${receiverInfo.name} kişisine SMS ve Email ile gönderildi`);
+      setShowApprovalDialog(true);
+      setApprovalDialogType('receiver');
+    } catch (error) {
+      console.error('Approval error:', error);
+      toast.error('Onay kodu gönderilemedi');
+    } finally {
+      setSendingApproval(false);
+    }
+  };
+
+  // Yönetici onayı gönder
+  const sendManagerApproval = async () => {
+    if (!formData.vehicleId) {
+      toast.error('Araç bilgisi bulunamadı');
+      return;
+    }
+    
+    setSendingApproval(true);
+    try {
+      await approvalsAPI.createManagerApproval({
+        vehicle_id: formData.vehicleId,
+        action: 'Vardiya Devir Teslim'
+      });
+      
+      setApprovalSent(prev => ({ ...prev, manager: true }));
+      toast.success('Onay kodu Baş Şoför ve Operasyon Müdürüne gönderildi');
+      setShowApprovalDialog(true);
+      setApprovalDialogType('manager');
+    } catch (error) {
+      console.error('Manager approval error:', error);
+      toast.error('Yönetici onayı gönderilemedi');
+    } finally {
+      setSendingApproval(false);
+    }
+  };
+
+  // Onay kodunu doğrula
+  const verifyApprovalCode = async (type) => {
+    const code = type === 'receiver' ? receiverApprovalCode : managerApprovalCode;
+    
+    if (!code || code.length !== 6) {
+      toast.error('Geçerli bir 6 haneli kod girin');
+      return;
+    }
+    
+    try {
+      const result = await approvalsAPI.verify({
+        code: code,
+        approval_type: type === 'receiver' ? 'shift_handover' : 'shift_start_approval'
+      });
+      
+      if (result.data?.valid) {
+        if (type === 'receiver') {
+          setReceiverApproved(true);
+          toast.success('Teslim alan onayı doğrulandı!');
+        } else {
+          setManagerApproved(true);
+          toast.success('Yönetici onayı doğrulandı!');
+        }
+        setShowApprovalDialog(false);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Onay kodu doğrulanamadı');
+    }
+  };
+
+  const handleSave = async () => {
+    // Onaylar kontrolü
+    if (!receiverApproved) {
+      toast.error('Teslim alan onayı gerekli');
+      return;
+    }
+    
+    if (!managerApproved) {
+      toast.error('Yönetici onayı gerekli');
+      return;
+    }
+    
+    setSaving(true);
+    const saveFunc = handleFormSave('handover', formData, {
+      validateFields: ['teslimEden', 'teslimAlan'],
+      validateSignature: false,
+      onSuccess: () => {
+        toast.success('Devir teslim kaydedildi!');
+      }
+    });
+    await saveFunc();
+    setSaving(false);
   };
 
   const servisKalan = formData.servisYapilacakKm && formData.teslimAlinanKm 
@@ -136,13 +289,15 @@ import { exportHandoverForm } from '../../utils/pdfExport';
       <Card>
         <CardHeader><CardTitle>🚑 Araç Bilgileri</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Araç Plakası</Label>
               <Input 
                 value={formData.aracPlakasi}
                 onChange={(e) => handleChange('aracPlakasi', e.target.value.toUpperCase())}
                 placeholder="34 ABC 123"
+                disabled={!!handoverInfo}
+                className="font-bold text-lg"
               />
             </div>
             <div className="space-y-2">
@@ -151,6 +306,16 @@ import { exportHandoverForm } from '../../utils/pdfExport';
                 type="date"
                 value={formData.kayitTarihi}
                 onChange={(e) => handleChange('kayitTarihi', e.target.value)}
+                disabled={!!handoverInfo}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Saat</Label>
+              <Input 
+                type="time"
+                value={formData.kayitSaati}
+                onChange={(e) => handleChange('kayitSaati', e.target.value)}
+                disabled={!!handoverInfo}
               />
             </div>
           </div>
@@ -275,83 +440,242 @@ import { exportHandoverForm } from '../../utils/pdfExport';
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>✍️ Teslim Eden Bilgileri</CardTitle></CardHeader>
+      {/* Teslim Eden */}
+      <Card className="border-green-200 bg-green-50/30">
+        <CardHeader><CardTitle className="text-green-700">✍️ Teslim Eden Bilgileri (Siz)</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Teslim Edenin Adı-Soyadı</Label>
-            <Input 
-              value={formData.teslimEden}
-              onChange={(e) => handleChange('teslimEden', e.target.value)}
-              placeholder="Adı Soyadı"
-            />
-          </div>
-          <SignaturePad label="İmza" required />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>✍️ Teslim Alan Bilgileri</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Teslim Alanın Adı-Soyadı</Label>
-            <Input 
-              value={formData.teslimAlan}
-              onChange={(e) => handleChange('teslimAlan', e.target.value)}
-              placeholder="Adı Soyadı"
-              disabled={!!user}
-            />
-            {user && (
-              <p className="text-xs text-green-600">✓ Otomatik: {user.name}</p>
-            )}
+          <div className="flex items-center gap-4 p-4 bg-white rounded-lg border">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={user?.profile_photo} />
+              <AvatarFallback className="bg-green-100 text-green-700 text-xl">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <p className="font-bold text-lg">{formData.teslimEden || user?.name}</p>
+              <p className="text-sm text-gray-500">{user?.role}</p>
+              {formData.teslimEdenTelefon && (
+                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                  <Phone className="h-3 w-3" /> {formData.teslimEdenTelefon}
+                </p>
+              )}
+            </div>
+            <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
           
-          {formData.teslimAlanSignature ? (
+          {formData.teslimEdenSignature ? (
             <div className="space-y-2">
-              <Label>İmza (Otomatik Yüklendi)</Label>
-              <div className="border-2 border-green-500 rounded-lg p-2 bg-green-50">
+              <Label>İmza (Otomatik)</Label>
+              <div className="border-2 border-green-500 rounded-lg p-2 bg-white">
                 <img 
-                  src={formData.teslimAlanSignature} 
+                  src={formData.teslimEdenSignature} 
                   alt="İmza" 
-                  className="h-32 w-full object-contain"
+                  className="h-24 w-full object-contain"
                 />
               </div>
-              <p className="text-xs text-green-600">
-                ✓ Kayıtlı imzanız otomatik kullanılıyor
-              </p>
             </div>
           ) : (
             <SignaturePad 
               label="İmza" 
               required
-              onSignature={(sig) => handleChange('teslimAlanSignature', sig)}
+              onSignature={(sig) => handleChange('teslimEdenSignature', sig)}
             />
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>✅ Bölüm / Birim Yöneticisinin Onayı</CardTitle></CardHeader>
+      {/* Teslim Alan */}
+      <Card className={`border-blue-200 ${receiverApproved ? 'bg-green-50/30 border-green-200' : 'bg-blue-50/30'}`}>
+        <CardHeader>
+          <CardTitle className={receiverApproved ? 'text-green-700' : 'text-blue-700'}>
+            ✍️ Teslim Alan Bilgileri (Sonraki Vardiya)
+            {receiverApproved && <span className="ml-2 text-green-600">✓ Onaylandı</span>}
+          </CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Birim Yöneticisinin Adı-Soyadı</Label>
-              <Input 
-                value={formData.birimYoneticisi}
-                onChange={(e) => handleChange('birimYoneticisi', e.target.value)}
-                placeholder="Adı Soyadı"
-              />
+          {receiverInfo ? (
+            <>
+              <div className="flex items-center gap-4 p-4 bg-white rounded-lg border">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={receiverInfo.profile_photo} />
+                  <AvatarFallback className="bg-blue-100 text-blue-700 text-xl">
+                    {receiverInfo.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="font-bold text-lg">{receiverInfo.name}</p>
+                  <p className="text-sm text-gray-500">{receiverInfo.role}</p>
+                  {receiverInfo.phone && (
+                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                      <Phone className="h-3 w-3" /> {receiverInfo.phone}
+                    </p>
+                  )}
+                  {receiverInfo.email && (
+                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                      <Mail className="h-3 w-3" /> {receiverInfo.email}
+                    </p>
+                  )}
+                </div>
+                {receiverApproved ? (
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                ) : (
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                )}
+              </div>
+              
+              {!receiverApproved && (
+                <div className="space-y-3">
+                  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ Teslim alan kişinin onayı gerekli. SMS ve Email ile onay kodu gönderilecek.
+                    </p>
+                  </div>
+                  
+                  {!approvalSent.receiver ? (
+                    <Button 
+                      onClick={sendReceiverApproval} 
+                      disabled={sendingApproval}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      {sendingApproval ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" /> Onay Kodu Gönder</>
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-green-600">✓ Onay kodu gönderildi</p>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="6 haneli kod"
+                          value={receiverApprovalCode}
+                          onChange={(e) => setReceiverApprovalCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="text-center font-mono text-lg tracking-widest"
+                          maxLength={6}
+                        />
+                        <Button onClick={() => verifyApprovalCode('receiver')}>
+                          Doğrula
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="p-4 bg-gray-100 rounded-lg text-center">
+              <User className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">Sonraki vardiya görevlisi bulunamadı</p>
+              <p className="text-sm text-gray-500 mt-1">Manuel olarak girebilirsiniz</p>
+              <div className="mt-4 space-y-2">
+                <Input 
+                  value={formData.teslimAlan}
+                  onChange={(e) => handleChange('teslimAlan', e.target.value)}
+                  placeholder="Teslim Alan Adı Soyadı"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Tarih</Label>
-              <Input 
-                type="date"
-                value={formData.onayTarihi}
-                onChange={(e) => handleChange('onayTarihi', e.target.value)}
-              />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Yönetici Onayı */}
+      <Card className={`border-purple-200 ${managerApproved ? 'bg-green-50/30 border-green-200' : 'bg-purple-50/30'}`}>
+        <CardHeader>
+          <CardTitle className={managerApproved ? 'text-green-700' : 'text-purple-700'}>
+            <Shield className="h-5 w-5 inline mr-2" />
+            Yönetici Onayı (Baş Şoför / Operasyon Müdürü)
+            {managerApproved && <span className="ml-2 text-green-600">✓ Onaylandı</span>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!managerApproved && (
+            <>
+              <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg">
+                <p className="text-sm text-purple-800">
+                  ⚠️ Devir teslim için yönetici onayı gerekli. Baş Şoför ve Operasyon Müdürüne SMS, Email ve Push bildirim gönderilecek.
+                </p>
+              </div>
+              
+              {!approvalSent.manager ? (
+                <Button 
+                  onClick={sendManagerApproval} 
+                  disabled={sendingApproval || !receiverApproved}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  {sendingApproval ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
+                  ) : (
+                    <><Shield className="h-4 w-4 mr-2" /> Yönetici Onayı İste</>
+                  )}
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-green-600">✓ Onay talebi yöneticilere gönderildi</p>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="6 haneli kod"
+                      value={managerApprovalCode}
+                      onChange={(e) => setManagerApprovalCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="text-center font-mono text-lg tracking-widest"
+                      maxLength={6}
+                    />
+                    <Button onClick={() => verifyApprovalCode('manager')}>
+                      Doğrula
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {!receiverApproved && (
+                <p className="text-xs text-gray-500">* Önce teslim alan onayı gerekli</p>
+              )}
+            </>
+          )}
+          
+          {managerApproved && (
+            <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-green-200">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div>
+                <p className="font-medium text-green-700">Yönetici Onayı Alındı</p>
+                <p className="text-sm text-gray-500">Devir teslim kaydedilebilir</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Onay Durumu Özet */}
+      <Card>
+        <CardHeader><CardTitle>📋 Onay Durumu</CardTitle></CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+              <span>Teslim Alan Onayı</span>
+              {receiverApproved ? (
+                <span className="text-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4" /> Onaylandı
+                </span>
+              ) : (
+                <span className="text-yellow-600 flex items-center gap-1">
+                  <Clock className="h-4 w-4" /> Bekliyor
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+              <span>Yönetici Onayı</span>
+              {managerApproved ? (
+                <span className="text-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4" /> Onaylandı
+                </span>
+              ) : (
+                <span className="text-yellow-600 flex items-center gap-1">
+                  <Clock className="h-4 w-4" /> Bekliyor
+                </span>
+              )}
             </div>
           </div>
-          <SignaturePad label="İmza" required />
         </CardContent>
       </Card>
 
@@ -360,6 +684,7 @@ import { exportHandoverForm } from '../../utils/pdfExport';
           const initialData = {
             aracPlakasi: vehiclePlate || '',
             kayitTarihi: new Date().toISOString().split('T')[0],
+            kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
             teslimAlinanKm: vehicleKm || '',
             servisYapilacakKm: '',
             fosforluYelek: '',
@@ -377,6 +702,9 @@ import { exportHandoverForm } from '../../utils/pdfExport';
           };
           if (onChange) onChange(initialData);
           else setLocalFormData(initialData);
+          setReceiverApproved(false);
+          setManagerApproved(false);
+          setApprovalSent({ receiver: false, manager: false });
           toast.success('Form temizlendi');
         }}>🗑 Temizle</Button>
         <PDFExportButton 
@@ -393,8 +721,58 @@ import { exportHandoverForm } from '../../utils/pdfExport';
           const url = URL.createObjectURL(blob);
           window.open(url, '_blank');
         }}>🔍 PDF Önizleme</Button>
-        <Button onClick={handleSave} disabled={saving}>{saving ? "Kaydediliyor..." : "💾 Kaydet"}</Button>
+        <Button 
+          onClick={handleSave} 
+          disabled={saving || !receiverApproved || !managerApproved}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          {saving ? "Kaydediliyor..." : "💾 Kaydet ve Tamamla"}
+        </Button>
       </div>
+
+      {/* Onay Dialog */}
+      <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {approvalDialogType === 'receiver' ? '📱 Teslim Alan Onayı' : '🔐 Yönetici Onayı'}
+            </DialogTitle>
+            <DialogDescription>
+              {approvalDialogType === 'receiver' 
+                ? 'Teslim alacak kişinin telefonuna ve email adresine onay kodu gönderildi.'
+                : 'Baş Şoför ve Operasyon Müdürüne onay kodu gönderildi.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-center text-gray-600">
+              Gelen 6 haneli kodu aşağıya girin:
+            </p>
+            <Input 
+              placeholder="000000"
+              value={approvalDialogType === 'receiver' ? receiverApprovalCode : managerApprovalCode}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                if (approvalDialogType === 'receiver') {
+                  setReceiverApprovalCode(val);
+                } else {
+                  setManagerApprovalCode(val);
+                }
+              }}
+              className="text-center font-mono text-2xl tracking-[0.5em] h-14"
+              maxLength={6}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
+              İptal
+            </Button>
+            <Button onClick={() => verifyApprovalCode(approvalDialogType)}>
+              Doğrula
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
