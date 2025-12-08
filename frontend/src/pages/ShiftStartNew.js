@@ -81,11 +81,20 @@ const ShiftStartNew = () => {
         // Atama bugün için mi veya dün başlayıp bugüne sarkan mı?
         const isValidForToday = shiftDate <= today && endDate >= today;
         const isValidForYesterday = shiftDate <= yesterday && endDate >= yesterday;
-        const isMatchingVehicle = assignment.vehicle_id === vehicle._id;
+        
+        // Araç ID karşılaştırması - farklı formatları destekle
+        const vehicleId = vehicle._id || vehicle.id;
+        const assignmentVehicleId = assignment.vehicle_id;
+        const isMatchingVehicle = 
+          assignmentVehicleId === vehicleId || 
+          String(assignmentVehicleId) === String(vehicleId);
+        
         const isPending = assignment.status === 'pending';
         
         console.log(`Atama kontrolü: ${shiftDate} - ${endDate}`);
-        console.log(`  Araç eşleşme: ${isMatchingVehicle} (${assignment.vehicle_id} === ${vehicle._id})`);
+        console.log(`  Araç ID (araç): ${vehicleId}`);
+        console.log(`  Araç ID (atama): ${assignmentVehicleId}`);
+        console.log(`  Araç eşleşme: ${isMatchingVehicle}`);
         console.log(`  Bugün geçerli: ${isValidForToday}`);
         console.log(`  Dün geçerli: ${isValidForYesterday}`);
         console.log(`  Durum: ${assignment.status} (pending: ${isPending})`);
@@ -94,11 +103,41 @@ const ShiftStartNew = () => {
       });
 
       if (!todayAssignment) {
+        // Debug: Neden eşleşmedi?
+        console.log('=== ATAMA BULUNAMADI - DEBUG ===');
+        console.log('Aranan araç:', vehicle);
+        console.log('Tüm atamalar:', myAssignments.data);
+        
+        // Tarihe bakmadan sadece araç ve status kontrolü yap
+        const vehicleId = vehicle._id || vehicle.id;
+        const sameVehicleAssignment = myAssignments.data?.find(a => {
+          const aVehicleId = a.vehicle_id;
+          return (aVehicleId === vehicleId || String(aVehicleId) === String(vehicleId)) && 
+                 a.status === 'pending';
+        });
+        
+        if (sameVehicleAssignment) {
+          // Aynı araç için atama var ama tarih uymuyor
+          console.log('AYNI ARAÇ İÇİN ATAMA VAR AMA TARİH UYMUYOR:', sameVehicleAssignment);
+          const shiftDate = sameVehicleAssignment.shift_date?.split('T')[0];
+          const endDate = sameVehicleAssignment.end_date?.split('T')[0] || shiftDate;
+          toast.error(
+            `❌ Bu araç için atamanız var ama tarih uymuyor!\n\n` +
+            `Atama tarihi: ${shiftDate} - ${endDate}\n` +
+            `Bugün (TR): ${today}`,
+            { duration: 8000 }
+          );
+          setValidating(false);
+          return null;
+        }
+        
         // Bu araca atanmamış, hangi araca atanmış göster
         const userTodayAssignment = myAssignments.data?.find(assignment => {
           const shiftDate = assignment.shift_date?.split('T')[0];
           const endDate = assignment.end_date?.split('T')[0] || shiftDate;
-          return shiftDate <= today && endDate >= today && assignment.status === 'pending';
+          const isValidDate = (shiftDate <= today && endDate >= today) || 
+                              (shiftDate <= yesterday && endDate >= yesterday);
+          return isValidDate && assignment.status === 'pending';
         });
 
         if (userTodayAssignment) {
