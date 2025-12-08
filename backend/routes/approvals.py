@@ -305,18 +305,46 @@ async def verify_manager_approval_for_shift(data: VerifyManagerApprovalRequest, 
     # Yöntem 2: Yöneticilerin internal OTP'sini kontrol et
     if not code_valid and approval.get("accept_internal_otp"):
         manager_ids = approval.get("manager_ids", [])
+        logger.info(f"Checking internal OTP for managers: {manager_ids}")
+        
+        # Tüm bas_sofor ve operasyon_muduru'larını kontrol et (manager_ids boş olabilir)
+        if not manager_ids:
+            managers = await users_collection.find({
+                "role": {"$in": ["bas_sofor", "operasyon_muduru"]}
+            }).to_list(50)
+            manager_ids = [m.get("_id") for m in managers]
+            logger.info(f"Found managers from DB: {manager_ids}")
         
         for manager_id in manager_ids:
             try:
-                # Internal OTP servisinden doğrula
-                from services.otp_service import verify_user_otp
+                from services.otp_service import verify_user_otp, generate_user_otp_secret
                 manager = await users_collection.find_one({"_id": manager_id})
-                if manager and manager.get("otp_secret"):
-                    if verify_user_otp(manager.get("otp_secret"), data.code):
-                        code_valid = True
-                        approval_method = f"internal_otp_{manager.get('name', manager_id)}"
-                        logger.info(f"Internal OTP verified for manager: {manager_id}")
-                        break
+                
+                if not manager:
+                    logger.warning(f"Manager not found: {manager_id}")
+                    continue
+                
+                otp_secret = manager.get("otp_secret")
+                
+                # Secret yoksa oluştur ve kaydet
+                if not otp_secret:
+                    otp_secret = generate_user_otp_secret()
+                    await users_collection.update_one(
+                        {"_id": manager_id},
+                        {"$set": {"otp_secret": otp_secret}}
+                    )
+                    logger.info(f"Generated OTP secret for manager: {manager_id}")
+                
+                logger.info(f"Verifying OTP for {manager.get('name', manager_id)}, code: {data.code}")
+                
+                if verify_user_otp(otp_secret, data.code):
+                    code_valid = True
+                    approval_method = f"internal_otp_{manager.get('name', manager_id)}"
+                    logger.info(f"✅ Internal OTP verified for manager: {manager_id}")
+                    break
+                else:
+                    logger.info(f"❌ OTP not matching for {manager.get('name', manager_id)}")
+                    
             except Exception as e:
                 logger.warning(f"OTP check failed for manager {manager_id}: {e}")
     
