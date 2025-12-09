@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 # Import routers
-from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals
+from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients
 
 ROOT_DIR = Path(__file__).parent.resolve()
 load_dotenv(ROOT_DIR / '.env', override=True)
@@ -62,6 +62,7 @@ api_router.include_router(medications.router, prefix="/medications", tags=["Medi
 api_router.include_router(otp.router, prefix="/otp", tags=["OTP"])
 api_router.include_router(its.router, prefix="/its", tags=["İTS - İlaç Takip Sistemi"])
 api_router.include_router(approvals.router, prefix="/approvals", tags=["Approvals - Onay Sistemi"])
+api_router.include_router(patients.router, prefix="/patients", tags=["Patients - Hasta Kartı"])
 
 # Health check endpoint
 @api_router.get("/")

@@ -525,3 +525,175 @@ class FormSubmissionCreate(BaseModel):
     patient_name: Optional[str] = None
     vehicle_plate: Optional[str] = None
     case_id: Optional[str] = None
+
+
+# ==================== HASTA KARTI MODELLERI ====================
+
+# Kan Grubu
+BloodType = Literal["A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-", "Bilinmiyor"]
+
+# Cinsiyet
+Gender = Literal["erkek", "kadin", "diger", "belirtilmemis"]
+
+# Alerji Tipi
+AllergyType = Literal["ilac", "gida", "cevresel", "latex", "diger"]
+
+# Alerji Şiddeti
+AllergySeverity = Literal["hafif", "orta", "siddetli", "anafilaksi"]
+
+class Allergy(BaseModel):
+    """Alerji kaydı"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: AllergyType
+    name: str  # Alerjen adı (örn: Penisilin, Fıstık)
+    severity: AllergySeverity
+    reaction: Optional[str] = None  # Reaksiyon açıklaması
+    notes: Optional[str] = None
+    recorded_by: Optional[str] = None  # Kaydeden kullanıcı ID
+    recorded_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ChronicDisease(BaseModel):
+    """Kronik hastalık kaydı"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str  # Hastalık adı (örn: Diyabet, Hipertansiyon)
+    icd_code: Optional[str] = None  # ICD-10 kodu
+    diagnosis_date: Optional[str] = None  # Tanı tarihi
+    status: Literal["aktif", "kontrol_altinda", "remisyon", "iyilesmis"] = "aktif"
+    medications: Optional[str] = None  # Kullandığı ilaçlar
+    notes: Optional[str] = None
+    recorded_by: Optional[str] = None
+    recorded_at: datetime = Field(default_factory=datetime.utcnow)
+
+class DoctorNote(BaseModel):
+    """Doktor notu / brif"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    doctor_id: str
+    doctor_name: str
+    title: str  # Not başlığı
+    content: str  # Not içeriği
+    priority: Literal["dusuk", "normal", "yuksek", "kritik"] = "normal"
+    is_alert: bool = False  # Uyarı olarak gösterilsin mi?
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MedicalHistory(BaseModel):
+    """Tıbbi geçmiş kaydı (vaka bazlı)"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    case_id: str
+    case_number: str
+    date: datetime
+    complaint: str  # Şikayet
+    diagnosis: Optional[str] = None  # Tanı
+    treatment: Optional[str] = None  # Tedavi
+    medications_given: Optional[List[str]] = None  # Verilen ilaçlar
+    vital_signs: Optional[dict] = None  # Vital bulgular
+    outcome: Optional[str] = None  # Sonuç
+    notes: Optional[str] = None
+    attended_by: Optional[str] = None  # Müdahale eden
+
+class EmergencyContact(BaseModel):
+    """Acil durum iletişim bilgisi"""
+    name: str
+    relationship: str  # Yakınlık (örn: eş, anne, kardeş)
+    phone: str
+    is_primary: bool = False
+
+class PatientCard(BaseModel):
+    """Hasta Kartı Ana Modeli"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    
+    # Kimlik Bilgileri
+    tc_no: str  # TC Kimlik No (unique)
+    name: str
+    surname: str
+    birth_date: Optional[str] = None
+    gender: Gender = "belirtilmemis"
+    blood_type: BloodType = "Bilinmiyor"
+    
+    # İletişim Bilgileri
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    
+    # Acil Durum İletişim
+    emergency_contacts: List[EmergencyContact] = Field(default_factory=list)
+    
+    # Tıbbi Bilgiler
+    allergies: List[Allergy] = Field(default_factory=list)
+    chronic_diseases: List[ChronicDisease] = Field(default_factory=list)
+    doctor_notes: List[DoctorNote] = Field(default_factory=list)
+    medical_history: List[MedicalHistory] = Field(default_factory=list)
+    
+    # Genel Notlar
+    general_notes: Optional[str] = None
+    
+    # Sigorta Bilgileri
+    insurance_type: Optional[str] = None  # SGK, Özel, Yok
+    insurance_number: Optional[str] = None
+    
+    # Meta
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_accessed_at: Optional[datetime] = None
+    last_accessed_by: Optional[str] = None
+
+class PatientCardCreate(BaseModel):
+    """Hasta kartı oluşturma"""
+    tc_no: str
+    name: str
+    surname: str
+    birth_date: Optional[str] = None
+    gender: Optional[Gender] = "belirtilmemis"
+    blood_type: Optional[BloodType] = "Bilinmiyor"
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    insurance_type: Optional[str] = None
+    insurance_number: Optional[str] = None
+    general_notes: Optional[str] = None
+
+class PatientCardUpdate(BaseModel):
+    """Hasta kartı güncelleme"""
+    name: Optional[str] = None
+    surname: Optional[str] = None
+    birth_date: Optional[str] = None
+    gender: Optional[Gender] = None
+    blood_type: Optional[BloodType] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    insurance_type: Optional[str] = None
+    insurance_number: Optional[str] = None
+    general_notes: Optional[str] = None
+
+class PatientAccessRequest(BaseModel):
+    """Hemşire için erişim isteği"""
+    patient_id: str
+    reason: str  # Erişim nedeni
+    approval_code: str  # Doktor/müdürden alınan onay kodu
+
+class PatientAccessLog(BaseModel):
+    """Hasta kartı erişim logu"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    patient_id: str
+    patient_tc: str
+    user_id: str
+    user_name: str
+    user_role: str
+    access_type: Literal["view", "edit", "add_allergy", "add_disease", "add_note", "add_history"]
+    access_granted: bool
+    approval_code: Optional[str] = None  # Hemşire için onay kodu
+    approved_by: Optional[str] = None  # Onaylayan (hemşire erişimi için)
+    ip_address: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)

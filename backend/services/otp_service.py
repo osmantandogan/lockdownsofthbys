@@ -124,3 +124,43 @@ def verify_user_otp(secret: str, code: str) -> bool:
     """Kullanıcının OTP kodunu doğrula"""
     return otp_service.verify_totp(secret, code)
 
+
+async def verify_any_manager_otp(code: str, allowed_roles: list) -> dict:
+    """
+    Herhangi bir yetkili kullanıcının OTP'sini doğrula
+    Hemşirenin hasta kartına erişimi için doktor/müdür OTP'si gerektiğinde kullanılır
+    
+    Returns:
+        {
+            "valid": bool,
+            "approver_id": str or None,
+            "approver_name": str or None,
+            "approver_role": str or None
+        }
+    """
+    from database import users_collection
+    
+    if not code or len(code) != OTP_DIGITS:
+        return {"valid": False, "error": "Geçersiz kod formatı"}
+    
+    # Yetkili rollerdeki tüm kullanıcıları al
+    users = await users_collection.find({
+        "role": {"$in": allowed_roles},
+        "is_active": True
+    }).to_list(100)
+    
+    for user in users:
+        otp_secret = user.get("otp_secret")
+        if not otp_secret:
+            continue
+        
+        if otp_service.verify_totp(otp_secret, code):
+            return {
+                "valid": True,
+                "approver_id": user["_id"],
+                "approver_name": user.get("name", "Bilinmiyor"),
+                "approver_role": user.get("role")
+            }
+    
+    return {"valid": False, "error": "Onay kodu herhangi bir yetkili ile eşleşmedi"}
+

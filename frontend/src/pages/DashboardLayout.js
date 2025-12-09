@@ -48,6 +48,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },
     { path: '/dashboard/form-history', icon: History, label: 'Form Geçmişi', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor'] },
+    { path: '/dashboard/patient-cards', icon: User, label: 'Hasta Kartları', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi'] },
     { path: '/dashboard/user-management', icon: UserCog, label: 'Kullanıcı Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/staff', icon: Users, label: 'Personel Performansı', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/documents', icon: FileCog, label: 'Döküman Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },

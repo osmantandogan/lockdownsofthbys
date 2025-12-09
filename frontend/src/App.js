@@ -23,6 +23,7 @@ import ShiftEnd from "./pages/ShiftEnd";
 import ShiftForms from "./pages/ShiftForms";
 import Forms from "./pages/Forms";
 import FormHistory from "./pages/FormHistory";
+import PatientCards from "./pages/PatientCards";
 import UserManagement from "./pages/UserManagement";
 import Settings from "./pages/Settings";
 import Staff from "./pages/Staff";
@@ -118,6 +119,7 @@ function App() {
             <Route path="shift-forms" element={<ShiftForms />} />
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
+            <Route path="patient-cards" element={<PatientCards />} />
             <Route path="user-management" element={<UserManagement />} />
             <Route path="staff" element={<Staff />} />
             <Route path="documents" element={<DocumentManagement />} />

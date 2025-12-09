@@ -307,6 +307,44 @@ export const approvalsAPI = {
   }
 };
 
+// Patients API - Hasta Kartı Sistemi
+export const patientsAPI = {
+  // CRUD
+  create: (data) => api.post('/patients', data),
+  search: (params) => api.get('/patients/search', { params }),
+  getByTc: (tcNo) => api.get(`/patients/by-tc/${tcNo}`),
+  getById: (id) => api.get(`/patients/${id}`),
+  update: (id, data) => api.patch(`/patients/${id}`, data),
+  
+  // Hemşire erişim talebi (OTP ile)
+  requestAccess: (patientId, data) => api.post(`/patients/${patientId}/request-access`, data),
+  
+  // Alerji yönetimi
+  addAllergy: (patientId, data) => api.post(`/patients/${patientId}/allergies`, data),
+  removeAllergy: (patientId, allergyId) => api.delete(`/patients/${patientId}/allergies/${allergyId}`),
+  
+  // Kronik hastalık yönetimi
+  addDisease: (patientId, data) => api.post(`/patients/${patientId}/chronic-diseases`, data),
+  removeDisease: (patientId, diseaseId) => api.delete(`/patients/${patientId}/chronic-diseases/${diseaseId}`),
+  
+  // Doktor notu
+  addDoctorNote: (patientId, data) => api.post(`/patients/${patientId}/doctor-notes`, data),
+  removeDoctorNote: (patientId, noteId) => api.delete(`/patients/${patientId}/doctor-notes/${noteId}`),
+  
+  // Acil durum iletişim
+  addEmergencyContact: (patientId, data) => api.post(`/patients/${patientId}/emergency-contacts`, data),
+  
+  // Tıbbi geçmiş
+  getMedicalHistory: (patientId, limit = 20) => api.get(`/patients/${patientId}/medical-history`, { params: { limit } }),
+  addMedicalHistory: (patientId, data) => api.post(`/patients/${patientId}/medical-history`, data),
+  
+  // Erişim logları
+  getAccessLogs: (patientId, limit = 50) => api.get(`/patients/${patientId}/access-logs`, { params: { limit } }),
+  
+  // İstatistikler
+  getStats: () => api.get('/patients/stats/summary')
+};
+
 // Auth API (token yönetimi için)
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
