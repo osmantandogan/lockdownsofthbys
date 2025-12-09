@@ -32,7 +32,8 @@ const ShiftAssignments = () => {
     shift_date: new Date().toISOString().split('T')[0],
     start_time: '08:00',
     end_time: '16:00',
-    end_date: new Date().toISOString().split('T')[0]
+    end_date: new Date().toISOString().split('T')[0],
+    is_driver_duty: false  // Şoför görevi var mı? (ATT/Paramedik için)
   });
 
   useEffect(() => {
@@ -156,6 +157,11 @@ const ShiftAssignments = () => {
         assignmentData.end_date = endDate.trim();
       }
       
+      // Şoför görevi (ATT/Paramedik/Hemşire için)
+      if (formData.is_driver_duty) {
+        assignmentData.is_driver_duty = true;
+      }
+      
       // Remove undefined values to avoid sending them
       Object.keys(assignmentData).forEach(key => {
         if (assignmentData[key] === undefined || assignmentData[key] === null) {
@@ -175,7 +181,8 @@ const ShiftAssignments = () => {
         shift_date: new Date().toISOString().split('T')[0],
         start_time: '08:00',
         end_time: '16:00',
-        end_date: new Date().toISOString().split('T')[0]
+        end_date: new Date().toISOString().split('T')[0],
+        is_driver_duty: false
       });
       loadData();
     } catch (error) {
@@ -445,6 +452,36 @@ const ShiftAssignments = () => {
                 />
                 <p className="text-xs text-gray-500">Gece vardiyaları için ertesi gün seçin</p>
               </div>
+
+              {/* Şoför Görevi - Sadece ATT/Paramedik/Hemşire için */}
+              {(() => {
+                const selectedUser = users.find(u => (u.id || u._id) === formData.user_id);
+                if (selectedUser && ['att', 'paramedik', 'hemsire'].includes(selectedUser.role)) {
+                  return (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="is_driver_duty"
+                          checked={formData.is_driver_duty}
+                          onChange={(e) => setFormData(prev => ({...prev, is_driver_duty: e.target.checked}))}
+                          className="h-4 w-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
+                        />
+                        <Label htmlFor="is_driver_duty" className="font-medium text-yellow-800">
+                          🚗 Bu vardiyada şoför görevi de var mı?
+                        </Label>
+                      </div>
+                      <p className="text-xs text-yellow-700 pl-6">
+                        İşaretlenirse: Araç Devir Formu + Günlük Kontrol Formu doldurulacak
+                      </p>
+                      <p className="text-xs text-yellow-700 pl-6">
+                        İşaretlenmezse: Sadece Günlük Kontrol Formu doldurulacak
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               <Button onClick={handleCreate} className="w-full">Vardiya Ata</Button>
             </div>

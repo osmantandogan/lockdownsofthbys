@@ -377,6 +377,7 @@ class ShiftAssignment(BaseModel):
     end_time: Optional[str] = None  # HH:MM format
     end_date: Optional[datetime] = None  # For night shifts that span to next day
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
+    is_driver_duty: bool = False  # ATT/Paramedik için şoför görevi var mı?
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class Shift(BaseModel):

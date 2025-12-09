@@ -72,6 +72,11 @@ const ShiftStartNew = () => {
   // Devir teslim için önceki vardiya bilgileri
   const [previousShiftInfo, setPreviousShiftInfo] = useState(null);
   
+  // Form doldurma kontrolü
+  const [isFirstPersonInShift, setIsFirstPersonInShift] = useState(true); // İlk giren mi?
+  const [isDriverDuty, setIsDriverDuty] = useState(false); // Şoför görevi var mı?
+  const [formAlreadyFilled, setFormAlreadyFilled] = useState(false); // Form zaten doldurulmuş mu?
+  
   // Baş Şoför Onay Sistemi
   const [managerApprovalCode, setManagerApprovalCode] = useState('');
   const [managerApproved, setManagerApproved] = useState(false);
@@ -249,6 +254,15 @@ const ShiftStartNew = () => {
       // 3. Her şey OK
       setVehicleInfo(vehicle);
       setAssignmentInfo(todayAssignment);
+      
+      // Şoför görevi kontrolü (atamadan al)
+      setIsDriverDuty(todayAssignment.is_driver_duty || false);
+      
+      // TODO: İlk giren kontrolü yapılacak (backend'den form durumu sorgulanacak)
+      // Şimdilik her zaman form doldurtuyoruz
+      setIsFirstPersonInShift(true);
+      setFormAlreadyFilled(false);
+      
       setValidating(false);
       return { vehicle, assignment: todayAssignment };
 
@@ -517,7 +531,7 @@ const ShiftStartNew = () => {
           <p className="text-sm text-gray-500 text-center">
             {step === 1 && 'QR Kod Okutun'}
             {step === 2 && 'Araç Fotoğrafları (6 Zorunlu)'}
-            {step === 3 && 'Günlük Kontrol Formu'}
+            {step === 3 && (user?.role === 'sofor' ? 'Araç Devir Formu' : 'Ambulans Günlük Kontrol Formu')}
             {step === 4 && 'Onay ve Başlat'}
           </p>
         </CardContent>
@@ -717,66 +731,129 @@ const ShiftStartNew = () => {
             </Card>
           )}
           
-          {/* Devir Teslim Bilgileri (Otomatik) */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">📋 Devir Teslim Bilgileri</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Araç ve Tarih Bilgileri */}
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Araç Plakası</p>
-                  <p className="font-bold text-lg">{vehicleInfo?.plate || '-'}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Tarih (TR)</p>
-                  <p className="font-bold">{formatTurkeyDate()}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Saat (TR)</p>
-                  <p className="font-bold">{formatTurkeyTime()}</p>
-                </div>
-              </div>
-              
-              {/* Devreden Kişi (Önceki vardiya) */}
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Devreden (Önceki Vardiya)</h4>
-                {previousShiftInfo ? (
-                  <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <User className="h-10 w-10 text-orange-600" />
-                    <div>
-                      <p className="font-medium">{previousShiftInfo.user_name || 'Bilinmiyor'}</p>
-                      <p className="text-sm text-gray-500">{previousShiftInfo.phone || '-'}</p>
+          {/* ŞOFÖR İSE: Devir Teslim Formu */}
+          {user?.role === 'sofor' && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">🚗 Araç Devir Teslim Formu</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Araç ve Tarih Bilgileri */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500">Araç Plakası</p>
+                      <p className="font-bold text-lg">{vehicleInfo?.plate || '-'}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500">Tarih (TR)</p>
+                      <p className="font-bold">{formatTurkeyDate()}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500">Saat (TR)</p>
+                      <p className="font-bold">{formatTurkeyTime()}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="p-3 bg-gray-100 rounded-lg text-gray-500 text-center">
-                    <p>Önceki vardiya bilgisi bulunamadı</p>
-                    <p className="text-xs">(İlk vardiya olabilir)</p>
+                  
+                  {/* Devreden Kişi (Önceki vardiya) */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Devreden (Önceki Vardiya)</h4>
+                    {previousShiftInfo ? (
+                      <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <User className="h-10 w-10 text-orange-600" />
+                        <div>
+                          <p className="font-medium">{previousShiftInfo.user_name || 'Bilinmiyor'}</p>
+                          <p className="text-sm text-gray-500">{previousShiftInfo.phone || '-'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-100 rounded-lg text-gray-500 text-center">
+                        <p>Önceki vardiya bilgisi bulunamadı</p>
+                        <p className="text-xs">(İlk vardiya olabilir)</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                  
+                  {/* Devralan Kişi (Şu anki kullanıcı) */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Devralan (Siz)</h4>
+                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="h-10 w-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
+                        {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
+                      </div>
+                      <div>
+                        <p className="font-medium">{user?.name || 'Bilinmiyor'}</p>
+                        <p className="text-sm text-gray-500">{user?.phone || user?.email || '-'}</p>
+                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-600 ml-auto" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
               
-              {/* Devralan Kişi (Şu anki kullanıcı) */}
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Devralan (Siz)</h4>
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="h-10 w-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                    {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
-                  </div>
-                  <div>
-                    <p className="font-medium">{user?.name || 'Bilinmiyor'}</p>
-                    <p className="text-sm text-gray-500">{user?.phone || user?.email || '-'}</p>
-                  </div>
-                  <CheckCircle className="h-5 w-5 text-green-600 ml-auto" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Şoför için Devir Formu */}
+              <HandoverFormFull formData={controlForm} onChange={setControlForm} vehiclePlate={vehicleInfo?.plate} />
+            </>
+          )}
           
-          {/* Günlük Kontrol Formu */}
-          <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
+          {/* ATT / PARAMEDİK / HEMŞİRE İSE */}
+          {['att', 'paramedik', 'hemsire'].includes(user?.role) && (
+            <>
+              {/* Form zaten doldurulmuşsa bypass et */}
+              {formAlreadyFilled ? (
+                <Card className="border-green-200 bg-green-50">
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <p className="text-green-800 font-medium">
+                        Bu vardiya için formlar zaten doldurulmuş
+                      </p>
+                    </div>
+                    <p className="text-sm text-green-600 mt-1">
+                      Aynı vardiyada başka bir personel formu doldurduğu için direkt devam edebilirsiniz.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {/* Şoför görevi varsa: Önce Devir Formu, sonra Günlük Kontrol */}
+                  {isDriverDuty && (
+                    <>
+                      <Card className="border-yellow-200 bg-yellow-50">
+                        <CardContent className="py-3">
+                          <p className="text-yellow-800 font-medium">
+                            🚗 Şoför görevi atanmış - Araç Devir Formu
+                          </p>
+                          <p className="text-sm text-yellow-600">
+                            Bu vardiyada şoför görevi de size verildiği için önce araç devir formunu doldurun.
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <HandoverFormFull formData={handoverForm} onChange={setHandoverForm} vehiclePlate={vehicleInfo?.plate} />
+                    </>
+                  )}
+                  
+                  {/* Günlük Kontrol Formu (her zaman) */}
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardContent className="py-3">
+                      <p className="text-blue-800 font-medium">
+                        🩺 Ambulans Cihaz, Malzeme ve İlaç Günlük Kontrol Formu
+                      </p>
+                      <p className="text-sm text-blue-600">
+                        Lütfen ambulanstaki tüm cihaz, malzeme ve ilaçları kontrol edin.
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
+                </>
+              )}
+            </>
+          )}
+          
+          {/* Diğer roller için (merkez_ofis, operasyon_muduru vb.) - sadece basit form */}
+          {!['sofor', 'att', 'paramedik', 'hemsire'].includes(user?.role) && (
+            <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
+          )}
           
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>Geri</Button>

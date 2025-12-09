@@ -50,22 +50,27 @@ async def get_next_case_sequence() -> int:
         return CASE_NUMBER_START
 
 async def generate_case_number() -> str:
-    """Generate case number in format YYYYMMDD-XXXXX (starting from 10001)"""
-    now = datetime.utcnow()
+    """Generate case number in format YYYYMMDD-XXXXXX (starting from 000001)"""
+    # Türkiye saati (UTC+3)
+    now = datetime.utcnow() + timedelta(hours=3)
     date_str = now.strftime("%Y%m%d")
     seq = await get_next_case_sequence()
-    return f"{date_str}-{seq}"
+    # 6 haneli format: 000001, 000002, ...
+    seq_str = str(seq).zfill(6) if seq < 100000 else str(seq)
+    return f"{date_str}-{seq_str}"
 
 @router.get("/next-case-number")
 async def get_next_case_number(request: Request):
     """Sonraki vaka numarasını döndür (önizleme için)"""
     user = await get_current_user(request)
     
-    now = datetime.utcnow()
+    # Türkiye saati (UTC+3)
+    now = datetime.utcnow() + timedelta(hours=3)
     date_str = now.strftime("%Y%m%d")
     seq = await get_next_case_sequence()
+    seq_str = str(seq).zfill(6) if seq < 100000 else str(seq)
     
-    return {"next_case_number": f"{date_str}-{seq}"}
+    return {"next_case_number": f"{date_str}-{seq_str}"}
 
 @router.post("", response_model=Case)
 async def create_case(data: CaseCreate, request: Request):

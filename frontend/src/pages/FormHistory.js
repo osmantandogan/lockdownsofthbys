@@ -37,11 +37,16 @@ const FormHistory = () => {
     vehicle_plate: ''
   });
 
-  // Formları vaka numarasına göre grupla
+  // Formları vaka numarasına göre grupla (Vaka Formları)
   const groupedForms = useMemo(() => {
     const groups = {};
     
-    forms.forEach(form => {
+    // Sadece vaka formlarını al (devir, günlük kontrol hariç)
+    const caseForms = forms.filter(form => 
+      !['daily_control', 'handover', 'vehicle_handover', 'shift_form'].includes(form.form_type)
+    );
+    
+    caseForms.forEach(form => {
       const key = form.case_number || 'Vakasız Formlar';
       if (!groups[key]) {
         groups[key] = {
@@ -63,6 +68,41 @@ const FormHistory = () => {
       .sort(([, a], [, b]) => new Date(b.created_at) - new Date(a.created_at))
       .map(([key, value]) => ({ key, ...value }));
   }, [forms]);
+
+  // Formları ambulans plakasına göre grupla (Ambulans Formları)
+  const groupedByVehicle = useMemo(() => {
+    const groups = {};
+    
+    // Vardiya/ambulans formlarını al
+    const vehicleForms = forms.filter(form => 
+      ['daily_control', 'handover', 'vehicle_handover', 'shift_form'].includes(form.form_type)
+    );
+    
+    vehicleForms.forEach(form => {
+      const plate = form.vehicle_plate || 'Plakasız Formlar';
+      const key = `Ambulans ${plate} formlar`;
+      if (!groups[key]) {
+        groups[key] = {
+          vehicle_plate: plate,
+          forms: [],
+          created_at: form.created_at
+        };
+      }
+      groups[key].forms.push(form);
+      // En yeni tarihi al
+      if (new Date(form.created_at) > new Date(groups[key].created_at)) {
+        groups[key].created_at = form.created_at;
+      }
+    });
+    
+    // Tarihe göre sırala (en yeni önce)
+    return Object.entries(groups)
+      .sort(([, a], [, b]) => new Date(b.created_at) - new Date(a.created_at))
+      .map(([key, value]) => ({ key, ...value }));
+  }, [forms]);
+  
+  // Görünüm kategorisi state
+  const [formCategory, setFormCategory] = useState('case'); // 'case' veya 'vehicle'
 
   const toggleFolder = (key) => {
     setOpenFolders(prev => ({ ...prev, [key]: !prev[key] }));
@@ -432,6 +472,26 @@ const FormHistory = () => {
         </div>
       </div>
 
+      {/* Kategori Seçimi: Vaka Formları / Ambulans Formları */}
+      <div className="flex space-x-2 border-b pb-3">
+        <Button
+          variant={formCategory === 'case' ? 'default' : 'outline'}
+          onClick={() => setFormCategory('case')}
+          className={formCategory === 'case' ? 'bg-red-600 hover:bg-red-700' : ''}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Vaka Formları ({groupedForms.length})
+        </Button>
+        <Button
+          variant={formCategory === 'vehicle' ? 'default' : 'outline'}
+          onClick={() => setFormCategory('vehicle')}
+          className={formCategory === 'vehicle' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+        >
+          <Folder className="h-4 w-4 mr-2" />
+          Ambulans Formları ({groupedByVehicle.length})
+        </Button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="pt-6 text-center">
@@ -512,7 +572,8 @@ const FormHistory = () => {
         ) : viewType === 'folder' ? (
           // KLASÖR GÖRÜNÜMÜ
           <div className="space-y-3">
-            {groupedForms.map((group) => (
+            {/* Vaka Formları veya Ambulans Formları kategorisine göre göster */}
+            {(formCategory === 'case' ? groupedForms : groupedByVehicle).map((group) => (
               <Collapsible 
                 key={group.key} 
                 open={openFolders[group.key]} 
@@ -527,20 +588,26 @@ const FormHistory = () => {
                         ) : (
                           <ChevronRight className="h-5 w-5 text-gray-400" />
                         )}
-                        <div className="p-2 bg-amber-100 rounded-lg">
-                          <Folder className="h-5 w-5 text-amber-600" />
+                        <div className={`p-2 rounded-lg ${formCategory === 'case' ? 'bg-amber-100' : 'bg-blue-100'}`}>
+                          <Folder className={`h-5 w-5 ${formCategory === 'case' ? 'text-amber-600' : 'text-blue-600'}`} />
                         </div>
                         <div className="text-left">
                           <p className="font-semibold">
-                            {group.case_number ? `Vaka: ${group.case_number}` : 'Vakasız Formlar'}
+                            {formCategory === 'case' 
+                              ? (group.case_number ? `Vaka: ${group.case_number}` : 'Vakasız Formlar')
+                              : group.key
+                            }
                           </p>
-                          {group.patient_name && (
+                          {formCategory === 'case' && group.patient_name && (
                             <p className="text-sm text-gray-500">Hasta: {group.patient_name}</p>
+                          )}
+                          {formCategory === 'vehicle' && (
+                            <p className="text-sm text-gray-500">Günlük kontrol ve devir formları</p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <Badge variant="secondary">
+                        <Badge variant="secondary" className={formCategory === 'vehicle' ? 'bg-blue-100 text-blue-700' : ''}>
                           {group.forms.length} form
                         </Badge>
                         <span className="text-sm text-gray-400">
