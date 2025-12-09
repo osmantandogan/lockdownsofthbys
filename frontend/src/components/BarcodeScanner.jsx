@@ -84,7 +84,7 @@ const BarcodeScanner = ({
     if (!scannerRef.current) return;
     
     try {
-      html5QrcodeRef.current = new Html5Qrcode("barcode-scanner-region");
+      html5QrcodeRef.current = new Html5Qrcode(scannerId);
       
       const config = {
         fps: 10,
@@ -178,20 +178,23 @@ const BarcodeScanner = ({
       console.error('Scanner start error:', err);
       toast.error('Kamera başlatılamadı: ' + err.message);
     }
-  }, [onScan, continuousScan, cameraFacing, selectedCameraId]);
+  }, [onScan, continuousScan, cameraFacing, selectedCameraId, scannerId]);
 
   // Tarayıcıyı durdur
   const stopScanner = useCallback(async () => {
-    if (html5QrcodeRef.current && isScanning) {
+    if (html5QrcodeRef.current) {
       try {
-        await html5QrcodeRef.current.stop();
-        html5QrcodeRef.current = null;
-        setIsScanning(false);
+        const state = html5QrcodeRef.current.getState();
+        if (state === 2) { // SCANNING state
+          await html5QrcodeRef.current.stop();
+        }
       } catch (err) {
-        console.error('Scanner stop error:', err);
+        // Sessizce devam et
       }
+      html5QrcodeRef.current = null;
+      setIsScanning(false);
     }
-  }, [isScanning]);
+  }, []);
 
   // Kamera değiştir
   const switchCamera = async () => {
@@ -230,14 +233,29 @@ const BarcodeScanner = ({
     }
   };
 
-  // Cleanup
+  // Cleanup - Daha güvenli temizlik
   useEffect(() => {
     return () => {
-      if (html5QrcodeRef.current) {
-        html5QrcodeRef.current.stop().catch(() => {});
-      }
+      const cleanup = async () => {
+        if (html5QrcodeRef.current) {
+          try {
+            const state = html5QrcodeRef.current.getState();
+            if (state === 2) { // SCANNING state
+              await html5QrcodeRef.current.stop();
+            }
+          } catch (err) {
+            // Sessizce devam et - scanner zaten durmuş olabilir
+          }
+          html5QrcodeRef.current = null;
+        }
+        setIsScanning(false);
+      };
+      cleanup();
     };
   }, []);
+
+  // Scanner ID - benzersiz olması için
+  const scannerId = useRef(`barcode-scanner-${Date.now()}`).current;
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-2xl border-2">
@@ -299,7 +317,7 @@ const BarcodeScanner = ({
           <div className="space-y-3">
             {/* Kamera Önizleme */}
             <div 
-              id="barcode-scanner-region"
+              id={scannerId}
               ref={scannerRef}
               className="w-full aspect-video bg-gray-900 rounded-lg overflow-hidden relative"
             >

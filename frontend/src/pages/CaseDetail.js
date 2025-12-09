@@ -2232,8 +2232,17 @@ const CaseDetail = () => {
                   </div>
 
                   {/* Kamera Tarayıcı Dialog */}
-                  <Dialog open={showCameraScanner} onOpenChange={setShowCameraScanner}>
-                    <DialogContent className="max-w-lg p-0">
+                  <Dialog open={showCameraScanner} onOpenChange={(open) => {
+                    if (!open) {
+                      setShowCameraScanner(false);
+                    } else {
+                      setShowCameraScanner(true);
+                    }
+                  }}>
+                    <DialogContent className="max-w-lg p-0" aria-describedby={undefined}>
+                      <DialogHeader className="sr-only">
+                        <DialogTitle>İlaç Karekodu Tarayıcı</DialogTitle>
+                      </DialogHeader>
                       <BarcodeScanner
                         mode="usage"
                         caseId={id}

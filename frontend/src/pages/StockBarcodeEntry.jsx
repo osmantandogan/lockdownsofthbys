@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
 import BarcodeScanner from '../components/BarcodeScanner';
@@ -304,8 +304,18 @@ const StockBarcodeEntry = () => {
         </div>
 
         {/* Tarayıcı Dialog */}
-        <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-          <DialogContent className="max-w-lg p-0">
+        <Dialog open={scannerOpen} onOpenChange={(open) => {
+          if (!open) {
+            // Dialog kapanırken scanner'ı düzgün temizle
+            setScannerOpen(false);
+          } else {
+            setScannerOpen(true);
+          }
+        }}>
+          <DialogContent className="max-w-lg p-0" aria-describedby={undefined}>
+            <DialogHeader className="sr-only">
+              <DialogTitle>Karekod Tarayıcı</DialogTitle>
+            </DialogHeader>
             <BarcodeScanner
               mode="entry"
               locationName={locationLabel}
