@@ -17,6 +17,7 @@ import {
   History,
   UserCog,
   Users,
+  User,
   Archive as ArchiveIcon,
   FileCog,
   Bell,
