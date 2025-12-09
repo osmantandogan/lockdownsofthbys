@@ -532,6 +532,14 @@ async def end_shift(data: ShiftEnd, request: Request):
         return_document=True
     )
     
+    # Assignment status'unu "completed" olarak güncelle
+    if shift_doc.get("assignment_id"):
+        await shift_assignments_collection.update_one(
+            {"_id": shift_doc["assignment_id"]},
+            {"$set": {"status": "completed"}}
+        )
+        logger.info(f"Assignment {shift_doc['assignment_id']} marked as completed")
+    
     result["id"] = result.pop("_id")
     return Shift(**result)
 

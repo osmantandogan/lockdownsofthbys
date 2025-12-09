@@ -24,21 +24,31 @@ router = APIRouter()
 # Vaka numarası başlangıç değeri - 1'den başlar, 6 haneli format (000001)
 CASE_NUMBER_START = 1
 
+# Counter collection - günlük vaka numarası için
+from database import db
+counters_collection = db["counters"]
+
 async def get_next_case_sequence() -> int:
-    """Günlük sıralı vaka numarası al - 1'den başlar, 6 haneli format (000001-099999)"""
+    """Günlük sıralı vaka numarası al - Atomic counter kullanarak"""
+    from pymongo import ReturnDocument
+    
     # Türkiye saati (UTC+3)
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     today = turkey_now.strftime("%Y%m%d")
+    counter_id = f"case_number_{today}"
     
-    # Basit yaklaşım: Bugünkü tüm vakaları say ve +1 ekle
-    # Sadece yeni format (6 haneli, 0 ile başlayan) vakaları say
-    count = await cases_collection.count_documents({
-        "case_number": {"$regex": f"^{today}-0\\d{{5}}$"}
-    })
+    # Atomic increment - findAndModify ile
+    result = await counters_collection.find_one_and_update(
+        {"_id": counter_id},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
     
-    logger.info(f"[CASE_NUMBER] Bugün ({today}) için mevcut 6 haneli vaka sayısı: {count}")
+    seq = result["seq"] if result else 1
+    logger.info(f"[CASE_NUMBER] Bugün ({today}) için sıra: {seq}")
     
-    return count + 1
+    return seq
 
 async def generate_case_number() -> str:
     """Generate case number in format YYYYMMDD-XXXXXX (starting from 000001)"""
