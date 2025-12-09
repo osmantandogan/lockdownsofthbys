@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { settingsAPI, usersAPI } from '../api';
+import { settingsAPI, usersAPI, otpAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { User, Info, PenTool, Camera, Trash2, Upload } from 'lucide-react';
+import { User, Info, PenTool, Camera, Trash2, Upload, Smartphone, Shield, CheckCircle, RefreshCw, Copy, Eye, EyeOff } from 'lucide-react';
 import SignaturePad from '../components/SignaturePad';
 import axios from 'axios';
 
@@ -25,6 +25,12 @@ const Settings = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const fileInputRef = useRef(null);
+  
+  // OTP / Google Authenticator
+  const [otpSetup, setOtpSetup] = useState(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpVerifyCode, setOtpVerifyCode] = useState('');
+  const [showSecret, setShowSecret] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -32,14 +38,16 @@ const Settings = () => {
 
   const loadData = async () => {
     try {
-      const [profileRes, systemRes, photoRes] = await Promise.all([
+      const [profileRes, systemRes, photoRes, otpRes] = await Promise.all([
         settingsAPI.getProfile(),
         settingsAPI.getSystemInfo(),
-        usersAPI.getMyPhoto().catch(() => ({ data: { photo: null } }))
+        usersAPI.getMyPhoto().catch(() => ({ data: { photo: null } })),
+        otpAPI.getSetup().catch(() => ({ data: null }))
       ]);
       setProfile(profileRes.data);
       setSystemInfo(systemRes.data);
       setProfilePhoto(photoRes.data.photo);
+      setOtpSetup(otpRes.data);
       setFormData({
         name: profileRes.data.name || '',
         phone: profileRes.data.phone || '',
@@ -50,6 +58,57 @@ const Settings = () => {
       toast.error('Ayarlar yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // OTP kurulumunu doğrula
+  const handleVerifyOtp = async () => {
+    if (!otpVerifyCode || otpVerifyCode.length !== 6) {
+      toast.error('Lütfen 6 haneli kodu girin');
+      return;
+    }
+    
+    setOtpLoading(true);
+    try {
+      const response = await otpAPI.verifySetup(otpVerifyCode);
+      if (response.data.valid) {
+        toast.success(response.data.message);
+        setOtpSetup(prev => ({ ...prev, is_verified: true }));
+        setOtpVerifyCode('');
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Doğrulama hatası');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // OTP secret'ı yenile
+  const handleRegenerateOtp = async () => {
+    if (!confirm('Yeni QR kod oluşturulacak. Google Authenticator\'daki eski kod geçersiz olacak. Devam etmek istiyor musunuz?')) {
+      return;
+    }
+    
+    setOtpLoading(true);
+    try {
+      await otpAPI.regenerateSecret();
+      const otpRes = await otpAPI.getSetup();
+      setOtpSetup(otpRes.data);
+      toast.success('Yeni QR kod oluşturuldu. Lütfen tekrar tarayın.');
+    } catch (error) {
+      toast.error('QR kod yenilenemedi');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Secret'ı kopyala
+  const copySecret = () => {
+    if (otpSetup?.secret) {
+      navigator.clipboard.writeText(otpSetup.secret);
+      toast.success('Secret kopyalandı');
     }
   };
 
@@ -338,6 +397,171 @@ const Settings = () => {
           >
             {signatureSaving ? 'Kaydediliyor...' : 'İmzayı Kaydet'}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Google Authenticator (OTP) */}
+      <Card className="border-2 border-purple-200">
+        <CardHeader className="bg-purple-50">
+          <CardTitle className="flex items-center space-x-2">
+            <Smartphone className="h-5 w-5 text-purple-600" />
+            <span>Google Authenticator</span>
+            {otpSetup?.is_verified && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Aktif
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          {/* Bilgi Kutusu */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <Shield className="h-5 w-5 text-purple-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-purple-900">Onay Kodu Sistemi</h4>
+                <p className="text-sm text-purple-700 mt-1">
+                  Google Authenticator veya benzeri bir uygulama ile 6 haneli onay kodu oluşturabilirsiniz. 
+                  Bu kod, hasta kartı erişimi ve vaka onayları için kullanılacaktır.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {otpSetup ? (
+            <div className="space-y-6">
+              {/* QR Kod */}
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex-shrink-0">
+                  <Label className="mb-2 block">QR Kodu Tarayın</Label>
+                  {otpSetup.qr_code ? (
+                    <div className="border-2 border-gray-200 rounded-lg p-2 bg-white inline-block">
+                      <img 
+                        src={otpSetup.qr_code} 
+                        alt="OTP QR Code" 
+                        className="w-48 h-48"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-48 h-48 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
+                      QR kod yüklenemedi
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 space-y-4">
+                  {/* Kurulum Adımları */}
+                  <div>
+                    <Label className="mb-2 block">Kurulum Adımları</Label>
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
+                      {otpSetup.instructions?.map((step, idx) => (
+                        <li key={idx}>{step.replace(/^\d+\.\s*/, '')}</li>
+                      ))}
+                    </ol>
+                  </div>
+                  
+                  {/* Manuel Giriş için Secret */}
+                  <div>
+                    <Label className="mb-2 block">Manuel Giriş (QR taranamıyorsa)</Label>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-1 relative">
+                        <Input 
+                          type={showSecret ? "text" : "password"}
+                          value={otpSetup.secret || ''}
+                          readOnly
+                          className="pr-20 font-mono text-sm"
+                        />
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex space-x-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowSecret(!showSecret)}
+                            className="h-7 w-7 p-0"
+                          >
+                            {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={copySecret}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Doğrulama */}
+              {!otpSetup.is_verified ? (
+                <div className="border-t pt-6">
+                  <Label className="mb-2 block">Kurulumu Doğrulayın</Label>
+                  <p className="text-sm text-gray-500 mb-3">
+                    QR kodu taradıktan sonra, uygulamada görünen 6 haneli kodu girin.
+                  </p>
+                  <div className="flex items-center space-x-3">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="6 haneli kod"
+                      value={otpVerifyCode}
+                      onChange={(e) => setOtpVerifyCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                      maxLength={6}
+                      className="w-40 text-center text-lg tracking-widest font-mono"
+                    />
+                    <Button 
+                      onClick={handleVerifyOtp}
+                      disabled={otpLoading || otpVerifyCode.length !== 6}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {otpLoading ? 'Doğrulanıyor...' : 'Doğrula'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-green-800">Google Authenticator Aktif</p>
+                        <p className="text-sm text-green-600">Onay kodları bu uygulama üzerinden oluşturulacak</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline"
+                      onClick={handleRegenerateOtp}
+                      disabled={otpLoading}
+                      className="text-gray-600"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${otpLoading ? 'animate-spin' : ''}`} />
+                      QR Kodu Yenile
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Smartphone className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p>OTP bilgileri yüklenemedi</p>
+              <Button 
+                variant="outline" 
+                className="mt-3"
+                onClick={() => loadData()}
+              >
+                Tekrar Dene
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -124,7 +124,7 @@ async def regenerate_otp_secret(request: Request):
     
     await users_collection.update_one(
         {"_id": user.id},
-        {"$set": {"otp_secret": new_secret}}
+        {"$set": {"otp_secret": new_secret, "otp_verified": False}}
     )
     
     logger.info(f"Regenerated OTP secret for user {user.id}")
@@ -137,6 +137,92 @@ async def regenerate_otp_secret(request: Request):
         "code": otp_info["code"],
         "remaining_seconds": otp_info["remaining_seconds"]
     }
+
+
+@router.get("/setup")
+async def get_otp_setup(request: Request):
+    """
+    Google Authenticator kurulumu için QR kod ve bilgileri al
+    Kullanıcı ayarlar sayfasında bu QR kodu tarayacak
+    """
+    user = await get_current_user(request)
+    
+    user_doc = await users_collection.find_one({"_id": user.id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    otp_secret = user_doc.get("otp_secret")
+    otp_verified = user_doc.get("otp_verified", False)
+    
+    # Eğer OTP secret yoksa oluştur
+    if not otp_secret:
+        otp_secret = generate_user_otp_secret()
+        await users_collection.update_one(
+            {"_id": user.id},
+            {"$set": {"otp_secret": otp_secret, "otp_verified": False}}
+        )
+        otp_verified = False
+        logger.info(f"Generated OTP secret for user {user.id} during setup")
+    
+    # QR kod URI'si oluştur
+    user_email = user_doc.get("email", user_doc.get("name", "user"))
+    totp_uri = otp_service.get_totp_uri(otp_secret, user_email)
+    
+    # QR kod base64 olarak oluştur
+    qr_code = otp_service.generate_qr_code_base64(totp_uri)
+    
+    return {
+        "qr_code": qr_code,
+        "secret": otp_secret,
+        "totp_uri": totp_uri,
+        "is_verified": otp_verified,
+        "user_email": user_email,
+        "instructions": [
+            "1. Google Authenticator veya benzeri bir uygulama indirin",
+            "2. Uygulamada '+' butonuna tıklayın",
+            "3. 'QR kod tara' seçeneğini seçin",
+            "4. Bu QR kodu tarayın",
+            "5. Oluşan 6 haneli kodu aşağıya girin ve doğrulayın"
+        ]
+    }
+
+
+@router.post("/verify-setup")
+async def verify_otp_setup(data: OTPVerifyRequest, request: Request):
+    """
+    Google Authenticator kurulumunu doğrula
+    Kullanıcı QR kodu taradıktan sonra üretilen kodu girerek doğrular
+    """
+    user = await get_current_user(request)
+    
+    user_doc = await users_collection.find_one({"_id": user.id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    otp_secret = user_doc.get("otp_secret")
+    if not otp_secret:
+        raise HTTPException(status_code=400, detail="Önce OTP kurulumu yapılmalı")
+    
+    # Kodu doğrula
+    is_valid = verify_user_otp(otp_secret, data.code)
+    
+    if is_valid:
+        # Doğrulandı olarak işaretle
+        await users_collection.update_one(
+            {"_id": user.id},
+            {"$set": {"otp_verified": True}}
+        )
+        logger.info(f"OTP setup verified for user {user.id}")
+        return {
+            "valid": True,
+            "message": "Google Authenticator başarıyla kuruldu! Artık onay kodlarını bu uygulama üzerinden alabilirsiniz."
+        }
+    else:
+        logger.warning(f"OTP setup verification failed for user {user.id}")
+        return {
+            "valid": False,
+            "message": "Kod hatalı. Lütfen Google Authenticator'daki güncel kodu girin."
+        }
 
 
 @router.get("/user/{user_id}/code")

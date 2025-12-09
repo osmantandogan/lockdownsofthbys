@@ -105,6 +105,52 @@ class OTPService:
             "remaining_seconds": remaining,
             "interval": OTP_INTERVAL
         }
+    
+    @staticmethod
+    def get_totp_uri(secret: str, user_email: str, issuer: str = "HealMedy") -> str:
+        """
+        Google Authenticator için otpauth:// URI oluştur
+        QR kod olarak taranabilir
+        """
+        # Padding ekle
+        padded_secret = secret + '=' * (8 - len(secret) % 8) if len(secret) % 8 else secret
+        
+        # URI format: otpauth://totp/ISSUER:ACCOUNT?secret=SECRET&issuer=ISSUER&algorithm=SHA1&digits=6&period=30
+        from urllib.parse import quote
+        label = f"{issuer}:{user_email}"
+        params = f"secret={padded_secret.upper()}&issuer={quote(issuer)}&algorithm=SHA1&digits={OTP_DIGITS}&period={OTP_INTERVAL}"
+        
+        return f"otpauth://totp/{quote(label)}?{params}"
+    
+    @staticmethod
+    def generate_qr_code_base64(uri: str) -> str:
+        """
+        TOTP URI'den QR kod oluştur ve base64 olarak döndür
+        """
+        try:
+            import qrcode
+            from io import BytesIO
+            import base64
+            
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(uri)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            buffer.seek(0)
+            
+            return f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode()}"
+        except Exception as e:
+            logger.error(f"QR code generation error: {e}")
+            return ""
 
 
 # Global instance

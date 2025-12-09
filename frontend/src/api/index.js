@@ -252,7 +252,11 @@ export const otpAPI = {
   // Secret yenile
   regenerateSecret: () => api.post('/otp/regenerate-secret'),
   // Başka kullanıcının kodunu al (müdür)
-  getUserCode: (userId) => api.get(`/otp/user/${userId}/code`)
+  getUserCode: (userId) => api.get(`/otp/user/${userId}/code`),
+  // Google Authenticator kurulumu
+  getSetup: () => api.get('/otp/setup'),
+  // Kurulumu doğrula
+  verifySetup: (code) => api.post('/otp/verify-setup', { code })
 };
 
 // İTS - İlaç Takip Sistemi API
