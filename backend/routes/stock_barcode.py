@@ -152,25 +152,62 @@ async def add_stock_by_barcode(request: Request):
     manufacturer_name = None
     
     if parsed.get("gtin"):
-        # ITS cache'den veya veritabanından ilaç bilgisi al
-        its_drug = await db["its_drugs"].find_one({"gtin": parsed["gtin"]})
+        gtin = parsed["gtin"]
+        
+        # 1. Veritabanından ilaç bilgisi al
+        its_drug = await db["its_drugs"].find_one({"gtin": gtin})
         if its_drug:
             drug_name = its_drug.get("name", drug_name)
             manufacturer_name = its_drug.get("manufacturer_name")
-        else:
-            # ITS servisinden dene
+            logging.info(f"Drug found in DB: {drug_name}")
+        
+        # 2. Veritabanında yoksa ITS cache'den dene
+        if not drug_name:
             service = get_its_service()
-            cached = service.get_drug_by_gtin(parsed["gtin"])
+            cached = service.get_drug_by_gtin(gtin)
             if cached:
                 drug_name = cached.get("name", drug_name)
                 manufacturer_name = cached.get("manufacturer_name")
+                logging.info(f"Drug found in ITS cache: {drug_name}")
+        
+        # 3. Hala bulamadıysak, ITS API'dan çekmeyi dene
+        if not drug_name and service.username:
+            try:
+                # Token al ve API'dan ilaç listesini çek
+                token = await service.get_token()
+                if token:
+                    drugs = await service.fetch_drug_list(get_all=False)
+                    # Yeni çekilen listede GTIN'i ara
+                    for drug in drugs:
+                        if drug.get("gtin") == gtin:
+                            drug_name = drug.get("drugName") or drug.get("name")
+                            manufacturer_name = drug.get("manufacturerName")
+                            
+                            # Veritabanına kaydet
+                            await db["its_drugs"].update_one(
+                                {"gtin": gtin},
+                                {"$set": {
+                                    "gtin": gtin,
+                                    "name": drug_name,
+                                    "manufacturer_name": manufacturer_name,
+                                    "manufacturer_gln": drug.get("manufacturerGLN", ""),
+                                    "is_active": True
+                                }},
+                                upsert=True
+                            )
+                            logging.info(f"Drug fetched from ITS API: {drug_name}")
+                            break
+            except Exception as e:
+                logging.warning(f"Could not fetch drug from ITS API: {e}")
     
     if not drug_name:
         # İlaç adı bulunamadıysa GTIN veya varsayılan ad kullan
         if parsed.get("gtin"):
-            drug_name = f"İlaç (GTIN: {parsed['gtin'][:8]}...)"
+            # GTIN'den okunabilir bir ad oluştur
+            gtin = parsed["gtin"]
+            drug_name = f"İlaç #{gtin[-6:]}"  # Son 6 hane
         else:
-            drug_name = f"Bilinmeyen Ürün ({serial[:10]})"
+            drug_name = f"Ürün #{serial[-8:]}"  # Son 8 karakter
         logging.warning(f"Drug name not found, using default: {drug_name}")
     
     # Expiry date parse - artık YYYY-MM-DD formatında geliyor
@@ -200,7 +237,7 @@ async def add_stock_by_barcode(request: Request):
         except Exception as e:
             logging.warning(f"Could not parse expiry date: {parsed.get('expiry_date')} - {e}")
     
-    # Yeni stok kaydı oluştur
+    # Yeni karekod stok kaydı oluştur
     stock_item = BarcodeStockItem(
         gtin=parsed.get("gtin", ""),
         serial_number=serial,
@@ -219,9 +256,33 @@ async def add_stock_by_barcode(request: Request):
     
     await barcode_stock_collection.insert_one(stock_item.model_dump(by_alias=True))
     
+    # ANA STOK COLLECTION'INA DA EKLE (Stok Yönetimi sayfasında görünmesi için)
+    main_stock_item = {
+        "_id": str(uuid.uuid4()),
+        "name": drug_name,
+        "code": parsed.get("gtin", "")[:8] if parsed.get("gtin") else serial[:8],
+        "gtin": parsed.get("gtin"),
+        "quantity": 1,  # Her karekod 1 adet
+        "min_quantity": 1,
+        "location": location,
+        "location_detail": location_detail,
+        "lot_number": parsed.get("lot_number"),
+        "serial_number": serial,
+        "expiry_date": expiry_date,
+        "qr_code": stock_item.id,  # Karekod stok ID'si ile bağla
+        "unit": "adet",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "barcode_stock_id": stock_item.id  # Karekod stoğu ile ilişkilendir
+    }
+    
+    await stock_collection.insert_one(main_stock_item)
+    logging.info(f"Stock item added to main collection: {main_stock_item['_id']}")
+    
     return {
         "message": f"{drug_name} stoğa eklendi",
         "stock_item": stock_item.model_dump(),
+        "main_stock_id": main_stock_item["_id"],
         "parsed": parsed
     }
 
