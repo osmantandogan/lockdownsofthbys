@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEALMEDY HBYS - Dokümantasyon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            text-align: center;
+        }
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-5px);
+            border-color: rgba(14, 165, 233, 0.5);
+        }
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .card-title {
+            color: #f8fafc;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .card-desc {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .footer {
+            margin-top: 3rem;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🏥 HEALMEDY</div>
+        <p class="subtitle">Dokümantasyon & Sunum Materyalleri</p>
+        
+        <div class="cards">
+            <a href="presentation/index.html" class="card">
+                <div class="card-icon">🎯</div>
+                <div class="card-title">Yönetici Sunumu</div>
+                <div class="card-desc">Modern, animasyonlu tek sayfa sunum. Üst yönetim ve yatırımcı toplantıları için ideal.</div>
+            </a>
+            
+            <a href="detailed-site/index.html" class="card">
+                <div class="card-icon">📚</div>
+                <div class="card-title">Detaylı Dokümantasyon</div>
+                <div class="card-desc">Tüm modüller, özellikler ve teknik detayların açıklandığı kapsamlı site.</div>
+            </a>
+            
+            <a href="print-version/HEALMEDY_Brosur.html" class="card">
+                <div class="card-icon">📄</div>
+                <div class="card-title">PDF Broşür</div>
+                <div class="card-desc">Yazdırılabilir 6 sayfalık ürün broşürü. PDF olarak indirilebilir.</div>
+            </a>
+            
+            <a href="HEALMEDY_YONETICI_OZETI.md" class="card">
+                <div class="card-icon">📝</div>
+                <div class="card-title">Markdown Özet</div>
+                <div class="card-desc">Sistem özelliklerinin yazılı özeti. GitHub ve teknik dokümantasyon için.</div>
+            </a>
+        </div>
+        
+        <div class="footer">
+            HEALMEDY HBYS v2.0 - Aralık 2024
+        </div>
+    </div>
+</body>
+</html>
+

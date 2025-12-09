@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEALMEDY HBYS - Detaylı Dokümantasyon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🏥</span>
+                <span class="logo-text">HEALMEDY</span>
+            </div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Genel Bakış</div>
+                <a href="#overview" class="nav-link active">
+                    <span class="nav-icon">📊</span>
+                    Sistem Özeti
+                </a>
+                <a href="#architecture" class="nav-link">
+                    <span class="nav-icon">🏗️</span>
+                    Mimari
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Modüller</div>
+                <a href="#cases" class="nav-link">
+                    <span class="nav-icon">📋</span>
+                    Vaka Yönetimi
+                </a>
+                <a href="#vehicles" class="nav-link">
+                    <span class="nav-icon">🚑</span>
+                    Araç Yönetimi
+                </a>
+                <a href="#shifts" class="nav-link">
+                    <span class="nav-icon">⏰</span>
+                    Vardiya Yönetimi
+                </a>
+                <a href="#stock" class="nav-link">
+                    <span class="nav-icon">📦</span>
+                    Stok Yönetimi
+                </a>
+                <a href="#forms" class="nav-link">
+                    <span class="nav-icon">📝</span>
+                    Form Yönetimi
+                </a>
+                <a href="#video" class="nav-link">
+                    <span class="nav-icon">📹</span>
+                    Video Görüşme
+                </a>
+                <a href="#notifications" class="nav-link">
+                    <span class="nav-icon">🔔</span>
+                    Bildirimler
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Kullanıcılar</div>
+                <a href="#roles" class="nav-link">
+                    <span class="nav-icon">👥</span>
+                    Roller & Yetkiler
+                </a>
+                <a href="#auth" class="nav-link">
+                    <span class="nav-icon">🔐</span>
+                    Kimlik Doğrulama
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Teknik</div>
+                <a href="#tech-stack" class="nav-link">
+                    <span class="nav-icon">⚙️</span>
+                    Teknoloji Stack
+                </a>
+                <a href="#api" class="nav-link">
+                    <span class="nav-icon">🔌</span>
+                    API Yapısı
+                </a>
+                <a href="#database" class="nav-link">
+                    <span class="nav-icon">🗄️</span>
+                    Veritabanı
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Uyumluluk</div>
+                <a href="#security" class="nav-link">
+                    <span class="nav-icon">🔒</span>
+                    Güvenlik
+                </a>
+                <a href="#compliance" class="nav-link">
+                    <span class="nav-icon">⚖️</span>
+                    Yasal Uyumluluk
+                </a>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="version">v2.0 - Aralık 2024</div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Overview Section -->
+        <section id="overview" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Genel Bakış / Sistem Özeti</div>
+                <h1>HEALMEDY HBYS</h1>
+                <p class="section-subtitle">Özel ambulans hizmetleri ve sağlık kuruluşları için kapsamlı Hastane Bilgi Yönetim Sistemi</p>
+            </div>
+
+            <!-- Dashboard Screenshot -->
+            <div class="screenshot-container">
+                <img src="../images/dashboard.png" alt="HEALMEDY Dashboard">
+                <div class="screenshot-caption">Ana kontrol paneli - Aktif vakalar, araç durumu ve günlük atamalar</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">📋</div>
+                    <div class="stat-info">
+                        <div class="stat-value">13+</div>
+                        <div class="stat-label">Dijital Form</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-value">9</div>
+                        <div class="stat-label">Kullanıcı Rolü</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">🔔</div>
+                    <div class="stat-info">
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">Bildirim Kanalı</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">🔌</div>
+                    <div class="stat-info">
+                        <div class="stat-value">4+</div>
+                        <div class="stat-label">Entegrasyon</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🎯 Sistemin Amacı</h3>
+                <p>HEALMEDY HBYS, acil sağlık hizmetlerinin tüm süreçlerini dijitalleştirerek:</p>
+                <ul>
+                    <li><strong>Operasyonel Verimliliği</strong> artırır - Manuel süreçleri otomatize eder</li>
+                    <li><strong>Yasal Uyumluluğu</strong> sağlar - KVKK ve Sağlık Bakanlığı düzenlemeleri</li>
+                    <li><strong>Hasta Bakım Kalitesini</strong> yükseltir - Anlık bilgi akışı ve koordinasyon</li>
+                    <li><strong>Veri Güvenliğini</strong> garanti eder - Modern şifreleme ve yetkilendirme</li>
+                </ul>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">📱</span>
+                        <h4>Responsive Tasarım</h4>
+                    </div>
+                    <p>Masaüstü, tablet ve mobil cihazlarda sorunsuz çalışır</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">⚡</span>
+                        <h4>Gerçek Zamanlı</h4>
+                    </div>
+                    <p>Anlık veri güncellemeleri ve bildirimler</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">☁️</span>
+                        <h4>Cloud-Native</h4>
+                    </div>
+                    <p>MongoDB Atlas üzerinde yüksek erişilebilirlik</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🔐</span>
+                        <h4>Güvenli</h4>
+                    </div>
+                    <p>JWT auth, RBAC, şifreli iletişim</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Section -->
+        <section id="architecture" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Genel Bakış / Mimari</div>
+                <h1>Sistem Mimarisi</h1>
+                <p class="section-subtitle">Modern, ölçeklenebilir ve güvenli mimari tasarım</p>
+            </div>
+
+            <div class="architecture-diagram">
+                <div class="arch-layer">
+                    <div class="layer-title">Frontend Layer</div>
+                    <div class="layer-content">
+                        <div class="arch-box">React.js 18</div>
+                        <div class="arch-box">Tailwind CSS</div>
+                        <div class="arch-box">shadcn/ui</div>
+                    </div>
+                </div>
+                <div class="arch-arrow">↓ REST API ↓</div>
+                <div class="arch-layer">
+                    <div class="layer-title">Backend Layer</div>
+                    <div class="layer-content">
+                        <div class="arch-box">Python FastAPI</div>
+                        <div class="arch-box">JWT Auth</div>
+                        <div class="arch-box">Pydantic Models</div>
+                    </div>
+                </div>
+                <div class="arch-arrow">↓ MongoDB Driver ↓</div>
+                <div class="arch-layer">
+                    <div class="layer-title">Data Layer</div>
+                    <div class="layer-content">
+                        <div class="arch-box">MongoDB Atlas</div>
+                    </div>
+                </div>
+                <div class="arch-layer" style="margin-top: 2rem;">
+                    <div class="layer-title">External Services</div>
+                    <div class="layer-content">
+                        <div class="arch-box">Daily.co (Video)</div>
+                        <div class="arch-box">Infobip (SMS/WhatsApp)</div>
+                        <div class="arch-box">Firebase (Push)</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cases Section -->
+        <section id="cases" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Vaka Yönetimi</div>
+                <h1>Vaka Yönetimi</h1>
+                <p class="section-subtitle">Acil çağrılardan hasta teslimine kadar tüm sürecin yönetimi</p>
+            </div>
+
+            <!-- Screenshots -->
+            <div class="screenshot-grid">
+                <div class="screenshot-card">
+                    <img src="../images/call-center.png" alt="Çağrı Merkezi - Yeni Vaka Oluşturma">
+                    <div class="screenshot-card-content">
+                        <div class="screenshot-card-title">📞 Çağrı Merkezi</div>
+                        <div class="screenshot-card-desc">Harita entegrasyonlu hızlı vaka oluşturma ekranı</div>
+                    </div>
+                </div>
+                <div class="screenshot-card">
+                    <img src="../images/cases-list.png" alt="Vakalar Listesi">
+                    <div class="screenshot-card-content">
+                        <div class="screenshot-card-title">📋 Vakalar Listesi</div>
+                        <div class="screenshot-card-desc">Filtrelenebilir vaka listesi ve durum takibi</div>
+                    </div>
+                </div>
+                <div class="screenshot-card">
+                    <img src="../images/case-detail.png" alt="Vaka Detay - Temel Bilgiler">
+                    <div class="screenshot-card-content">
+                        <div class="screenshot-card-title">📝 Vaka Detay</div>
+                        <div class="screenshot-card-desc">Hasta, lokasyon ve tıbbi bilgiler</div>
+                    </div>
+                </div>
+                <div class="screenshot-card">
+                    <img src="../images/case-vitals.png" alt="Vaka Detay - Vital Ölçümler">
+                    <div class="screenshot-card-content">
+                        <div class="screenshot-card-title">💓 Vital Ölçümler</div>
+                        <div class="screenshot-card-desc">Tansiyon, nabız, SpO2 ve klinik gözlemler</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📋 Vaka Durumları (10 Aşama)</h3>
+                <div class="status-flow">
+                    <div class="status-item">
+                        <span class="status-badge opened">Açıldı</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge info">Ekip Bilgilendirildi</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge progress">Ekip Yola Çıktı</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge progress">Sahada</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge progress">Hasta Alındı</span>
+                    </div>
+                </div>
+                <div class="status-flow" style="margin-top: 1rem;">
+                    <div class="status-item">
+                        <span class="status-badge warning">Doktor Konsültasyonu</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge progress">Merkeze Dönüş</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge info">Hastane Sevki</span>
+                    </div>
+                    <div class="status-arrow">→</div>
+                    <div class="status-item">
+                        <span class="status-badge success">Tamamlandı</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div class="info-card">
+                    <h3>👤 Hasta Bilgileri</h3>
+                    <table class="data-table">
+                        <tr><td>TC Kimlik No</td><td>Opsiyonel</td></tr>
+                        <tr><td>Ad Soyad</td><td>Zorunlu</td></tr>
+                        <tr><td>Yaş</td><td>Zorunlu</td></tr>
+                        <tr><td>Cinsiyet</td><td>Erkek/Kadın/Diğer</td></tr>
+                        <tr><td>Şikayet</td><td>Zorunlu</td></tr>
+                        <tr><td>Telefon</td><td>Opsiyonel</td></tr>
+                        <tr><td>Ön Tanı</td><td>ICD-10 Kodu</td></tr>
+                        <tr><td>Hasta Tipi</td><td>Proje Çalışanı / Vatandaş</td></tr>
+                    </table>
+                </div>
+
+                <div class="info-card">
+                    <h3>📍 Lokasyon Bilgileri</h3>
+                    <table class="data-table">
+                        <tr><td>Adres</td><td>Zorunlu</td></tr>
+                        <tr><td>İlçe</td><td>Opsiyonel</td></tr>
+                        <tr><td>Köy/Mahalle</td><td>Opsiyonel</td></tr>
+                        <tr><td>GPS Koordinat</td><td>Lat/Lng</td></tr>
+                        <tr><td>Adres Tarifi</td><td>Detaylı açıklama</td></tr>
+                        <tr><td>Alım Noktası</td><td>Pickup location</td></tr>
+                        <tr><td>İlk Bırakma</td><td>First dropoff</td></tr>
+                        <tr><td>Son Bırakma</td><td>Final dropoff</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🏥 Tıbbi Form Verileri</h3>
+                <div class="three-column">
+                    <div>
+                        <h4>Vital Bulgular</h4>
+                        <ul>
+                            <li>Tansiyon (mmHg)</li>
+                            <li>Nabız (bpm)</li>
+                            <li>SpO2 (%)</li>
+                            <li>Ateş (°C)</li>
+                            <li>Solunum Hızı</li>
+                            <li>Kan Şekeri</li>
+                            <li>GCS Skoru</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Tanı & Tedavi</h4>
+                        <ul>
+                            <li>Ön Tanı (ICD-10)</li>
+                            <li>Kesin Tanı</li>
+                            <li>Uygulanan Tedaviler</li>
+                            <li>Verilen İlaçlar</li>
+                            <li>Anamnez</li>
+                            <li>Fizik Muayene</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Transfer & İmza</h4>
+                        <ul>
+                            <li>Sevk Hastanesi</li>
+                            <li>Transfer Zamanı</li>
+                            <li>Hasta İmzası</li>
+                            <li>Personel İmzası</li>
+                            <li>Doktor Onayı</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vehicles Section -->
+        <section id="vehicles" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Araç Yönetimi</div>
+                <h1>Araç Yönetimi</h1>
+                <p class="section-subtitle">Filo takibi, bakım yönetimi ve QR kod sistemi</p>
+            </div>
+
+            <!-- Screenshot -->
+            <div class="screenshot-container">
+                <img src="../images/vehicles.png" alt="Araç Yönetimi Ekranı">
+                <div class="screenshot-caption">Araç listesi, durum göstergeleri ve QR kod bilgileri</div>
+            </div>
+
+            <div class="info-card">
+                <h3>🚑 Araç Durumları</h3>
+                <div class="status-badges">
+                    <span class="status-badge success">Müsait</span>
+                    <span class="status-badge progress">Görevde</span>
+                    <span class="status-badge warning">Bakımda</span>
+                    <span class="status-badge danger">Arızalı</span>
+                    <span class="status-badge disabled">Kullanım Dışı</span>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div class="info-card">
+                    <h3>📊 Araç Verileri</h3>
+                    <table class="data-table">
+                        <tr><td>Plaka</td><td>Benzersiz tanımlayıcı</td></tr>
+                        <tr><td>Tip</td><td>Ambulans / Araç</td></tr>
+                        <tr><td>Durum</td><td>5 farklı durum</td></tr>
+                        <tr><td>Kilometre</td><td>Güncel km değeri</td></tr>
+                        <tr><td>Yakıt Seviyesi</td><td>0-100%</td></tr>
+                        <tr><td>QR Kod</td><td>Benzersiz UUID</td></tr>
+                        <tr><td>Aktif Vaka</td><td>Bağlı vaka ID</td></tr>
+                    </table>
+                </div>
+
+                <div class="info-card">
+                    <h3>🔧 Bakım Takibi</h3>
+                    <table class="data-table">
+                        <tr><td>Son Muayene</td><td>Tarih</td></tr>
+                        <tr><td>Sonraki Bakım KM</td><td>20.000 KM blokları</td></tr>
+                        <tr><td>Bakım Hatırlatması</td><td>Otomatik bildirim</td></tr>
+                    </table>
+                    <div class="alert-box info">
+                        <strong>💡 Otomatik Hatırlatma:</strong> Araç belirlenen KM'ye yaklaştığında ilgili personele bildirim gönderilir.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shifts Section -->
+        <section id="shifts" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Vardiya Yönetimi</div>
+                <h1>Vardiya Yönetimi</h1>
+                <p class="section-subtitle">Personel atama, QR ile başlatma ve devir-teslim süreçleri</p>
+            </div>
+
+            <!-- Screenshot -->
+            <div class="screenshot-container">
+                <img src="../images/shifts.png" alt="Vardiya Yönetimi Ekranı">
+                <div class="screenshot-caption">Bekleyen vardiyalar, QR ile başlatma ve vardiya geçmişi</div>
+            </div>
+
+            <div class="process-flow">
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Atama</h4>
+                        <p>Operasyon müdürü personel-araç eşleştirmesi yapar</p>
+                    </div>
+                </div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>QR Okutma</h4>
+                        <p>Personel aracın QR kodunu okutarak vardiyayı başlatır</p>
+                    </div>
+                </div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Günlük Kontrol</h4>
+                        <p>Araç durumu ve ekipman kontrolü yapılır</p>
+                    </div>
+                </div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Fotoğraf</h4>
+                        <p>6 açıdan araç fotoğrafları çekilir</p>
+                    </div>
+                </div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Devir-Teslim</h4>
+                        <p>Vardiya sonunda araç durumu belgelenir</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📸 Fotoğraf Gereksinimleri</h3>
+                <div class="photo-grid">
+                    <div class="photo-item">🚗 Ön</div>
+                    <div class="photo-item">🚗 Arka</div>
+                    <div class="photo-item">🚗 Sol</div>
+                    <div class="photo-item">🚗 Sağ</div>
+                    <div class="photo-item">📦 Bagaj</div>
+                    <div class="photo-item">🪑 İç Mekan</div>
+                    <div class="photo-item">⚠️ Hasarlar (opsiyonel)</div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🔑 Master Code Sistemi</h3>
+                <p>Acil durumlarda (QR okutma sorunu, teknik arıza vb.) operasyon müdürü tarafından oluşturulan tek kullanımlık kod ile vardiya başlatılabilir.</p>
+                <div class="alert-box warning">
+                    <strong>⚠️ Güvenlik:</strong> Master code 15 dakika geçerlidir ve tek kullanımlıktır. Kullanım geçmişi kaydedilir.
+                </div>
+            </div>
+        </section>
+
+        <!-- Stock Section -->
+        <section id="stock" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Stok Yönetimi</div>
+                <h1>Stok Yönetimi</h1>
+                <p class="section-subtitle">Tıbbi malzeme takibi, kritik stok uyarıları ve SKT kontrolü</p>
+            </div>
+
+            <!-- Screenshot -->
+            <div class="screenshot-container">
+                <img src="../images/stock.png" alt="Stok Yönetimi Ekranı">
+                <div class="screenshot-caption">Stok listesi, kritik stok ve SKT uyarıları</div>
+            </div>
+
+            <div class="info-card">
+                <h3>📍 Lokasyonlar</h3>
+                <div class="location-grid">
+                    <div class="location-item">
+                        <span class="location-icon">🚑</span>
+                        <span class="location-name">Ambulans</span>
+                        <span class="location-desc">Araç içi malzeme</span>
+                    </div>
+                    <div class="location-item">
+                        <span class="location-icon">🏢</span>
+                        <span class="location-name">Saha Ofis</span>
+                        <span class="location-desc">Saha depo</span>
+                    </div>
+                    <div class="location-item">
+                        <span class="location-icon">🎒</span>
+                        <span class="location-name">Acil Çanta</span>
+                        <span class="location-desc">Taşınabilir kit</span>
+                    </div>
+                    <div class="location-item">
+                        <span class="location-icon">🏭</span>
+                        <span class="location-name">Merkez Depo</span>
+                        <span class="location-desc">Ana depo</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div class="info-card">
+                    <h3>📦 Stok Verisi</h3>
+                    <table class="data-table">
+                        <tr><td>Ürün Adı</td><td>Zorunlu</td></tr>
+                        <tr><td>Ürün Kodu</td><td>Benzersiz</td></tr>
+                        <tr><td>Miktar</td><td>Güncel stok</td></tr>
+                        <tr><td>Minimum Miktar</td><td>Uyarı eşiği</td></tr>
+                        <tr><td>Lokasyon</td><td>4 lokasyon</td></tr>
+                        <tr><td>Lot Numarası</td><td>Parti takibi</td></tr>
+                        <tr><td>Son Kullanma Tarihi</td><td>SKT kontrolü</td></tr>
+                        <tr><td>QR Kod</td><td>Hızlı tanımlama</td></tr>
+                    </table>
+                </div>
+
+                <div class="info-card">
+                    <h3>⚠️ Uyarı Sistemi</h3>
+                    <div class="alert-list">
+                        <div class="alert-item danger">
+                            <span class="alert-icon">🔴</span>
+                            <div>
+                                <strong>SKT Geçmiş</strong>
+                                <p>Son kullanma tarihi geçmiş ürünler</p>
+                            </div>
+                        </div>
+                        <div class="alert-item warning">
+                            <span class="alert-icon">🟡</span>
+                            <div>
+                                <strong>SKT Yaklaşan</strong>
+                                <p>30 gün içinde süresi dolacak ürünler</p>
+                            </div>
+                        </div>
+                        <div class="alert-item danger">
+                            <span class="alert-icon">🔴</span>
+                            <div>
+                                <strong>Kritik Stok</strong>
+                                <p>Minimum seviyenin altındaki ürünler</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Forms Section -->
+        <section id="forms" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Form Yönetimi</div>
+                <h1>Form Yönetimi</h1>
+                <p class="section-subtitle">13 farklı dijital form ile tüm belgeleme ihtiyaçları</p>
+            </div>
+
+            <!-- Screenshots -->
+            <div class="screenshot-grid">
+                <div class="screenshot-card">
+                    <img src="../images/forms.png" alt="Formlar Listesi">
+                    <div class="screenshot-card-content">
+                        <div class="screenshot-card-title">📝 Form Galerisi</div>
+                        <div class="screenshot-card-desc">Onam, operasyonel ve talep formları</div>
+                    </div>
+                </div>
+                <div class="screenshot-card">
+                    <img src="../images/case-consent-forms.png" alt="Vaka İçi Onam Formları">
+                    <div class="screenshot-card-content">
+                        <div class="screenshot-card-title">✍️ Vaka İçi Onam</div>
+                        <div class="screenshot-card-desc">Vaka detayında onam formu doldurma</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="forms-grid">
+                <div class="form-category">
+                    <h3>📋 Onam Formları</h3>
+                    <div class="form-list">
+                        <div class="form-item">
+                            <span class="form-icon">📄</span>
+                            <div>
+                                <strong>KVKK Aydınlatma Metni</strong>
+                                <p>Kişisel veri işleme bilgilendirmesi</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">💉</span>
+                            <div>
+                                <strong>Enjeksiyon Onam Formu</strong>
+                                <p>İğne ile ilaç uygulaması onayı</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">🩸</span>
+                            <div>
+                                <strong>Ponksiyon Onam Formu</strong>
+                                <p>İnvaziv işlem onayı</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">🔪</span>
+                            <div>
+                                <strong>Küçük Cerrahi Onam</strong>
+                                <p>Minör cerrahi işlem onayı</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">✍️</span>
+                            <div>
+                                <strong>Genel Onam Formu</strong>
+                                <p>Genel tedavi onayı</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-category">
+                    <h3>🚑 Operasyonel Formlar</h3>
+                    <div class="form-list">
+                        <div class="form-item">
+                            <span class="form-icon">🏥</span>
+                            <div>
+                                <strong>Ambulans Vaka Formu</strong>
+                                <p>Detaylı vaka kaydı</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">📋</span>
+                            <div>
+                                <strong>Günlük Kontrol Formu</strong>
+                                <p>Araç/ekipman günlük kontrolü</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">🔄</span>
+                            <div>
+                                <strong>Devir-Teslim Formu</strong>
+                                <p>Vardiya değişim belgeleme</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">✅</span>
+                            <div>
+                                <strong>Vaka Öncesi Kontrol</strong>
+                                <p>Göreve çıkış kontrolü</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">🔧</span>
+                            <div>
+                                <strong>Ekipman Kontrol Formu</strong>
+                                <p>Ambulans ekipman durumu</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-category">
+                    <h3>📝 Talep Formları</h3>
+                    <div class="form-list">
+                        <div class="form-item">
+                            <span class="form-icon">💊</span>
+                            <div>
+                                <strong>İlaç Talep Formu</strong>
+                                <p>Eczane siparişleri</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">📦</span>
+                            <div>
+                                <strong>Malzeme Talep Formu</strong>
+                                <p>Sarf malzeme siparişi</p>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <span class="form-icon">⛽</span>
+                            <div>
+                                <strong>Tıbbi Gaz Talep Formu</strong>
+                                <p>Oksijen vb. gaz siparişi</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Video Section -->
+        <section id="video" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Video Görüşme</div>
+                <h1>Video Konsültasyon</h1>
+                <p class="section-subtitle">Entegre görüntülü görüşme sistemi ile uzaktan tıbbi destek</p>
+            </div>
+
+            <div class="two-column">
+                <div class="info-card">
+                    <h3>📹 Özellikler</h3>
+                    <ul>
+                        <li>✅ Sayfa içi embed görüntülü görüşme</li>
+                        <li>✅ Mobil uyumlu tasarım</li>
+                        <li>✅ Otomatik oda oluşturma</li>
+                        <li>✅ Doktor konsültasyonu desteği</li>
+                        <li>✅ Vaka bazlı video odası</li>
+                        <li>✅ Tek tıkla başlatma</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>⚙️ Teknik Altyapı</h3>
+                    <table class="data-table">
+                        <tr><td>Sağlayıcı</td><td>Daily.co</td></tr>
+                        <tr><td>Kalite</td><td>HD Video</td></tr>
+                        <tr><td>Şifreleme</td><td>End-to-end</td></tr>
+                        <tr><td>Oda Tipi</td><td>Private</td></tr>
+                        <tr><td>Bekleme Odası</td><td>Opsiyonel</td></tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notifications Section -->
+        <section id="notifications" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Modüller / Bildirimler</div>
+                <h1>Bildirim Sistemi</h1>
+                <p class="section-subtitle">5 farklı kanal üzerinden anlık bildirimler</p>
+            </div>
+
+            <div class="notifications-overview">
+                <div class="notif-channel">
+                    <div class="channel-icon">📱</div>
+                    <div class="channel-info">
+                        <h4>SMS</h4>
+                        <p>Infobip altyapısı</p>
+                        <span class="channel-status active">Aktif</span>
+                    </div>
+                </div>
+                <div class="notif-channel">
+                    <div class="channel-icon">💬</div>
+                    <div class="channel-info">
+                        <h4>WhatsApp</h4>
+                        <p>Infobip Business API</p>
+                        <span class="channel-status active">Aktif</span>
+                    </div>
+                </div>
+                <div class="notif-channel">
+                    <div class="channel-icon">🔔</div>
+                    <div class="channel-info">
+                        <h4>Web Push</h4>
+                        <p>VAPID / FCM</p>
+                        <span class="channel-status active">Aktif</span>
+                    </div>
+                </div>
+                <div class="notif-channel">
+                    <div class="channel-icon">📲</div>
+                    <div class="channel-info">
+                        <h4>Mobile Push</h4>
+                        <p>Firebase FCM</p>
+                        <span class="channel-status active">Aktif</span>
+                    </div>
+                </div>
+                <div class="notif-channel">
+                    <div class="channel-icon">🔵</div>
+                    <div class="channel-info">
+                        <h4>In-App</h4>
+                        <p>Sistem bildirimleri</p>
+                        <span class="channel-status active">Aktif</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🔔 Bildirim Türleri</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tür</th>
+                            <th>Açıklama</th>
+                            <th>Alıcılar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Vaka Oluşturuldu</td>
+                            <td>Yeni vaka bildirimi</td>
+                            <td>Merkez Ofis, Operasyon Müdürü</td>
+                        </tr>
+                        <tr>
+                            <td>Vardiya Hatırlatması</td>
+                            <td>Vardiya başlangıç hatırlatması</td>
+                            <td>İlgili personel</td>
+                        </tr>
+                        <tr>
+                            <td>Devir-Teslim Onayı</td>
+                            <td>Araç teslim onay talebi</td>
+                            <td>Baş Şoför</td>
+                        </tr>
+                        <tr>
+                            <td>Kritik Stok</td>
+                            <td>Minimum stok altı uyarısı</td>
+                            <td>Mesul Müdür</td>
+                        </tr>
+                        <tr>
+                            <td>Dosya Erişim</td>
+                            <td>Kapalı vaka erişim talebi</td>
+                            <td>Doktor</td>
+                        </tr>
+                        <tr>
+                            <td>Doktor Onayı</td>
+                            <td>Tıbbi onay bildirimi</td>
+                            <td>İlgili ekip</td>
+                        </tr>
+                        <tr>
+                            <td>Sistem Uyarısı</td>
+                            <td>Kritik sistem bildirimleri</td>
+                            <td>Tüm yetkili kullanıcılar</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Roles Section -->
+        <section id="roles" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Kullanıcılar / Roller & Yetkiler</div>
+                <h1>Kullanıcı Rolleri</h1>
+                <p class="section-subtitle">9 farklı rol ile detaylı yetki yönetimi</p>
+            </div>
+
+            <div class="roles-table-container">
+                <table class="roles-table">
+                    <thead>
+                        <tr>
+                            <th>Rol</th>
+                            <th>Açıklama</th>
+                            <th>Ana Yetkiler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="role-badge admin">👔 Merkez Ofis</span></td>
+                            <td>Üst yönetim</td>
+                            <td>Tam sistem erişimi, kullanıcı yönetimi, tüm raporlar</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge manager">📊 Operasyon Müdürü</span></td>
+                            <td>Saha yöneticisi</td>
+                            <td>Vardiya atama, vaka yönetimi, araç takibi, master code</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge doctor">👨‍⚕️ Doktor</span></td>
+                            <td>Hekim</td>
+                            <td>Tıbbi onay, konsültasyon, tanı girişi, reçete</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge nurse">👩‍⚕️ Hemşire</span></td>
+                            <td>Sağlık personeli</td>
+                            <td>Vaka takibi, vital kayıt, ilaç uygulama, form doldurma</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge medic">🏥 Paramedik</span></td>
+                            <td>Acil tıp teknisyeni</td>
+                            <td>Saha müdahale, vaka güncelleme, form doldurma</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge att">💉 ATT</span></td>
+                            <td>Ambulans ve Acil Bakım Teknikeri</td>
+                            <td>Saha destek, ekipman kontrolü, yardımcı işlemler</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge driver">🚗 Baş Şoför</span></td>
+                            <td>Araç sorumlusu</td>
+                            <td>Devir-teslim onayı, araç durumu güncelleme</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge driver">🚐 Şoför</span></td>
+                            <td>Araç kullanıcısı</td>
+                            <td>Vardiya, araç kullanımı, km kayıt</td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge call">📞 Çağrı Merkezi</span></td>
+                            <td>Operatör</td>
+                            <td>Vaka oluşturma, çağrı kaydı, hasta bilgisi girişi</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tech Stack Section -->
+        <section id="tech-stack" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Teknik / Teknoloji Stack</div>
+                <h1>Teknoloji Altyapısı</h1>
+                <p class="section-subtitle">Modern, ölçeklenebilir ve güvenilir teknolojiler</p>
+            </div>
+
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <h3>🎨 Frontend</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <span class="tech-logo">⚛️</span>
+                            <div>
+                                <strong>React.js 18</strong>
+                                <p>Component-based UI</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">🎨</span>
+                            <div>
+                                <strong>Tailwind CSS</strong>
+                                <p>Utility-first styling</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">🧩</span>
+                            <div>
+                                <strong>shadcn/ui</strong>
+                                <p>Accessible components</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">📊</span>
+                            <div>
+                                <strong>Recharts</strong>
+                                <p>Data visualization</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">🔀</span>
+                            <div>
+                                <strong>React Router v6</strong>
+                                <p>Client-side routing</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <h3>⚙️ Backend</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <span class="tech-logo">🐍</span>
+                            <div>
+                                <strong>Python 3.11+</strong>
+                                <p>Modern Python</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">⚡</span>
+                            <div>
+                                <strong>FastAPI</strong>
+                                <p>High-performance API</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">📋</span>
+                            <div>
+                                <strong>Pydantic</strong>
+                                <p>Data validation</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">🔐</span>
+                            <div>
+                                <strong>JWT</strong>
+                                <p>Token authentication</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">🔄</span>
+                            <div>
+                                <strong>HTTPX</strong>
+                                <p>Async HTTP client</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <h3>🗄️ Database</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <span class="tech-logo">🍃</span>
+                            <div>
+                                <strong>MongoDB Atlas</strong>
+                                <p>Cloud NoSQL database</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">📄</span>
+                            <div>
+                                <strong>Motor</strong>
+                                <p>Async MongoDB driver</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <h3>🔌 Entegrasyonlar</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <span class="tech-logo">📹</span>
+                            <div>
+                                <strong>Daily.co</strong>
+                                <p>Video conferencing</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">📱</span>
+                            <div>
+                                <strong>Infobip</strong>
+                                <p>SMS & WhatsApp</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-logo">🔥</span>
+                            <div>
+                                <strong>Firebase</strong>
+                                <p>Push notifications</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security Section -->
+        <section id="security" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Uyumluluk / Güvenlik</div>
+                <h1>Güvenlik</h1>
+                <p class="section-subtitle">Endüstri standartlarında veri güvenliği</p>
+            </div>
+
+            <div class="security-grid">
+                <div class="security-item">
+                    <div class="security-icon">🔐</div>
+                    <h4>JWT Authentication</h4>
+                    <p>Token bazlı güvenli kimlik doğrulama</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">👥</div>
+                    <h4>Role-Based Access</h4>
+                    <p>9 farklı rol ile detaylı yetkilendirme</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🔒</div>
+                    <h4>HTTPS Encryption</h4>
+                    <p>Tüm veri iletimi şifreli</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🔑</div>
+                    <h4>Password Hashing</h4>
+                    <p>bcrypt ile güvenli şifre saklama</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">⏰</div>
+                    <h4>Session Management</h4>
+                    <p>Token süre sınırı ve yenileme</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">📝</div>
+                    <h4>Audit Logging</h4>
+                    <p>Tüm kritik işlemlerin kaydı</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compliance Section -->
+        <section id="compliance" class="content-section">
+            <div class="section-header">
+                <div class="breadcrumb">Uyumluluk / Yasal</div>
+                <h1>Yasal Uyumluluk</h1>
+                <p class="section-subtitle">Türkiye mevzuatına tam uygunluk</p>
+            </div>
+
+            <div class="compliance-grid">
+                <div class="compliance-card">
+                    <div class="compliance-header">
+                        <span class="compliance-icon">⚖️</span>
+                        <h3>KVKK</h3>
+                    </div>
+                    <p>Kişisel Verilerin Korunması Kanunu</p>
+                    <ul>
+                        <li>Aydınlatma metni sunumu</li>
+                        <li>Açık rıza alımı</li>
+                        <li>Veri işleme kaydı</li>
+                        <li>Silme/anonimleştirme</li>
+                    </ul>
+                </div>
+
+                <div class="compliance-card">
+                    <div class="compliance-header">
+                        <span class="compliance-icon">🏥</span>
+                        <h3>Sağlık Bakanlığı</h3>
+                    </div>
+                    <p>Sağlık mevzuatı gereksinimleri</p>
+                    <ul>
+                        <li>Hasta kayıt standartları</li>
+                        <li>Tıbbi form formatları</li>
+                        <li>ICD-10 kodlama</li>
+                        <li>Saklama süreleri</li>
+                    </ul>
+                </div>
+
+                <div class="compliance-card">
+                    <div class="compliance-header">
+                        <span class="compliance-icon">✍️</span>
+                        <h3>Dijital İmza</h3>
+                    </div>
+                    <p>Elektronik imza desteği</p>
+                    <ul>
+                        <li>Hasta imzası</li>
+                        <li>Personel imzası</li>
+                        <li>Canvas tabanlı çizim</li>
+                        <li>Base64 saklama</li>
+                    </ul>
+                </div>
+
+                <div class="compliance-card">
+                    <div class="compliance-header">
+                        <span class="compliance-icon">📋</span>
+                        <h3>Denetim İzi</h3>
+                    </div>
+                    <p>Audit log sistemi</p>
+                    <ul>
+                        <li>Kullanıcı işlemleri</li>
+                        <li>Veri değişiklikleri</li>
+                        <li>IP adresi kaydı</li>
+                        <li>Zaman damgası</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <div class="footer-logo">🏥 HEALMEDY HBYS</div>
+                <p>© 2024 HEALMEDY Sağlık Teknolojileri. Tüm hakları saklıdır.</p>
+                <p class="footer-version">v2.0 - Aralık 2024</p>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // Sidebar toggle
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        // Active link highlighting
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.content-section');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scroll
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                targetSection.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
+

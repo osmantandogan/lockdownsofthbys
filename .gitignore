@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Testing
+/coverage
+
+# Production builds
+build/
+dist/
+.next/
+out/
+
+# Environment files - DO NOT COMMIT SECRETS
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+
+# Credentials - NEVER COMMIT
+*credentials*.json
+*token*.json
+*.pem
+serviceAccountKey.json
+firebase-adminsdk*.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+*.egg-info/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build caches
+.cache/
+*.tsbuildinfo
+
+# Archives
+*.zip
+*.tar.gz
+*.tar
+*.tgz
+
+# Misc
+dump.rdb
+.chainlit
+chainlit.md
+.ipynb_checkpoints/
