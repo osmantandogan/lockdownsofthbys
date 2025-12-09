@@ -1039,15 +1039,61 @@ const CaseDetail = () => {
           {/* PDF Export Button */}
           <Button 
             variant="outline"
-            onClick={() => {
+            onClick={async () => {
+              if (!caseData) {
+                toast.error('Vaka verisi yüklenemedi');
+                return;
+              }
+
               try {
-                const doc = generateCaseFormPDF(caseData, medicalForm);
-                const date = new Date().toISOString().split('T')[0];
-                downloadPDF(doc, `vaka-${caseData.case_number}-${date}.pdf`);
-                toast.success('PDF başarıyla indirildi');
+                toast.info('PDF oluşturuluyor...');
+                
+                // Prepare form data to send to backend
+                const formDataObj = {
+                  ...medicalForm,
+                  // Add any additional data needed for PDF
+                  patientName: patientInfo.name && patientInfo.surname 
+                    ? `${patientInfo.name} ${patientInfo.surname}` 
+                    : '',
+                  age: patientInfo.age || '',
+                  tcNo: patientInfo.tc_no || '',
+                  date: new Date().toLocaleDateString('tr-TR'),
+                };
+
+                // Call backend API
+                const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                const response = await fetch(
+                  `${apiUrl}/api/pdf/case/${id}/with-form-data`, 
+                  {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formDataObj),
+                    credentials: 'include',
+                  }
+                );
+
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({}));
+                  throw new Error(errorData.detail || 'PDF generation failed');
+                }
+
+                // Download PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Ambulans_Vaka_Formu_${caseData.case_number || id}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                toast.success('PDF başarıyla indirildi!');
               } catch (error) {
                 console.error('PDF oluşturma hatası:', error);
-                toast.error('PDF oluşturulurken hata oluştu');
+                toast.error(error.message || 'PDF oluşturulurken hata oluştu');
               }
             }}
             className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
