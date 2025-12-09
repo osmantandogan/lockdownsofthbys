@@ -28,8 +28,25 @@ CASE_NUMBER_START = 1
 from database import db
 counters_collection = db["counters"]
 
+async def peek_next_case_sequence() -> int:
+    """Günlük sıralı vaka numarasını ÖNİZLE - Counter'ı ARTIRMAZ"""
+    # Türkiye saati (UTC+3)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    today = turkey_now.strftime("%Y%m%d")
+    counter_id = f"case_number_{today}"
+    
+    # Sadece oku, artırma
+    result = await counters_collection.find_one({"_id": counter_id})
+    
+    # Eğer yoksa ilk vaka 1 olacak
+    current_seq = result["seq"] if result else 0
+    next_seq = current_seq + 1
+    
+    logger.info(f"[CASE_NUMBER_PEEK] Bugün ({today}) için sonraki sıra: {next_seq}")
+    return next_seq
+
 async def get_next_case_sequence() -> int:
-    """Günlük sıralı vaka numarası al - Atomic counter kullanarak"""
+    """Günlük sıralı vaka numarası al - Atomic counter kullanarak (ARTIRIR)"""
     from pymongo import ReturnDocument
     
     # Türkiye saati (UTC+3)
@@ -62,13 +79,15 @@ async def generate_case_number() -> str:
 
 @router.get("/next-case-number")
 async def get_next_case_number(request: Request):
-    """Sonraki vaka numarasını döndür (önizleme için)"""
+    """Sonraki vaka numarasını döndür (SADECE ÖNİZLEME - Counter artırmaz)"""
     user = await get_current_user(request)
     
     # Türkiye saati (UTC+3)
     now = datetime.utcnow() + timedelta(hours=3)
     date_str = now.strftime("%Y%m%d")
-    seq = await get_next_case_sequence()
+    
+    # PEEK kullan - counter'ı artırmaz!
+    seq = await peek_next_case_sequence()
     seq_str = str(seq).zfill(6)
     
     return {"next_case_number": f"{date_str}-{seq_str}"}

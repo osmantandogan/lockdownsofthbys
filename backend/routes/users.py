@@ -78,14 +78,15 @@ async def get_staff_performance(request: Request, start_date: Optional[str] = No
         
         # Calculate shift KM from handover forms
         for shift in completed_shifts:
-            handover = shift.get("handover_form", {})
-            if handover.get("teslimAlinanKm") and handover.get("currentKm"):
-                try:
-                    start = int(handover["teslimAlinanKm"])
-                    end = int(handover.get("currentKm", start))
-                    shift_km += (end - start)
-                except (ValueError, TypeError):
-                    pass
+            handover = shift.get("handover_form")
+            if handover and isinstance(handover, dict):
+                if handover.get("teslimAlinanKm") and handover.get("currentKm"):
+                    try:
+                        start = int(handover["teslimAlinanKm"])
+                        end = int(handover.get("currentKm", start))
+                        shift_km += (end - start)
+                    except (ValueError, TypeError):
+                        pass
         
         non_case_km = shift_km - case_km if shift_km > case_km else 0
         efficiency_rate = round((case_km / shift_km * 100) if shift_km > 0 else 0, 2)

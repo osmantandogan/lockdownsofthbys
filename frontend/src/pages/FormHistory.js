@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { formsAPI } from '../api';
+import { formsAPI, shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { toast } from 'sonner';
-import { FileText, Search, Trash2, Eye, Download, User, Briefcase, FileSignature, FileDown, Printer, FolderOpen, ChevronRight, ChevronDown, Folder, LayoutList, LayoutGrid } from 'lucide-react';
+import { FileText, Search, Trash2, Eye, Download, User, Briefcase, FileSignature, FileDown, Printer, FolderOpen, ChevronRight, ChevronDown, Folder, LayoutList, LayoutGrid, Camera, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { generateGeneralFormPDF, generateCaseFormPDF, downloadPDF, openPDFInNewTab } from '../services/pdfService';
 
@@ -36,6 +36,11 @@ const FormHistory = () => {
     patient_name: '',
     vehicle_plate: ''
   });
+  
+  // Vardiya fotoğrafları
+  const [shiftPhotos, setShiftPhotos] = useState([]);
+  const [selectedPhotos, setSelectedPhotos] = useState(null);
+  const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
 
   // Formları vaka numarasına göre grupla (Vaka Formları)
   const groupedForms = useMemo(() => {
@@ -69,7 +74,7 @@ const FormHistory = () => {
       .map(([key, value]) => ({ key, ...value }));
   }, [forms]);
 
-  // Formları ambulans plakasına göre grupla (Ambulans Formları)
+  // Formları ambulans plakasına göre grupla (Ambulans Formları + Fotoğraflar)
   const groupedByVehicle = useMemo(() => {
     const groups = {};
     
@@ -85,6 +90,7 @@ const FormHistory = () => {
         groups[key] = {
           vehicle_plate: plate,
           forms: [],
+          photos: [],
           created_at: form.created_at
         };
       }
@@ -95,11 +101,30 @@ const FormHistory = () => {
       }
     });
     
+    // Fotoğrafları da gruplara ekle
+    shiftPhotos.forEach(photoDoc => {
+      const plate = photoDoc.vehicle_plate || 'Plakasız Formlar';
+      const key = `Ambulans ${plate} formlar`;
+      if (!groups[key]) {
+        groups[key] = {
+          vehicle_plate: plate,
+          forms: [],
+          photos: [],
+          created_at: photoDoc.created_at
+        };
+      }
+      groups[key].photos.push(photoDoc);
+      // En yeni tarihi al
+      if (new Date(photoDoc.created_at) > new Date(groups[key].created_at)) {
+        groups[key].created_at = photoDoc.created_at;
+      }
+    });
+    
     // Tarihe göre sırala (en yeni önce)
     return Object.entries(groups)
       .sort(([, a], [, b]) => new Date(b.created_at) - new Date(a.created_at))
       .map(([key, value]) => ({ key, ...value }));
-  }, [forms]);
+  }, [forms, shiftPhotos]);
   
   // Görünüm kategorisi state
   const [formCategory, setFormCategory] = useState('case'); // 'case' veya 'vehicle'
@@ -114,12 +139,25 @@ const FormHistory = () => {
 
   const loadData = async () => {
     try {
-      const [formsRes, statsRes] = await Promise.all([
+      const apiCalls = [
         formsAPI.getAll(filters),
         formsAPI.getStats()
-      ]);
-      setForms(formsRes.data);
-      setStats(statsRes.data);
+      ];
+      
+      // Yetkili roller için fotoğrafları da yükle
+      const canViewPhotos = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+      if (canViewPhotos) {
+        apiCalls.push(shiftsAPI.getPhotos({ limit: 100 }));
+      }
+      
+      const results = await Promise.all(apiCalls);
+      
+      setForms(results[0].data);
+      setStats(results[1].data);
+      
+      if (canViewPhotos && results[2]) {
+        setShiftPhotos(results[2].data || []);
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Formlar yüklenemedi');
@@ -610,6 +648,12 @@ const FormHistory = () => {
                         <Badge variant="secondary" className={formCategory === 'vehicle' ? 'bg-blue-100 text-blue-700' : ''}>
                           {group.forms.length} form
                         </Badge>
+                        {formCategory === 'vehicle' && group.photos?.length > 0 && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700">
+                            <Camera className="h-3 w-3 mr-1" />
+                            {group.photos.length} fotoğraf seti
+                          </Badge>
+                        )}
                         <span className="text-sm text-gray-400">
                           {new Date(group.created_at).toLocaleDateString('tr-TR')}
                         </span>
@@ -618,6 +662,7 @@ const FormHistory = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="border-t bg-gray-50/50 divide-y">
+                      {/* Formlar */}
                       {group.forms.map((form) => (
                         <div key={form.id} className="p-4 pl-14 hover:bg-white transition-colors">
                           <div className="flex justify-between items-center">
@@ -652,6 +697,48 @@ const FormHistory = () => {
                               </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleDelete(form.id)} className="text-red-600 hover:text-red-700" title="Sil">
                                 <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Fotoğraflar (Ambulans kategorisinde) */}
+                      {formCategory === 'vehicle' && group.photos?.map((photoDoc) => (
+                        <div key={photoDoc.id} className="p-4 pl-14 hover:bg-white transition-colors bg-green-50/30">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-3">
+                              <Camera className="h-4 w-4 text-green-600" />
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <Badge className="bg-green-100 text-green-800 text-xs">
+                                    <Image className="h-3 w-3 mr-1" />
+                                    Vardiya Fotoğrafları
+                                  </Badge>
+                                  <span className="text-sm text-gray-500">
+                                    {new Date(photoDoc.created_at).toLocaleString('tr-TR')}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {photoDoc.user_name || 'Bilinmiyor'} {photoDoc.user_role && `(${photoDoc.user_role})`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-400">
+                                {Object.keys(photoDoc.photos || {}).length} fotoğraf
+                              </span>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => {
+                                  setSelectedPhotos(photoDoc);
+                                  setPhotosDialogOpen(true);
+                                }}
+                                className="text-green-600 hover:text-green-700"
+                                title="Fotoğrafları Görüntüle"
+                              >
+                                <Eye className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -724,6 +811,81 @@ const FormHistory = () => {
           </div>
         )}
       </div>
+
+      {/* Fotoğraf Görüntüleme Dialog */}
+      <Dialog open={photosDialogOpen} onOpenChange={setPhotosDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Camera className="h-5 w-5 text-green-600" />
+              <span>Vardiya Fotoğrafları</span>
+              {selectedPhotos?.vehicle_plate && (
+                <Badge className="bg-blue-100 text-blue-700 ml-2">
+                  {selectedPhotos.vehicle_plate}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[70vh]">
+            {selectedPhotos && (
+              <div className="space-y-4">
+                {/* Fotoğraf bilgileri */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500">Çeken Kişi</p>
+                      <p className="font-medium">{selectedPhotos.user_name || 'Bilinmiyor'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Tarih</p>
+                      <p className="font-medium">{new Date(selectedPhotos.created_at).toLocaleString('tr-TR')}</p>
+                    </div>
+                    {selectedPhotos.user_role && (
+                      <div>
+                        <p className="text-gray-500">Rol</p>
+                        <p className="font-medium">{selectedPhotos.user_role}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-gray-500">Araç</p>
+                      <p className="font-medium">{selectedPhotos.vehicle_plate || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Fotoğraflar Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Object.entries(selectedPhotos.photos || {}).map(([key, value]) => (
+                    value && (
+                      <div key={key} className="space-y-2">
+                        <p className="text-xs font-medium text-gray-600 uppercase">
+                          {key === 'front' && 'Ön'}
+                          {key === 'back' && 'Arka'}
+                          {key === 'left' && 'Sol'}
+                          {key === 'right' && 'Sağ'}
+                          {key === 'trunk' && 'Bagaj'}
+                          {key === 'interior' && 'İç'}
+                          {key === 'dashboard' && 'Gösterge Paneli'}
+                          {key === 'km' && 'Kilometre'}
+                          {!['front', 'back', 'left', 'right', 'trunk', 'interior', 'dashboard', 'km'].includes(key) && key}
+                        </p>
+                        <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border">
+                          <img 
+                            src={value} 
+                            alt={key} 
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(value, '_blank')}
+                          />
+                        </div>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Form Detay Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
