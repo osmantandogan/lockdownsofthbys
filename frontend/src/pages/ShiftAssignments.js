@@ -456,7 +456,7 @@ const ShiftAssignments = () => {
               {/* Şoför Görevi - Sadece ATT/Paramedik/Hemşire için */}
               {(() => {
                 const selectedUser = users.find(u => (u.id || u._id) === formData.user_id);
-                if (selectedUser && ['att', 'paramedik', 'hemsire'].includes(selectedUser.role)) {
+                if (selectedUser && ['att', 'paramedik', 'hemsire'].includes(selectedUser.role?.toLowerCase())) {
                   return (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
                       <div className="flex items-center space-x-2">

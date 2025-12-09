@@ -2630,17 +2630,15 @@ const CaseDetail = () => {
                 <div className="flex-1">
                   <p className="font-medium">{statusLabels[item.status] || item.status}</p>
                   {item.note && <p className="text-sm text-gray-600">{item.note}</p>}
-                  {/* Kullanıcı bilgisi */}
-                  {(item.updated_by_name || item.updated_by_role) && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {item.updated_by_role && (
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded mr-2 uppercase text-[10px] font-medium">
-                          {item.updated_by_role}
-                        </span>
-                      )}
-                      {item.updated_by_name || 'Bilinmeyen'}
-                    </p>
-                  )}
+                  {/* Kullanıcı bilgisi - her zaman göster */}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {item.updated_by_role && (
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded mr-2 uppercase text-[10px] font-medium">
+                        {item.updated_by_role}
+                      </span>
+                    )}
+                    {item.updated_by_name || (item.updated_by ? `Kullanıcı: ${item.updated_by.slice(0, 8)}...` : 'Sistem')}
+                  </p>
                 </div>
               </div>
             ))}

@@ -51,7 +51,7 @@ const CallCenter = () => {
     generateNextCaseNumber();
   }, []);
 
-  // Sonraki vaka numarasını oluştur (YYYYMMDD-XXXXX formatında, 10001'den başlar)
+  // Sonraki vaka numarasını oluştur (YYYYMMDD-XXXXXX formatında, 000001'den başlar)
   const generateNextCaseNumber = async () => {
     try {
       // Backend'den son vaka numarasını alıyoruz
@@ -61,7 +61,7 @@ const CallCenter = () => {
       // Fallback: Eğer endpoint yoksa local olarak oluştur
       const today = new Date();
       const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-      const baseNumber = 10001;
+      const baseNumber = '000001';
       setNextCaseNumber(`${dateStr}-${baseNumber}`);
     }
   };

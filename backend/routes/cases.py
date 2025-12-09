@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Vaka numarası başlangıç değeri
-CASE_NUMBER_START = 10001
+# Vaka numarası başlangıç değeri - 1'den başlar, 6 haneli format (000001)
+CASE_NUMBER_START = 1
 
 async def get_next_case_sequence() -> int:
-    """Günlük sıralı vaka numarası al - 10001'den başlar"""
+    """Günlük sıralı vaka numarası al - 1'den başlar"""
     today = datetime.utcnow().strftime("%Y%m%d")
     
     # Bugünkü en yüksek vaka numarasını bul

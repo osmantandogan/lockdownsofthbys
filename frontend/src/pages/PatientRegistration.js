@@ -54,7 +54,7 @@ const PatientRegistration = () => {
     } catch (error) {
       const today = new Date();
       const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-      setNextCaseNumber(`${dateStr}-10001`);
+      setNextCaseNumber(`${dateStr}-000001`);
     }
   };
 

@@ -531,7 +531,7 @@ const ShiftStartNew = () => {
           <p className="text-sm text-gray-500 text-center">
             {step === 1 && 'QR Kod Okutun'}
             {step === 2 && 'Araç Fotoğrafları (6 Zorunlu)'}
-            {step === 3 && (user?.role === 'sofor' ? 'Araç Devir Formu' : 'Ambulans Günlük Kontrol Formu')}
+            {step === 3 && (user?.role?.toLowerCase() === 'sofor' ? 'Araç Devir Formu' : 'Ambulans Günlük Kontrol Formu')}
             {step === 4 && 'Onay ve Başlat'}
           </p>
         </CardContent>
@@ -717,6 +717,9 @@ const ShiftStartNew = () => {
 
       {step === 3 && (
         <div className="space-y-4">
+          {/* Debug: Kullanıcı rolü */}
+          {console.log('Step 3 - User role:', user?.role, 'Is driver:', user?.role?.toLowerCase() === 'sofor')}
+          
           {vehicleInfo && (
             <Card className="border-green-500 bg-green-50">
               <CardContent className="py-3">
@@ -725,6 +728,7 @@ const ShiftStartNew = () => {
                   <div>
                     <p className="font-bold text-lg text-green-900">{vehicleInfo.plate}</p>
                     <p className="text-sm text-green-700">{vehicleInfo.type}</p>
+                    <p className="text-xs text-green-600">Rol: {user?.role}</p>
                   </div>
                 </div>
               </CardContent>
@@ -732,7 +736,7 @@ const ShiftStartNew = () => {
           )}
           
           {/* ŞOFÖR İSE: Devir Teslim Formu */}
-          {user?.role === 'sofor' && (
+          {user?.role?.toLowerCase() === 'sofor' && (
             <>
               <Card>
                 <CardHeader>
@@ -797,7 +801,7 @@ const ShiftStartNew = () => {
           )}
           
           {/* ATT / PARAMEDİK / HEMŞİRE İSE */}
-          {['att', 'paramedik', 'hemsire'].includes(user?.role) && (
+          {['att', 'paramedik', 'hemsire'].includes(user?.role?.toLowerCase()) && (
             <>
               {/* Form zaten doldurulmuşsa bypass et */}
               {formAlreadyFilled ? (
@@ -851,7 +855,7 @@ const ShiftStartNew = () => {
           )}
           
           {/* Diğer roller için (merkez_ofis, operasyon_muduru vb.) - sadece basit form */}
-          {!['sofor', 'att', 'paramedik', 'hemsire'].includes(user?.role) && (
+          {!['sofor', 'att', 'paramedik', 'hemsire'].includes(user?.role?.toLowerCase()) && (
             <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
           )}
           
