@@ -47,24 +47,33 @@ const BarcodeScanner = ({
   const [lastScanned, setLastScanned] = useState(null);
   const [scannedItems, setScannedItems] = useState([]);
   const [processing, setProcessing] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState('environment'); // environment = arka kamera
+  const [cameraFacing, setCameraFacing] = useState('environment');
   const [availableCameras, setAvailableCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
+  const [scannerReady, setScannerReady] = useState(false);
   
-  const scannerRef = useRef(null);
   const html5QrcodeRef = useRef(null);
   const lastScannedRef = useRef(null);
   const scanCooldownRef = useRef(false);
+  const mountedRef = useRef(true);
   
-  // Scanner ID - benzersiz olması için (hoisting sorunu için en başta tanımlanmalı)
-  const scannerId = useRef(`barcode-scanner-${Math.random().toString(36).substring(7)}`).current;
+  // Scanner ID - benzersiz olması için
+  const scannerId = useRef(`scanner-${Math.random().toString(36).substring(7)}`).current;
+
+  // Component mount/unmount tracking
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Kameraları listele
   useEffect(() => {
     Html5Qrcode.getCameras()
       .then(devices => {
+        if (!mountedRef.current) return;
         setAvailableCameras(devices);
-        // Arka kamerayı tercih et
         const backCamera = devices.find(d => 
           d.label.toLowerCase().includes('back') || 
           d.label.toLowerCase().includes('environment') ||
@@ -75,16 +84,30 @@ const BarcodeScanner = ({
         } else if (devices.length > 0) {
           setSelectedCameraId(devices[0].id);
         }
+        setScannerReady(true);
       })
       .catch(err => {
         console.error('Kamera listesi alınamadı:', err);
-        toast.error('Kamera erişimi sağlanamadı');
+        if (mountedRef.current) {
+          setScannerReady(true);
+        }
       });
   }, []);
 
   // Tarayıcıyı başlat
   const startScanner = useCallback(async () => {
-    if (!scannerRef.current) return;
+    const scannerElement = document.getElementById(scannerId);
+    if (!scannerElement || !mountedRef.current) return;
+    
+    // Önceki scanner'ı temizle
+    if (html5QrcodeRef.current) {
+      try {
+        await html5QrcodeRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+      html5QrcodeRef.current = null;
+    }
     
     try {
       html5QrcodeRef.current = new Html5Qrcode(scannerId);
@@ -92,36 +115,22 @@ const BarcodeScanner = ({
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 150 },
-        aspectRatio: 1.7778, // 16:9
-        formatsToSupport: [
-          0, // QR_CODE
-          1, // AZTEC
-          2, // CODABAR
-          3, // CODE_39
-          4, // CODE_93
-          5, // CODE_128
-          6, // DATA_MATRIX
-          7, // MAXICODE
-          8, // ITF
-          9, // EAN_13
-          10, // EAN_8
-          11, // PDF_417
-          12, // RSS_14
-          13, // RSS_EXPANDED
-          14, // UPC_A
-          15  // UPC_E
-        ]
+        aspectRatio: 1.7778,
+        formatsToSupport: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
       };
 
-      const onScanSuccess = async (decodedText, decodedResult) => {
-        // Aynı kodu tekrar okumayı engelle (3 saniyelik cooldown)
+      const onScanSuccess = async (decodedText) => {
+        if (!mountedRef.current) return;
         if (scanCooldownRef.current || decodedText === lastScannedRef.current) {
           return;
         }
         
         scanCooldownRef.current = true;
         lastScannedRef.current = decodedText;
-        setLastScanned(decodedText);
+        
+        if (mountedRef.current) {
+          setLastScanned(decodedText);
+        }
         
         // Titreşim feedback
         if (navigator.vibrate) {
@@ -129,11 +138,11 @@ const BarcodeScanner = ({
         }
         
         // Callback'i çağır
-        if (onScan) {
+        if (onScan && mountedRef.current) {
           setProcessing(true);
           try {
             const result = await onScan(decodedText);
-            if (result?.success) {
+            if (result?.success && mountedRef.current) {
               setScannedItems(prev => [...prev, {
                 barcode: decodedText,
                 ...result.item,
@@ -143,20 +152,18 @@ const BarcodeScanner = ({
           } catch (error) {
             console.error('Scan callback error:', error);
           } finally {
-            setProcessing(false);
+            if (mountedRef.current) {
+              setProcessing(false);
+            }
           }
         }
         
-        // Sürekli tarama modunda 2 saniye sonra cooldown'ı kaldır
+        // Sürekli tarama modunda cooldown
         if (continuousScan) {
           setTimeout(() => {
             scanCooldownRef.current = false;
           }, 2000);
         }
-      };
-
-      const onScanFailure = (error) => {
-        // Sessizce devam et
       };
 
       // Kamera tercihini belirle
@@ -171,30 +178,35 @@ const BarcodeScanner = ({
         cameraConfig,
         config,
         onScanSuccess,
-        onScanFailure
+        () => {} // Silent fail
       );
       
-      setIsScanning(true);
-      toast.success('Kamera başlatıldı');
+      if (mountedRef.current) {
+        setIsScanning(true);
+      }
       
     } catch (err) {
       console.error('Scanner start error:', err);
-      toast.error('Kamera başlatılamadı: ' + err.message);
+      if (mountedRef.current) {
+        toast.error('Kamera başlatılamadı: ' + err.message);
+      }
     }
-  }, [onScan, continuousScan, cameraFacing, selectedCameraId]);
+  }, [onScan, continuousScan, cameraFacing, selectedCameraId, scannerId]);
 
   // Tarayıcıyı durdur
   const stopScanner = useCallback(async () => {
     if (html5QrcodeRef.current) {
       try {
         const state = html5QrcodeRef.current.getState();
-        if (state === 2) { // SCANNING state
+        if (state === 2) {
           await html5QrcodeRef.current.stop();
         }
       } catch (err) {
         // Sessizce devam et
       }
       html5QrcodeRef.current = null;
+    }
+    if (mountedRef.current) {
       setIsScanning(false);
     }
   }, []);
@@ -203,24 +215,22 @@ const BarcodeScanner = ({
   const switchCamera = async () => {
     await stopScanner();
     
-    // Sonraki kamerayı seç
     const currentIndex = availableCameras.findIndex(c => c.id === selectedCameraId);
     const nextIndex = (currentIndex + 1) % availableCameras.length;
     setSelectedCameraId(availableCameras[nextIndex]?.id);
     
-    // Kısa gecikme ile yeniden başlat
     setTimeout(() => startScanner(), 500);
   };
 
   // Manuel giriş işle
   const handleManualSubmit = async () => {
-    if (!manualBarcode.trim()) return;
+    if (!manualBarcode.trim() || !mountedRef.current) return;
     
     setProcessing(true);
     try {
       if (onScan) {
         const result = await onScan(manualBarcode.trim());
-        if (result?.success) {
+        if (result?.success && mountedRef.current) {
           setScannedItems(prev => [...prev, {
             barcode: manualBarcode,
             ...result.item,
@@ -232,30 +242,34 @@ const BarcodeScanner = ({
     } catch (error) {
       console.error('Manual input error:', error);
     } finally {
-      setProcessing(false);
+      if (mountedRef.current) {
+        setProcessing(false);
+      }
     }
   };
 
-  // Cleanup - Daha güvenli temizlik
+  // Cleanup
   useEffect(() => {
     return () => {
-      const cleanup = async () => {
-        if (html5QrcodeRef.current) {
-          try {
-            const state = html5QrcodeRef.current.getState();
-            if (state === 2) { // SCANNING state
-              await html5QrcodeRef.current.stop();
-            }
-          } catch (err) {
-            // Sessizce devam et - scanner zaten durmuş olabilir
-          }
-          html5QrcodeRef.current = null;
+      mountedRef.current = false;
+      if (html5QrcodeRef.current) {
+        try {
+          html5QrcodeRef.current.stop().catch(() => {});
+        } catch (e) {
+          // ignore
         }
-        setIsScanning(false);
-      };
-      cleanup();
+        html5QrcodeRef.current = null;
+      }
     };
   }, []);
+
+  // Handle close with cleanup
+  const handleClose = async () => {
+    await stopScanner();
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-2xl border-2">
@@ -265,7 +279,7 @@ const BarcodeScanner = ({
             <QrCode className="h-5 w-5 text-blue-600" />
             {title}
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={handleClose}>
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -315,21 +329,22 @@ const BarcodeScanner = ({
         {/* Kamera Modu */}
         {!manualMode && (
           <div className="space-y-3">
-            {/* Kamera Önizleme */}
-            <div 
-              id={scannerId}
-              ref={scannerRef}
-              className="w-full aspect-video bg-gray-900 rounded-lg overflow-hidden relative"
-            >
+            {/* Kamera Önizleme - Portal benzeri izolasyon */}
+            <div className="relative">
+              <div 
+                id={scannerId}
+                className="w-full aspect-video bg-gray-900 rounded-lg overflow-hidden"
+                style={{ minHeight: '200px' }}
+              />
               {!isScanning && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-gray-900 rounded-lg">
                   <CameraOff className="h-12 w-12 mb-3 text-gray-400" />
                   <p className="text-sm text-gray-400">Kamera kapalı</p>
                 </div>
               )}
               
               {processing && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
                   <div className="bg-white rounded-lg p-4 flex items-center gap-3">
                     <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                     <span className="font-medium">İşleniyor...</span>
@@ -341,9 +356,13 @@ const BarcodeScanner = ({
             {/* Kamera Kontrolleri */}
             <div className="flex gap-2">
               {!isScanning ? (
-                <Button onClick={startScanner} className="flex-1 bg-green-600 hover:bg-green-700">
+                <Button 
+                  onClick={startScanner} 
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={!scannerReady}
+                >
                   <Camera className="h-4 w-4 mr-2" />
-                  Kamerayı Başlat
+                  {scannerReady ? 'Kamerayı Başlat' : 'Hazırlanıyor...'}
                 </Button>
               ) : (
                 <Button onClick={stopScanner} variant="destructive" className="flex-1">
@@ -435,7 +454,7 @@ const BarcodeScanner = ({
                 >
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="font-medium">{item.drug_name || 'Bilinmeyen'}</span>
+                    <span className="font-medium">{item.name || 'Ürün'}</span>
                   </div>
                   <span className="text-xs text-gray-500">
                     {item.lot_number || '-'}
@@ -458,4 +477,3 @@ const BarcodeScanner = ({
 };
 
 export default BarcodeScanner;
-
