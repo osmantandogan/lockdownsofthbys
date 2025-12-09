@@ -55,6 +55,9 @@ const BarcodeScanner = ({
   const html5QrcodeRef = useRef(null);
   const lastScannedRef = useRef(null);
   const scanCooldownRef = useRef(false);
+  
+  // Scanner ID - benzersiz olması için (hoisting sorunu için en başta tanımlanmalı)
+  const scannerId = useRef(`barcode-scanner-${Math.random().toString(36).substring(7)}`).current;
 
   // Kameraları listele
   useEffect(() => {
@@ -178,7 +181,7 @@ const BarcodeScanner = ({
       console.error('Scanner start error:', err);
       toast.error('Kamera başlatılamadı: ' + err.message);
     }
-  }, [onScan, continuousScan, cameraFacing, selectedCameraId, scannerId]);
+  }, [onScan, continuousScan, cameraFacing, selectedCameraId]);
 
   // Tarayıcıyı durdur
   const stopScanner = useCallback(async () => {
@@ -253,9 +256,6 @@ const BarcodeScanner = ({
       cleanup();
     };
   }, []);
-
-  // Scanner ID - benzersiz olması için
-  const scannerId = useRef(`barcode-scanner-${Date.now()}`).current;
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-2xl border-2">
