@@ -25,12 +25,15 @@ router = APIRouter()
 CASE_NUMBER_START = 1
 
 async def get_next_case_sequence() -> int:
-    """Günlük sıralı vaka numarası al - 1'den başlar"""
-    today = datetime.utcnow().strftime("%Y%m%d")
+    """Günlük sıralı vaka numarası al - 1'den başlar, 6 haneli format"""
+    # Türkiye saati (UTC+3)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    today = turkey_now.strftime("%Y%m%d")
     
-    # Bugünkü en yüksek vaka numarasını bul
+    # Bugünkü en yüksek 6 haneli vaka numarasını bul
+    # Regex: YYYYMMDD-XXXXXX (tam 6 haneli numara)
     pipeline = [
-        {"$match": {"case_number": {"$regex": f"^{today}-"}}},
+        {"$match": {"case_number": {"$regex": f"^{today}-\\d{{6}}$"}}},
         {"$project": {
             "seq": {
                 "$toInt": {
@@ -55,8 +58,8 @@ async def generate_case_number() -> str:
     now = datetime.utcnow() + timedelta(hours=3)
     date_str = now.strftime("%Y%m%d")
     seq = await get_next_case_sequence()
-    # 6 haneli format: 000001, 000002, ...
-    seq_str = str(seq).zfill(6) if seq < 100000 else str(seq)
+    # Tam 6 haneli format: 000001, 000002, ...
+    seq_str = str(seq).zfill(6)
     return f"{date_str}-{seq_str}"
 
 @router.get("/next-case-number")
@@ -68,7 +71,7 @@ async def get_next_case_number(request: Request):
     now = datetime.utcnow() + timedelta(hours=3)
     date_str = now.strftime("%Y%m%d")
     seq = await get_next_case_sequence()
-    seq_str = str(seq).zfill(6) if seq < 100000 else str(seq)
+    seq_str = str(seq).zfill(6)
     
     return {"next_case_number": f"{date_str}-{seq_str}"}
 

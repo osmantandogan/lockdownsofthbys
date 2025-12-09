@@ -319,8 +319,21 @@ const ShiftStartNew = () => {
           // Araç ve atama kontrolü yap
           const result = await validateVehicleAssignment(decodedText);
           if (result) {
-            setStep(2);
-            toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Devam edebilirsiniz.`);
+            const userRole = user?.role?.toLowerCase();
+            const hasDriverDuty = result.assignment?.is_driver_duty || false;
+            
+            // Şoför veya şoför görevi olan ATT/Paramedik: Fotoğraf çekecek
+            // Şoför görevi olmayan ATT/Paramedik/Hemşire: Direkt forma geçecek
+            if (userRole === 'sofor' || hasDriverDuty) {
+              setStep(2); // Fotoğraf çekme adımı
+              toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Fotoğraf çekin.`);
+            } else if (['att', 'paramedik', 'hemsire'].includes(userRole)) {
+              setStep(3); // Direkt günlük kontrol formuna
+              toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Formu doldurun.`);
+            } else {
+              setStep(2); // Diğer roller için fotoğraf
+              toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Devam edebilirsiniz.`);
+            }
           }
         }
       );
@@ -352,8 +365,21 @@ const ShiftStartNew = () => {
     setQrCode(manualQrInput.trim());
     const result = await validateVehicleAssignment(manualQrInput.trim());
     if (result) {
-      setStep(2);
-      toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Devam edebilirsiniz.`);
+      const userRole = user?.role?.toLowerCase();
+      const hasDriverDuty = result.assignment?.is_driver_duty || false;
+      
+      // Şoför veya şoför görevi olan: Fotoğraf çekecek
+      // Şoför görevi olmayan ATT/Paramedik/Hemşire: Direkt forma geçecek
+      if (userRole === 'sofor' || hasDriverDuty) {
+        setStep(2);
+        toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Fotoğraf çekin.`);
+      } else if (['att', 'paramedik', 'hemsire'].includes(userRole)) {
+        setStep(3);
+        toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Formu doldurun.`);
+      } else {
+        setStep(2);
+        toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Devam edebilirsiniz.`);
+      }
     }
   };
 
@@ -518,11 +544,17 @@ const ShiftStartNew = () => {
 
   const progress = step === 1 ? 0 : step === 2 ? 33 : step === 3 ? 66 : 100;
 
+  // ATT/Paramedik/Hemşire (şoför görevi yoksa): 3 adım, diğerleri 4 adım
+  const userRole = user?.role?.toLowerCase();
+  const needsPhotos = userRole === 'sofor' || isDriverDuty || !['att', 'paramedik', 'hemsire'].includes(userRole);
+  const totalSteps = needsPhotos ? 4 : 3;
+  const currentStepDisplay = needsPhotos ? step : (step === 1 ? 1 : step === 3 ? 2 : 3);
+
   return (
     <div className="space-y-6" data-testid="shift-start-page">
       <div>
         <h1 className="text-3xl font-bold">Vardiya Başlat</h1>
-        <p className="text-gray-500">Adım {step}/4</p>
+        <p className="text-gray-500">Adım {currentStepDisplay}/{totalSteps}</p>
       </div>
 
       <Card>
@@ -531,7 +563,7 @@ const ShiftStartNew = () => {
           <p className="text-sm text-gray-500 text-center">
             {step === 1 && 'QR Kod Okutun'}
             {step === 2 && 'Araç Fotoğrafları (6 Zorunlu)'}
-            {step === 3 && (user?.role?.toLowerCase() === 'sofor' ? 'Araç Devir Formu' : 'Ambulans Günlük Kontrol Formu')}
+            {step === 3 && (userRole === 'sofor' || isDriverDuty ? 'Araç Devir + Günlük Kontrol Formu' : 'Ambulans Günlük Kontrol Formu')}
             {step === 4 && 'Onay ve Başlat'}
           </p>
         </CardContent>
@@ -860,7 +892,7 @@ const ShiftStartNew = () => {
           )}
           
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>Geri</Button>
+            <Button variant="outline" onClick={() => setStep(needsPhotos ? 2 : 1)}>Geri</Button>
             <Button onClick={() => setStep(4)}>Devam</Button>
           </div>
         </div>
