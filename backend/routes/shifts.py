@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Body, Depends
 from typing import List, Optional
-from database import shifts_collection, vehicles_collection, shift_assignments_collection
+from database import shifts_collection, vehicles_collection, shift_assignments_collection, users_collection
 from models import Shift, ShiftStart, ShiftEnd, ShiftAssignment
 from auth_utils import get_current_user, require_roles
 from datetime import datetime
@@ -483,6 +483,7 @@ async def start_shift(data: ShiftStart, request: Request):
         assignment_id=assignment["_id"],
         user_id=user.id,
         vehicle_id=vehicle["_id"],
+        vehicle_plate=vehicle.get("plate"),  # Plaka bilgisini ekle
         start_time=datetime.utcnow(),
         photos=data.photos,
         daily_control=data.daily_control
@@ -496,6 +497,41 @@ async def start_shift(data: ShiftStart, request: Request):
         {"_id": assignment["_id"]},
         {"$set": {"status": "started"}}
     )
+    
+    # Günlük kontrol formunu form geçmişine kaydet
+    if data.daily_control:
+        from database import forms_collection
+        import uuid
+        
+        daily_control_form = {
+            "_id": str(uuid.uuid4()),
+            "form_type": "daily_control",
+            "submitted_by": user.id,
+            "form_data": data.daily_control,
+            "vehicle_plate": vehicle.get("plate"),
+            "vehicle_id": vehicle["_id"],
+            "shift_id": new_shift.id,
+            "created_at": datetime.utcnow()
+        }
+        await forms_collection.insert_one(daily_control_form)
+        logger.info(f"Günlük kontrol formu kaydedildi: {daily_control_form['_id']}")
+    
+    # Araç fotoğraflarını kaydet (ayrı bir collection'da)
+    if data.photos:
+        from database import db
+        shift_photos_collection = db["shift_photos"]
+        
+        photos_doc = {
+            "_id": str(uuid.uuid4()),
+            "shift_id": new_shift.id,
+            "user_id": user.id,
+            "vehicle_id": vehicle["_id"],
+            "vehicle_plate": vehicle.get("plate"),
+            "photos": data.photos,
+            "created_at": datetime.utcnow()
+        }
+        await shift_photos_collection.insert_one(photos_doc)
+        logger.info(f"Vardiya fotoğrafları kaydedildi: {photos_doc['_id']}")
     
     return new_shift
 
@@ -605,6 +641,67 @@ async def get_shift_history(
         result.append(shift)
     
     return result
+
+@router.get("/photos")
+async def get_shift_photos(
+    request: Request,
+    vehicle_plate: Optional[str] = None,
+    limit: int = 50
+):
+    """
+    Vardiya fotoğraflarını getir
+    Baş Şoför, Operasyon Müdürü ve Merkez Ofis erişebilir
+    """
+    current_user = await get_current_user(request)
+    
+    # Sadece yetkili roller erişebilir
+    if current_user.role not in ["merkez_ofis", "operasyon_muduru", "bas_sofor"]:
+        raise HTTPException(status_code=403, detail="Bu sayfaya erişim yetkiniz yok")
+    
+    from database import db
+    shift_photos_collection = db["shift_photos"]
+    
+    query = {}
+    if vehicle_plate:
+        query["vehicle_plate"] = vehicle_plate
+    
+    photos = await shift_photos_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Kullanıcı bilgisini ekle
+    for photo in photos:
+        photo["id"] = photo.pop("_id")
+        user_doc = await users_collection.find_one({"_id": photo.get("user_id")})
+        if user_doc:
+            photo["user_name"] = user_doc.get("name", "Bilinmiyor")
+            photo["user_role"] = user_doc.get("role", "")
+    
+    return photos
+
+@router.get("/photos/{shift_id}")
+async def get_shift_photos_by_id(shift_id: str, request: Request):
+    """Belirli bir vardiyaya ait fotoğrafları getir"""
+    current_user = await get_current_user(request)
+    
+    # Sadece yetkili roller erişebilir
+    if current_user.role not in ["merkez_ofis", "operasyon_muduru", "bas_sofor"]:
+        raise HTTPException(status_code=403, detail="Bu sayfaya erişim yetkiniz yok")
+    
+    from database import db
+    shift_photos_collection = db["shift_photos"]
+    
+    photo_doc = await shift_photos_collection.find_one({"shift_id": shift_id})
+    if not photo_doc:
+        return None
+    
+    photo_doc["id"] = photo_doc.pop("_id")
+    
+    # Kullanıcı bilgisini ekle
+    user_doc = await users_collection.find_one({"_id": photo_doc.get("user_id")})
+    if user_doc:
+        photo_doc["user_name"] = user_doc.get("name", "Bilinmiyor")
+        photo_doc["user_role"] = user_doc.get("role", "")
+    
+    return photo_doc
 
 @router.get("/stats/summary")
 async def get_shift_stats(request: Request, user_id: Optional[str] = None):

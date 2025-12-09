@@ -172,7 +172,11 @@ export const shiftsAPI = {
   end: (data) => api.post('/shifts/end', data),
   getActive: () => api.get('/shifts/active'),
   getHistory: (params) => api.get('/shifts/history', { params }),
-  getStats: (params) => api.get('/shifts/stats/summary', { params })
+  getStats: (params) => api.get('/shifts/stats/summary', { params }),
+  
+  // Shift Photos
+  getPhotos: (params) => api.get('/shifts/photos', { params }),
+  getPhotosByShiftId: (shiftId) => api.get(`/shifts/photos/${shiftId}`)
 };
 
 // Users API
