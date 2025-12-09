@@ -95,99 +95,109 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
     setChecks({...checks, [item]: value});
   };
 
+  // ATT/Paramedik/Hemşire için Cihaz, Malzeme ve İlaç Kontrol Kategorileri
   const categories = [
     {
       id: 1,
-      title: 'ARACIN GENEL DURUMU',
+      title: 'TIBBİ CİHAZLAR',
       items: [
-        { label: 'Aracın Ruhsatı Var mı?', options: ['Var', 'Yok'] },
-        { label: 'Aracın Dış Görünüşü', options: ['Temiz', 'Kirli'] },
-        { label: 'Kaporta', options: ['Sağlam', 'Hasarlı'] },
-        { label: 'Kapılar', options: ['Sağlam', 'Hasarlı'] },
-        { label: 'Lastikler', options: ['Sağlam', 'Diş Der.', 'Havası Az', 'Havası Fazla'] }
+        { label: 'Defibrilatör', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Monitör', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Aspiratör', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Oksijen Tüpü (Ana)', options: ['Dolu', 'Yarı Dolu', 'Boş'] },
+        { label: 'Oksijen Tüpü (Yedek)', options: ['Dolu', 'Yarı Dolu', 'Boş'] },
+        { label: 'Pulse Oksimetre', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Tansiyon Aleti', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Steteskop', options: ['Var', 'Yok'] },
+        { label: 'Glukoz Ölçüm Cihazı', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Laringoskop Seti', options: ['Tam', 'Eksik', 'Yok'] },
+        { label: 'Ambu (Yetişkin)', options: ['Var', 'Yok'] },
+        { label: 'Ambu (Çocuk)', options: ['Var', 'Yok'] },
+        { label: 'Nebulizatör', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] }
       ]
     },
     {
       id: 2,
-      title: 'ARACIN YAKIT DURUMU',
+      title: 'SOLUNUM EKİPMANLARI',
       items: [
-        { label: 'Yakıt Matik', options: ['Var', 'Yok'] }
-      ],
-      hasFuelGauge: true
+        { label: 'Oksijen Maskesi (Yetişkin)', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Oksijen Maskesi (Çocuk)', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Nazal Kanül', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Endotrakeal Tüpler', options: ['Tam Set', 'Eksik', 'Yok'] },
+        { label: 'Airway (Orofarengeal)', options: ['Tam Set', 'Eksik', 'Yok'] },
+        { label: 'Balon Valf Maske', options: ['Var', 'Yok'] }
+      ]
     },
     {
       id: 3,
-      title: 'ARACIN ALTININ KONTROLÜ',
+      title: 'DAMAR YOLU MALZEMELERİ',
       items: [
-        { label: 'Yağ Damlaması Var mı?', options: ['Var', 'Yok'] },
-        { label: 'Hidrolik Kaçağı Var mı?', options: ['Var', 'Yok'] },
-        { label: 'Darbe Var mı?', options: ['Var', 'Yok'] },
-        { label: 'Su Kaçağı Var mı?', options: ['Var', 'Yok'] },
-        { label: 'Yakıt Kaçağı Var mı?', options: ['Var', 'Yok'] }
+        { label: 'Branül (18G-22G)', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Serum Seti', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'SF %0.9 500ml', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Dextrose %5 500ml', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Ringer Laktat 500ml', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Üç Yollu Musluk', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Turnike', options: ['Var', 'Yok'] },
+        { label: 'Flaster/Sargı Bezi', options: ['Yeterli', 'Az', 'Yok'] }
       ]
     },
     {
       id: 4,
-      title: 'ARACIN MOTOR KONTROLÜ',
+      title: 'ACİL İLAÇLAR',
       items: [
-        { label: 'Motor Kaputu Açma Sistemi', options: ['Normal', 'Arızalı'] },
-        { label: 'Silecek Suyu Sıvı Seviyesi', options: ['Normal', 'Düşük'] },
-        { label: 'Motor Yağ Seviyesi', options: ['Normal', 'Düşük'] },
-        { label: 'Motor Temizliği', options: ['Normal', 'Kirli'] },
-        { label: 'Yanan Arıza Lambası', options: ['Yok', 'Var'] },
-        { label: 'Silecek Lastiği', options: ['Normal', 'Yıpranmış'] },
-        { label: 'Radyatör Sıvı Seviyesi', options: ['Normal', 'Düşük'] },
-        { label: 'Fren Hidrolik Yağ Seviyesi', options: ['Normal', 'Düşük'] },
-        { label: 'Stepne', options: ['Var', 'Yok'] },
-        { label: 'Klima', options: ['Normal', 'Arızalı'] }
+        { label: 'Adrenalin', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Atropin', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Diazepam', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Furosemid', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Metilprednizolon', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Metoklopramid', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Ondansetron', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Parasetamol IV', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Diklofenak', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Salbutamol (Nebül)', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'NTG Spray', options: ['Var', 'Yok'] },
+        { label: 'Aspirin 300mg', options: ['Yeterli', 'Az', 'Yok'] }
       ]
     },
     {
       id: 5,
-      title: 'ARACI ÇALIŞTIRINIZ',
+      title: 'İMMOBİLİZASYON MALZEMELERİ',
       items: [
-        { label: 'GPS', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Araç Telsizi', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Mayk', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Sirenler', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Farlar / Sinyal Lambaları', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Geri Vites Lambası', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Tepe Lambaları', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Fren Sistemi', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Flaşörler', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Arka Kapı Aydınlatması', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Fren Lambaları', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Vites Sistemi', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Ön/Arka Emniyet Kemeri', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Motor Çalışması', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Direksiyon Sistemi', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Gösterge Paneli', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Aynalar', options: ['Sağlam', 'Kırık'] },
-        { label: 'Egzoz', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Merkezi Sistem Kilitleme', options: ['Var', 'Yok'] },
-        { label: 'Radyo-Teyp', options: ['Sağlam', 'Arızalı'] }
+        { label: 'Boyunluk (S-M-L)', options: ['Tam Set', 'Eksik', 'Yok'] },
+        { label: 'Kısa Sırt Tahtası (KED)', options: ['Var', 'Yok'] },
+        { label: 'Uzun Sırt Tahtası', options: ['Var', 'Yok'] },
+        { label: 'Scoop Sedye', options: ['Var', 'Yok'] },
+        { label: 'Vakum Atel', options: ['Var', 'Yok'] },
+        { label: 'Baş Hareketsizleştirici', options: ['Var', 'Yok'] },
+        { label: 'Sabitleyici Kemerler', options: ['Tam', 'Eksik', 'Yok'] }
       ]
     },
     {
       id: 6,
-      title: 'ARKA KABİN İÇİ',
+      title: 'PANSUMAN VE SARF MALZEMELERİ',
       items: [
-        { label: 'Temizlik', options: ['Temiz', 'Kirli'] },
-        { label: 'Çöp Kutusu', options: ['Boş', 'Dolu'] },
-        { label: 'Aydınlatma', options: ['Sağlam', 'Arızalı'] },
-        { label: 'Redresör', options: ['Sağlam', 'Arızalı'] }
+        { label: 'Steril Gazlı Bez', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Elastik Bandaj', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Steril Eldiven', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Eldiven (Nitril/Latex)', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Kesici-Delici Atık Kutusu', options: ['Var/Boş', 'Var/Dolu', 'Yok'] },
+        { label: 'Enfekte Atık Torbası', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Dezenfektan (El)', options: ['Var', 'Yok'] },
+        { label: 'Yüzey Dezenfektanı', options: ['Var', 'Yok'] }
       ]
     },
     {
       id: 7,
-      title: 'AVADANLIK',
+      title: 'DİĞER EKİPMANLAR',
       items: [
-        { label: 'Kriko', options: ['Var', 'Yok'] },
-        { label: 'Bijon Anahtarı', options: ['Var', 'Yok'] },
-        { label: 'Patinaj Zinciri', options: ['Var', 'Yok'] },
-        { label: 'Yangın Söndürme Tüpü', options: ['Var', 'Yok'] },
-        { label: '220 Volt Şarj Kablosu', options: ['Var', 'Yok'] },
-        { label: 'İmdat Çekici', options: ['Var', 'Yok'] }
+        { label: 'El Feneri', options: ['Var/Çalışıyor', 'Var/Arızalı', 'Yok'] },
+        { label: 'Battaniye', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Çarşaf', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Kusma Torbası', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'İdrar Torbası', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Sonda (Nazogastrik)', options: ['Yeterli', 'Az', 'Yok'] },
+        { label: 'Foley Kateter', options: ['Yeterli', 'Az', 'Yok'] }
       ]
     }
   ];

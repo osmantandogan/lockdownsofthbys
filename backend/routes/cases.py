@@ -30,28 +30,15 @@ async def get_next_case_sequence() -> int:
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     today = turkey_now.strftime("%Y%m%d")
     
-    # Bugünkü en yüksek SIFIRLA BAŞLAYAN 6 haneli vaka numarasını bul
-    # Regex: YYYYMMDD-0XXXXX (0 ile başlayan 6 haneli numara, max 099999)
-    # Bu sayede eski büyük numaralar (768668 gibi) ignore edilir
-    pipeline = [
-        {"$match": {"case_number": {"$regex": f"^{today}-0\\d{{5}}$"}}},
-        {"$project": {
-            "seq": {
-                "$toInt": {
-                    "$arrayElemAt": [{"$split": ["$case_number", "-"]}, 1]
-                }
-            }
-        }},
-        {"$sort": {"seq": -1}},
-        {"$limit": 1}
-    ]
+    # Basit yaklaşım: Bugünkü tüm vakaları say ve +1 ekle
+    # Sadece yeni format (6 haneli, 0 ile başlayan) vakaları say
+    count = await cases_collection.count_documents({
+        "case_number": {"$regex": f"^{today}-0\\d{{5}}$"}
+    })
     
-    result = await cases_collection.aggregate(pipeline).to_list(1)
+    logger.info(f"[CASE_NUMBER] Bugün ({today}) için mevcut 6 haneli vaka sayısı: {count}")
     
-    if result and len(result) > 0:
-        return result[0]["seq"] + 1
-    else:
-        return CASE_NUMBER_START
+    return count + 1
 
 async def generate_case_number() -> str:
     """Generate case number in format YYYYMMDD-XXXXXX (starting from 000001)"""

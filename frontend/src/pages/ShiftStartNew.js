@@ -516,7 +516,11 @@ const ShiftStartNew = () => {
   };
 
   const handleStartShift = async () => {
-    if (!photosComplete()) {
+    // ATT/Paramedik/Hemşire (şoför görevi yoksa) fotoğraf çekmiyor
+    const userRole = user?.role?.toLowerCase();
+    const requiresPhotos = userRole === 'sofor' || isDriverDuty || !['att', 'paramedik', 'hemsire'].includes(userRole);
+    
+    if (requiresPhotos && !photosComplete()) {
       toast.error('Lütfen tüm zorunlu fotoğrafları çekin');
       return;
     }
