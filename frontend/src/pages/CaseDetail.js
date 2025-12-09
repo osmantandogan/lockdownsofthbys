@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI } from '../api';
+import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -30,6 +30,7 @@ import { generateCaseFormPDF, downloadPDF, openPDFInNewTab } from '../services/p
 import { downloadCaseExcel } from '../services/excelExport';
 import CaseAccessRestriction from '../components/CaseAccessRestriction';
 import { saveAs } from 'file-saver';
+import BarcodeScanner from '../components/BarcodeScanner';
 
 // Onam Form Bileşenleri
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
@@ -87,6 +88,7 @@ const CaseDetail = () => {
   const [newStockName, setNewStockName] = useState('');
   const [addingMedication, setAddingMedication] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   
   // Onam formları listesi
   const consentFormsList = [
@@ -2218,10 +2220,56 @@ const CaseDetail = () => {
               {/* Yetki kontrolü - ATT ve Paramedik */}
               {(user?.role === 'att' || user?.role === 'paramedik' || user?.role === 'hemsire' || user?.role === 'doktor') && (
                 <div className="space-y-4">
-                  {/* Karekod/Barkod Okuma */}
+                  {/* Kamera ile Tarama Butonu */}
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => setShowCameraScanner(true)}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Kamera ile İlaç Karekodu Tara
+                    </Button>
+                  </div>
+
+                  {/* Kamera Tarayıcı Dialog */}
+                  <Dialog open={showCameraScanner} onOpenChange={setShowCameraScanner}>
+                    <DialogContent className="max-w-lg p-0">
+                      <BarcodeScanner
+                        mode="usage"
+                        caseId={id}
+                        title="İlaç Kullanımı - Karekod Tara"
+                        onScan={async (barcode) => {
+                          try {
+                            // Araç plakasını bul
+                            const vehiclePlate = caseData?.assigned_team?.vehicle_id 
+                              ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
+                              : null;
+                            
+                            const response = await stockBarcodeAPI.deductByBarcode({
+                              barcode: barcode,
+                              case_id: id,
+                              vehicle_plate: vehiclePlate
+                            });
+                            
+                            toast.success(response.data.message || 'İlaç vakaya eklendi');
+                            await loadMedications();
+                            return { success: true, item: response.data.medication };
+                          } catch (error) {
+                            const message = error.response?.data?.detail || 'İlaç eklenemedi';
+                            toast.error(message);
+                            return { success: false, error: message };
+                          }
+                        }}
+                        onClose={() => setShowCameraScanner(false)}
+                        continuousScan={true}
+                      />
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Karekod/Barkod Manuel Giriş */}
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <Label>Karekod/Barkod Girin veya Okutun</Label>
+                      <Label>veya Manuel Karekod Girişi</Label>
                       <div className="flex gap-2 mt-1">
                         <Input
                           placeholder="Karekodu yapıştırın veya tarayın..."

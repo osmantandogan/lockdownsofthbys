@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 # Import routers
-from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf
+from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode
 
 ROOT_DIR = Path(__file__).parent.resolve()
 load_dotenv(ROOT_DIR / '.env', override=True)
@@ -64,6 +64,7 @@ api_router.include_router(its.router, prefix="/its", tags=["İTS - İlaç Takip 
 api_router.include_router(approvals.router, prefix="/approvals", tags=["Approvals - Onay Sistemi"])
 api_router.include_router(patients.router, prefix="/patients", tags=["Patients - Hasta Kartı"])
 api_router.include_router(pdf.router, tags=["PDF - PDF Generation"])
+api_router.include_router(stock_barcode.router, prefix="/stock-barcode", tags=["Stock Barcode - Karekod Bazlı Stok"])
 
 # Health check endpoint
 @api_router.get("/")
@@ -91,6 +92,20 @@ async def startup_event():
     # Initialize notification service to load config
     from services.notification_service import notification_service
     logger.info("Notification service initialized")
+    
+    # Initialize ITS (İlaç Takip Sistemi) service with credentials
+    from services.its_service import configure_its_service
+    its_username = os.environ.get('ITS_USERNAME', '86836847871710000')
+    its_password = os.environ.get('ITS_PASSWORD', 'Ntpf405')
+    its_use_test = os.environ.get('ITS_USE_TEST', 'true').lower() == 'true'
+    
+    if its_username and its_password:
+        configure_its_service(
+            username=its_username,
+            password=its_password,
+            use_test=its_use_test
+        )
+        logger.info(f"ITS service configured (test_mode={its_use_test})")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

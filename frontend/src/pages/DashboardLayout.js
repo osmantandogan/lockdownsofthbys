@@ -22,7 +22,8 @@ import {
   FileCog,
   Bell,
   Gauge,
-  UserPlus
+  UserPlus,
+  QrCode
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationDropdown from '../components/NotificationDropdown';
@@ -45,6 +46,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar' },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar' },
     { path: '/dashboard/stock', icon: Package, label: 'Stok', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
+    { path: '/dashboard/stock-barcode-entry', icon: QrCode, label: 'Karekod Stok Girişi', roles: ['operasyon_muduru', 'merkez_ofis', 'att', 'paramedik', 'hemsire'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },

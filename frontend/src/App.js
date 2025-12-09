@@ -16,6 +16,7 @@ import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
 import Vehicles from "./pages/Vehicles";
 import StockManagement from "./pages/StockManagement";
+import StockBarcodeEntry from "./pages/StockBarcodeEntry";
 import Shifts from "./pages/Shifts";
 import ShiftAssignments from "./pages/ShiftAssignments";
 import ShiftStartNew from "./pages/ShiftStartNew";
@@ -112,6 +113,7 @@ function App() {
             <Route path="cases/:id" element={<CaseDetail />} />
             <Route path="vehicles" element={<Vehicles />} />
             <Route path="stock" element={<StockManagement />} />
+            <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />
             <Route path="shift-assignments" element={<ShiftAssignments />} />
             <Route path="shift-start" element={<ShiftStartNew />} />

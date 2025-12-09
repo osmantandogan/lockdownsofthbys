@@ -357,4 +357,24 @@ export const authAPI = {
   me: () => api.get('/auth/me')
 };
 
+// Karekod Bazlı Stok API
+export const stockBarcodeAPI = {
+  // Stok girişi - karekod ile ekle
+  addByBarcode: (data) => api.post('/stock-barcode/add', data),
+  
+  // Karekod detayları
+  getBarcodeDetails: (barcode) => api.get(`/stock-barcode/details/${encodeURIComponent(barcode)}`),
+  
+  // Vakada kullanım - stoktan düşme
+  deductByBarcode: (data) => api.post('/stock-barcode/deduct', data),
+  
+  // Stoğa iade
+  returnStock: (data) => api.post('/stock-barcode/return', data),
+  
+  // Envanter sorgulama
+  getInventory: (params) => api.get('/stock-barcode/inventory', { params }),
+  getInventoryByLocation: () => api.get('/stock-barcode/inventory/by-location'),
+  getExpiringItems: (days = 30) => api.get(`/stock-barcode/expiring?days=${days}`)
+};
+
 export default api;
