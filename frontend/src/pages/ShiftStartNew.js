@@ -466,15 +466,17 @@ const ShiftStartNew = () => {
 
   // Baş Şoför onayı iste
   const handleRequestApproval = async () => {
-    if (!vehicleInfo?._id) {
-      toast.error('Araç bilgisi bulunamadı');
+    const vehicleId = vehicleInfo?._id || vehicleInfo?.id;
+    if (!vehicleId) {
+      console.error('Vehicle info:', vehicleInfo);
+      toast.error('Araç bilgisi bulunamadı - lütfen QR kodunu tekrar okutun');
       return;
     }
     
     setSendingApproval(true);
     try {
       await approvalsAPI.requestManagerApproval({
-        vehicle_id: vehicleInfo._id || vehicleInfo.id,
+        vehicle_id: vehicleId,
         action: 'shift_start',
         user_name: user?.name || 'Bilinmiyor'
       });

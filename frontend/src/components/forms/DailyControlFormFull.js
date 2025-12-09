@@ -199,7 +199,7 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
   return (
     <div className="space-y-6 pb-6">
       <div className="text-center space-y-2 border-b pb-4">
-        <h1 className="text-2xl font-bold">AMBULANS GÜNLÜK KONTROL VE DEVİR TESLİM FORMU</h1>
+        <h1 className="text-2xl font-bold">AMBULANS CİHAZ, MALZEME VE İLAÇ GÜNLÜK KONTROL FORMU</h1>
       </div>
 
       <Card>
