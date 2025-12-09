@@ -113,10 +113,25 @@ const BarcodeScanner = ({
       html5QrcodeRef.current = new Html5Qrcode(scannerId);
       
       const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 150 },
-        aspectRatio: 1.7778,
-        formatsToSupport: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        fps: 15,  // Daha hızlı tarama
+        qrbox: { width: 300, height: 200 },  // Daha büyük tarama alanı
+        aspectRatio: 1.5,
+        // DataMatrix (6) öncelikli olarak desteklenen formatlar
+        formatsToSupport: [
+          6,  // DATA_MATRIX - İlaç karekodları için
+          0,  // QR_CODE
+          5,  // CODE_128
+          9,  // EAN_13
+          10, // EAN_8
+          3,  // CODE_39
+          8,  // ITF
+          14, // UPC_A
+          15, // UPC_E
+          2,  // CODABAR
+        ],
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true  // Native API kullan (varsa)
+        }
       };
 
       const onScanSuccess = async (decodedText) => {

@@ -117,11 +117,15 @@ async def add_stock_by_barcode(request: Request):
     # Karekodu parse et
     parsed = parse_datamatrix(barcode)
     
+    # Log parsed data for debugging
+    import logging
+    logging.info(f"Parsed barcode: {parsed}")
+    
+    # Eğer hiçbir şey parse edilemezse, ham veriyi seri numarası olarak kullan
     if not parsed.get("serial_number") and not parsed.get("gtin"):
-        raise HTTPException(
-            status_code=400, 
-            detail="Geçersiz karekod formatı. GTIN veya Seri Numarası bulunamadı."
-        )
+        # Ham veriyi seri numarası olarak ata (benzersiz olması için)
+        parsed["serial_number"] = f"RAW-{barcode[:20] if len(barcode) > 20 else barcode}"
+        logging.warning(f"Could not parse barcode, using raw as serial: {parsed['serial_number']}")
     
     # Bu seri numarası zaten kayıtlı mı kontrol et
     serial = parsed.get("serial_number") or f"UNKNOWN-{uuid.uuid4().hex[:8]}"
@@ -162,31 +166,39 @@ async def add_stock_by_barcode(request: Request):
                 manufacturer_name = cached.get("manufacturer_name")
     
     if not drug_name:
-        raise HTTPException(
-            status_code=400, 
-            detail="İlaç adı belirlenemedi. Lütfen manuel olarak girin."
-        )
+        # İlaç adı bulunamadıysa GTIN veya varsayılan ad kullan
+        if parsed.get("gtin"):
+            drug_name = f"İlaç (GTIN: {parsed['gtin'][:8]}...)"
+        else:
+            drug_name = f"Bilinmeyen Ürün ({serial[:10]})"
+        logging.warning(f"Drug name not found, using default: {drug_name}")
     
-    # Expiry date parse
+    # Expiry date parse - artık YYYY-MM-DD formatında geliyor
     expiry_date = None
     if parsed.get("expiry_date"):
         try:
             exp_str = parsed["expiry_date"]
-            year = int(exp_str[0:2])
-            month = int(exp_str[2:4])
-            day = int(exp_str[4:6]) if len(exp_str) >= 6 else 1
-            
-            if year < 70:
-                year += 2000
-            else:
-                year += 1900
-            
-            if day == 0:
-                day = 28
-            
-            expiry_date = datetime(year, month, day)
-        except:
-            pass
+            # Eğer YYYY-MM-DD formatındaysa
+            if '-' in exp_str:
+                parts = exp_str.split('-')
+                expiry_date = datetime(int(parts[0]), int(parts[1]), int(parts[2]))
+            # Eğer YYMMDD formatındaysa (eski format)
+            elif len(exp_str) == 6:
+                year = int(exp_str[0:2])
+                month = int(exp_str[2:4])
+                day = int(exp_str[4:6])
+                
+                if year < 70:
+                    year += 2000
+                else:
+                    year += 1900
+                
+                if day == 0:
+                    day = 28
+                
+                expiry_date = datetime(year, month, day)
+        except Exception as e:
+            logging.warning(f"Could not parse expiry date: {parsed.get('expiry_date')} - {e}")
     
     # Yeni stok kaydı oluştur
     stock_item = BarcodeStockItem(

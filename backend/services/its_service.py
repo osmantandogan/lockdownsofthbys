@@ -323,6 +323,8 @@ def parse_datamatrix(barcode: str) -> Dict:
             "raw": "orijinal karekod"
         }
     """
+    import re
+    
     result = {
         "gtin": None,
         "serial_number": None,
@@ -334,68 +336,150 @@ def parse_datamatrix(barcode: str) -> Dict:
     if not barcode:
         return result
     
-    # Parantezli format: (01)GTIN(21)SERI...
-    if barcode.startswith("("):
-        import re
-        
+    # Kontrol karakterlerini temizle (FNC1, GS, RS, EOT vs.)
+    clean_barcode = barcode.replace('\x1d', '|').replace('\x1e', '|').replace('\x04', '|')
+    clean_barcode = re.sub(r'[\x00-\x1f]', '|', clean_barcode)
+    
+    logger.debug(f"Parsing barcode: {repr(barcode)}")
+    logger.debug(f"Cleaned barcode: {clean_barcode}")
+    
+    # Yöntem 1: Parantezli format: (01)GTIN(21)SERI...
+    if '(' in clean_barcode:
         # GTIN (01)
-        gtin_match = re.search(r'\(01\)(\d{14})', barcode)
+        gtin_match = re.search(r'\(01\)(\d{14})', clean_barcode)
         if gtin_match:
             result["gtin"] = gtin_match.group(1)
         
         # Seri Numarası (21)
-        serial_match = re.search(r'\(21\)([^\(]+)', barcode)
+        serial_match = re.search(r'\(21\)([^\(\)]+)', clean_barcode)
         if serial_match:
             result["serial_number"] = serial_match.group(1).strip()
         
         # Parti/Lot Numarası (10)
-        lot_match = re.search(r'\(10\)([^\(]+)', barcode)
+        lot_match = re.search(r'\(10\)([^\(\)]+)', clean_barcode)
         if lot_match:
             result["lot_number"] = lot_match.group(1).strip()
         
         # Son Kullanma Tarihi (17)
-        exp_match = re.search(r'\(17\)(\d{6})', barcode)
+        exp_match = re.search(r'\(17\)(\d{6})', clean_barcode)
         if exp_match:
             exp_str = exp_match.group(1)
-            try:
-                # YYMMDD -> YYYY-MM-DD
-                year = 2000 + int(exp_str[0:2])
-                month = int(exp_str[2:4])
-                day = int(exp_str[4:6])
-                # Gün 00 ise ayın son günü
-                if day == 0:
-                    day = 28  # Güvenli varsayılan
-                result["expiry_date"] = f"{year}-{month:02d}-{day:02d}"
-            except:
-                pass
+            result["expiry_date"] = _parse_expiry_date(exp_str)
     
-    else:
-        # GS1 FNC1 ayraçlı format (ASCII 29 = Group Separator)
-        # 01GTIN21SERIgs10LOTgs17SKT
-        # gs = \x1d (Group Separator)
+    # Yöntem 2: GS ayraçlı veya ayraçsız format
+    # 01GTIN17SKT10LOT21SERIAL veya 01GTIN|17SKT|10LOT|21SERIAL
+    if not result["gtin"]:
+        # AI kodlarını bul (01, 10, 17, 21)
+        # Önce ayraçlarla dene
+        parts = clean_barcode.split('|')
         
-        parts = barcode.replace('\x1d', '|').split('|')
+        # Tüm parçaları birleştir ve AI'ları bul
+        full_data = ''.join(parts)
         
-        for part in parts:
-            if part.startswith('01') and len(part) >= 16:
-                result["gtin"] = part[2:16]
-            elif part.startswith('21'):
-                result["serial_number"] = part[2:]
-            elif part.startswith('10'):
-                result["lot_number"] = part[2:]
-            elif part.startswith('17') and len(part) >= 8:
-                exp_str = part[2:8]
-                try:
-                    year = 2000 + int(exp_str[0:2])
-                    month = int(exp_str[2:4])
-                    day = int(exp_str[4:6])
-                    if day == 0:
-                        day = 28
-                    result["expiry_date"] = f"{year}-{month:02d}-{day:02d}"
-                except:
-                    pass
+        # GTIN (01) - 14 haneli
+        gtin_match = re.search(r'01(\d{14})', full_data)
+        if gtin_match:
+            result["gtin"] = gtin_match.group(1)
+        
+        # SKT (17) - 6 haneli tarih
+        exp_match = re.search(r'17(\d{6})', full_data)
+        if exp_match:
+            result["expiry_date"] = _parse_expiry_date(exp_match.group(1))
+        
+        # Lot (10) ve Seri (21) değişken uzunluklu - daha karmaşık parse
+        # Bu AI'lar değişken uzunlukta olduğu için sırayla bakmamız gerekiyor
+        
+        # Önce sabit uzunluklu AI'ları çıkar
+        remaining = full_data
+        if result["gtin"]:
+            remaining = remaining.replace(f'01{result["gtin"]}', '|')
+        if exp_match:
+            remaining = remaining.replace(f'17{exp_match.group(1)}', '|')
+        
+        # Kalan parçalarda 10 ve 21'i ara
+        for segment in remaining.split('|'):
+            segment = segment.strip()
+            if not segment:
+                continue
+            
+            if segment.startswith('21') and not result["serial_number"]:
+                # Seri numarasını al (sonraki AI'ya kadar veya sona kadar)
+                serial_val = segment[2:]
+                # Başka bir AI ile başlayan kısmı kes
+                for ai in ['01', '10', '17']:
+                    ai_pos = serial_val.find(ai)
+                    if ai_pos > 0:
+                        serial_val = serial_val[:ai_pos]
+                result["serial_number"] = serial_val.strip()
+                
+            elif segment.startswith('10') and not result["lot_number"]:
+                lot_val = segment[2:]
+                for ai in ['01', '17', '21']:
+                    ai_pos = lot_val.find(ai)
+                    if ai_pos > 0:
+                        lot_val = lot_val[:ai_pos]
+                result["lot_number"] = lot_val.strip()
+    
+    # Yöntem 3: Ham veriyi pozisyon bazlı parse et
+    # Bazı karekodlar şöyle: 01XXXXXXXXXXXXXX17YYMMDD10LOT21SERIAL
+    if not result["gtin"] and not result["serial_number"]:
+        # 01 ile başlıyorsa
+        if clean_barcode.startswith('01') and len(clean_barcode) >= 16:
+            result["gtin"] = clean_barcode[2:16]
+            rest = clean_barcode[16:]
+            
+            # 17YYMMDD
+            if '17' in rest:
+                idx = rest.find('17')
+                if idx >= 0 and len(rest) >= idx + 8:
+                    result["expiry_date"] = _parse_expiry_date(rest[idx+2:idx+8])
+            
+            # 10LOT
+            if '10' in rest:
+                idx = rest.find('10')
+                if idx >= 0:
+                    # Sonraki AI'ya kadar al
+                    lot_end = len(rest)
+                    for ai in ['17', '21']:
+                        ai_idx = rest.find(ai, idx + 2)
+                        if ai_idx > idx and ai_idx < lot_end:
+                            lot_end = ai_idx
+                    result["lot_number"] = rest[idx+2:lot_end]
+            
+            # 21SERIAL
+            if '21' in rest:
+                idx = rest.find('21')
+                if idx >= 0:
+                    serial_end = len(rest)
+                    for ai in ['17', '10']:
+                        ai_idx = rest.find(ai, idx + 2)
+                        if ai_idx > idx and ai_idx < serial_end:
+                            serial_end = ai_idx
+                    result["serial_number"] = rest[idx+2:serial_end]
+    
+    # Son temizlik
+    if result["serial_number"]:
+        result["serial_number"] = result["serial_number"].strip()
+    if result["lot_number"]:
+        result["lot_number"] = result["lot_number"].strip()
+    
+    logger.debug(f"Parse result: {result}")
     
     return result
+
+
+def _parse_expiry_date(exp_str: str) -> str:
+    """YYMMDD formatını YYYY-MM-DD'ye çevir"""
+    try:
+        year = 2000 + int(exp_str[0:2])
+        month = int(exp_str[2:4])
+        day = int(exp_str[4:6])
+        # Gün 00 ise ayın son günü
+        if day == 0:
+            day = 28  # Güvenli varsayılan
+        return f"{year}-{month:02d}-{day:02d}"
+    except:
+        return None
 
 
 def get_drug_info_from_barcode(barcode: str) -> Dict:
