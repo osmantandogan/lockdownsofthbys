@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { settingsAPI, usersAPI, otpAPI } from '../api';
+import { settingsAPI, usersAPI, otpAPI, itsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { User, Info, PenTool, Camera, Trash2, Upload, Smartphone, Shield, CheckCircle, RefreshCw, Copy, Eye, EyeOff } from 'lucide-react';
+import { User, Info, PenTool, Camera, Trash2, Upload, Smartphone, Shield, CheckCircle, RefreshCw, Copy, Eye, EyeOff, Pill, Database, Loader2 } from 'lucide-react';
 import SignaturePad from '../components/SignaturePad';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 const Settings = () => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [systemInfo, setSystemInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,17 @@ const Settings = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpVerifyCode, setOtpVerifyCode] = useState('');
   const [showSecret, setShowSecret] = useState(false);
+  
+  // ITS (İlaç Takip Sistemi)
+  const [itsStatus, setItsStatus] = useState(null);
+  const [itsLoading, setItsLoading] = useState(false);
+  const [itsSyncing, setItsSyncing] = useState(false);
+  const [itsCredentials, setItsCredentials] = useState({
+    username: '',
+    password: '',
+    use_test: true
+  });
+  const [showItsPassword, setShowItsPassword] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -53,11 +66,62 @@ const Settings = () => {
         phone: profileRes.data.phone || '',
         tc_no: profileRes.data.tc_no || ''
       });
+      
+      // ITS durumunu yükle (sadece yetkili roller için)
+      if (['operasyon_muduru', 'merkez_ofis'].includes(user?.role)) {
+        try {
+          const itsRes = await itsAPI.getStatus();
+          setItsStatus(itsRes.data);
+        } catch (e) {
+          console.log('ITS status not available');
+        }
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.error('Ayarlar yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // ITS Yapılandırma
+  const handleItsConfig = async () => {
+    if (!itsCredentials.username || !itsCredentials.password) {
+      toast.error('Lütfen kullanıcı adı ve şifre girin');
+      return;
+    }
+    
+    setItsLoading(true);
+    try {
+      await itsAPI.configure(itsCredentials);
+      toast.success('İTS yapılandırması kaydedildi');
+      const itsRes = await itsAPI.getStatus();
+      setItsStatus(itsRes.data);
+      setItsCredentials(prev => ({ ...prev, password: '' }));
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'İTS yapılandırılamadı');
+    } finally {
+      setItsLoading(false);
+    }
+  };
+  
+  // ITS İlaç Listesi Senkronizasyonu
+  const handleItsSyncDrugs = async () => {
+    setItsSyncing(true);
+    try {
+      await itsAPI.syncDrugs();
+      toast.success('İlaç listesi senkronizasyonu başlatıldı. Bu işlem birkaç dakika sürebilir.');
+      // 5 saniye sonra durumu güncelle
+      setTimeout(async () => {
+        try {
+          const itsRes = await itsAPI.getStatus();
+          setItsStatus(itsRes.data);
+        } catch (e) {}
+        setItsSyncing(false);
+      }, 5000);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Senkronizasyon başlatılamadı');
+      setItsSyncing(false);
     }
   };
 
@@ -564,6 +628,150 @@ const Settings = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* ITS - İlaç Takip Sistemi (Sadece yetkili roller için) */}
+      {['operasyon_muduru', 'merkez_ofis'].includes(user?.role) && (
+        <Card className="border-2 border-green-200">
+          <CardHeader className="bg-green-50">
+            <CardTitle className="flex items-center space-x-2">
+              <Pill className="h-5 w-5 text-green-600" />
+              <span>İTS - İlaç Takip Sistemi</span>
+              {itsStatus?.configured && (
+                <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Yapılandırıldı
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            {/* Bilgi Kutusu */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Database className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-green-900">İlaç Karekod Sistemi</h4>
+                  <p className="text-sm text-green-700 mt-1">
+                    İTS API'ya bağlanarak ilaç karekodlarını okuttuğunuzda ilaç adları otomatik olarak eşleştirilir.
+                    Yapılandırma için İTS'den aldığınız GLN numarası ve şifreyi girin.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Durum */}
+            {itsStatus && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Durum</p>
+                  <p className="font-medium">{itsStatus.configured ? '✅ Aktif' : '❌ Yapılandırılmadı'}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Mod</p>
+                  <p className="font-medium">{itsStatus.test_mode ? '🧪 Test' : '🏭 Üretim'}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Önbellekteki İlaç</p>
+                  <p className="font-medium">{itsStatus.cache?.total_drugs || 0}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Token</p>
+                  <p className="font-medium">{itsStatus.has_token ? '✅ Var' : '❌ Yok'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Yapılandırma Formu */}
+            <div className="space-y-4 border-t pt-6">
+              <h4 className="font-medium">İTS Kimlik Bilgileri</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="its-username">GLN Numarası (Kullanıcı Adı)</Label>
+                  <Input
+                    id="its-username"
+                    value={itsCredentials.username}
+                    onChange={(e) => setItsCredentials(prev => ({ ...prev, username: e.target.value }))}
+                    placeholder="86836847871710000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="its-password">Şifre</Label>
+                  <div className="relative">
+                    <Input
+                      id="its-password"
+                      type={showItsPassword ? "text" : "password"}
+                      value={itsCredentials.password}
+                      onChange={(e) => setItsCredentials(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="••••••"
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowItsPassword(!showItsPassword)}
+                    >
+                      {showItsPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="its-test-mode"
+                  checked={itsCredentials.use_test}
+                  onChange={(e) => setItsCredentials(prev => ({ ...prev, use_test: e.target.checked }))}
+                  className="rounded"
+                />
+                <Label htmlFor="its-test-mode" className="text-sm cursor-pointer">
+                  Test ortamını kullan (Üretim için kapatın)
+                </Label>
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={handleItsConfig}
+                  disabled={itsLoading || !itsCredentials.username || !itsCredentials.password}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {itsLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    'Yapılandırmayı Kaydet'
+                  )}
+                </Button>
+                
+                {itsStatus?.configured && (
+                  <Button 
+                    onClick={handleItsSyncDrugs}
+                    disabled={itsSyncing}
+                    variant="outline"
+                  >
+                    {itsSyncing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Senkronize Ediliyor...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        İlaç Listesini Senkronize Et
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* System Info */}
       <Card>
