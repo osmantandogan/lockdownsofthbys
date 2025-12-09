@@ -86,11 +86,13 @@ async def create_case(data: CaseCreate, request: Request):
         created_by=user.id
     )
     
-    # Add initial status to history
+    # Add initial status to history - kullanıcı adı ve rolü ile
     initial_status = CaseStatusUpdate(
         status="acildi",
         note="Vaka oluşturuldu",
-        updated_by=user.id
+        updated_by=user.id,
+        updated_by_name=user.name,
+        updated_by_role=user.role
     )
     new_case.status_history.append(initial_status)
     
@@ -153,17 +155,20 @@ async def get_cases(
     query = {}
     filters = []
     
-    # Role-based filtering - saha personeli sadece atandıkları vakaları görür
-    if user.role in ["paramedik", "att", "sofor", "hemsire"]:
-        # Only see assigned cases
+    # Role-based filtering - saha personeli sadece atandıkları veya oluşturdukları vakaları görür
+    # Hemşire tüm vakaları görebilir
+    if user.role in ["paramedik", "att", "sofor"]:
+        # Atandığı VEYA oluşturduğu vakaları görsün
         filters.append({
             "$or": [
                 {"assigned_team.driver_id": user.id},
                 {"assigned_team.paramedic_id": user.id},
                 {"assigned_team.att_id": user.id},
-                {"assigned_team.nurse_id": user.id}
+                {"assigned_team.nurse_id": user.id},
+                {"created_by": user.id}  # Kendi oluşturduğu vakalar
             ]
         })
+    # Hemşire tüm vakaları görebilir - filtre ekleme
     
     if status:
         filters.append({"status": status})
@@ -439,7 +444,9 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     status_update = CaseStatusUpdate(
         status="ekip_bilgilendirildi",
         note="Ekip görevlendirildi",
-        updated_by=user.id
+        updated_by=user.id,
+        updated_by_name=user.name,
+        updated_by_role=user.role
     )
     
     await cases_collection.update_one(
@@ -535,11 +542,13 @@ async def update_case_status(case_id: str, data: CaseUpdateStatus, request: Requ
     if not case_doc:
         raise HTTPException(status_code=404, detail="Case not found")
     
-    # Create status update
+    # Create status update with user info
     status_update = CaseStatusUpdate(
         status=data.status,
         note=data.note,
-        updated_by=user.id
+        updated_by=user.id,
+        updated_by_name=user.name,
+        updated_by_role=user.role
     )
     
     update_data = {
@@ -836,7 +845,7 @@ async def doctor_approval(case_id: str, data: DoctorApprovalRequest, request: Re
         }
     )
     
-    # Add to status history
+    # Add to status history with user info
     status_note = f"Doktor {user.name} tarafından {'onaylandı' if data.status == 'approved' else 'reddedildi'}"
     if data.rejection_reason:
         status_note += f": {data.rejection_reason}"
@@ -844,7 +853,9 @@ async def doctor_approval(case_id: str, data: DoctorApprovalRequest, request: Re
     status_update = CaseStatusUpdate(
         status=case_doc.get("status"),  # Keep current status
         note=status_note,
-        updated_by=user.id
+        updated_by=user.id,
+        updated_by_name=user.name,
+        updated_by_role=user.role
     )
     
     await cases_collection.update_one(

@@ -2623,13 +2623,24 @@ const CaseDetail = () => {
         <CardContent>
           <div className="space-y-4">
             {caseData.status_history.map((item, index) => (
-              <div key={index} className="flex space-x-4 items-start">
-                    <div className="min-w-[140px] text-sm text-gray-500">
+              <div key={index} className="flex space-x-4 items-start border-l-2 border-gray-200 pl-4 pb-4">
+                <div className="min-w-[140px] text-sm text-gray-500">
                   {new Date(item.updated_at).toLocaleString('tr-TR')}
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">{statusLabels[item.status]}</p>
+                  <p className="font-medium">{statusLabels[item.status] || item.status}</p>
                   {item.note && <p className="text-sm text-gray-600">{item.note}</p>}
+                  {/* Kullanıcı bilgisi */}
+                  {(item.updated_by_name || item.updated_by_role) && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {item.updated_by_role && (
+                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded mr-2 uppercase text-[10px] font-medium">
+                          {item.updated_by_role}
+                        </span>
+                      )}
+                      {item.updated_by_name || 'Bilinmeyen'}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

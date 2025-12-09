@@ -103,6 +103,8 @@ class CaseStatusUpdate(BaseModel):
     status: CaseStatus
     note: Optional[str] = None
     updated_by: str
+    updated_by_name: Optional[str] = None  # Kullanıcı adı
+    updated_by_role: Optional[str] = None  # Kullanıcı rolü (att, paramedik, hemsire vb.)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     location: Optional[dict] = None  # GPS coordinates
 
