@@ -1,16 +1,15 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
-import sys
 import os
+import logging
 
-# Add parent directory to path to import excel_to_pdf_with_data
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from excel_to_pdf_with_data import excel_form_to_pdf_with_data
+from services.excel_to_pdf_with_data import excel_form_to_pdf_with_data
 from auth_utils import get_current_user
 from database import cases_collection
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
+logger = logging.getLogger(__name__)
+
 
 @router.get("/case/{case_id}")
 async def generate_case_pdf(case_id: str, request: Request):
@@ -24,21 +23,22 @@ async def generate_case_pdf(case_id: str, request: Request):
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     
-    # Get path to project root (three levels up: routes -> backend -> project_root)
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    excel_template = os.path.join(project_root, "ambulans_vaka_formu.xlsx")
+    # Get path to templates directory
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    excel_template = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
     
     if not os.path.exists(excel_template):
-        raise HTTPException(status_code=500, detail=f"Excel template not found at: {excel_template}")
+        logger.error(f"Excel template not found at: {excel_template}")
+        raise HTTPException(status_code=500, detail=f"Excel template not found")
     
-    # Create temp directory in project root
-    temp_dir = os.path.join(project_root, "temp")
+    # Create temp directory
+    temp_dir = os.path.join(backend_dir, "temp")
     os.makedirs(temp_dir, exist_ok=True)
     
     # Generate unique PDF filename
     pdf_path = os.path.join(temp_dir, f"case_{case_id}.pdf")
     
-    # Prepare form data from case (you can extend this based on what data is available)
+    # Prepare form data from case
     form_data = case.get('form_data', {})
     
     try:
@@ -63,6 +63,7 @@ async def generate_case_pdf(case_id: str, request: Request):
         )
         
     except Exception as e:
+        logger.error(f"Error generating PDF for case {case_id}: {str(e)}")
         # Clean up partial file if exists
         if os.path.exists(pdf_path):
             try:
@@ -89,15 +90,16 @@ async def generate_case_pdf_with_form_data(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     
-    # Get path to project root (three levels up: routes -> backend -> project_root)
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    excel_template = os.path.join(project_root, "ambulans_vaka_formu.xlsx")
+    # Get path to templates directory
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    excel_template = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
     
     if not os.path.exists(excel_template):
-        raise HTTPException(status_code=500, detail=f"Excel template not found at: {excel_template}")
+        logger.error(f"Excel template not found at: {excel_template}")
+        raise HTTPException(status_code=500, detail=f"Excel template not found")
     
-    # Create temp directory in project root
-    temp_dir = os.path.join(project_root, "temp")
+    # Create temp directory
+    temp_dir = os.path.join(backend_dir, "temp")
     os.makedirs(temp_dir, exist_ok=True)
     
     # Generate unique PDF filename
@@ -125,6 +127,7 @@ async def generate_case_pdf_with_form_data(
         )
         
     except Exception as e:
+        logger.error(f"Error generating PDF for case {case_id}: {str(e)}")
         # Clean up partial file if exists
         if os.path.exists(pdf_path):
             try:
@@ -133,4 +136,3 @@ async def generate_case_pdf_with_form_data(
                 pass
         
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
-

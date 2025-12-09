@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Phone, User, MapPin, AlertCircle, Truck, Bell, FileText, Building2, Hash, Heart, AlertTriangle, Search, UserPlus } from 'lucide-react';
+import { Phone, User, MapPin, AlertCircle, Truck, Bell, FileText, Building2, Hash, Heart, AlertTriangle, Search, UserPlus, Download } from 'lucide-react';
 import { COMPANIES, searchCompanies } from '../constants/companies';
 
 const CallCenter = () => {
@@ -137,6 +137,70 @@ const CallCenter = () => {
     return tc.slice(0, 3) + '******' + tc.slice(-2);
   };
 
+  // Hasta bilgilerini getir (TC ile arama)
+  const handleFetchPatientInfo = async () => {
+    if (!tcSearch || tcSearch.length !== 11) {
+      toast.error('Geçerli bir TC Kimlik No giriniz (11 haneli)');
+      return;
+    }
+    
+    setTcSearching(true);
+    try {
+      // TC ile hasta ara
+      const response = await patientsAPI.search({ tc_no: tcSearch });
+      
+      if (response.data && response.data.length > 0) {
+        // Hasta bulundu, tam bilgiyi al
+        const patient = response.data[0];
+        
+        try {
+          // Tam hasta bilgisini getir
+          const fullResponse = await patientsAPI.getById(patient.id);
+          const fullPatient = fullResponse.data;
+          
+          setSelectedPatientCard(fullPatient);
+          
+          // Doğum tarihinden yaş hesapla
+          let age = '';
+          if (fullPatient.birth_date) {
+            const birthDate = new Date(fullPatient.birth_date);
+            const today = new Date();
+            age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000)).toString();
+          }
+          
+          // Form alanlarını doldur
+          setFormData(prev => ({
+            ...prev,
+            patientTcNo: fullPatient.tc_no,
+            patientName: fullPatient.name || '',
+            patientSurname: fullPatient.surname || '',
+            patientAge: age,
+            patientGender: fullPatient.gender === 'erkek' ? 'erkek' : fullPatient.gender === 'kadin' ? 'kadin' : '',
+          }));
+          
+          toast.success(`Hasta bilgileri yüklendi: ${fullPatient.name} ${fullPatient.surname}`);
+        } catch (e) {
+          // Tam erişim yoksa temel bilgiyle devam et
+          setSelectedPatientCard(patient);
+          setFormData(prev => ({
+            ...prev,
+            patientTcNo: patient.tc_no,
+            patientName: patient.name || '',
+            patientSurname: patient.surname || '',
+          }));
+          toast.success('Hasta bilgileri yüklendi (temel bilgi)');
+        }
+      } else {
+        toast.warning('Bu TC ile kayıtlı hasta bulunamadı. Yeni hasta kartı oluşturabilirsiniz.');
+      }
+    } catch (error) {
+      console.error('Hasta bilgisi getirme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Hasta bilgisi getirilemedi');
+    } finally {
+      setTcSearching(false);
+    }
+  };
+
   // Yeni hasta kartı oluştur
   const handleCreateNewPatient = async () => {
     if (!tcSearch || tcSearch.length !== 11) {
@@ -159,6 +223,8 @@ const CallCenter = () => {
     } catch (error) {
       if (error.response?.data?.detail?.includes('zaten mevcut')) {
         toast.info('Bu TC ile kayıtlı hasta kartı zaten var');
+        // Zaten varsa bilgilerini getir
+        handleFetchPatientInfo();
       } else {
         toast.error(error.response?.data?.detail || 'Hasta kartı oluşturulamadı');
       }
@@ -509,22 +575,37 @@ const CallCenter = () => {
                   </div>
                 )}
                 
-                {/* Yeni hasta oluştur butonu */}
-                {tcSearch.length === 11 && !selectedPatientCard && tcSuggestions.length === 0 && !tcSearching && (
+                {/* Hasta bilgilerini getir ve yeni hasta oluştur butonları */}
+                {tcSearch.length === 11 && !selectedPatientCard && !tcSearching && (
                   <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-700 mb-2">
-                      Bu TC ile kayıtlı hasta bulunamadı
+                    <p className="text-sm text-blue-700 mb-3">
+                      {tcSuggestions.length === 0 
+                        ? 'Bu TC ile kayıtlı hasta bulunamadı' 
+                        : 'Hasta kartından bilgileri yüklemek için butona tıklayın'}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCreateNewPatient}
-                      className="text-blue-600 border-blue-300"
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Yeni Hasta Kartı Oluştur
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleFetchPatientInfo}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Hasta Bilgilerini Getir
+                      </Button>
+                      {tcSuggestions.length === 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCreateNewPatient}
+                          className="text-blue-600 border-blue-300"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Yeni Hasta Kartı Oluştur
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
