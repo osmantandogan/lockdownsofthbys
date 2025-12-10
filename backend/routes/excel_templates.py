@@ -16,8 +16,8 @@ import openpyxl
 from openpyxl.utils import get_column_letter, column_index_from_string
 from openpyxl.styles import Font, Fill, PatternFill, Alignment, Border, Side
 
-from database import db
-from auth import get_current_user
+from ..database import db
+from ..auth import get_current_user
 
 router = APIRouter(prefix="/api/excel-templates", tags=["excel-templates"])
 logger = logging.getLogger(__name__)
