@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Türkçe karakterleri ASCII'ye dönüştür (font sorunu için yedek)
 def normalize_turkish(text):
     """Türkçe karakterleri ASCII karşılıklarına dönüştür"""
-    if not text:
+    if text is None:
         return ""
     
     text = str(text)
@@ -33,13 +33,30 @@ def normalize_turkish(text):
         'ı': 'i', 'İ': 'I',
         'ö': 'o', 'Ö': 'O',
         'ü': 'u', 'Ü': 'U',
-        'ç': 'c', 'Ç': 'C'
+        'ç': 'c', 'Ç': 'C',
+        # Ek karakterler
+        'â': 'a', 'Â': 'A',
+        'î': 'i', 'Î': 'I',
+        'û': 'u', 'Û': 'U',
     }
     
     for tr_char, ascii_char in turkish_map.items():
         text = text.replace(tr_char, ascii_char)
     
-    return text
+    # Kalan non-ASCII karakterleri temizle
+    result = ""
+    for char in text:
+        if ord(char) < 256:
+            result += char
+        else:
+            result += "?"
+    
+    return result
+
+
+def safe_text(text):
+    """Metin için güvenli çıktı - normalize_turkish wrapper"""
+    return normalize_turkish(text)
 
 # Sayfa boyutları
 PAGE_SIZES = {
@@ -135,25 +152,25 @@ BLOCK_DATA_MAPPING = {
     },
     "onam_bilgilendirme": {
         "consent_text": lambda c, m: "Hasta bilgilendirildi.",
-        "patient_signature": lambda c, m: "[İMZA]",
+        "patient_signature": lambda c, m: "[IMZA]",
         "consent_date": lambda c, m: datetime.now().strftime("%d.%m.%Y"),
     },
     "hastane_reddi": {
         "rejection_reason": lambda c, m: m.get("inline_consents", {}).get("hospital_rejection", {}).get("reason", ""),
-        "hospital_signature": lambda c, m: "[İMZA]",
+        "hospital_signature": lambda c, m: "[IMZA]",
         "rejection_date": lambda c, m: datetime.now().strftime("%d.%m.%Y"),
     },
     "hasta_reddi": {
         "service_rejection_reason": lambda c, m: m.get("inline_consents", {}).get("patient_rejection", {}).get("reason", ""),
-        "patient_rejection_signature": lambda c, m: "[İMZA]",
+        "patient_rejection_signature": lambda c, m: "[IMZA]",
         "rejection_date": lambda c, m: datetime.now().strftime("%d.%m.%Y"),
     },
     "teslim_imzalar": {
         "receiver_name": lambda c, m: m.get("inline_consents", {}).get("handover", {}).get("receiver_name", ""),
-        "receiver_signature": lambda c, m: "[İMZA]",
-        "doctor_signature": lambda c, m: "[İMZA]",
-        "paramedic_signature": lambda c, m: "[İMZA]",
-        "driver_signature": lambda c, m: "[İMZA]",
+        "receiver_signature": lambda c, m: "[IMZA]",
+        "doctor_signature": lambda c, m: "[IMZA]",
+        "paramedic_signature": lambda c, m: "[IMZA]",
+        "driver_signature": lambda c, m: "[IMZA]",
     },
 }
 
