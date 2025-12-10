@@ -1,260 +1,79 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI, patientsAPI } from '../api';
+import { casesAPI, vehiclesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
+import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import { Phone, User, MapPin, AlertCircle, Truck, Bell, FileText, Building2, Hash, Heart, AlertTriangle, Search, UserPlus, Download, Check } from 'lucide-react';
-import { Checkbox } from '../components/ui/checkbox';
-import { COMPANIES, searchCompanies } from '../constants/companies';
+import { Phone, MapPin, User, Truck, Bell, Building2, Check, RefreshCw } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { COMPANIES } from '../constants/companies';
+
+// Fix leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const LocationPicker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+      toast.success('Konum seçildi');
+    },
+  });
+
+  return position ? <Marker position={[position.lat, position.lng]}><Popup>Seçilen Konum</Popup></Marker> : null;
+};
 
 const CallCenter = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState([]);
-  const [createdCaseId, setCreatedCaseId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [sendingNotification, setSendingNotification] = useState(false);
-  const [nextCaseNumber, setNextCaseNumber] = useState('');
+  const [createdCaseId, setCreatedCaseId] = useState(null);
+  const [position, setPosition] = useState({ lat: 41.578342, lng: 32.078179 });
+  const [isOutsideProject, setIsOutsideProject] = useState(false);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState([]);
   const [companySearch, setCompanySearch] = useState('');
-  const [filteredCompanies, setFilteredCompanies] = useState(COMPANIES);
-  
-  // TC Autocomplete için
-  const [tcSearch, setTcSearch] = useState('');
-  const [tcSuggestions, setTcSuggestions] = useState([]);
-  const [tcSearching, setTcSearching] = useState(false);
-  const [selectedPatientCard, setSelectedPatientCard] = useState(null);
-  const [showTcDropdown, setShowTcDropdown] = useState(false);
-  
+
   const [formData, setFormData] = useState({
-    // Caller Info
+    // Arayan kişi bilgileri
     callerName: '',
     callerPhone: '',
-    callerRelationship: '',
-    // Patient Info
-    patientName: '',
-    patientSurname: '',
-    patientTcNo: '',
-    patientAge: '',
-    patientGender: '',
-    patientComplaint: '',
-    // Company
-    companyId: '',
     companyName: '',
-    // Location
-    locationAddress: '',
-    locationDistrict: '',
-    locationVillage: '',
-    // Priority
-    priority: '',
-    // Vehicle - YENİ: Birden fazla araç desteği
-    vehicleId: '',  // Geriye uyumluluk
-    vehicleIds: []  // Birden fazla araç
+    
+    // Hasta / Olay bilgisi
+    patientName: '',
+    complaint: '',
+    
+    // Konum
+    address: '',
+    addressDescription: '',
+    district: '',
+    village: '',
+    neighborhood: ''
   });
 
   useEffect(() => {
     loadVehicles();
-    generateNextCaseNumber();
   }, []);
-
-  // TC arama - debounced
-  useEffect(() => {
-    const searchPatients = async () => {
-      if (tcSearch.length < 3) {
-        setTcSuggestions([]);
-        setShowTcDropdown(false);
-        return;
-      }
-      
-      setTcSearching(true);
-      try {
-        const response = await patientsAPI.search({ tc_no: tcSearch });
-        // Maksimum 3 sonuç göster
-        setTcSuggestions(response.data.slice(0, 3));
-        setShowTcDropdown(response.data.length > 0);
-      } catch (error) {
-        console.error('TC arama hatası:', error);
-        setTcSuggestions([]);
-      } finally {
-        setTcSearching(false);
-      }
-    };
-
-    const timeoutId = setTimeout(searchPatients, 300);
-    return () => clearTimeout(timeoutId);
-  }, [tcSearch]);
-
-  // Hasta seçildiğinde form alanlarını doldur
-  const handleSelectPatient = async (patient) => {
-    try {
-      // Tam bilgiyi al (eğer erişim varsa)
-      let fullPatient = patient;
-      
-      if (!patient.requires_approval) {
-        try {
-          const response = await patientsAPI.getById(patient.id);
-          fullPatient = response.data;
-        } catch (e) {
-          // Tam erişim yoksa mevcut bilgiyle devam et
-          console.log('Tam bilgi alınamadı, mevcut bilgiyle devam ediliyor');
-        }
-      }
-      
-      setSelectedPatientCard(fullPatient);
-      
-      // Doğum tarihinden yaş hesapla
-      let age = '';
-      if (fullPatient.birth_date) {
-        const birthDate = new Date(fullPatient.birth_date);
-        const today = new Date();
-        age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000)).toString();
-      }
-      
-      // Form alanlarını doldur
-      setFormData(prev => ({
-        ...prev,
-        patientTcNo: fullPatient.tc_no,
-        patientName: fullPatient.name || '',
-        patientSurname: fullPatient.surname || '',
-        patientAge: age,
-        patientGender: fullPatient.gender === 'erkek' ? 'male' : fullPatient.gender === 'kadin' ? 'female' : '',
-        patientBirthDate: fullPatient.birth_date || ''
-      }));
-      
-      setTcSearch(fullPatient.tc_no);
-      setShowTcDropdown(false);
-      toast.success('Hasta bilgileri yüklendi');
-    } catch (error) {
-      toast.error('Hasta bilgileri yüklenemedi');
-    }
-  };
-
-  // TC maskele (123******12 formatında)
-  const maskTcNo = (tc) => {
-    if (!tc || tc.length < 11) return tc;
-    return tc.slice(0, 3) + '******' + tc.slice(-2);
-  };
-
-  // Hasta bilgilerini getir (TC ile arama)
-  const handleFetchPatientInfo = async () => {
-    if (!tcSearch || tcSearch.length !== 11) {
-      toast.error('Geçerli bir TC Kimlik No giriniz (11 haneli)');
-      return;
-    }
-    
-    setTcSearching(true);
-    try {
-      // TC ile hasta ara
-      const response = await patientsAPI.search({ tc_no: tcSearch });
-      
-      if (response.data && response.data.length > 0) {
-        // Hasta bulundu, tam bilgiyi al
-        const patient = response.data[0];
-        
-        try {
-          // Tam hasta bilgisini getir
-          const fullResponse = await patientsAPI.getById(patient.id);
-          const fullPatient = fullResponse.data;
-          
-          setSelectedPatientCard(fullPatient);
-          
-          // Doğum tarihinden yaş hesapla
-          let age = '';
-          if (fullPatient.birth_date) {
-            const birthDate = new Date(fullPatient.birth_date);
-            const today = new Date();
-            age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000)).toString();
-          }
-          
-          // Form alanlarını doldur
-          setFormData(prev => ({
-            ...prev,
-            patientTcNo: fullPatient.tc_no,
-            patientName: fullPatient.name || '',
-            patientSurname: fullPatient.surname || '',
-            patientAge: age,
-            patientGender: fullPatient.gender === 'erkek' ? 'erkek' : fullPatient.gender === 'kadin' ? 'kadin' : '',
-          }));
-          
-          toast.success(`Hasta bilgileri yüklendi: ${fullPatient.name} ${fullPatient.surname}`);
-        } catch (e) {
-          // Tam erişim yoksa temel bilgiyle devam et
-          setSelectedPatientCard(patient);
-          setFormData(prev => ({
-            ...prev,
-            patientTcNo: patient.tc_no,
-            patientName: patient.name || '',
-            patientSurname: patient.surname || '',
-          }));
-          toast.success('Hasta bilgileri yüklendi (temel bilgi)');
-        }
-      } else {
-        toast.warning('Bu TC ile kayıtlı hasta bulunamadı. Yeni hasta kartı oluşturabilirsiniz.');
-      }
-    } catch (error) {
-      console.error('Hasta bilgisi getirme hatası:', error);
-      toast.error(error.response?.data?.detail || 'Hasta bilgisi getirilemedi');
-    } finally {
-      setTcSearching(false);
-    }
-  };
-
-  // Yeni hasta kartı oluştur
-  const handleCreateNewPatient = async () => {
-    if (!tcSearch || tcSearch.length !== 11) {
-      toast.error('Geçerli bir TC Kimlik No giriniz (11 haneli)');
-      return;
-    }
-    
-    try {
-      const newPatient = await patientsAPI.create({
-        tc_no: tcSearch,
-        name: formData.patientName || 'İsim Girilmedi',
-        surname: formData.patientSurname || 'Soyisim Girilmedi',
-        birth_date: formData.patientBirthDate || null,
-        gender: formData.patientGender === 'male' ? 'erkek' : formData.patientGender === 'female' ? 'kadin' : 'belirtilmemis'
-      });
-      
-      setSelectedPatientCard(newPatient.data);
-      setFormData(prev => ({ ...prev, patientTcNo: tcSearch }));
-      toast.success('Yeni hasta kartı oluşturuldu');
-    } catch (error) {
-      if (error.response?.data?.detail?.includes('zaten mevcut')) {
-        toast.info('Bu TC ile kayıtlı hasta kartı zaten var');
-        // Zaten varsa bilgilerini getir
-        handleFetchPatientInfo();
-      } else {
-        toast.error(error.response?.data?.detail || 'Hasta kartı oluşturulamadı');
-      }
-    }
-  };
-
-  // Sonraki vaka numarasını oluştur (YYYYMMDD-XXXXXX formatında, 000001'den başlar)
-  const generateNextCaseNumber = async () => {
-    try {
-      // Backend'den son vaka numarasını alıyoruz
-      const response = await casesAPI.getNextCaseNumber();
-      setNextCaseNumber(response.data.next_case_number);
-    } catch (error) {
-      // Fallback: Eğer endpoint yoksa local olarak oluştur
-      const today = new Date();
-      const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-      const baseNumber = '000001';
-      setNextCaseNumber(`${dateStr}-${baseNumber}`);
-    }
-  };
 
   const loadVehicles = async () => {
     try {
-      // Tüm araçları getir (durumlarını göster)
       const response = await vehiclesAPI.getAll({});
-      setVehicles(response.data);
+      setVehicles(response.data || []);
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      console.error('Araçlar yüklenemedi:', error);
+      toast.error('Araçlar yüklenemedi');
     }
   };
 
@@ -262,74 +81,76 @@ const CallCenter = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Sadece numerik giriş için telefon handler
-  const handlePhoneChange = (value) => {
-    // Sadece rakamları al
-    const numericValue = value.replace(/[^0-9]/g, '');
-    // Maksimum 11 karakter (Türkiye telefon formatı)
-    const limitedValue = numericValue.slice(0, 11);
-    handleChange('callerPhone', limitedValue);
-  };
-
-  // Firma arama
-  const handleCompanySearch = (value) => {
-    setCompanySearch(value);
-    setFilteredCompanies(searchCompanies(value));
-  };
-
-  // Firma seçimi
-  const handleCompanySelect = (companyId) => {
-    const company = COMPANIES.find(c => c.id.toString() === companyId);
-    if (company) {
-      handleChange('companyId', company.id.toString());
-      handleChange('companyName', company.name);
-    }
+  const toggleVehicle = (vehicleId) => {
+    setSelectedVehicleIds(prev => {
+      if (prev.includes(vehicleId)) {
+        return prev.filter(id => id !== vehicleId);
+      } else {
+        return [...prev, vehicleId];
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
+    // Validation - ya arayan adı ya da hasta adı dolu olmalı
+    if (!formData.callerName && !formData.patientName) {
+      toast.error('Arayan kişi adı veya hasta adı girilmelidir');
+      return;
+    }
+
+    if (!formData.complaint) {
+      toast.error('Şikayet/olay açıklaması girilmelidir');
+      return;
+    }
+
+    if (!formData.address && !formData.addressDescription) {
+      toast.error('Konum bilgisi girilmelidir');
+      return;
+    }
+
+    setLoading(true);
     try {
       const caseData = {
         caller: {
-          name: formData.callerName,
-          phone: formData.callerPhone,
-          relationship: formData.callerRelationship
+          name: formData.callerName || formData.patientName || 'Bilinmiyor',
+          phone: formData.callerPhone || '',
+          relationship: 'Bilinmiyor'
         },
         patient: {
-          name: formData.patientName,
-          surname: formData.patientSurname,
-          tc_no: formData.patientTcNo || null,
-          age: parseInt(formData.patientAge),
-          gender: formData.patientGender,
-          complaint: formData.patientComplaint
+          name: formData.patientName || formData.callerName || 'Hasta',
+          surname: '',
+          age: 0,
+          gender: 'diger',
+          complaint: formData.complaint
         },
-        company: formData.companyName || null,
         location: {
-          address: formData.locationAddress,
-          district: formData.locationDistrict || null,
-          village_or_neighborhood: formData.locationVillage || null
+          address: formData.address || formData.addressDescription,
+          address_description: formData.addressDescription,
+          coordinates: position,
+          district: isOutsideProject ? formData.district : '',
+          village: isOutsideProject ? formData.village : '',
+          neighborhood: isOutsideProject ? formData.neighborhood : ''
         },
-        priority: formData.priority
+        priority: 'orta',
+        case_details: {
+          company: formData.companyName,
+          is_outside_project: isOutsideProject
+        }
       };
 
       const response = await casesAPI.create(caseData);
       const caseId = response.data.id || response.data._id;
       
-      console.log('[CallCenter] Created case:', { caseId, response: response.data });
-      
-      if (!caseId) {
-        toast.error('Vaka oluşturuldu ancak ID alınamadı');
-        return;
+      if (caseId) {
+        setCreatedCaseId(caseId);
+        toast.success('Vaka oluşturuldu!');
+      } else {
+        toast.error('Vaka ID alınamadı');
       }
-      
-      setCreatedCaseId(caseId);
-      toast.success(`Vaka oluşturuldu: ${response.data.case_number}`);
-      
-      // Don't navigate yet, show notification button
     } catch (error) {
-      console.error('Error creating case:', error);
+      console.error('Vaka oluşturma hatası:', error);
       toast.error(error.response?.data?.detail || 'Vaka oluşturulamadı');
     } finally {
       setLoading(false);
@@ -337,663 +158,335 @@ const CallCenter = () => {
   };
 
   const handleSendNotification = async () => {
-    if (!createdCaseId) {
-      toast.error('Önce vaka oluşturulmalı');
-      return;
-    }
+    if (!createdCaseId) return;
 
     setSendingNotification(true);
     try {
-      // Birden fazla araç seçildiyse, önce hepsini ata
-      if (formData.vehicleIds.length > 0) {
-        await casesAPI.assignMultipleTeams(createdCaseId, formData.vehicleIds);
-        toast.success(`${formData.vehicleIds.length} araç görevlendirildi`);
+      // Araçları ata
+      if (selectedVehicleIds.length > 0) {
+        await casesAPI.assignMultipleTeams(createdCaseId, selectedVehicleIds);
+        toast.success(`${selectedVehicleIds.length} araç görevlendirildi`);
       }
       
-      // Sonra bildirimleri gönder
-      await casesAPI.sendNotification(createdCaseId, formData.vehicleIds[0] || null);
+      // Bildirim gönder
+      await casesAPI.sendNotification(createdCaseId, selectedVehicleIds[0] || null);
       toast.success('Bildirimler gönderildi!');
       
-      // Navigate to case detail
-      setTimeout(() => {
-        navigate(`/dashboard/cases/${createdCaseId}`);
-      }, 1500);
+      setTimeout(() => navigate(`/dashboard/cases/${createdCaseId}`), 1000);
     } catch (error) {
-      console.error('Error sending notification:', error);
-      toast.error(error.response?.data?.detail || 'Bildirim gönderilemedi');
+      console.error('Hata:', error);
+      toast.error('İşlem sırasında hata oluştu');
     } finally {
       setSendingNotification(false);
     }
   };
 
+  const getStatusBadge = (status) => {
+    const config = {
+      musait: { bg: 'bg-green-100', text: 'text-green-700', label: 'Müsait' },
+      gorevde: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Görevde' },
+      bakimda: { bg: 'bg-red-100', text: 'text-red-700', label: 'Bakımda' }
+    };
+    const c = config[status] || config.bakimda;
+    return <Badge className={`${c.bg} ${c.text} border-0`}>{c.label}</Badge>;
+  };
+
+  // Firma arama
+  const filteredCompanies = companySearch 
+    ? COMPANIES.filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 5)
+    : [];
+
   return (
-    <div className="space-y-6" data-testid="call-center-page">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Çağrı Merkezi</h1>
-          <p className="text-gray-500">Yeni vaka oluştur</p>
+          <h1 className="text-2xl font-bold">Çağrı Merkezi</h1>
+          <p className="text-gray-500 text-sm">Yeni vaka oluştur</p>
         </div>
-        {/* Vaka Numarası Önizleme */}
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
-          <div className="flex items-center space-x-2">
-            <Hash className="h-5 w-5 text-red-600" />
-            <div>
-              <p className="text-xs text-red-600 font-medium">Yeni Vaka No</p>
-              <p className="text-lg font-bold text-red-700">{nextCaseNumber || 'Yükleniyor...'}</p>
-            </div>
-          </div>
-        </div>
+        <Button variant="outline" size="sm" onClick={loadVehicles}>
+          <RefreshCw className="h-4 w-4 mr-1" /> Yenile
+        </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Arayan Bilgileri */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Phone className="h-5 w-5 text-red-600" />
-              <span>Arayan Kişi Bilgileri</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* SOL: Harita */}
+        <Card className="h-[600px]">
+          <CardHeader className="py-3 bg-blue-50">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MapPin className="h-4 w-4" /> Konum Seçimi
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="callerName">Arayan Kişi Ad Soyad *</Label>
-              <Input
-                id="callerName"
-                value={formData.callerName}
-                onChange={(e) => handleChange('callerName', e.target.value)}
-                placeholder="Arayan kişinin adı soyadı"
-                required
-                data-testid="caller-name"
+          <CardContent className="p-0 h-[calc(100%-52px)]">
+            <MapContainer
+              center={[position.lat, position.lng]}
+              zoom={12}
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; OpenStreetMap'
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="callerPhone">Telefon * (Sadece Rakam)</Label>
-              <Input
-                id="callerPhone"
-                type="tel"
-                inputMode="numeric"
-                value={formData.callerPhone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="05XXXXXXXXX"
-                required
-                data-testid="caller-phone"
-                maxLength={11}
-              />
-              <p className="text-xs text-gray-500">Örn: 05301234567</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="callerRelationship">Hastaya Yakınlığı *</Label>
-              <Select value={formData.callerRelationship} onValueChange={(value) => handleChange('callerRelationship', value)} required>
-                <SelectTrigger data-testid="caller-relationship">
-                  <SelectValue placeholder="Seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="kendisi">Kendisi</SelectItem>
-                  <SelectItem value="esi">Eşi</SelectItem>
-                  <SelectItem value="annesi">Annesi</SelectItem>
-                  <SelectItem value="babasi">Babası</SelectItem>
-                  <SelectItem value="cocugu">Çocuğu</SelectItem>
-                  <SelectItem value="kardesi">Kardeşi</SelectItem>
-                  <SelectItem value="arkadasi">Arkadaşı</SelectItem>
-                  <SelectItem value="komsusu">Komşusu</SelectItem>
-                  <SelectItem value="is_arkadasi">İş Arkadaşı</SelectItem>
-                  <SelectItem value="diger">Diğer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <LocationPicker position={position} setPosition={setPosition} />
+            </MapContainer>
           </CardContent>
         </Card>
 
-        {/* Firma Seçimi */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Building2 className="h-5 w-5 text-red-600" />
-              <span>Firma Bilgisi *</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="company">Firma Seçin *</Label>
-              <Select value={formData.companyId} onValueChange={handleCompanySelect} required>
-                <SelectTrigger data-testid="company-select">
-                  <SelectValue placeholder="Firma seçin veya arayın..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-80">
-                  <div className="px-2 py-2 sticky top-0 bg-white border-b">
-                    <Input
-                      placeholder="Firma ara..."
-                      value={companySearch}
-                      onChange={(e) => handleCompanySearch(e.target.value)}
-                      className="h-8"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
+        {/* SAĞ: Form */}
+        <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Arayan Kişi Bilgileri + Firma */}
+            <Card>
+              <CardHeader className="py-3 bg-emerald-50">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Phone className="h-4 w-4" /> Arayan Kişi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Arayan Adı *</Label>
+                    <Input 
+                      placeholder="Arayan kişinin adı"
+                      value={formData.callerName}
+                      onChange={(e) => handleChange('callerName', e.target.value)}
                     />
                   </div>
-                  {filteredCompanies.map((company) => (
-                    <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                  {filteredCompanies.length === 0 && (
-                    <div className="px-2 py-4 text-center text-gray-500 text-sm">
-                      Firma bulunamadı
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-              {formData.companyName && (
-                <p className="text-sm text-green-600 font-medium">
-                  Seçilen: {formData.companyName}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Hasta Bilgileri */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-red-600" />
-              <span>Hasta Bilgileri</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="patientName">Hastanın Adı *</Label>
-                <Input
-                  id="patientName"
-                  value={formData.patientName}
-                  onChange={(e) => handleChange('patientName', e.target.value)}
-                  placeholder="Hastanın adı"
-                  required
-                  data-testid="patient-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patientSurname">Hastanın Soyadı *</Label>
-                <Input
-                  id="patientSurname"
-                  value={formData.patientSurname}
-                  onChange={(e) => handleChange('patientSurname', e.target.value)}
-                  placeholder="Hastanın soyadı"
-                  required
-                  data-testid="patient-surname"
-                />
-              </div>
-              <div className="space-y-2 relative">
-                <Label htmlFor="patientTcNo">TC Kimlik No</Label>
+                  <div>
+                    <Label className="text-xs">Telefon</Label>
+                    <Input 
+                      placeholder="05XX XXX XXXX"
+                      value={formData.callerPhone}
+                      onChange={(e) => handleChange('callerPhone', e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                {/* Firma - küçük ve opsiyonel */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="patientTcNo"
-                    type="tel"
-                    inputMode="numeric"
-                    value={tcSearch}
+                  <Label className="text-xs text-gray-500">Firma (opsiyonel)</Label>
+                  <Input 
+                    placeholder="Firma ara..."
+                    value={companySearch}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
-                      setTcSearch(value);
-                      if (value.length < 3) {
-                        setSelectedPatientCard(null);
-                        setFormData(prev => ({ ...prev, patientTcNo: value }));
-                      }
+                      setCompanySearch(e.target.value);
+                      handleChange('companyName', e.target.value);
                     }}
-                    onFocus={() => tcSuggestions.length > 0 && setShowTcDropdown(true)}
-                    placeholder="TC ile hasta ara..."
-                    maxLength={11}
-                    className="pl-10"
-                    data-testid="patient-tc"
+                    className="h-8 text-sm"
                   />
-                  {tcSearching && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                  {filteredCompanies.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg">
+                      {filteredCompanies.map((c, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                          onClick={() => {
+                            handleChange('companyName', c.name);
+                            setCompanySearch(c.name);
+                          }}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
-                
-                {/* TC Autocomplete Dropdown */}
-                {showTcDropdown && tcSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
-                    {tcSuggestions.map((patient) => (
-                      <div
-                        key={patient.id}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                        onClick={() => handleSelectPatient(patient)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{patient.name} {patient.surname}</p>
-                            <p className="text-sm text-gray-500 font-mono">{maskTcNo(patient.tc_no)}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {patient.has_allergies && (
-                              <Badge className="bg-orange-100 text-orange-700 text-xs">
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                Alerji
-                              </Badge>
-                            )}
-                            {patient.has_chronic_diseases && (
-                              <Badge className="bg-purple-100 text-purple-700 text-xs">
-                                <Heart className="h-3 w-3 mr-1" />
-                                Kronik
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              </CardContent>
+            </Card>
+
+            {/* Olay/Şikayet */}
+            <Card>
+              <CardHeader className="py-3 bg-amber-50">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <User className="h-4 w-4" /> Olay Bilgisi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div>
+                  <Label className="text-xs">Hasta Adı (opsiyonel - arayan adı dolduysa)</Label>
+                  <Input 
+                    placeholder="Hasta adı"
+                    value={formData.patientName}
+                    onChange={(e) => handleChange('patientName', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Şikayet / Olay Açıklaması *</Label>
+                  <Textarea 
+                    placeholder="Olay detayı..."
+                    value={formData.complaint}
+                    onChange={(e) => handleChange('complaint', e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Konum */}
+            <Card>
+              <CardHeader className="py-3 bg-purple-50">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" /> Konum Bilgisi
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs font-normal">Proje Dışı?</Label>
+                    <Switch 
+                      checked={isOutsideProject} 
+                      onCheckedChange={setIsOutsideProject}
+                    />
                   </div>
-                )}
-                
-                {/* Hasta bilgilerini getir ve yeni hasta oluştur butonları */}
-                {tcSearch.length === 11 && !selectedPatientCard && !tcSearching && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-700 mb-3">
-                      {tcSuggestions.length === 0 
-                        ? 'Bu TC ile kayıtlı hasta bulunamadı' 
-                        : 'Hasta kartından bilgileri yüklemek için butona tıklayın'}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleFetchPatientInfo}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Hasta Bilgilerini Getir
-                      </Button>
-                      {tcSuggestions.length === 0 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCreateNewPatient}
-                          className="text-blue-600 border-blue-300"
-                        >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Yeni Hasta Kartı Oluştur
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Seçilen Hasta - Tıbbi Bilgiler */}
-            {selectedPatientCard && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-5 w-5 text-green-600" />
-                    <span className="font-semibold text-green-800">
-                      Hasta Kartı Yüklendi
-                    </span>
-                  </div>
-                  <Badge className="bg-green-100 text-green-700">
-                    {selectedPatientCard.blood_type || 'Kan Grubu Bilinmiyor'}
-                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div>
+                  <Label className="text-xs">Adres / Tarif *</Label>
+                  <Textarea 
+                    placeholder="Adres veya tarif..."
+                    value={formData.addressDescription}
+                    onChange={(e) => handleChange('addressDescription', e.target.value)}
+                    rows={2}
+                  />
                 </div>
                 
-                {/* Alerjiler */}
-                {selectedPatientCard.allergies?.length > 0 && (
-                  <div className="p-3 bg-orange-50 rounded border border-orange-200">
-                    <p className="text-sm font-semibold text-orange-800 mb-2 flex items-center">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      Alerjiler ({selectedPatientCard.allergies.length})
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedPatientCard.allergies.map((allergy, idx) => (
-                        <Badge 
-                          key={idx}
-                          className={
-                            allergy.severity === 'anafilaksi' ? 'bg-red-100 text-red-800' :
-                            allergy.severity === 'siddetli' ? 'bg-orange-100 text-orange-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }
-                        >
-                          {allergy.name}
-                          {allergy.severity === 'anafilaksi' && ' ⚠️'}
-                        </Badge>
-                      ))}
+                {isOutsideProject && (
+                  <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <Label className="text-xs">İlçe</Label>
+                      <Input 
+                        placeholder="İlçe"
+                        value={formData.district}
+                        onChange={(e) => handleChange('district', e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Köy/Mahalle</Label>
+                      <Input 
+                        placeholder="Köy/Mahalle"
+                        value={formData.village}
+                        onChange={(e) => handleChange('village', e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Mahalle/Sokak</Label>
+                      <Input 
+                        placeholder="Detay"
+                        value={formData.neighborhood}
+                        onChange={(e) => handleChange('neighborhood', e.target.value)}
+                        className="h-8"
+                      />
                     </div>
                   </div>
                 )}
                 
-                {/* Kronik Hastalıklar */}
-                {selectedPatientCard.chronic_diseases?.length > 0 && (
-                  <div className="p-3 bg-purple-50 rounded border border-purple-200">
-                    <p className="text-sm font-semibold text-purple-800 mb-2 flex items-center">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Kronik Hastalıklar ({selectedPatientCard.chronic_diseases.length})
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedPatientCard.chronic_diseases.map((disease, idx) => (
-                        <Badge key={idx} className="bg-purple-100 text-purple-800">
-                          {disease.name}
-                          {disease.medications && (
-                            <span className="ml-1 text-xs opacity-75">({disease.medications})</span>
-                          )}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Doktor Uyarıları */}
-                {selectedPatientCard.doctor_notes?.filter(n => n.is_alert).length > 0 && (
-                  <div className="p-3 bg-red-50 rounded border border-red-200">
-                    <p className="text-sm font-semibold text-red-800 mb-2 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-2" />
-                      Doktor Uyarıları
-                    </p>
-                    {selectedPatientCard.doctor_notes.filter(n => n.is_alert).map((note, idx) => (
-                      <p key={idx} className="text-sm text-red-700">
-                        • {note.title}: {note.content}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="patientAge">Yaş *</Label>
-                <Input
-                  id="patientAge"
-                  type="number"
-                  min="0"
-                  max="150"
-                  value={formData.patientAge}
-                  onChange={(e) => handleChange('patientAge', e.target.value)}
-                  placeholder="Yaş"
-                  required
-                  data-testid="patient-age"
-                />
-                {selectedPatientCard?.birth_date && (
-                  <p className="text-xs text-gray-500">
-                    Doğum: {new Date(selectedPatientCard.birth_date).toLocaleDateString('tr-TR')}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patientGender">Cinsiyet *</Label>
-                <Select value={formData.patientGender} onValueChange={(value) => handleChange('patientGender', value)} required>
-                  <SelectTrigger data-testid="patient-gender">
-                    <SelectValue placeholder="Seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="erkek">Erkek</SelectItem>
-                    <SelectItem value="kadin">Kadın</SelectItem>
-                    <SelectItem value="diger">Diğer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="patientComplaint">Şikayet / Olay Açıklaması *</Label>
-              <Textarea
-                id="patientComplaint"
-                placeholder="Hastanın şikayetini veya olayı detaylı açıklayın"
-                value={formData.patientComplaint}
-                onChange={(e) => handleChange('patientComplaint', e.target.value)}
-                required
-                rows={4}
-                data-testid="patient-complaint"
-              />
-            </div>
-          </CardContent>
-        </Card>
+                <p className="text-xs text-gray-500">
+                  Koordinat: {position.lat.toFixed(5)}, {position.lng.toFixed(5)}
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Konum Bilgileri */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5 text-red-600" />
-              <span>Konum Bilgileri</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="locationAddress">Adres *</Label>
-              <Textarea
-                id="locationAddress"
-                placeholder="Olay yerinin detaylı adresi"
-                value={formData.locationAddress}
-                onChange={(e) => handleChange('locationAddress', e.target.value)}
-                required
-                rows={3}
-                data-testid="location-address"
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="locationDistrict">İlçe</Label>
-                <Input
-                  id="locationDistrict"
-                  value={formData.locationDistrict}
-                  onChange={(e) => handleChange('locationDistrict', e.target.value)}
-                  placeholder="İlçe adı"
-                  data-testid="location-district"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="locationVillage">Köy / Mahalle</Label>
-                <Input
-                  id="locationVillage"
-                  value={formData.locationVillage}
-                  onChange={(e) => handleChange('locationVillage', e.target.value)}
-                  placeholder="Köy veya mahalle adı"
-                  data-testid="location-village"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Öncelik */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <span>Öncelik Seviyesi</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select value={formData.priority} onValueChange={(value) => handleChange('priority', value)} required>
-              <SelectTrigger data-testid="priority-select">
-                <SelectValue placeholder="Öncelik seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yuksek">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span>Yüksek (Kırmızı) - Acil</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="orta">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span>Orta (Sarı)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="dusuk">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span>Düşük (Yeşil)</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* Araç Seçimi */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Truck className="h-5 w-5 text-red-600" />
-              <span>Araç Seçimi (Birden Fazla Seçilebilir)</span>
-              {formData.vehicleIds.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{formData.vehicleIds.length} araç</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Vakaya göndermek istediğiniz araçları seçin. Birden fazla araç seçebilirsiniz.
-              </p>
-              
-              {/* Araç Listesi - Checkbox ile */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto">
-                {vehicles.map((vehicle) => {
-                  const isSelected = formData.vehicleIds.includes(vehicle.id);
-                  const statusColor = vehicle.status === 'musait' ? 'green' : vehicle.status === 'gorevde' ? 'orange' : 'red';
-                  const statusText = vehicle.status === 'musait' ? 'Müsait' : vehicle.status === 'gorevde' ? 'Görevde' : 'Bakımda';
-                  
-                  return (
-                    <div
-                      key={vehicle.id}
-                      onClick={() => {
-                        const newIds = isSelected
-                          ? formData.vehicleIds.filter(id => id !== vehicle.id)
-                          : [...formData.vehicleIds, vehicle.id];
-                        setFormData(prev => ({
-                          ...prev,
-                          vehicleIds: newIds,
-                          vehicleId: newIds[0] || ''  // Geriye uyumluluk
-                        }));
-                      }}
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                        isSelected 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox checked={isSelected} />
-                          <div>
-                            <p className="font-semibold text-sm">
-                              {vehicle.plate} 
-                              <span className="text-gray-500 font-normal ml-1">
-                                ({vehicle.type === 'ambulans' ? 'Ambulans' : 'Araç'})
-                              </span>
-                            </p>
-                            {/* Lokasyon - daha belirgin */}
-                            {(vehicle.healmedy_location_name || vehicle.current_location) ? (
-                              <div className="flex items-center mt-1">
-                                <MapPin className="h-3 w-3 mr-1 text-blue-600" />
-                                <span className="text-xs font-medium text-blue-700">
-                                  {vehicle.healmedy_location_name || vehicle.current_location}'da
-                                </span>
-                              </div>
-                            ) : (
-                              <p className="text-xs text-gray-400 mt-1">Lokasyon atanmamış</p>
-                            )}
-                          </div>
+            {/* Araç Seçimi */}
+            <Card>
+              <CardHeader className="py-3 bg-red-50">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Truck className="h-4 w-4" /> Araç Seçimi
+                  </span>
+                  {selectedVehicleIds.length > 0 && (
+                    <Badge className="bg-blue-100 text-blue-700">{selectedVehicleIds.length} seçili</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
+                  {vehicles.map((vehicle) => {
+                    const isSelected = selectedVehicleIds.includes(vehicle.id);
+                    const locationName = vehicle.healmedy_location_name || vehicle.current_location;
+                    
+                    return (
+                      <div
+                        key={vehicle.id}
+                        onClick={() => toggleVehicle(vehicle.id)}
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">{vehicle.plate}</span>
+                          {isSelected && <Check className="h-4 w-4 text-blue-600" />}
                         </div>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${
-                            statusColor === 'green' ? 'bg-green-50 text-green-700 border-green-200' :
-                            statusColor === 'orange' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                            'bg-red-50 text-red-700 border-red-200'
-                          }`}
-                        >
-                          {statusText}
-                        </Badge>
+                        <div className="text-xs text-gray-500">
+                          {vehicle.type === 'ambulans' ? 'Ambulans' : 'Araç'}
+                        </div>
+                        {locationName && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-blue-600">
+                            <MapPin className="h-3 w-3" />
+                            {locationName}'da
+                          </div>
+                        )}
+                        <div className="mt-1">
+                          {getStatusBadge(vehicle.status)}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {formData.vehicleIds.length > 0 && (
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium text-blue-800">
-                    Seçili Araçlar: {formData.vehicleIds.length}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.vehicleIds.map(id => {
+                    );
+                  })}
+                </div>
+
+                {selectedVehicleIds.length > 0 && (
+                  <div className="mt-3 p-2 bg-blue-50 rounded flex flex-wrap gap-1">
+                    {selectedVehicleIds.map(id => {
                       const v = vehicles.find(v => v.id === id);
-                      if (!v) return null;
-                      const locName = v.healmedy_location_name || v.current_location;
-                      return (
-                        <Badge key={id} variant="secondary" className="bg-blue-100 text-blue-800">
-                          {v.plate} {locName && `• ${locName}`}
+                      const loc = v?.healmedy_location_name || v?.current_location;
+                      return v ? (
+                        <Badge key={id} className="bg-blue-100 text-blue-800">
+                          {v.plate} {loc && `• ${loc}`}
                         </Badge>
-                      );
+                      ) : null;
                     })}
                   </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
 
-        {!createdCaseId ? (
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/dashboard')}
-              data-testid="cancel-button"
-            >
-              İptal
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-red-600 hover:bg-red-700"
-              data-testid="create-case-button"
-            >
-              {loading ? 'Oluşturuluyor...' : 'Vaka Oluştur'}
-            </Button>
-          </div>
-        ) : (
-          <Card className="border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-green-800 mb-2">✅ Vaka Başarıyla Oluşturuldu!</h3>
-                  <p className="text-sm text-green-700 mb-4">
-                    Şimdi ilgili ekiplere bildirim gönderebilirsiniz.
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Bildirim gönderilecek: Merkez Ofis, Operasyon Müdürü, Doktor, Hemşire
-                    {formData.vehicleIds.length > 0 && ` + ${formData.vehicleIds.length} Araç Ekibi`}
-                  </p>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/dashboard/cases/${createdCaseId}`)}
-                  >
-                    Vakaya Git
-                  </Button>
-                  <Button
-                    onClick={handleSendNotification}
-                    disabled={sendingNotification}
-                    data-testid="send-notification-button"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Bell className="h-4 w-4 mr-2" />
-                    {sendingNotification ? 'Gönderiliyor...' : 'Bildirim Gönder'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </form>
+            {/* Submit */}
+            {!createdCaseId ? (
+              <Button 
+                type="submit" 
+                className="w-full bg-red-600 hover:bg-red-700"
+                disabled={loading}
+              >
+                {loading ? 'Oluşturuluyor...' : 'Vaka Oluştur'}
+              </Button>
+            ) : (
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="py-4">
+                  <p className="text-green-800 font-medium mb-3">✅ Vaka oluşturuldu!</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => navigate(`/dashboard/cases/${createdCaseId}`)}
+                    >
+                      Vakaya Git
+                    </Button>
+                    <Button 
+                      onClick={handleSendNotification}
+                      disabled={sendingNotification}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Bell className="h-4 w-4 mr-1" />
+                      {sendingNotification ? 'Gönderiliyor...' : 'Bildirim Gönder'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </form>
+        </div>
+      </div>
     </div>
   );
 };
