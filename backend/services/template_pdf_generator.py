@@ -669,11 +669,21 @@ def get_field_value(block_type, field_id, case_data, medical_form):
             logger.warning(f"Error getting field value: {block_type}.{field_id}: {e}")
             value = ""
     
+    # Dict veya list ise string'e çevir
+    if isinstance(value, dict):
+        value = str(value) if value else ""
+    elif isinstance(value, list):
+        value = ", ".join(str(v) for v in value) if value else ""
+    elif value is None:
+        value = ""
+    else:
+        value = str(value)
+    
     # Eğer değer boşsa, örnek veri göster (test amaçlı)
-    if not value or value.strip() == "":
+    if not value or not value.strip():
         # Örnek veriler
         sample_data = {
-            "case_number": case_data.get("case_number", "20251210-000001"),
+            "case_number": case_data.get("case_number", "20251210-000001") if isinstance(case_data, dict) else "",
             "case_date": datetime.now().strftime("%d.%m.%Y"),
             "case_time": datetime.now().strftime("%H:%M"),
             "patient_name": "Test Hasta",
@@ -682,7 +692,7 @@ def get_field_value(block_type, field_id, case_data, medical_form):
             "patient_age": "45",
             "patient_gender": "Erkek",
             "patient_phone": "05551234567",
-            "complaint": "Göğüs ağrısı",
+            "complaint": "Gogus agrisi",
             "chronic_diseases": "Hipertansiyon, Diyabet",
             "allergies": "Penisilin",
             "blood_pressure": "120/80",
@@ -864,11 +874,12 @@ class TemplatePdfGenerator:
                 break
             
             field_id = field.get("field_id", "")
-            label = normalize_turkish(field.get("label", field_id))
-            value = normalize_turkish(get_field_value(block_type, field_id, self.case_data, self.medical_form))
+            label = normalize_turkish(str(field.get("label", field_id) or ""))
+            raw_value = get_field_value(block_type, field_id, self.case_data, self.medical_form)
+            value = normalize_turkish(str(raw_value) if raw_value else "")
             
             # Label: Value formatında yazdır
-            if value and value.strip():
+            if value and len(value.strip()) > 0:
                 text = f"{label}: {value}"
             else:
                 text = f"{label}: -"
