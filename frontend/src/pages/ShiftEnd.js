@@ -47,14 +47,17 @@ const ShiftEnd = () => {
   
   // Devir teslim form verileri
   const [formData, setFormData] = useState({
-    teslimAlinanKm: '',
-    servisYapilacakKm: '',
+    teslimEttigimKm: '',
     fosforluYelek: '',
     takviyeKablosu: '',
     cekmeKablosu: '',
     ucgen: '',
+    ruhsatVar: '',
+    anahtarVar: '',
     teslimEdenNotlar: '',
-    hasarBildirimi: ''
+    hasarBildirimi: '',
+    devralanImza: null,
+    devralanAdi: ''
   });
   
   // Onay durumları
@@ -295,9 +298,6 @@ const ShiftEnd = () => {
   }
 
   const duration = activeShift ? Math.floor((new Date() - new Date(activeShift.start_time)) / 1000 / 60) : 0;
-  const servisKalan = formData.servisYapilacakKm && formData.teslimAlinanKm 
-    ? parseInt(formData.servisYapilacakKm) - parseInt(formData.teslimAlinanKm)
-    : 0;
 
   return (
     <div className="space-y-6" data-testid="shift-end-page">
@@ -345,36 +345,16 @@ const ShiftEnd = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Teslim Alınan KM</Label>
-              <Input 
-                type="number"
-                value={formData.teslimAlinanKm}
-                onChange={(e) => handleFormChange('teslimAlinanKm', e.target.value)}
-                placeholder="125000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Servis Yapılacak KM</Label>
-              <Input 
-                type="number"
-                value={formData.servisYapilacakKm}
-                onChange={(e) => handleFormChange('servisYapilacakKm', e.target.value)}
-                placeholder="140000"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Teslim Ettiğim KM</Label>
+            <Input 
+              type="number"
+              value={formData.teslimEttigimKm}
+              onChange={(e) => handleFormChange('teslimEttigimKm', e.target.value)}
+              placeholder="Aracın güncel KM değeri"
+              className="text-lg font-medium"
+            />
           </div>
-          {servisKalan > 0 && (
-            <div className={`p-4 rounded-lg border-2 text-center ${
-              servisKalan < 500 ? 'bg-red-100 text-red-800 border-red-500' :
-              servisKalan < 1000 ? 'bg-yellow-100 text-yellow-800 border-yellow-500' :
-              'bg-green-100 text-green-800 border-green-500'
-            }`}>
-              <p className="text-3xl font-bold">{servisKalan.toLocaleString()} KM</p>
-              <p className="text-sm font-medium">Servise Kalan</p>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -411,8 +391,67 @@ const ShiftEnd = () => {
               </RadioGroup>
             </div>
           ))}
+          
+          {/* Ruhsat ve Anahtar Kontrol */}
+          <div className="border-t pt-4 mt-4">
+            <h4 className="font-medium mb-3">Araç Evrakları</h4>
+            {[
+              { key: 'ruhsatVar', label: 'Araç Ruhsatı' },
+              { key: 'anahtarVar', label: 'Araç Anahtarı' }
+            ].map(item => (
+              <div key={item.key} className="flex justify-between items-center py-2 border-b">
+                <Label className="text-sm font-medium">{item.label}</Label>
+                <RadioGroup 
+                  value={formData[item.key]} 
+                  onValueChange={(v) => handleFormChange(item.key, v)}
+                  className="flex space-x-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="var" id={`${item.key}-var`} />
+                    <Label htmlFor={`${item.key}-var`} className="text-xs text-green-700 font-medium">Var ✓</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yok" id={`${item.key}-yok`} />
+                    <Label htmlFor={`${item.key}-yok`} className="text-xs text-red-700 font-medium">Yok ✗</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
+      
+      {/* Devralan Kişi İmzası (Yeni gelen kişi) */}
+      {isDriver && (
+        <Card className="border-purple-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-purple-600" />
+              Devralan Kişi Bilgileri
+            </CardTitle>
+            <CardDescription>
+              Aracı teslim alan yeni şoförün bilgileri ve imzası
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Devralan Kişinin Adı Soyadı</Label>
+              <Input 
+                value={formData.devralanAdi}
+                onChange={(e) => handleFormChange('devralanAdi', e.target.value)}
+                placeholder="Yeni şoförün adı soyadı"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Devralan Kişinin İmzası</Label>
+              <SignaturePad 
+                onSave={(signature) => handleFormChange('devralanImza', signature)}
+                label="Devralan imzası"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ATT/Paramedik için Hızlı Doldurma */}
       {isATTOrParamedik && (

@@ -836,15 +836,23 @@ const ShiftStartNew = () => {
             </Card>
           )}
           
-          {/* ŞOFÖR İSE: Devir Teslim Formu */}
+          {/* ŞOFÖR İSE: Günlük Kontrol Formu (Devir Teslim vardiya bitişinde yapılacak) */}
           {user?.role?.toLowerCase() === 'sofor' && (
             <>
+              <Card className="border-amber-200 bg-amber-50">
+                <CardContent className="py-3">
+                  <p className="text-amber-800 font-medium">
+                    🚗 Şoför Vardiya Başlatma - Günlük Kontrol Formu
+                  </p>
+                  <p className="text-sm text-amber-600">
+                    Aracın günlük kontrollerini yapın. Devir teslim işlemi vardiya bitişinde yapılacaktır.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Araç Bilgileri */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">🚗 Araç Devir Teslim Formu</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Araç ve Tarih Bilgileri */}
+                <CardContent className="pt-6">
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-xs text-gray-500">Araç Plakası</p>
@@ -859,45 +867,11 @@ const ShiftStartNew = () => {
                       <p className="font-bold">{formatTurkeyTime()}</p>
                     </div>
                   </div>
-                  
-                  {/* Devreden Kişi (Önceki vardiya) */}
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Devreden (Önceki Vardiya)</h4>
-                    {previousShiftInfo ? (
-                      <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <User className="h-10 w-10 text-orange-600" />
-                        <div>
-                          <p className="font-medium">{previousShiftInfo.user_name || 'Bilinmiyor'}</p>
-                          <p className="text-sm text-gray-500">{previousShiftInfo.phone || '-'}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-gray-100 rounded-lg text-gray-500 text-center">
-                        <p>Önceki vardiya bilgisi bulunamadı</p>
-                        <p className="text-xs">(İlk vardiya olabilir)</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Devralan Kişi (Şu anki kullanıcı) */}
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Devralan (Siz)</h4>
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="h-10 w-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                        {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
-                      </div>
-                      <div>
-                        <p className="font-medium">{user?.name || 'Bilinmiyor'}</p>
-                        <p className="text-sm text-gray-500">{user?.phone || user?.email || '-'}</p>
-                      </div>
-                      <CheckCircle className="h-5 w-5 text-green-600 ml-auto" />
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
               
-              {/* Şoför için Devir Formu */}
-              <HandoverFormFull formData={controlForm} onChange={setControlForm} vehiclePlate={vehicleInfo?.plate} />
+              {/* Şoför için Günlük Kontrol Formu */}
+              <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
             </>
           )}
           

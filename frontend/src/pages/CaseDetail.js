@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI } from '../api';
+import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI, patientsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -76,6 +76,12 @@ const CaseDetail = () => {
   });
   const [patientInfoChanged, setPatientInfoChanged] = useState(false);
   const [savingPatientInfo, setSavingPatientInfo] = useState(false);
+  
+  // Hasta Kartı Lookup
+  const [patientCardData, setPatientCardData] = useState(null);
+  const [showPatientCardDialog, setShowPatientCardDialog] = useState(false);
+  const [lookingUpPatient, setLookingUpPatient] = useState(false);
+  
   const [icdSearch, setIcdSearch] = useState('');
   const [icdResults, setIcdResults] = useState([]);
   const [hospitalSearch, setHospitalSearch] = useState('');
@@ -656,6 +662,50 @@ const CaseDetail = () => {
   const handlePatientInfoChange = (field, value) => {
     setPatientInfo(prev => ({ ...prev, [field]: value }));
     setPatientInfoChanged(true);
+  };
+
+  // TC ile hasta kartı lookup
+  const lookupPatientByTc = async (tcNo) => {
+    if (!tcNo || tcNo.length !== 11) return;
+    
+    setLookingUpPatient(true);
+    try {
+      const response = await patientsAPI.getByTc(tcNo);
+      const patientCard = response.data;
+      
+      if (patientCard) {
+        setPatientCardData(patientCard);
+        
+        // Hasta bilgilerini otomatik doldur
+        setPatientInfo(prev => ({
+          ...prev,
+          name: patientCard.name || prev.name,
+          surname: patientCard.surname || prev.surname,
+          birth_date: patientCard.birth_date || prev.birth_date,
+          age: patientCard.age || prev.age,
+          gender: patientCard.gender || prev.gender
+        }));
+        setPatientInfoChanged(true);
+        
+        // Eğer alerji, kronik hastalık veya tıbbi geçmiş varsa pop-up göster
+        const hasAlerts = (patientCard.allergies && patientCard.allergies.length > 0) ||
+                          (patientCard.chronic_diseases && patientCard.chronic_diseases.length > 0) ||
+                          (patientCard.doctor_notes && patientCard.doctor_notes.length > 0) ||
+                          (patientCard.medical_history && patientCard.medical_history.length > 0);
+        
+        if (hasAlerts) {
+          setShowPatientCardDialog(true);
+        } else {
+          toast.success(`Hasta bulundu: ${patientCard.name} ${patientCard.surname}`);
+        }
+      }
+    } catch (error) {
+      if (error.response?.status !== 404) {
+        console.log('Hasta kartı bulunamadı veya hata:', error.message);
+      }
+    } finally {
+      setLookingUpPatient(false);
+    }
   };
 
   const savePatientInfo = async () => {
@@ -1476,12 +1526,37 @@ const CaseDetail = () => {
                 </div>
                 <div>
                   <Label>T.C. Kimlik No</Label>
-                  <Input 
-                    value={patientInfo.tc_no} 
-                    onChange={(e) => handlePatientInfoChange('tc_no', e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                    placeholder="TC Kimlik"
-                    maxLength={11}
-                  />
+                  <div className="relative">
+                    <Input 
+                      value={patientInfo.tc_no} 
+                      onChange={(e) => {
+                        const tcNo = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                        handlePatientInfoChange('tc_no', tcNo);
+                        // 11 hane girildiğinde otomatik lookup
+                        if (tcNo.length === 11) {
+                          lookupPatientByTc(tcNo);
+                        }
+                      }}
+                      placeholder="TC Kimlik"
+                      maxLength={11}
+                      className={lookingUpPatient ? 'pr-8' : ''}
+                    />
+                    {lookingUpPatient && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  {patientCardData && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="text-xs text-blue-600 p-0 h-auto"
+                      onClick={() => setShowPatientCardDialog(true)}
+                    >
+                      📋 Hasta kartı bilgilerini görüntüle
+                    </Button>
+                  )}
                 </div>
                 <div>
                   <Label>Doğum Tarihi</Label>
@@ -3297,6 +3372,98 @@ const CaseDetail = () => {
       </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Hasta Kartı Bilgileri Dialog */}
+      <Dialog open={showPatientCardDialog} onOpenChange={setShowPatientCardDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Hasta Kartı Bilgileri
+            </DialogTitle>
+          </DialogHeader>
+          
+          {patientCardData && (
+            <div className="space-y-4">
+              {/* Temel Bilgiler */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Hasta Bilgileri</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p><span className="text-gray-500">Ad Soyad:</span> {patientCardData.name} {patientCardData.surname}</p>
+                  <p><span className="text-gray-500">T.C.:</span> {patientCardData.tc_no}</p>
+                  <p><span className="text-gray-500">Doğum Tarihi:</span> {patientCardData.birth_date || '-'}</p>
+                  <p><span className="text-gray-500">Yaş:</span> {patientCardData.age || '-'}</p>
+                </div>
+              </div>
+              
+              {/* Alerjiler */}
+              {patientCardData.allergies && patientCardData.allergies.length > 0 && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+                    ⚠️ ALERJİLER
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-red-700">
+                    {patientCardData.allergies.map((allergy, idx) => (
+                      <li key={idx}>{allergy.name} - {allergy.severity || 'Belirtilmemiş'}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Kronik Hastalıklar */}
+              {patientCardData.chronic_diseases && patientCardData.chronic_diseases.length > 0 && (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <h4 className="font-semibold text-orange-800 mb-2 flex items-center gap-2">
+                    🏥 KRONİK HASTALIKLAR
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-orange-700">
+                    {patientCardData.chronic_diseases.map((disease, idx) => (
+                      <li key={idx}>{disease.name} - {disease.diagnosis_date || ''}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Doktor Notları */}
+              {patientCardData.doctor_notes && patientCardData.doctor_notes.length > 0 && (
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <h4 className="font-semibold text-purple-800 mb-2 flex items-center gap-2">
+                    📝 DOKTOR NOTLARI
+                  </h4>
+                  {patientCardData.doctor_notes.slice(0, 3).map((note, idx) => (
+                    <div key={idx} className="text-sm mb-2 p-2 bg-white rounded">
+                      <p className="text-purple-800">{note.note}</p>
+                      <p className="text-xs text-gray-500 mt-1">{note.doctor_name} - {note.date}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Tıbbi Geçmiş */}
+              {patientCardData.medical_history && patientCardData.medical_history.length > 0 && (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    📋 TIBBİ GEÇMİŞ
+                  </h4>
+                  {patientCardData.medical_history.slice(0, 5).map((history, idx) => (
+                    <div key={idx} className="text-sm mb-2 p-2 bg-white rounded border-l-4 border-gray-300">
+                      <p className="font-medium">{history.event_type}</p>
+                      <p className="text-gray-600">{history.description}</p>
+                      <p className="text-xs text-gray-400 mt-1">{history.date}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="pt-4 border-t">
+                <p className="text-xs text-gray-500 text-center">
+                  Bu bilgiler hastanın kayıtlı kartından getirilmiştir. Bu vaka hastanın kartına eklenecektir.
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

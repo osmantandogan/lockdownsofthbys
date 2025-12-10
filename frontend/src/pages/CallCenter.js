@@ -105,6 +105,11 @@ const CallCenter = () => {
       return;
     }
 
+    if (!formData.callerPhone) {
+      toast.error('Telefon numarası zorunludur');
+      return;
+    }
+
     if (!formData.address && !formData.addressDescription) {
       toast.error('Konum bilgisi girilmelidir');
       return;
@@ -230,12 +235,17 @@ const CallCenter = () => {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Telefon</Label>
+                    <Label className="text-xs">Telefon *</Label>
                     <Input 
                       placeholder="05XX XXX XXXX"
                       value={formData.callerPhone}
                       onChange={(e) => handleChange('callerPhone', e.target.value)}
+                      required
+                      className={!formData.callerPhone ? 'border-red-300' : ''}
                     />
+                    {!formData.callerPhone && (
+                      <p className="text-xs text-red-500 mt-1">Telefon zorunludur</p>
+                    )}
                   </div>
                 </div>
                 
