@@ -35,3 +35,9 @@ patient_access_logs_collection = db.patient_access_logs  # Hasta kartı erişim 
 counters_collection = db.counters  # Atomic counters for sequential numbers
 handover_sessions_collection = db.handover_sessions  # Devir teslim oturumları
 material_requests_collection = db.material_requests  # Malzeme talepleri
+
+# YENİ: Lokasyon ve Transfer Sistemi
+field_locations_collection = db.field_locations  # Saha lokasyonları (araç, carter, depo)
+stock_transfers_collection = db.stock_transfers  # Stok transferleri
+location_change_requests_collection = db.location_change_requests  # Lokasyon değişikliği istekleri
+vehicle_current_locations_collection = db.vehicle_current_locations  # Araçların güncel lokasyonları

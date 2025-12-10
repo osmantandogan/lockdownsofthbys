@@ -181,6 +181,10 @@ class Case(BaseModel):
     # Video call
     video_room_id: Optional[str] = None
     
+    # YENİ: Healmedy Lokasyonu (Nakil > Healmedy altında)
+    healmedy_location_id: Optional[str] = None  # osman_gazi_fpu vb.
+    healmedy_location_name: Optional[str] = None
+    
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -264,6 +268,16 @@ class StockItem(BaseModel):
     expiry_date: Optional[datetime] = None
     qr_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
     unit: str = "adet"  # adet, kutu, ampul, ml, etc.
+    
+    # YENİ: Kutu/Adet yönetimi
+    unit_type: Literal["kutu", "adet"] = "adet"  # Merkez depoda kutu, sahada adet
+    box_quantity: Optional[int] = None  # Kutudaki adet sayısı (karekoddan veya manuel)
+    original_box_id: Optional[str] = None  # Parçalandıysa ana kutu referansı
+    
+    # YENİ: Lokasyon referansı
+    field_location_id: Optional[str] = None  # FieldLocation ID referansı
+    source_transfer_id: Optional[str] = None  # Hangi transferle geldi
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -293,6 +307,9 @@ class StockItemUpdate(BaseModel):
     unit: Optional[str] = None
 
 # Medication Usage Models (Case-specific)
+MedicationSourceType = Literal["arac", "carter"]  # Araç stoğu veya lokasyon dolab (carter)
+
+
 class MedicationUsage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     
@@ -321,6 +338,11 @@ class MedicationUsage(BaseModel):
     # Stock deduction
     stock_deducted: bool = False
     vehicle_plate: Optional[str] = None  # Which vehicle's stock
+    
+    # YENİ: Kaynak bilgisi (Araç mı, Carter mı?)
+    source_type: Optional[MedicationSourceType] = "arac"  # arac veya carter
+    source_location_id: Optional[str] = None  # FieldLocation ID
+    source_location_name: Optional[str] = None  # Görüntüleme için
 
 class MedicationUsageCreate(BaseModel):
     name: str
@@ -379,6 +401,10 @@ class ShiftAssignment(BaseModel):
     start_time: Optional[str] = None  # HH:MM format
     end_time: Optional[str] = None  # HH:MM format
     end_date: Optional[datetime] = None  # For night shifts that span to next day
+    
+    # YENİ: Healmedy Lokasyonu
+    healmedy_location_id: Optional[str] = None  # osman_gazi_fpu, green_zone_ronesans vb.
+    healmedy_location_name: Optional[str] = None  # Görüntüleme için
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
     is_driver_duty: bool = False  # ATT/Paramedik için şoför görevi var mı?
     shift_type: ShiftType = "saha_24"  # Vardiya tipi: saha 24 saat veya ofis 8 saat
@@ -426,6 +452,30 @@ class Shift(BaseModel):
     
     # Handover session reference
     handover_session_id: Optional[str] = None
+    
+    # YENİ: Vardiya Bitirme Bilgileri (ATT/Paramedik için)
+    end_photos: Optional[dict] = None  # 4 köşe fotoğrafları
+    # rear_cabin_corner_1: Sol-ön köşe
+    # rear_cabin_corner_2: Sağ-ön köşe
+    # rear_cabin_corner_3: Sol-arka köşe
+    # rear_cabin_corner_4: Sağ-arka köşe
+    
+    quick_checkout: bool = False  # Hızlı doldurma kullanıldı mı
+    end_signature: Optional[str] = None  # Bitiş imzası (Base64)
+    end_otp_verified: bool = False  # OTP ile mi onaylandı
+    
+    # Günlük kontrol formu dolduruldu mu (ekip bazlı)
+    daily_control_filled_by: Optional[str] = None  # Dolduran kişi ID
+    daily_control_filled_at: Optional[datetime] = None
+    
+    # YENİ: Healmedy Lokasyonu
+    healmedy_location_id: Optional[str] = None
+    healmedy_location_name: Optional[str] = None
+    
+    # YENİ: Form açılış-kapanış zamanları (Log için)
+    form_opened_at: Optional[datetime] = None  # Form ne zaman açıldı
+    form_completed_at: Optional[datetime] = None  # Form ne zaman tamamlandı
+    section_times: Optional[dict] = None  # Her section ne kadar sürdü
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -820,3 +870,185 @@ class MaterialRequestCreate(BaseModel):
     items: List[MaterialRequestItem]
     priority: MaterialRequestPriority = "normal"
     notes: Optional[str] = None
+
+
+# ==================== HEALMEDY LOKASYONLARI ====================
+
+# Sabit Healmedy Lokasyonları
+HEALMEDY_LOCATIONS = [
+    {"id": "osman_gazi_fpu", "name": "Osman Gazi/FPU"},
+    {"id": "green_zone_ronesans", "name": "Green Zone/Rönesans"},
+    {"id": "bati_kuzey_isg", "name": "Batı-Kuzey/İSG BİNA"},
+    {"id": "red_zone_kara", "name": "Red Zone/Kara Tesisleri"},
+    {"id": "dogu_rihtimi", "name": "Doğu Rıhtımı"}
+]
+
+# Lokasyon tipi
+FieldLocationType = Literal["merkez_depo", "arac", "carter"]
+
+
+class FieldLocation(BaseModel):
+    """Saha Lokasyonu - Araç, Carter (dolap), Merkez Depo"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    name: str  # Lokasyon adı
+    location_type: FieldLocationType  # merkez_depo, arac, carter
+    
+    # Healmedy lokasyonu (osman_gazi_fpu, green_zone_ronesans vb.)
+    healmedy_location_id: Optional[str] = None
+    healmedy_location_name: Optional[str] = None
+    
+    # Araç ilişkisi
+    vehicle_id: Optional[str] = None  # Carter için bağlı olduğu araç
+    vehicle_plate: Optional[str] = None
+    
+    # QR Kod
+    qr_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    
+    # Durum
+    is_active: bool = True
+    
+    # Meta
+    created_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class FieldLocationCreate(BaseModel):
+    """Saha lokasyonu oluşturma"""
+    name: str
+    location_type: FieldLocationType
+    healmedy_location_id: Optional[str] = None
+    vehicle_id: Optional[str] = None
+
+
+# ==================== STOK TRANSFER ====================
+
+StockTransferType = Literal["box_to_units", "location_transfer", "return"]
+
+
+class StockTransfer(BaseModel):
+    """Stok Transferi - Depodan araç/carter'a, kutu→adet dönüşümü"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    
+    # Kaynak
+    from_location_id: str
+    from_location_name: str
+    from_location_type: FieldLocationType
+    
+    # Hedef
+    to_location_id: str
+    to_location_name: str
+    to_location_type: FieldLocationType
+    
+    # Ürün bilgisi
+    stock_item_id: str
+    stock_item_name: str
+    gtin: Optional[str] = None
+    lot_number: Optional[str] = None
+    
+    # Miktar (Kutu olarak gönderilir, adet olarak alınır)
+    quantity_boxes: int = 0  # Kaç kutu gönderildi
+    units_per_box: int = 1   # Kutuda kaç adet var
+    total_units: int = 0     # Toplam adet (boxes * units_per_box)
+    
+    # Transfer tipi
+    transfer_type: StockTransferType
+    
+    # Kim yaptı
+    transferred_by: str
+    transferred_by_name: str
+    
+    # Notlar
+    notes: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class StockTransferCreate(BaseModel):
+    """Stok transferi oluşturma"""
+    from_location_id: str
+    to_location_id: str
+    stock_item_id: str
+    quantity_boxes: int
+    units_per_box: int = 1  # Karekoddan veya manuel
+    transfer_type: StockTransferType = "location_transfer"
+    notes: Optional[str] = None
+
+
+# ==================== LOKASYON DEĞİŞİKLİĞİ İSTEĞİ ====================
+
+LocationChangeStatus = Literal["pending", "approved", "rejected"]
+
+
+class LocationChangeRequest(BaseModel):
+    """Lokasyon Değişikliği İsteği - ATT/Paramedik lokasyon değiştirir"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    
+    # İstek sahibi
+    requester_id: str
+    requester_name: str
+    requester_role: str
+    
+    # Araç
+    vehicle_id: str
+    vehicle_plate: str
+    
+    # Lokasyonlar
+    from_location_id: str
+    from_location_name: str
+    to_location_id: str
+    to_location_name: str
+    
+    # Neden
+    reason: Optional[str] = None
+    
+    # Durum
+    status: LocationChangeStatus = "pending"
+    
+    # Onay bilgisi
+    approved_by: Optional[str] = None
+    approved_by_name: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class LocationChangeRequestCreate(BaseModel):
+    """Lokasyon değişikliği isteği oluşturma"""
+    vehicle_id: str
+    to_location_id: str
+    reason: Optional[str] = None
+
+
+# ==================== VARDİYA GÜNCEL LOKASYON ====================
+
+class VehicleCurrentLocation(BaseModel):
+    """Aracın güncel lokasyonu"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    vehicle_id: str
+    vehicle_plate: str
+    
+    # Atanan lokasyon (vardiya başında)
+    assigned_location_id: str
+    assigned_location_name: str
+    
+    # Güncel lokasyon (değişebilir)
+    current_location_id: str
+    current_location_name: str
+    
+    # Kim güncelledi
+    updated_by: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Vardiya bilgisi
+    shift_id: Optional[str] = None
+    shift_date: Optional[datetime] = None

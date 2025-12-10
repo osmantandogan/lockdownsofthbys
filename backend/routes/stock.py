@@ -345,3 +345,320 @@ async def get_item_barcode_details(location_id: str, item_name: str, request: Re
         "total_quantity": sum(d.get("quantity", 1) for d in barcode_details),
         "details": barcode_details
     }
+
+
+# ============================================================================
+# STOK TRANSFER SİSTEMİ
+# Depodan Araç/Carter'a kutu→adet transfer
+# ============================================================================
+
+from models import StockTransfer, StockTransferCreate, FieldLocation, HEALMEDY_LOCATIONS
+
+# Collections
+stock_transfers_collection = db.stock_transfers
+field_locations_collection = db.field_locations
+
+
+class TransferRequest(BaseModel):
+    """Transfer isteği"""
+    from_location_id: str
+    to_location_id: str
+    stock_item_id: str
+    quantity_boxes: int = 1
+    units_per_box: int = 1  # Karekoddan veya manuel
+    notes: Optional[str] = None
+
+
+@router.post("/transfer")
+async def transfer_stock(data: TransferRequest, request: Request):
+    """
+    Stok transferi yap
+    - Merkez depodan araç/carter'a kutu gönder
+    - Kutu adetsel olarak parçalanır
+    - Transfer yetkisi: Çağrı Merkezi, Baş Şoför, Operasyon Müdürü
+    """
+    user = await require_roles(["cagri_merkezi", "bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    
+    # Kaynak lokasyonu al
+    from_location = await field_locations_collection.find_one({"_id": data.from_location_id})
+    if not from_location:
+        # Eski sistem uyumluluğu - lokasyon adıyla ara
+        from_location = await locations_collection.find_one({"_id": data.from_location_id})
+        if not from_location:
+            raise HTTPException(status_code=404, detail="Kaynak lokasyon bulunamadı")
+    
+    # Hedef lokasyonu al
+    to_location = await field_locations_collection.find_one({"_id": data.to_location_id})
+    if not to_location:
+        to_location = await locations_collection.find_one({"_id": data.to_location_id})
+        if not to_location:
+            raise HTTPException(status_code=404, detail="Hedef lokasyon bulunamadı")
+    
+    # Stok ürününü al
+    stock_item = await stock_collection.find_one({"_id": data.stock_item_id})
+    if not stock_item:
+        raise HTTPException(status_code=404, detail="Stok ürünü bulunamadı")
+    
+    # Yeterli stok kontrolü (kutu bazında)
+    if stock_item.get("quantity", 0) < data.quantity_boxes:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Yetersiz stok. Mevcut: {stock_item.get('quantity', 0)} kutu, İstenen: {data.quantity_boxes} kutu"
+        )
+    
+    total_units = data.quantity_boxes * data.units_per_box
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Transfer kaydı oluştur
+    transfer = StockTransfer(
+        from_location_id=data.from_location_id,
+        from_location_name=from_location.get("name"),
+        from_location_type=from_location.get("location_type", "merkez_depo"),
+        to_location_id=data.to_location_id,
+        to_location_name=to_location.get("name"),
+        to_location_type=to_location.get("location_type", "arac"),
+        stock_item_id=data.stock_item_id,
+        stock_item_name=stock_item.get("name"),
+        gtin=stock_item.get("gtin"),
+        lot_number=stock_item.get("lot_number"),
+        quantity_boxes=data.quantity_boxes,
+        units_per_box=data.units_per_box,
+        total_units=total_units,
+        transfer_type="box_to_units",
+        transferred_by=user.id,
+        transferred_by_name=user.name,
+        notes=data.notes,
+        created_at=turkey_now
+    )
+    
+    transfer_dict = transfer.model_dump(by_alias=True)
+    await stock_transfers_collection.insert_one(transfer_dict)
+    
+    # Kaynak stoktan düş (kutu bazında)
+    await stock_collection.update_one(
+        {"_id": data.stock_item_id},
+        {"$inc": {"quantity": -data.quantity_boxes}, "$set": {"updated_at": turkey_now}}
+    )
+    
+    # Hedef lokasyona adet bazında ekle
+    # Aynı ürün var mı kontrol et
+    existing_target = await stock_collection.find_one({
+        "location": to_location.get("name"),
+        "name": stock_item.get("name"),
+        "gtin": stock_item.get("gtin"),
+        "lot_number": stock_item.get("lot_number")
+    })
+    
+    if existing_target:
+        # Varsa miktarı artır
+        await stock_collection.update_one(
+            {"_id": existing_target["_id"]},
+            {"$inc": {"quantity": total_units}, "$set": {"updated_at": turkey_now}}
+        )
+    else:
+        # Yoksa yeni stok oluştur (adet olarak)
+        new_stock = StockItem(
+            name=stock_item.get("name"),
+            code=stock_item.get("code"),
+            gtin=stock_item.get("gtin"),
+            quantity=total_units,
+            min_quantity=stock_item.get("min_quantity", 1),
+            location=to_location.get("name"),
+            location_detail=to_location.get("vehicle_plate"),
+            lot_number=stock_item.get("lot_number"),
+            serial_number=stock_item.get("serial_number"),
+            expiry_date=stock_item.get("expiry_date"),
+            unit="adet",
+            unit_type="adet",
+            box_quantity=data.units_per_box,
+            original_box_id=data.stock_item_id,
+            field_location_id=data.to_location_id,
+            source_transfer_id=transfer.id
+        )
+        new_stock_dict = new_stock.model_dump(by_alias=True)
+        await stock_collection.insert_one(new_stock_dict)
+    
+    logger.info(f"Stok transferi: {stock_item.get('name')} - {data.quantity_boxes} kutu ({total_units} adet) - {from_location.get('name')} → {to_location.get('name')}")
+    
+    transfer_dict["id"] = transfer_dict.pop("_id")
+    return {
+        "message": f"{data.quantity_boxes} kutu ({total_units} adet) transfer edildi",
+        "transfer": transfer_dict
+    }
+
+
+@router.get("/transfers")
+async def get_transfers(
+    request: Request,
+    from_location_id: Optional[str] = None,
+    to_location_id: Optional[str] = None,
+    date: Optional[str] = None,
+    limit: int = 100
+):
+    """Transfer geçmişini getir"""
+    await require_roles(["cagri_merkezi", "bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    
+    query = {}
+    
+    if from_location_id:
+        query["from_location_id"] = from_location_id
+    
+    if to_location_id:
+        query["to_location_id"] = to_location_id
+    
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+            query["created_at"] = {
+                "$gte": target_date,
+                "$lt": target_date + timedelta(days=1)
+            }
+        except ValueError:
+            pass
+    
+    transfers = await stock_transfers_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for t in transfers:
+        t["id"] = t.pop("_id")
+    
+    return transfers
+
+
+@router.get("/location/{location_id}/stock")
+async def get_location_stock(location_id: str, request: Request):
+    """
+    Belirli lokasyondaki stokları getir
+    - Araç stoğu
+    - Carter (dolap) stoğu
+    """
+    await get_current_user(request)
+    
+    # Lokasyonu bul
+    location = await field_locations_collection.find_one({"_id": location_id})
+    if not location:
+        # Eski sistemdeki lokasyonu dene
+        location = await locations_collection.find_one({"_id": location_id})
+        if not location:
+            raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
+    
+    location_name = location.get("name")
+    
+    # Bu lokasyondaki stokları getir
+    items = await stock_collection.find({
+        "$or": [
+            {"location": location_name},
+            {"field_location_id": location_id}
+        ]
+    }).to_list(1000)
+    
+    for item in items:
+        item["id"] = item.pop("_id")
+    
+    return {
+        "location_id": location_id,
+        "location_name": location_name,
+        "location_type": location.get("location_type", "unknown"),
+        "items": items,
+        "total_items": len(items)
+    }
+
+
+@router.get("/vehicle/{vehicle_id}/all-stock")
+async def get_vehicle_all_stock(vehicle_id: str, request: Request):
+    """
+    Araç için hem araç stoğunu hem de carter (dolap) stoğunu getir
+    ATT/Paramedik vaka formunda kullanır
+    """
+    await get_current_user(request)
+    
+    from database import vehicles_collection, vehicle_current_locations_collection
+    
+    # Araç bilgisini al
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
+    vehicle_plate = vehicle.get("plate")
+    
+    # Aracın güncel lokasyonunu al
+    current_loc = await vehicle_current_locations_collection.find_one({"vehicle_id": vehicle_id})
+    current_location_id = current_loc.get("current_location_id") if current_loc else None
+    current_location_name = current_loc.get("current_location_name") if current_loc else None
+    
+    # Araç stoğu (plakayla veya field_location_id ile)
+    vehicle_locations = await field_locations_collection.find({
+        "vehicle_id": vehicle_id,
+        "location_type": "arac"
+    }).to_list(10)
+    
+    vehicle_stock = []
+    for loc in vehicle_locations:
+        items = await stock_collection.find({
+            "$or": [
+                {"location": loc.get("name")},
+                {"field_location_id": loc.get("_id")}
+            ]
+        }).to_list(500)
+        for item in items:
+            item["id"] = item.pop("_id")
+            item["source_type"] = "arac"
+            item["source_name"] = f"Araç: {vehicle_plate}"
+        vehicle_stock.extend(items)
+    
+    # Ayrıca plaka ile kayıtlı stokları da al
+    plate_items = await stock_collection.find({
+        "location": vehicle_plate
+    }).to_list(500)
+    for item in plate_items:
+        item["id"] = item.pop("_id")
+        item["source_type"] = "arac"
+        item["source_name"] = f"Araç: {vehicle_plate}"
+    vehicle_stock.extend(plate_items)
+    
+    # Carter stoğu (güncel lokasyondaki dolap)
+    carter_stock = []
+    if current_location_id:
+        # Bu lokasyondaki carter'ları bul
+        carters = await field_locations_collection.find({
+            "healmedy_location_id": current_location_id,
+            "location_type": "carter"
+        }).to_list(10)
+        
+        for carter in carters:
+            items = await stock_collection.find({
+                "$or": [
+                    {"location": carter.get("name")},
+                    {"field_location_id": carter.get("_id")}
+                ]
+            }).to_list(500)
+            for item in items:
+                item["id"] = item.pop("_id")
+                item["source_type"] = "carter"
+                item["source_name"] = f"Lokasyon: {current_location_name}"
+                item["carter_name"] = carter.get("name")
+            carter_stock.extend(items)
+    
+    # Tekrar edenleri kaldır (id bazlı)
+    seen_ids = set()
+    unique_vehicle_stock = []
+    for item in vehicle_stock:
+        if item["id"] not in seen_ids:
+            seen_ids.add(item["id"])
+            unique_vehicle_stock.append(item)
+    
+    unique_carter_stock = []
+    for item in carter_stock:
+        if item["id"] not in seen_ids:
+            seen_ids.add(item["id"])
+            unique_carter_stock.append(item)
+    
+    return {
+        "vehicle_id": vehicle_id,
+        "vehicle_plate": vehicle_plate,
+        "current_location_id": current_location_id,
+        "current_location_name": current_location_name,
+        "vehicle_stock": unique_vehicle_stock,
+        "carter_stock": unique_carter_stock,
+        "total_vehicle_items": len(unique_vehicle_stock),
+        "total_carter_items": len(unique_carter_stock)
+    }

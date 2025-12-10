@@ -25,6 +25,7 @@ class ShiftAssignmentCreate(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     end_date: Optional[str] = None
+    healmedy_location_id: Optional[str] = None  # YENİ: Healmedy lokasyonu
 
 # ============================================================================
 # SHIFT ASSIGNMENT ENDPOINTS - YENİDEN YAZILDI
@@ -737,6 +738,123 @@ async def get_shift_stats(request: Request, user_id: Optional[str] = None):
         "total_shifts": total,
         "total_hours_worked": round(total_hours, 2)
     }
+
+
+# ============================================================================
+# GÜNLÜK FORM KONTROLÜ - EKİP BAZLI
+# ============================================================================
+
+@router.get("/check-daily-form/{vehicle_id}")
+async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optional[str] = None):
+    """
+    Bu araç için bugün günlük kontrol formu doldurulmuş mu?
+    ATT/Paramedik'ten biri doldurduysa diğerinin doldurmasına gerek yok
+    """
+    user = await get_current_user(request)
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            target_date = turkey_now
+    else:
+        target_date = turkey_now
+    
+    # Bugünün başlangıcı ve bitişi
+    day_start = datetime(target_date.year, target_date.month, target_date.day)
+    day_end = day_start + timedelta(days=1)
+    
+    # Bu araç ve bu gün için günlük form doldurulmuş mı?
+    filled_shift = await shifts_collection.find_one({
+        "vehicle_id": vehicle_id,
+        "daily_control_filled_by": {"$ne": None},
+        "daily_control_filled_at": {"$gte": day_start, "$lt": day_end}
+    })
+    
+    if filled_shift:
+        # Dolduran kişi bilgisini al
+        filler = await users_collection.find_one({"_id": filled_shift.get("daily_control_filled_by")})
+        filler_name = filler.get("name") if filler else "Bilinmiyor"
+        
+        return {
+            "filled": True,
+            "filled_by": filled_shift.get("daily_control_filled_by"),
+            "filled_by_name": filler_name,
+            "filled_at": filled_shift.get("daily_control_filled_at"),
+            "shift_id": filled_shift.get("_id"),
+            "message": f"Günlük kontrol formu {filler_name} tarafından doldurulmuş"
+        }
+    
+    return {
+        "filled": False,
+        "message": "Bu araç için bugün günlük kontrol formu doldurulmamış"
+    }
+
+
+@router.post("/log-section-time")
+async def log_section_time(request: Request):
+    """
+    Form doldurma sürelerini logla (ATT/Paramedik için zaman kısıtlamaları)
+    """
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    shift_id = body.get("shift_id")
+    section_index = body.get("section_index")
+    duration_seconds = body.get("duration_seconds")
+    
+    if not shift_id:
+        raise HTTPException(status_code=400, detail="shift_id gerekli")
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Mevcut section_times'ı al
+    shift = await shifts_collection.find_one({"_id": shift_id})
+    if not shift:
+        raise HTTPException(status_code=404, detail="Vardiya bulunamadı")
+    
+    section_times = shift.get("section_times") or {}
+    section_times[f"section_{section_index}"] = {
+        "duration_seconds": duration_seconds,
+        "completed_at": turkey_now.isoformat()
+    }
+    
+    await shifts_collection.update_one(
+        {"_id": shift_id},
+        {"$set": {"section_times": section_times}}
+    )
+    
+    return {"message": f"Section {section_index} süresi kaydedildi"}
+
+
+@router.post("/mark-daily-form-filled")
+async def mark_daily_form_filled(request: Request):
+    """
+    Günlük kontrol formunu doldurulmuş olarak işaretle
+    """
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    shift_id = body.get("shift_id")
+    
+    if not shift_id:
+        raise HTTPException(status_code=400, detail="shift_id gerekli")
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    await shifts_collection.update_one(
+        {"_id": shift_id},
+        {"$set": {
+            "daily_control_filled_by": user.id,
+            "daily_control_filled_at": turkey_now
+        }}
+    )
+    
+    logger.info(f"Günlük kontrol formu dolduruldu: {shift_id} - {user.name}")
+    
+    return {"message": "Günlük kontrol formu doldurulmuş olarak işaretlendi"}
 
 
 # ============================================================================

@@ -139,7 +139,13 @@ export const stockAPI = {
   deleteLocation: (id) => api.delete(`/stock/locations/${id}`),
   getLocationsSummary: () => api.get('/stock/locations/summary'),
   getLocationItems: (id) => api.get(`/stock/locations/${id}/items`),
-  getItemBarcodeDetails: (locationId, itemName) => api.get(`/stock/locations/${locationId}/items/${encodeURIComponent(itemName)}/details`)
+  getItemBarcodeDetails: (locationId, itemName) => api.get(`/stock/locations/${locationId}/items/${encodeURIComponent(itemName)}/details`),
+  
+  // YENİ: Stok Transfer
+  transfer: (data) => api.post('/stock/transfer', data),
+  getTransfers: (params) => api.get('/stock/transfers', { params }),
+  getLocationStock: (locationId) => api.get(`/stock/location/${locationId}/stock`),
+  getVehicleAllStock: (vehicleId) => api.get(`/stock/vehicle/${vehicleId}/all-stock`)
 };
 
 // Medications API (Vakada kullanılan ilaçlar)
@@ -176,7 +182,47 @@ export const shiftsAPI = {
   
   // Shift Photos
   getPhotos: (params) => api.get('/shifts/photos', { params }),
-  getPhotosByShiftId: (shiftId) => api.get(`/shifts/photos/${shiftId}`)
+  getPhotosByShiftId: (shiftId) => api.get(`/shifts/photos/${shiftId}`),
+  
+  // YENİ: Günlük Form Kontrolü
+  checkDailyForm: (vehicleId, date) => api.get(`/shifts/check-daily-form/${vehicleId}`, { params: { date } }),
+  markDailyFormFilled: (data) => api.post('/shifts/mark-daily-form-filled', data),
+  logSectionTime: (data) => api.post('/shifts/log-section-time', data),
+  
+  // YENİ: Devir Teslim
+  startHandover: (data) => api.post('/shifts/handover/start', data),
+  getActiveHandover: () => api.get('/shifts/handover/active'),
+  signHandover: (sessionId, data) => api.post(`/shifts/handover/${sessionId}/sign`, data),
+  approveHandover: (sessionId, data) => api.post(`/shifts/handover/${sessionId}/approve`, data),
+  getPendingApprovals: (date) => api.get('/shifts/handover/pending-approvals', { params: { date } }),
+  getHandoverLogs: (params) => api.get('/shifts/handover/logs', { params }),
+  
+  // YENİ: Ekip Gruplama
+  getTodayTeam: (vehicleId) => api.get(`/shifts/today-team/${vehicleId}`)
+};
+
+// Locations API (YENİ)
+export const locationsAPI = {
+  // Healmedy Lokasyonları
+  getHealmedy: () => api.get('/locations/healmedy'),
+  
+  // Saha Lokasyonları
+  getField: (params) => api.get('/locations/field', { params }),
+  createField: (data) => api.post('/locations/field', data),
+  getFieldById: (id) => api.get(`/locations/field/${id}`),
+  getFieldByQR: (qr) => api.get(`/locations/field/qr/${qr}`),
+  deleteField: (id) => api.delete(`/locations/field/${id}`),
+  
+  // Lokasyon Değişikliği
+  createChangeRequest: (data) => api.post('/locations/change-request', data),
+  getPendingChangeRequests: () => api.get('/locations/change-request/pending'),
+  approveChange: (id) => api.post(`/locations/change-request/${id}/approve`),
+  rejectChange: (id, data) => api.post(`/locations/change-request/${id}/reject`, data),
+  
+  // Araç Lokasyonu
+  getVehicleLocation: (vehicleId) => api.get(`/locations/vehicle/${vehicleId}/current`),
+  setVehicleLocation: (vehicleId, data) => api.post(`/locations/vehicle/${vehicleId}/set-location`, data),
+  getVehiclesByLocation: (locationId) => api.get(`/locations/vehicles/by-location/${locationId}`)
 };
 
 // Users API
