@@ -224,7 +224,11 @@ async def add_medication_to_case(case_id: str, data: MedicationUsageCreate, requ
         route=data.route,
         added_by=user.id,
         added_by_name=user.name,
-        vehicle_plate=vehicle_plate
+        vehicle_plate=vehicle_plate,
+        # YENİ: Kaynak bilgisi
+        source_type=data.source_type or "arac",
+        source_location_id=data.source_location_id,
+        source_location_name=data.source_location_name
     )
     
     # If we have a stock_item_id, deduct from stock (lokasyon bazlı)

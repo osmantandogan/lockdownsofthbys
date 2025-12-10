@@ -617,6 +617,9 @@ async def get_vehicle_all_stock(vehicle_id: str, request: Request):
     
     # Carter stoğu (güncel lokasyondaki dolap)
     carter_stock = []
+    carter_location_id = None
+    carter_name = None
+    
     if current_location_id:
         # Bu lokasyondaki carter'ları bul
         carters = await field_locations_collection.find({
@@ -625,6 +628,10 @@ async def get_vehicle_all_stock(vehicle_id: str, request: Request):
         }).to_list(10)
         
         for carter in carters:
+            if not carter_location_id:
+                carter_location_id = carter.get("_id")
+                carter_name = carter.get("name", f"{current_location_name} Carter")
+            
             items = await stock_collection.find({
                 "$or": [
                     {"location": carter.get("name")},
@@ -657,6 +664,8 @@ async def get_vehicle_all_stock(vehicle_id: str, request: Request):
         "vehicle_plate": vehicle_plate,
         "current_location_id": current_location_id,
         "current_location_name": current_location_name,
+        "carter_location_id": carter_location_id,
+        "carter_name": carter_name or f"{current_location_name} Carter" if current_location_name else None,
         "vehicle_stock": unique_vehicle_stock,
         "carter_stock": unique_carter_stock,
         "total_vehicle_items": len(unique_vehicle_stock),

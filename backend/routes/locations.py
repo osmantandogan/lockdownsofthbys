@@ -399,3 +399,4 @@ async def get_vehicles_by_location(location_id: str, request: Request):
     
     return vehicles
 
+

@@ -355,6 +355,10 @@ class MedicationUsageCreate(BaseModel):
     dosage: Optional[str] = None
     route: Optional[str] = None
     stock_item_id: Optional[str] = None
+    # YENİ: Kaynak bilgisi
+    source_type: Optional[str] = None  # 'vehicle' veya 'carter'
+    source_location_id: Optional[str] = None
+    source_location_name: Optional[str] = None
 
 # Stock Usage Log (for audit)
 class StockUsageLog(BaseModel):
