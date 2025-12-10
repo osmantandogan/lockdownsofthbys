@@ -12,6 +12,7 @@ import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import CallCenterNew from "./pages/CallCenterNew";
 import CallCenterSimple from "./pages/CallCenterSimple";
+import CallCenter from "./pages/CallCenter";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
 import Vehicles from "./pages/Vehicles";
@@ -109,7 +110,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="call-center" element={<CallCenterSimple />} />
+            <Route path="call-center" element={<CallCenter />} />
             <Route path="patient-registration" element={<PatientRegistration />} />
             <Route path="my-stock" element={<MyLocationStock />} />
             <Route path="cases" element={<Cases />} />
