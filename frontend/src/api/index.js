@@ -157,7 +157,19 @@ export const stockAPI = {
   getGroupedInventory: (params) => api.get('/stock-barcode/inventory/grouped', { params }),
   getItemQRDetails: (itemName, location) => api.get(`/stock-barcode/inventory/item-details/${encodeURIComponent(itemName)}`, { params: { location } }),
   addBarcodeStock: (data) => api.post('/stock-barcode/add', data),
-  deductBarcodeStock: (data) => api.post('/stock-barcode/deduct', data)
+  deductBarcodeStock: (data) => api.post('/stock-barcode/deduct', data),
+  
+  // Otomatik Lokasyon Senkronizasyonu
+  syncVehicleLocations: () => api.post('/stock-barcode/sync-vehicle-locations'),
+  getStockLocations: (type) => api.get('/stock-barcode/stock-locations', { params: { type } }),
+  
+  // Stok Parçalama (QR -> Adet)
+  getSplitInfo: (barcodeStockId) => api.get(`/stock-barcode/split-info/${barcodeStockId}`),
+  splitStock: (data) => api.post('/stock-barcode/split', data),
+  
+  // Stok Hareketleri
+  sendStockToLocation: (data) => api.post('/stock-barcode/movements/send', data),
+  getStockMovements: (params) => api.get('/stock-barcode/movements', { params })
 };
 
 // Medications API (Vakada kullanılan ilaçlar)

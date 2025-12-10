@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { pdfTemplatesAPI } from '../api';
+import { formTemplatesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,14 +13,405 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 import { 
   FileText, Save, Trash2, Plus, GripVertical, Settings, 
-  ChevronLeft, ChevronRight, Copy, Eye, X, Move,
-  Type, Image, Square, ArrowUp, ArrowDown
+  ArrowLeft, ChevronRight, Eye, X, Move,
+  ArrowUp, ArrowDown, User, Clock, Heart, Stethoscope,
+  Pill, Truck, MapPin, Phone, AlertCircle, PenTool, Camera,
+  Package, Users
 } from 'lucide-react';
 
 // A4 boyutları (piksel, 96 DPI)
 const A4_WIDTH = 595;
 const A4_HEIGHT = 842;
-const SCALE = 0.8; // Canvas görüntüleme ölçeği
+const SCALE = 0.85;
+
+// Hazır kutucuk tanımları - Tablo editöründeki ile aynı
+const BLOCK_DEFINITIONS = [
+  {
+    id: 'hasta_bilgileri',
+    name: 'Hasta Bilgileri',
+    icon: User,
+    color: 'bg-blue-100 text-blue-700 border-blue-300',
+    fields: [
+      { field_id: 'tc_no', label: 'TC Kimlik No' },
+      { field_id: 'ad', label: 'Ad' },
+      { field_id: 'soyad', label: 'Soyad' },
+      { field_id: 'yas', label: 'Yaş' },
+      { field_id: 'dogum_tarihi', label: 'Doğum Tarihi' },
+      { field_id: 'cinsiyet', label: 'Cinsiyet' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 100
+  },
+  {
+    id: 'cagri_bilgileri',
+    name: 'Çağrı Bilgileri',
+    icon: Phone,
+    color: 'bg-purple-100 text-purple-700 border-purple-300',
+    fields: [
+      { field_id: 'cagri_zamani', label: 'Çağrı Zamanı' },
+      { field_id: 'cagri_tipi', label: 'Çağrı Tipi' },
+      { field_id: 'cagri_nedeni', label: 'Çağrı Nedeni' },
+      { field_id: 'vakayi_veren', label: 'Vakayı Veren Kurum' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 80
+  },
+  {
+    id: 'zaman_bilgileri',
+    name: 'Zaman Bilgileri',
+    icon: Clock,
+    color: 'bg-amber-100 text-amber-700 border-amber-300',
+    fields: [
+      { field_id: 'cagri_saati', label: 'Çağrı Saati' },
+      { field_id: 'olay_yerine_varis', label: 'Olay Yerine Varış' },
+      { field_id: 'hastaya_varis', label: 'Hastaya Varış' },
+      { field_id: 'ayrilis', label: 'Olay Yerinden Ayrılış' },
+      { field_id: 'hastaneye_varis', label: 'Hastaneye Varış' },
+      { field_id: 'istasyona_donus', label: 'İstasyona Dönüş' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 100
+  },
+  {
+    id: 'vital_bulgular_1',
+    name: 'Vital Bulgular 1',
+    icon: Heart,
+    color: 'bg-red-100 text-red-700 border-red-300',
+    fields: [
+      { field_id: 'saat', label: 'Saat' },
+      { field_id: 'tansiyon', label: 'Tansiyon' },
+      { field_id: 'nabiz', label: 'Nabız' },
+      { field_id: 'spo2', label: 'SpO2' },
+      { field_id: 'solunum', label: 'Solunum' },
+      { field_id: 'ates', label: 'Ateş' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 60
+  },
+  {
+    id: 'vital_bulgular_2',
+    name: 'Vital Bulgular 2',
+    icon: Heart,
+    color: 'bg-red-100 text-red-700 border-red-300',
+    fields: [
+      { field_id: 'saat', label: 'Saat' },
+      { field_id: 'tansiyon', label: 'Tansiyon' },
+      { field_id: 'nabiz', label: 'Nabız' },
+      { field_id: 'spo2', label: 'SpO2' },
+      { field_id: 'solunum', label: 'Solunum' },
+      { field_id: 'ates', label: 'Ateş' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 60
+  },
+  {
+    id: 'vital_bulgular_3',
+    name: 'Vital Bulgular 3',
+    icon: Heart,
+    color: 'bg-red-100 text-red-700 border-red-300',
+    fields: [
+      { field_id: 'saat', label: 'Saat' },
+      { field_id: 'tansiyon', label: 'Tansiyon' },
+      { field_id: 'nabiz', label: 'Nabız' },
+      { field_id: 'spo2', label: 'SpO2' },
+      { field_id: 'solunum', label: 'Solunum' },
+      { field_id: 'ates', label: 'Ateş' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 60
+  },
+  {
+    id: 'klinik_gozlemler',
+    name: 'Klinik Gözlemler',
+    icon: Eye,
+    color: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+    fields: [
+      { field_id: 'bilinc', label: 'Bilinç Durumu' },
+      { field_id: 'duygu', label: 'Duygu Durumu' },
+      { field_id: 'pupil', label: 'Pupil' },
+      { field_id: 'cilt', label: 'Cilt' },
+      { field_id: 'solunum_tipi', label: 'Solunum Tipi' },
+      { field_id: 'nabiz_tipi', label: 'Nabız Tipi' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 100
+  },
+  {
+    id: 'gks_skorlari',
+    name: 'GKS (Glasgow)',
+    icon: AlertCircle,
+    color: 'bg-orange-100 text-orange-700 border-orange-300',
+    fields: [
+      { field_id: 'motor', label: 'Motor Yanıt' },
+      { field_id: 'verbal', label: 'Verbal Yanıt' },
+      { field_id: 'goz', label: 'Göz Açma' },
+      { field_id: 'toplam', label: 'Toplam Skor' }
+    ],
+    defaultWidth: 180,
+    defaultHeight: 80
+  },
+  {
+    id: 'anamnez',
+    name: 'Anamnez/Şikayet',
+    icon: FileText,
+    color: 'bg-teal-100 text-teal-700 border-teal-300',
+    fields: [
+      { field_id: 'sikayet', label: 'Başvuru Şikayeti' },
+      { field_id: 'oyku', label: 'Öykü' },
+      { field_id: 'kronik', label: 'Kronik Hastalıklar' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'fizik_muayene',
+    name: 'Fizik Muayene',
+    icon: Stethoscope,
+    color: 'bg-cyan-100 text-cyan-700 border-cyan-300',
+    fields: [
+      { field_id: 'muayene', label: 'Fizik Muayene Bulguları' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'uygulanan_islemler',
+    name: 'Uygulanan İşlemler',
+    icon: Settings,
+    color: 'bg-violet-100 text-violet-700 border-violet-300',
+    fields: [
+      { field_id: 'maske', label: 'Maske ile hava yolu' },
+      { field_id: 'airway', label: 'Airway' },
+      { field_id: 'entubasyon', label: 'Entübasyon' },
+      { field_id: 'lma', label: 'LMA' },
+      { field_id: 'cpr', label: 'CPR' },
+      { field_id: 'defib', label: 'Defibrilasyon' },
+      { field_id: 'diger', label: 'Diğer işlemler' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 120
+  },
+  {
+    id: 'cpr_bilgileri',
+    name: 'CPR Bilgileri',
+    icon: Heart,
+    color: 'bg-pink-100 text-pink-700 border-pink-300',
+    fields: [
+      { field_id: 'uygulayan', label: 'CPR Uygulayan' },
+      { field_id: 'baslangic', label: 'CPR Başlangıç' },
+      { field_id: 'bitis', label: 'CPR Bitiş' },
+      { field_id: 'neden', label: 'CPR Nedeni' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 80
+  },
+  {
+    id: 'nakil_durumu',
+    name: 'Nakil Durumu',
+    icon: Truck,
+    color: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+    fields: [
+      { field_id: 'nakil_tipi', label: 'Nakil Tipi' },
+      { field_id: 'transfer_tipi', label: 'Transfer Tipi' }
+    ],
+    defaultWidth: 180,
+    defaultHeight: 60
+  },
+  {
+    id: 'nakil_hastanesi',
+    name: 'Nakil Hastanesi',
+    icon: MapPin,
+    color: 'bg-lime-100 text-lime-700 border-lime-300',
+    fields: [
+      { field_id: 'hastane', label: 'Hastane Adı' },
+      { field_id: 'protokol', label: 'Hastane Protokol No' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 60
+  },
+  {
+    id: 'healmedy_lokasyonu',
+    name: 'Healmedy Lokasyonu',
+    icon: MapPin,
+    color: 'bg-sky-100 text-sky-700 border-sky-300',
+    fields: [
+      { field_id: 'lokasyon', label: 'Lokasyon' }
+    ],
+    defaultWidth: 180,
+    defaultHeight: 50
+  },
+  {
+    id: 'arac_bilgileri',
+    name: 'Araç Bilgileri',
+    icon: Truck,
+    color: 'bg-gray-100 text-gray-700 border-gray-300',
+    fields: [
+      { field_id: 'plaka', label: 'Plaka' },
+      { field_id: 'baslangic_km', label: 'Başlangıç KM' },
+      { field_id: 'bitis_km', label: 'Bitiş KM' },
+      { field_id: 'protokol_112', label: '112 Protokol No' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 80
+  },
+  {
+    id: 'ekip_bilgileri',
+    name: 'Ekip Bilgileri',
+    icon: Users,
+    color: 'bg-blue-100 text-blue-700 border-blue-300',
+    fields: [
+      { field_id: 'sofor', label: 'Şoför' },
+      { field_id: 'paramedik', label: 'Paramedik' },
+      { field_id: 'att', label: 'ATT' },
+      { field_id: 'hemsire', label: 'Hemşire' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 80
+  },
+  {
+    id: 'kullanilan_ilaclar',
+    name: 'Kullanılan İlaçlar',
+    icon: Pill,
+    color: 'bg-green-100 text-green-700 border-green-300',
+    fields: [
+      { field_id: 'ilac_adi', label: 'İlaç Adı' },
+      { field_id: 'doz', label: 'Doz' },
+      { field_id: 'yol', label: 'Uygulama Yolu' },
+      { field_id: 'saat', label: 'Saat' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'kullanilan_malzemeler',
+    name: 'Kullanılan Malzemeler',
+    icon: Package,
+    color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+    fields: [
+      { field_id: 'malzeme', label: 'Malzeme Listesi' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 80
+  },
+  {
+    id: 'tani_icd10',
+    name: 'Tanı (ICD-10)',
+    icon: FileText,
+    color: 'bg-rose-100 text-rose-700 border-rose-300',
+    fields: [
+      { field_id: 'icd_kod', label: 'ICD-10 Kodu' },
+      { field_id: 'tani', label: 'Tanı Açıklaması' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 60
+  },
+  {
+    id: 'imza_hasta',
+    name: 'İmza - Hasta/Yakını',
+    icon: PenTool,
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Ad Soyad' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 150,
+    defaultHeight: 80
+  },
+  {
+    id: 'imza_doktor',
+    name: 'İmza - Doktor/Paramedik',
+    icon: PenTool,
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Ad Soyad' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 150,
+    defaultHeight: 80
+  },
+  {
+    id: 'imza_saglik_personeli',
+    name: 'İmza - Sağlık Personeli',
+    icon: PenTool,
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Ad Soyad' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 150,
+    defaultHeight: 80
+  },
+  {
+    id: 'imza_sofor',
+    name: 'İmza - Şoför/Pilot',
+    icon: PenTool,
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Ad Soyad' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 150,
+    defaultHeight: 80
+  },
+  {
+    id: 'imza_teslim_alan',
+    name: 'İmza - Teslim Alan',
+    icon: PenTool,
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Ad Soyad' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 150,
+    defaultHeight: 80
+  },
+  {
+    id: 'adli_vaka',
+    name: 'Adli Vaka',
+    icon: AlertCircle,
+    color: 'bg-red-100 text-red-700 border-red-300',
+    fields: [
+      { field_id: 'adli', label: 'Adli Vaka mı?' }
+    ],
+    defaultWidth: 120,
+    defaultHeight: 50
+  },
+  {
+    id: 'vaka_sonucu',
+    name: 'Vaka Sonucu',
+    icon: FileText,
+    color: 'bg-green-100 text-green-700 border-green-300',
+    fields: [
+      { field_id: 'sonuc', label: 'Sonuç Açıklaması' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 60
+  },
+  {
+    id: 'genel_notlar',
+    name: 'Genel Notlar',
+    icon: FileText,
+    color: 'bg-gray-100 text-gray-700 border-gray-300',
+    fields: [
+      { field_id: 'notlar', label: 'Serbest not alanı' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'logo_baslik',
+    name: 'Logo/Başlık',
+    icon: Camera,
+    color: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+    fields: [
+      { field_id: 'logo', label: 'Logo' },
+      { field_id: 'baslik', label: 'Form Başlığı' },
+      { field_id: 'alt_baslik', label: 'Alt Başlık' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 60
+  }
+];
 
 const PdfTemplateEditor = () => {
   const navigate = useNavigate();
@@ -29,29 +420,28 @@ const PdfTemplateEditor = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [blockDefinitions, setBlockDefinitions] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [blockEditorOpen, setBlockEditorOpen] = useState(false);
-  const [draggedBlock, setDraggedBlock] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [draggedBlockDef, setDraggedBlockDef] = useState(null);
   
   // Şablon verisi
   const [template, setTemplate] = useState({
-    name: 'Yeni Şablon',
+    name: 'Yeni PDF Şablonu',
     description: '',
+    template_type: 'pdf',
     page_count: 1,
     page_size: 'A4',
     orientation: 'portrait',
-    header: { enabled: false, height: 60, text: '', logo: null, show_page_number: false },
-    footer: { enabled: false, height: 40, text: '', show_page_number: true },
+    header: { enabled: true, height: 50, text: 'VAKA FORMU' },
+    footer: { enabled: true, height: 30, text: 'Healmedy Sağlık Hizmetleri' },
     blocks: [],
-    usage_types: [],
+    usage_types: ['vaka_formu'],
     is_default: false
   });
 
   useEffect(() => {
-    loadBlockDefinitions();
     if (templateId && templateId !== 'new') {
       loadTemplate(templateId);
     } else {
@@ -59,18 +449,9 @@ const PdfTemplateEditor = () => {
     }
   }, [templateId]);
 
-  const loadBlockDefinitions = async () => {
-    try {
-      const response = await pdfTemplatesAPI.getBlockDefinitions();
-      setBlockDefinitions(response.data);
-    } catch (error) {
-      console.error('Kutucuk tanımları yüklenemedi:', error);
-    }
-  };
-
   const loadTemplate = async (id) => {
     try {
-      const response = await pdfTemplatesAPI.getById(id);
+      const response = await formTemplatesAPI.getById(id);
       setTemplate(response.data);
     } catch (error) {
       console.error('Şablon yüklenemedi:', error);
@@ -89,54 +470,49 @@ const PdfTemplateEditor = () => {
     setSaving(true);
     try {
       if (templateId && templateId !== 'new') {
-        await pdfTemplatesAPI.update(templateId, template);
+        await formTemplatesAPI.update(templateId, template);
         toast.success('Şablon güncellendi');
       } else {
-        const response = await pdfTemplatesAPI.create(template);
+        const response = await formTemplatesAPI.create(template);
         toast.success('Şablon oluşturuldu');
-        navigate(`/dashboard/pdf-templates/${response.data.id}`);
+        navigate(`/dashboard/form-templates/pdf/${response.data.id}`);
       }
     } catch (error) {
       console.error('Kaydetme hatası:', error);
-      toast.error('Şablon kaydedilemedi');
+      toast.error('Kaydetme başarısız');
     } finally {
       setSaving(false);
     }
   };
 
   // Kutucuk sürükle-bırak
-  const handleDragStart = (e, blockDef) => {
-    e.dataTransfer.setData('blockType', blockDef.type);
-    e.dataTransfer.setData('blockTitle', blockDef.title);
+  const handleDragStart = (blockDef) => {
+    setDraggedBlockDef(blockDef);
   };
 
   const handleCanvasDrop = (e) => {
     e.preventDefault();
-    const blockType = e.dataTransfer.getData('blockType');
-    const blockTitle = e.dataTransfer.getData('blockTitle');
-    
-    if (!blockType) return;
+    if (!draggedBlockDef) return;
     
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / SCALE;
     const y = (e.clientY - rect.top) / SCALE;
     
-    const blockDef = blockDefinitions.find(b => b.type === blockType);
-    
     const newBlock = {
       id: `block_${Date.now()}`,
-      block_type: blockType,
-      title: blockTitle,
-      x: Math.max(10, Math.min(x - 100, A4_WIDTH - 210)),
-      y: Math.max(10, Math.min(y - 30, A4_HEIGHT - 70)),
-      width: 200,
-      height: 60,
+      block_type: draggedBlockDef.id,
+      title: draggedBlockDef.name,
+      color: draggedBlockDef.color,
+      x: Math.max(10, Math.min(x - 50, A4_WIDTH - draggedBlockDef.defaultWidth - 10)),
+      y: Math.max(10, Math.min(y - 20, A4_HEIGHT - draggedBlockDef.defaultHeight - 10)),
+      width: draggedBlockDef.defaultWidth,
+      height: draggedBlockDef.defaultHeight,
       page: currentPage,
-      fields: blockDef?.fields?.map((f, i) => ({ ...f, visible: true, order: i })) || [],
+      fields: draggedBlockDef.fields.map((f, i) => ({ ...f, visible: true, order: i })),
       show_border: true,
       show_title: true,
-      font_size: 10
+      font_size: 9
     };
     
     setTemplate(prev => ({
@@ -144,7 +520,8 @@ const PdfTemplateEditor = () => {
       blocks: [...prev.blocks, newBlock]
     }));
     
-    toast.success(`${blockTitle} eklendi`);
+    setDraggedBlockDef(null);
+    toast.success(`${draggedBlockDef.name} eklendi`);
   };
 
   const handleCanvasDragOver = (e) => {
@@ -167,45 +544,73 @@ const PdfTemplateEditor = () => {
     toast.success('Kutucuk silindi');
   };
 
-  // Kutucuk boyutlandırma
-  const resizeBlock = (blockId, width, height) => {
-    setTemplate(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => 
-        b.id === blockId ? { ...b, width: Math.max(50, width), height: Math.max(30, height) } : b
-      )
-    }));
-  };
-
   // Kutucuk taşıma
-  const moveBlock = (blockId, x, y) => {
-    setTemplate(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => 
-        b.id === blockId ? { 
-          ...b, 
-          x: Math.max(0, Math.min(x, A4_WIDTH - b.width)),
-          y: Math.max(0, Math.min(y, A4_HEIGHT - b.height))
-        } : b
-      )
-    }));
+  const handleBlockDrag = (e, block) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    const onMouseMove = (moveEvent) => {
+      const x = (moveEvent.clientX - rect.left) / SCALE - block.width / 2;
+      const y = (moveEvent.clientY - rect.top) / SCALE - block.height / 2;
+      
+      setTemplate(prev => ({
+        ...prev,
+        blocks: prev.blocks.map(b => 
+          b.id === block.id ? { 
+            ...b, 
+            x: Math.max(0, Math.min(x, A4_WIDTH - b.width)),
+            y: Math.max(0, Math.min(y, A4_HEIGHT - b.height))
+          } : b
+        )
+      }));
+    };
+    
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   };
 
-  // Kutucuk içerik düzenleme
-  const openBlockEditor = (block) => {
-    setSelectedBlock(block.id);
-    setBlockEditorOpen(true);
+  // Kutucuk boyutlandırma
+  const handleBlockResize = (e, block, direction) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = block.width;
+    const startHeight = block.height;
+    
+    const onMouseMove = (moveEvent) => {
+      const deltaX = (moveEvent.clientX - startX) / SCALE;
+      const deltaY = (moveEvent.clientY - startY) / SCALE;
+      
+      setTemplate(prev => ({
+        ...prev,
+        blocks: prev.blocks.map(b => {
+          if (b.id !== block.id) return b;
+          return {
+            ...b,
+            width: Math.max(80, startWidth + deltaX),
+            height: Math.max(40, startHeight + deltaY)
+          };
+        })
+      }));
+    };
+    
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   };
 
-  const updateBlockFields = (blockId, fields) => {
-    setTemplate(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => 
-        b.id === blockId ? { ...b, fields } : b
-      )
-    }));
-  };
-
+  // Alan görünürlüğü
   const toggleFieldVisibility = (blockId, fieldId) => {
     setTemplate(prev => ({
       ...prev,
@@ -229,7 +634,7 @@ const PdfTemplateEditor = () => {
         if (b.id !== blockId) return b;
         const fields = [...b.fields];
         [fields[fieldIndex - 1], fields[fieldIndex]] = [fields[fieldIndex], fields[fieldIndex - 1]];
-        return { ...b, fields: fields.map((f, i) => ({ ...f, order: i })) };
+        return { ...b, fields };
       })
     }));
   };
@@ -242,7 +647,7 @@ const PdfTemplateEditor = () => {
         if (fieldIndex >= b.fields.length - 1) return b;
         const fields = [...b.fields];
         [fields[fieldIndex], fields[fieldIndex + 1]] = [fields[fieldIndex + 1], fields[fieldIndex]];
-        return { ...b, fields: fields.map((f, i) => ({ ...f, order: i })) };
+        return { ...b, fields };
       })
     }));
   };
@@ -251,600 +656,361 @@ const PdfTemplateEditor = () => {
   const currentPageBlocks = template.blocks.filter(b => b.page === currentPage);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96">Yükleniyor...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="bg-white border-b p-4 flex items-center justify-between">
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard/pdf-templates')}>
-            <ChevronLeft className="h-4 w-4 mr-1" /> Geri
+          <Button variant="ghost" onClick={() => navigate('/dashboard/form-templates')}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Geri
           </Button>
           <div>
-            <Input 
+            <Input
               value={template.name}
-              onChange={(e) => setTemplate(prev => ({ ...prev, name: e.target.value }))}
-              className="text-lg font-bold border-0 shadow-none focus:ring-0 p-0"
-              placeholder="Şablon adı"
+              onChange={(e) => setTemplate({ ...template, name: e.target.value })}
+              className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 p-0 h-auto"
+              placeholder="Şablon adı..."
             />
-            <p className="text-sm text-gray-500">PDF Şablon Editörü</p>
+            <p className="text-xs text-gray-500">PDF Şablon Editörü - Serbest Yerleştirme</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate('/dashboard/pdf-templates')}>
-            İptal
+          <Button variant="outline" onClick={() => setShowSettingsDialog(true)}>
+            <Settings className="h-4 w-4 mr-1" /> Ayarlar
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-blue-600">
-            <Save className="h-4 w-4 mr-1" />
-            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700">
+            <Save className="h-4 w-4 mr-1" /> {saving ? 'Kaydediliyor...' : 'Kaydet'}
           </Button>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Sol Sidebar - Kutucuklar */}
-        <div className="w-64 bg-gray-50 border-r p-4 overflow-y-auto">
-          <h3 className="font-semibold mb-3 text-sm">Kutucuklar</h3>
-          <p className="text-xs text-gray-500 mb-4">Sürükleyip sayfaya bırakın</p>
-          
-          <div className="space-y-2">
-            {blockDefinitions.map((block) => (
-              <div
-                key={block.type}
-                draggable
-                onDragStart={(e) => handleDragStart(e, block)}
-                className="bg-white p-3 rounded-lg border cursor-move hover:border-blue-400 hover:shadow-sm transition-all flex items-center gap-2"
-              >
-                <GripVertical className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{block.title}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Sayfa Ayarları */}
-          <div className="mt-6 pt-4 border-t">
-            <h3 className="font-semibold mb-3 text-sm">Sayfa Ayarları</h3>
+        {/* Sol Panel - Kutucuklar */}
+        <div className="w-72 bg-white border-r overflow-y-auto">
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <GripVertical className="h-4 w-4" /> Hazır Kutucuklar
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Kutucukları sayfaya sürükleyin
+            </p>
             
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs">Sayfa Sayısı</Label>
-                <Select 
-                  value={String(template.page_count)} 
-                  onValueChange={(v) => setTemplate(prev => ({ ...prev, page_count: parseInt(v) }))}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map(n => (
-                      <SelectItem key={n} value={String(n)}>{n} Sayfa</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs">Kullanım Yeri</Label>
-                <Select 
-                  value={template.usage_types[0] || ''} 
-                  onValueChange={(v) => setTemplate(prev => ({ ...prev, usage_types: [v] }))}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder="Seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vaka_formu">Vaka Formu</SelectItem>
-                    <SelectItem value="vardiya_formu">Vardiya Formu</SelectItem>
-                    <SelectItem value="hasta_karti">Hasta Kartı</SelectItem>
-                    <SelectItem value="genel_rapor">Genel Rapor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Varsayılan</Label>
-                <Switch 
-                  checked={template.is_default}
-                  onCheckedChange={(v) => setTemplate(prev => ({ ...prev, is_default: v }))}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Üst Bilgi</Label>
-                <Switch 
-                  checked={template.header?.enabled}
-                  onCheckedChange={(v) => setTemplate(prev => ({ 
-                    ...prev, 
-                    header: { ...prev.header, enabled: v } 
-                  }))}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Alt Bilgi</Label>
-                <Switch 
-                  checked={template.footer?.enabled}
-                  onCheckedChange={(v) => setTemplate(prev => ({ 
-                    ...prev, 
-                    footer: { ...prev.footer, enabled: v } 
-                  }))}
-                />
-              </div>
+            <div className="space-y-2">
+              {BLOCK_DEFINITIONS.map((block) => {
+                const Icon = block.icon;
+                const isUsed = template.blocks.some(b => b.block_type === block.id);
+                
+                return (
+                  <div
+                    key={block.id}
+                    draggable
+                    onDragStart={() => handleDragStart(block)}
+                    className={`p-3 rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${block.color} ${
+                      isUsed ? 'opacity-50' : 'hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 opacity-50" />
+                      <Icon className="h-4 w-4" />
+                      <span className="font-medium text-sm">{block.name}</span>
+                      {isUsed && <Badge className="ml-auto text-xs">Eklendi</Badge>}
+                    </div>
+                    <div className="mt-1 text-xs opacity-70">
+                      {block.fields.slice(0, 3).map(f => f.label).join(', ')}
+                      {block.fields.length > 3 && ` +${block.fields.length - 3}`}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Merkez - Canvas */}
-        <div className="flex-1 bg-gray-200 overflow-auto p-8 flex justify-center">
-          <div>
-            {/* Sayfa navigasyonu */}
-            {template.page_count > 1 && (
-              <div className="mb-4 flex items-center justify-center gap-4">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={currentPage === 0}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium">
-                  Sayfa {currentPage + 1} / {template.page_count}
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={currentPage >= template.page_count - 1}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+        <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-gray-200">
+          <div 
+            ref={canvasRef}
+            className="bg-white shadow-xl relative"
+            style={{ 
+              width: A4_WIDTH * SCALE,
+              height: A4_HEIGHT * SCALE
+            }}
+            onDrop={handleCanvasDrop}
+            onDragOver={handleCanvasDragOver}
+            onClick={() => setSelectedBlock(null)}
+          >
+            {/* Header */}
+            {template.header.enabled && (
+              <div 
+                className="bg-gray-800 text-white flex items-center justify-center font-bold absolute top-0 left-0 right-0"
+                style={{ height: template.header.height * SCALE }}
+              >
+                {template.header.text || 'BAŞLIK'}
               </div>
             )}
-
-            {/* A4 Canvas */}
-            <div
-              ref={canvasRef}
-              onDrop={handleCanvasDrop}
-              onDragOver={handleCanvasDragOver}
-              onClick={() => setSelectedBlock(null)}
-              className="bg-white shadow-xl relative"
-              style={{
-                width: A4_WIDTH * SCALE,
-                height: A4_HEIGHT * SCALE,
-                transform: `scale(1)`,
-                transformOrigin: 'top center',
-                backgroundImage: `
-                  linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-                  linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-                `,
-                backgroundSize: `${20 * SCALE}px ${20 * SCALE}px`
-              }}
-            >
-              {/* Merkez ve kenar çizgileri */}
-              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-blue-200 opacity-50 pointer-events-none" />
-              <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-200 opacity-50 pointer-events-none" />
+            
+            {/* Blocks */}
+            {currentPageBlocks.map((block) => {
+              const blockDef = BLOCK_DEFINITIONS.find(b => b.id === block.block_type);
+              const Icon = blockDef?.icon || FileText;
+              const isSelected = selectedBlock === block.id;
               
-              {/* Üst Bilgi Alanı */}
-              {template.header?.enabled && (
-                <div 
-                  className="absolute top-0 left-0 right-0 bg-gray-100/80 border-b-2 border-dashed border-gray-400 flex items-center justify-center text-xs text-gray-500 z-10"
-                  style={{ height: template.header.height * SCALE }}
-                >
-                  📄 Üst Bilgi
-                </div>
-              )}
-
-              {/* Alt Bilgi Alanı */}
-              {template.footer?.enabled && (
-                <div 
-                  className="absolute bottom-0 left-0 right-0 bg-gray-100/80 border-t-2 border-dashed border-gray-400 flex items-center justify-center text-xs text-gray-500 z-10"
-                  style={{ height: template.footer.height * SCALE }}
-                >
-                  📄 Alt Bilgi
-                </div>
-              )}
-
-              {/* Kutucuklar */}
-              {currentPageBlocks.map((block) => (
-                <DraggableBlock
+              return (
+                <div
                   key={block.id}
-                  block={block}
-                  scale={SCALE}
-                  isSelected={selectedBlock === block.id}
+                  className={`absolute border-2 rounded overflow-hidden cursor-move ${
+                    block.color || 'bg-gray-50 border-gray-300'
+                  } ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                  style={{
+                    left: block.x * SCALE,
+                    top: block.y * SCALE + (template.header.enabled ? template.header.height * SCALE : 0),
+                    width: block.width * SCALE,
+                    height: block.height * SCALE
+                  }}
                   onClick={(e) => handleBlockClick(e, block)}
-                  onDoubleClick={() => openBlockEditor(block)}
-                  onMove={(x, y) => moveBlock(block.id, x, y)}
-                  onResize={(w, h) => resizeBlock(block.id, w, h)}
-                  onDelete={() => deleteBlock(block.id)}
-                />
-              ))}
-            </div>
+                  onMouseDown={(e) => handleBlockDrag(e, block)}
+                >
+                  {/* Block Header */}
+                  {block.show_title !== false && (
+                    <div className="px-2 py-1 border-b flex items-center gap-1 bg-white/50">
+                      <Icon className="h-3 w-3" />
+                      <span className="font-semibold text-xs truncate">{block.title}</span>
+                    </div>
+                  )}
+                  
+                  {/* Block Content */}
+                  <div className="p-1 text-[8px] leading-tight opacity-80 overflow-hidden">
+                    {block.fields?.filter(f => f.visible !== false).slice(0, 6).map(f => f.label).join(' | ')}
+                  </div>
+                  
+                  {/* Resize Handle */}
+                  <div 
+                    className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-blue-500 opacity-0 hover:opacity-100"
+                    onMouseDown={(e) => handleBlockResize(e, block, 'se')}
+                  />
+                  
+                  {/* Delete Button */}
+                  {isSelected && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute -top-3 -right-3 h-6 w-6 p-0 rounded-full"
+                      onClick={(e) => { e.stopPropagation(); deleteBlock(block.id); }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Footer */}
+            {template.footer.enabled && (
+              <div 
+                className="bg-gray-100 text-gray-600 flex items-center justify-center text-xs absolute bottom-0 left-0 right-0"
+                style={{ height: template.footer.height * SCALE }}
+              >
+                {template.footer.text || 'Alt bilgi'}
+              </div>
+            )}
+            
+            {/* Grid Lines */}
+            <svg className="absolute inset-0 pointer-events-none opacity-10" width="100%" height="100%">
+              <defs>
+                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                  <path d="M 50 0 L 0 0 0 50" fill="none" stroke="gray" strokeWidth="0.5"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
           </div>
         </div>
 
-        {/* Sağ Sidebar - Seçili Kutucuk Ayarları */}
-        {selectedBlockData && (
-          <div className="w-72 bg-white border-l p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-sm">{selectedBlockData.title}</h3>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedBlock(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Başlık */}
-              <div>
-                <Label className="text-xs">Başlık</Label>
-                <Input 
-                  value={selectedBlockData.title}
-                  onChange={(e) => setTemplate(prev => ({
-                    ...prev,
-                    blocks: prev.blocks.map(b => 
-                      b.id === selectedBlock ? { ...b, title: e.target.value } : b
-                    )
-                  }))}
-                  className="h-8"
-                />
-              </div>
-
-              {/* Boyut */}
-              <div className="grid grid-cols-2 gap-2">
+        {/* Sağ Panel - Seçili Blok Ayarları */}
+        <div className="w-64 bg-white border-l p-4 overflow-y-auto">
+          {selectedBlockData ? (
+            <>
+              <h3 className="font-semibold text-gray-700 mb-4">{selectedBlockData.title}</h3>
+              
+              <div className="space-y-4">
                 <div>
                   <Label className="text-xs">Genişlik</Label>
-                  <Input 
+                  <Input
                     type="number"
                     value={Math.round(selectedBlockData.width)}
-                    onChange={(e) => resizeBlock(selectedBlock, parseInt(e.target.value), selectedBlockData.height)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 100;
+                      setTemplate(prev => ({
+                        ...prev,
+                        blocks: prev.blocks.map(b => 
+                          b.id === selectedBlockData.id ? { ...b, width: val } : b
+                        )
+                      }));
+                    }}
                     className="h-8"
                   />
                 </div>
+                
                 <div>
                   <Label className="text-xs">Yükseklik</Label>
-                  <Input 
+                  <Input
                     type="number"
                     value={Math.round(selectedBlockData.height)}
-                    onChange={(e) => resizeBlock(selectedBlock, selectedBlockData.width, parseInt(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 50;
+                      setTemplate(prev => ({
+                        ...prev,
+                        blocks: prev.blocks.map(b => 
+                          b.id === selectedBlockData.id ? { ...b, height: val } : b
+                        )
+                      }));
+                    }}
                     className="h-8"
                   />
                 </div>
-              </div>
-
-              {/* Görünüm */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Çerçeve</Label>
-                  <Switch 
-                    checked={selectedBlockData.show_border}
-                    onCheckedChange={(v) => setTemplate(prev => ({
-                      ...prev,
-                      blocks: prev.blocks.map(b => 
-                        b.id === selectedBlock ? { ...b, show_border: v } : b
-                      )
-                    }))}
-                  />
-                </div>
+                
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">Başlık Göster</Label>
-                  <Switch 
-                    checked={selectedBlockData.show_title}
-                    onCheckedChange={(v) => setTemplate(prev => ({
-                      ...prev,
-                      blocks: prev.blocks.map(b => 
-                        b.id === selectedBlock ? { ...b, show_title: v } : b
-                      )
-                    }))}
+                  <Switch
+                    checked={selectedBlockData.show_title !== false}
+                    onCheckedChange={(v) => {
+                      setTemplate(prev => ({
+                        ...prev,
+                        blocks: prev.blocks.map(b => 
+                          b.id === selectedBlockData.id ? { ...b, show_title: v } : b
+                        )
+                      }));
+                    }}
                   />
                 </div>
-              </div>
-
-              {/* Alanlar */}
-              {selectedBlockData.fields?.length > 0 && (
-                <div>
+                
+                <div className="border-t pt-4">
                   <Label className="text-xs mb-2 block">Alanlar</Label>
-                  <div className="space-y-1 max-h-64 overflow-y-auto">
-                    {selectedBlockData.fields.map((field, index) => (
-                      <div 
-                        key={field.field_id}
-                        className={`flex items-center gap-2 p-2 rounded text-xs ${
-                          field.visible ? 'bg-blue-50' : 'bg-gray-100 text-gray-400'
-                        }`}
-                      >
-                        <Switch 
-                          checked={field.visible}
-                          onCheckedChange={() => toggleFieldVisibility(selectedBlock, field.field_id)}
-                          className="h-4 w-8"
+                  <div className="space-y-1">
+                    {selectedBlockData.fields?.map((field, idx) => (
+                      <div key={field.field_id} className="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={field.visible !== false}
+                          onChange={() => toggleFieldVisibility(selectedBlockData.id, field.field_id)}
+                          className="h-3 w-3"
                         />
-                        <span className="flex-1">{field.label}</span>
-                        <div className="flex gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 w-6 p-0"
-                            onClick={() => moveFieldUp(selectedBlock, index)}
-                            disabled={index === 0}
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() => moveFieldDown(selectedBlock, index)}
-                            disabled={index === selectedBlockData.fields.length - 1}
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <span className="flex-1 truncate">{field.label}</span>
+                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => moveFieldUp(selectedBlockData.id, idx)}>
+                          <ArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => moveFieldDown(selectedBlockData.id, idx)}>
+                          <ArrowDown className="h-3 w-3" />
+                        </Button>
                       </div>
                     ))}
                   </div>
                 </div>
+                
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => deleteBlock(selectedBlockData.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" /> Sil
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center text-gray-400 py-8">
+              <Move className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-sm">Düzenlemek için bir kutucuk seçin</p>
+            </div>
+          )}
+          
+          <div className="border-t mt-4 pt-4">
+            <Label className="text-xs text-gray-500">Eklenen Kutucuklar</Label>
+            <div className="mt-2 space-y-1">
+              {template.blocks.length === 0 ? (
+                <p className="text-xs text-gray-400">Henüz kutucuk eklenmedi</p>
+              ) : (
+                template.blocks.map(b => (
+                  <div 
+                    key={b.id} 
+                    className={`text-xs px-2 py-1 rounded cursor-pointer ${
+                      selectedBlock === b.id ? 'bg-blue-100 text-blue-700' : 'bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedBlock(b.id)}
+                  >
+                    {b.title}
+                  </div>
+                ))
               )}
-
-              {/* Sil */}
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                className="w-full"
-                onClick={() => deleteBlock(selectedBlock)}
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Kutucuğu Sil
-              </Button>
             </div>
           </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Sürüklenebilir Kutucuk Bileşeni
-const DraggableBlock = ({ block, scale, isSelected, onClick, onDoubleClick, onMove, onResize, onDelete }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [startSize, setStartSize] = useState({ w: 0, h: 0 });
-  const blockRef = useRef(null);
-
-  const handleMouseDown = (e) => {
-    if (e.target.classList.contains('resize-handle')) return;
-    e.stopPropagation();
-    setIsDragging(true);
-    setStartPos({ 
-      x: e.clientX - block.x * scale, 
-      y: e.clientY - block.y * scale 
-    });
-  };
-
-  const handleResizeStart = (e) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setStartPos({ x: e.clientX, y: e.clientY });
-    setStartSize({ w: block.width, h: block.height });
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (isDragging) {
-        const newX = (e.clientX - startPos.x) / scale;
-        const newY = (e.clientY - startPos.y) / scale;
-        onMove(newX, newY);
-      }
-      if (isResizing) {
-        const deltaX = (e.clientX - startPos.x) / scale;
-        const deltaY = (e.clientY - startPos.y) / scale;
-        onResize(startSize.w + deltaX, startSize.h + deltaY);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setIsResizing(false);
-    };
-
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, isResizing, startPos, startSize, scale, onMove, onResize]);
-
-  const visibleFields = block.fields?.filter(f => f.visible) || [];
-  const fieldCount = visibleFields.length;
-
-  // Örnek veri mapping'i - kutucuk tipine göre
-  const getSampleValue = (blockType, fieldId) => {
-    const sampleData = {
-      hasta_zaman: {
-        case_number: "20251210-000001",
-        case_date: "10.12.2025",
-        case_time: "16:55",
-        patient_name: "Test Hasta",
-        patient_surname: "Test Soyad",
-        patient_tc: "12345678901",
-        patient_age: "45",
-        patient_gender: "Erkek",
-        patient_phone: "05551234567"
-      },
-      tibbi_bilgiler: {
-        complaint: "Göğüs ağrısı",
-        chronic_diseases: "Hipertansiyon, Diyabet",
-        allergies: "Penisilin",
-        medications: "Aspirin 100mg",
-        blood_type: "A Rh+"
-      },
-      vitaller: {
-        blood_pressure: "120/80",
-        pulse: "72",
-        spo2: "98",
-        temperature: "36.5",
-        respiratory_rate: "16",
-        blood_sugar: "95",
-        gcs_total: "15"
-      },
-      nakil_hastanesi: {
-        hospital_name: "Test Hastanesi",
-        hospital_type: "Devlet",
-        hospital_address: "Test Mahallesi, Test Caddesi No:1",
-        transfer_reason: "Acil müdahale gerekiyor"
-      },
-      klinik_gozlemler: {
-        consciousness: "Bilinç açık",
-        pupil_response: "Normal",
-        skin_status: "Normal",
-        motor_response: "6",
-        verbal_response: "5",
-        eye_opening: "4"
-      },
-      anamnez: {
-        anamnez_text: "Hasta 2 saat önce göğüs ağrısı başladı",
-        history: "Hipertansiyon öyküsü var",
-        current_complaint: "Göğüs ağrısı, nefes darlığı"
-      },
-      fizik_muayene: {
-        general_status: "Orta",
-        head_neck: "Normal",
-        chest: "Solunum sesleri azalmış",
-        abdomen: "Yumuşak, hassasiyet yok",
-        extremities: "Normal",
-        neurological: "Bilinç açık, oriente"
-      },
-      uygulamalar: {
-        procedures_list: "IV açıldı, Oksijen verildi",
-        iv_access: "Evet",
-        airway: "Maske ile",
-        cpr: "Hayır",
-        other_procedures: "Monitörizasyon"
-      },
-      genel_notlar: {
-        notes: "Hasta stabil durumda",
-        special_notes: "Aile bilgilendirildi"
-      },
-      ilaclar_malzemeler: {
-        medications_used: "Aspirin 100mg, Nitrogliserin 0.5mg",
-        materials_used: "IV set, Oksijen maskesi",
-        quantities: "2 adet"
-      },
-      transfer_durumu: {
-        transfer_status: "Hastaneye nakledildi",
-        transfer_time: "17:30",
-        arrival_time: "17:45",
-        outcome: "Stabil"
-      },
-      tasit_protokol: {
-        vehicle_plate: "34 ABC 123",
-        vehicle_type: "Ambulans",
-        protocol_number: "20251210-000001",
-        driver_name: "Test Sürücü",
-        team_members: "Dr. Test, ATT Test"
-      },
-      onam_bilgilendirme: {
-        consent_text: "Hasta bilgilendirildi ve onay verdi",
-        patient_signature: "[İmza]",
-        consent_date: "10.12.2025"
-      },
-      hastane_reddi: {
-        rejection_reason: "Yatak yok",
-        hospital_signature: "[İmza]",
-        rejection_date: "10.12.2025"
-      },
-      hasta_reddi: {
-        service_rejection_reason: "Hasta nakli reddetti",
-        patient_rejection_signature: "[İmza]",
-        rejection_date: "10.12.2025"
-      },
-      teslim_imzalar: {
-        receiver_name: "Dr. Test",
-        receiver_signature: "[İmza]",
-        doctor_signature: "[İmza]",
-        paramedic_signature: "[İmza]",
-        driver_signature: "[İmza]"
-      }
-    };
-
-    return sampleData[blockType]?.[fieldId] || "-";
-  };
-
-  return (
-    <div
-      ref={blockRef}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
-      onMouseDown={handleMouseDown}
-      className={`absolute cursor-move shadow-sm ${
-        isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'
-      } ${block.show_border !== false ? 'border border-gray-300' : ''}`}
-      style={{
-        left: block.x * scale,
-        top: block.y * scale,
-        width: block.width * scale,
-        height: block.height * scale,
-        backgroundColor: block.background_color || 'white',
-        zIndex: isSelected ? 100 : 1
-      }}
-    >
-      {/* Başlık */}
-      {block.show_title !== false && (
-        <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-2 py-1 text-xs font-semibold border-b truncate flex items-center justify-between">
-          <span>{block.title}</span>
-          {fieldCount > 0 && (
-            <span className="text-gray-400 font-normal">({fieldCount})</span>
-          )}
         </div>
-      )}
-      
-      {/* İçerik önizleme - örnek verilerle */}
-      <div className="p-2 text-[10px] text-gray-600 overflow-hidden flex-1 h-full overflow-y-auto" style={{ maxHeight: 'calc(100% - 30px)' }}>
-        {fieldCount === 0 ? (
-          <div className="text-center py-2 text-gray-300 italic">Boş</div>
-        ) : (
-          <div className="space-y-0.5">
-            {visibleFields.slice(0, Math.min(fieldCount, 15)).map(f => {
-              const sampleValue = getSampleValue(block.block_type, f.field_id);
-              const displayText = `${f.label}: ${sampleValue}`;
-              return (
-                <div 
-                  key={f.field_id} 
-                  className="leading-tight"
-                  title={displayText}
-                >
-                  <span className="font-semibold text-gray-700 text-[9px]">{f.label}:</span>{' '}
-                  <span className="text-gray-500 text-[9px]">{sampleValue}</span>
-                </div>
-              );
-            })}
-            {fieldCount > 15 && (
-              <div className="text-gray-400 italic text-center pt-1 text-[8px]">
-                +{fieldCount - 15} alan daha...
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Boyutlandırma tutamacı - 4 köşe */}
-      {isSelected && (
-        <>
-          <div
-            className="resize-handle absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize rounded-tl"
-            onMouseDown={handleResizeStart}
-          />
-          <div className="absolute top-0 left-0 w-2 h-2 bg-blue-500 rounded-br pointer-events-none" />
-          <div className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-bl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-2 h-2 bg-blue-500 rounded-tr pointer-events-none" />
-        </>
-      )}
+      {/* Ayarlar Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Şablon Ayarları</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Şablon Adı</Label>
+              <Input
+                value={template.name}
+                onChange={(e) => setTemplate({ ...template, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Açıklama</Label>
+              <Textarea
+                value={template.description}
+                onChange={(e) => setTemplate({ ...template, description: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label>Başlık Metni</Label>
+              <Input
+                value={template.header.text}
+                onChange={(e) => setTemplate({ 
+                  ...template, 
+                  header: { ...template.header, text: e.target.value } 
+                })}
+              />
+            </div>
+            <div>
+              <Label>Alt Bilgi</Label>
+              <Input
+                value={template.footer.text}
+                onChange={(e) => setTemplate({ 
+                  ...template, 
+                  footer: { ...template.footer, text: e.target.value } 
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Varsayılan Şablon</Label>
+              <Switch
+                checked={template.is_default}
+                onCheckedChange={(v) => setTemplate({ ...template, is_default: v })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>Kapat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default PdfTemplateEditor;
-

@@ -48,9 +48,26 @@ const StockManagement = () => {
   const [medicationDetails, setMedicationDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // Stok Parçalama State
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [selectedItemForSplit, setSelectedItemForSplit] = useState(null);
+  const [splitQuantity, setSplitQuantity] = useState(1);
+  const [splitTargetLocation, setSplitTargetLocation] = useState('');
+  const [splitLoading, setSplitLoading] = useState(false);
+  
+  // Stok Hareketleri State
+  const [movementsDialogOpen, setMovementsDialogOpen] = useState(false);
+  const [stockMovements, setStockMovements] = useState([]);
+  const [movementsLoading, setMovementsLoading] = useState(false);
+  
+  // Stok Lokasyonları State
+  const [stockLocations, setStockLocations] = useState([]);
+  const [syncingLocations, setSyncingLocations] = useState(false);
+
   useEffect(() => {
     loadData();
     loadBarcodeGroups();
+    loadStockLocations();
   }, []);
   
   // Lokasyon filtresi değiştiğinde yeniden yükle

@@ -785,3 +785,369 @@ async def create_sample_template(request: Request):
     sample_template["id"] = sample_template.pop("_id")
     return sample_template
 
+
+@router.post("/create-sample-pdf")
+async def create_sample_pdf_template(request: Request):
+    """Örnek vaka formu PDF şablonu oluştur"""
+    user = await require_roles(["operasyon_muduru", "merkez_ofis"])(request)
+    
+    template_id = str(uuid.uuid4())
+    
+    sample_pdf_template = {
+        "_id": template_id,
+        "name": "Standart Vaka Formu (PDF)",
+        "description": "A4 formatında serbest yerleşimli vaka formu",
+        "template_type": "pdf",
+        "page_count": 1,
+        "page_size": "A4",
+        "orientation": "portrait",
+        "blocks": [
+            # Başlık
+            {
+                "id": "block_1",
+                "block_type": "logo_baslik",
+                "title": "Logo/Başlık",
+                "color": "bg-indigo-100 text-indigo-700 border-indigo-300",
+                "x": 10, "y": 10,
+                "width": 575, "height": 50,
+                "page": 0,
+                "fields": [
+                    {"field_id": "logo", "label": "Logo", "visible": True},
+                    {"field_id": "baslik", "label": "Form Başlığı", "visible": True},
+                    {"field_id": "alt_baslik", "label": "Alt Başlık", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Hasta Bilgileri
+            {
+                "id": "block_2",
+                "block_type": "hasta_bilgileri",
+                "title": "Hasta Bilgileri",
+                "color": "bg-blue-100 text-blue-700 border-blue-300",
+                "x": 10, "y": 70,
+                "width": 280, "height": 90,
+                "page": 0,
+                "fields": [
+                    {"field_id": "tc_no", "label": "TC Kimlik No", "visible": True},
+                    {"field_id": "ad", "label": "Ad", "visible": True},
+                    {"field_id": "soyad", "label": "Soyad", "visible": True},
+                    {"field_id": "yas", "label": "Yaş", "visible": True},
+                    {"field_id": "dogum_tarihi", "label": "Doğum Tarihi", "visible": True},
+                    {"field_id": "cinsiyet", "label": "Cinsiyet", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Çağrı Bilgileri
+            {
+                "id": "block_3",
+                "block_type": "cagri_bilgileri",
+                "title": "Çağrı Bilgileri",
+                "color": "bg-purple-100 text-purple-700 border-purple-300",
+                "x": 300, "y": 70,
+                "width": 285, "height": 90,
+                "page": 0,
+                "fields": [
+                    {"field_id": "cagri_zamani", "label": "Çağrı Zamanı", "visible": True},
+                    {"field_id": "cagri_tipi", "label": "Çağrı Tipi", "visible": True},
+                    {"field_id": "cagri_nedeni", "label": "Çağrı Nedeni", "visible": True},
+                    {"field_id": "vakayi_veren", "label": "Vakayı Veren Kurum", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Zaman Bilgileri
+            {
+                "id": "block_4",
+                "block_type": "zaman_bilgileri",
+                "title": "Zaman Bilgileri",
+                "color": "bg-amber-100 text-amber-700 border-amber-300",
+                "x": 10, "y": 170,
+                "width": 575, "height": 60,
+                "page": 0,
+                "fields": [
+                    {"field_id": "cagri_saati", "label": "Çağrı Saati", "visible": True},
+                    {"field_id": "olay_yerine_varis", "label": "Olay Yerine Varış", "visible": True},
+                    {"field_id": "hastaya_varis", "label": "Hastaya Varış", "visible": True},
+                    {"field_id": "ayrilis", "label": "Olay Yerinden Ayrılış", "visible": True},
+                    {"field_id": "hastaneye_varis", "label": "Hastaneye Varış", "visible": True},
+                    {"field_id": "istasyona_donus", "label": "İstasyona Dönüş", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Vital Bulgular 1-2-3
+            {
+                "id": "block_5",
+                "block_type": "vital_bulgular_1",
+                "title": "Vital Bulgular 1",
+                "color": "bg-red-100 text-red-700 border-red-300",
+                "x": 10, "y": 240,
+                "width": 575, "height": 45,
+                "page": 0,
+                "fields": [
+                    {"field_id": "saat", "label": "Saat", "visible": True},
+                    {"field_id": "tansiyon", "label": "Tansiyon", "visible": True},
+                    {"field_id": "nabiz", "label": "Nabız", "visible": True},
+                    {"field_id": "spo2", "label": "SpO2", "visible": True},
+                    {"field_id": "solunum", "label": "Solunum", "visible": True},
+                    {"field_id": "ates", "label": "Ateş", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_6",
+                "block_type": "vital_bulgular_2",
+                "title": "Vital Bulgular 2",
+                "color": "bg-red-100 text-red-700 border-red-300",
+                "x": 10, "y": 290,
+                "width": 575, "height": 45,
+                "page": 0,
+                "fields": [
+                    {"field_id": "saat", "label": "Saat", "visible": True},
+                    {"field_id": "tansiyon", "label": "Tansiyon", "visible": True},
+                    {"field_id": "nabiz", "label": "Nabız", "visible": True},
+                    {"field_id": "spo2", "label": "SpO2", "visible": True},
+                    {"field_id": "solunum", "label": "Solunum", "visible": True},
+                    {"field_id": "ates", "label": "Ateş", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Klinik Gözlemler + GKS
+            {
+                "id": "block_7",
+                "block_type": "klinik_gozlemler",
+                "title": "Klinik Gözlemler",
+                "color": "bg-indigo-100 text-indigo-700 border-indigo-300",
+                "x": 10, "y": 345,
+                "width": 380, "height": 80,
+                "page": 0,
+                "fields": [
+                    {"field_id": "bilinc", "label": "Bilinç Durumu", "visible": True},
+                    {"field_id": "duygu", "label": "Duygu Durumu", "visible": True},
+                    {"field_id": "pupil", "label": "Pupil", "visible": True},
+                    {"field_id": "cilt", "label": "Cilt", "visible": True},
+                    {"field_id": "solunum_tipi", "label": "Solunum Tipi", "visible": True},
+                    {"field_id": "nabiz_tipi", "label": "Nabız Tipi", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_8",
+                "block_type": "gks_skorlari",
+                "title": "GKS (Glasgow)",
+                "color": "bg-orange-100 text-orange-700 border-orange-300",
+                "x": 400, "y": 345,
+                "width": 185, "height": 80,
+                "page": 0,
+                "fields": [
+                    {"field_id": "motor", "label": "Motor Yanıt", "visible": True},
+                    {"field_id": "verbal", "label": "Verbal Yanıt", "visible": True},
+                    {"field_id": "goz", "label": "Göz Açma", "visible": True},
+                    {"field_id": "toplam", "label": "Toplam Skor", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Anamnez
+            {
+                "id": "block_9",
+                "block_type": "anamnez",
+                "title": "Anamnez/Şikayet",
+                "color": "bg-teal-100 text-teal-700 border-teal-300",
+                "x": 10, "y": 435,
+                "width": 575, "height": 80,
+                "page": 0,
+                "fields": [
+                    {"field_id": "sikayet", "label": "Başvuru Şikayeti", "visible": True},
+                    {"field_id": "oyku", "label": "Öykü", "visible": True},
+                    {"field_id": "kronik", "label": "Kronik Hastalıklar", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Uygulanan İşlemler
+            {
+                "id": "block_10",
+                "block_type": "uygulanan_islemler",
+                "title": "Uygulanan İşlemler",
+                "color": "bg-violet-100 text-violet-700 border-violet-300",
+                "x": 10, "y": 525,
+                "width": 575, "height": 70,
+                "page": 0,
+                "fields": [
+                    {"field_id": "maske", "label": "Maske ile hava yolu", "visible": True},
+                    {"field_id": "airway", "label": "Airway", "visible": True},
+                    {"field_id": "entubasyon", "label": "Entübasyon", "visible": True},
+                    {"field_id": "cpr", "label": "CPR", "visible": True},
+                    {"field_id": "defib", "label": "Defibrilasyon", "visible": True},
+                    {"field_id": "diger", "label": "Diğer", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # İlaçlar ve Malzemeler
+            {
+                "id": "block_11",
+                "block_type": "kullanilan_ilaclar",
+                "title": "Kullanılan İlaçlar",
+                "color": "bg-green-100 text-green-700 border-green-300",
+                "x": 10, "y": 605,
+                "width": 285, "height": 80,
+                "page": 0,
+                "fields": [
+                    {"field_id": "ilac_adi", "label": "İlaç Adı", "visible": True},
+                    {"field_id": "doz", "label": "Doz", "visible": True},
+                    {"field_id": "yol", "label": "Uygulama Yolu", "visible": True},
+                    {"field_id": "saat", "label": "Saat", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_12",
+                "block_type": "nakil_hastanesi",
+                "title": "Nakil Hastanesi",
+                "color": "bg-lime-100 text-lime-700 border-lime-300",
+                "x": 305, "y": 605,
+                "width": 280, "height": 80,
+                "page": 0,
+                "fields": [
+                    {"field_id": "hastane", "label": "Hastane Adı", "visible": True},
+                    {"field_id": "protokol", "label": "Hastane Protokol No", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # Araç ve Ekip
+            {
+                "id": "block_13",
+                "block_type": "arac_bilgileri",
+                "title": "Araç Bilgileri",
+                "color": "bg-gray-100 text-gray-700 border-gray-300",
+                "x": 10, "y": 695,
+                "width": 285, "height": 60,
+                "page": 0,
+                "fields": [
+                    {"field_id": "plaka", "label": "Plaka", "visible": True},
+                    {"field_id": "baslangic_km", "label": "Başlangıç KM", "visible": True},
+                    {"field_id": "bitis_km", "label": "Bitiş KM", "visible": True},
+                    {"field_id": "protokol_112", "label": "112 Protokol No", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_14",
+                "block_type": "ekip_bilgileri",
+                "title": "Ekip Bilgileri",
+                "color": "bg-blue-100 text-blue-700 border-blue-300",
+                "x": 305, "y": 695,
+                "width": 280, "height": 60,
+                "page": 0,
+                "fields": [
+                    {"field_id": "sofor", "label": "Şoför", "visible": True},
+                    {"field_id": "paramedik", "label": "Paramedik", "visible": True},
+                    {"field_id": "att", "label": "ATT", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            # İmzalar
+            {
+                "id": "block_15",
+                "block_type": "imza_hasta",
+                "title": "İmza - Hasta/Yakını",
+                "color": "bg-slate-100 text-slate-700 border-slate-300",
+                "x": 10, "y": 765,
+                "width": 140, "height": 65,
+                "page": 0,
+                "fields": [
+                    {"field_id": "ad_soyad", "label": "Ad Soyad", "visible": True},
+                    {"field_id": "imza", "label": "İmza", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_16",
+                "block_type": "imza_doktor",
+                "title": "İmza - Doktor/Paramedik",
+                "color": "bg-slate-100 text-slate-700 border-slate-300",
+                "x": 160, "y": 765,
+                "width": 140, "height": 65,
+                "page": 0,
+                "fields": [
+                    {"field_id": "ad_soyad", "label": "Ad Soyad", "visible": True},
+                    {"field_id": "imza", "label": "İmza", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_17",
+                "block_type": "imza_saglik_personeli",
+                "title": "İmza - Sağlık Personeli",
+                "color": "bg-slate-100 text-slate-700 border-slate-300",
+                "x": 310, "y": 765,
+                "width": 140, "height": 65,
+                "page": 0,
+                "fields": [
+                    {"field_id": "ad_soyad", "label": "Ad Soyad", "visible": True},
+                    {"field_id": "imza", "label": "İmza", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            },
+            {
+                "id": "block_18",
+                "block_type": "imza_sofor",
+                "title": "İmza - Şoför",
+                "color": "bg-slate-100 text-slate-700 border-slate-300",
+                "x": 460, "y": 765,
+                "width": 125, "height": 65,
+                "page": 0,
+                "fields": [
+                    {"field_id": "ad_soyad", "label": "Ad Soyad", "visible": True},
+                    {"field_id": "imza", "label": "İmza", "visible": True}
+                ],
+                "show_border": True,
+                "show_title": True
+            }
+        ],
+        "header": {
+            "enabled": False,
+            "height": 50,
+            "text": "AMBULANS VAKA FORMU"
+        },
+        "footer": {
+            "enabled": True,
+            "height": 20,
+            "text": "Healmedy Sağlık Hizmetleri - Gizlidir"
+        },
+        "usage_types": ["vaka_formu"],
+        "is_default": True,
+        "created_by": user.id,
+        "created_by_name": user.name,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "is_active": True
+    }
+    
+    # Eğer zaten varsayılan varsa kaldır
+    await form_templates_collection.update_many(
+        {"usage_types": "vaka_formu", "is_default": True, "template_type": "pdf"},
+        {"$set": {"is_default": False}}
+    )
+    
+    await form_templates_collection.insert_one(sample_pdf_template)
+    
+    logger.info(f"Örnek PDF vaka formu şablonu oluşturuldu: {sample_pdf_template['name']} by {user.name}")
+    
+    sample_pdf_template["id"] = sample_pdf_template.pop("_id")
+    return sample_pdf_template
+
