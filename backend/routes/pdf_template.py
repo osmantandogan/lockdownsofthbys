@@ -9,7 +9,7 @@ from services.template_pdf_generator import generate_pdf_from_template
 from auth_utils import get_current_user
 from database import cases_collection, pdf_templates_collection
 
-router = APIRouter(prefix="/pdf-template", tags=["PDF Template"])
+router = APIRouter(tags=["PDF Template"])
 logger = logging.getLogger(__name__)
 
 
