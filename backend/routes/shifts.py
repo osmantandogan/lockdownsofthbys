@@ -8,6 +8,7 @@ from pydantic import BaseModel, validator
 import base64
 import uuid
 import logging
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -264,6 +265,14 @@ async def create_shift_assignment(data: ShiftAssignmentCreate, request: Request)
                 detail=f"User already has an assignment from {existing_start.strftime('%Y-%m-%d')} to {existing_end.strftime('%Y-%m-%d')}"
             )
     
+    # Healmedy lokasyon adını bul
+    healmedy_location_name = None
+    if data.healmedy_location_id:
+        from models import HEALMEDY_LOCATIONS
+        location = next((l for l in HEALMEDY_LOCATIONS if l["id"] == data.healmedy_location_id), None)
+        if location:
+            healmedy_location_name = location["name"]
+    
     # Create assignment
     assignment = ShiftAssignment(
         user_id=data.user_id,
@@ -274,11 +283,35 @@ async def create_shift_assignment(data: ShiftAssignmentCreate, request: Request)
         shift_date=shift_date,
         start_time=data.start_time,
         end_time=data.end_time,
-        end_date=end_date
+        end_date=end_date,
+        healmedy_location_id=data.healmedy_location_id,
+        healmedy_location_name=healmedy_location_name
     )
     
     assignment_dict = assignment.model_dump(by_alias=True)
     result = await shift_assignments_collection.insert_one(assignment_dict)
+    
+    # Healmedy lokasyonu seçildiyse araç lokasyonunu güncelle
+    if data.healmedy_location_id and data.vehicle_id and healmedy_location_name:
+        from database import vehicle_current_locations_collection
+        turkey_tz = pytz.timezone('Europe/Istanbul')
+        turkey_now = datetime.now(turkey_tz)
+        
+        await vehicle_current_locations_collection.update_one(
+            {"vehicle_id": data.vehicle_id},
+            {"$set": {
+                "vehicle_id": data.vehicle_id,
+                "vehicle_plate": vehicle.get("plate") if vehicle else "",
+                "assigned_location_id": data.healmedy_location_id,
+                "assigned_location_name": healmedy_location_name,
+                "current_location_id": data.healmedy_location_id,
+                "current_location_name": healmedy_location_name,
+                "updated_by": current_user.id,
+                "updated_at": turkey_now
+            }},
+            upsert=True
+        )
+        logger.info(f"Araç lokasyonu güncellendi: {vehicle.get('plate') if vehicle else data.vehicle_id} → {healmedy_location_name}")
     
     inserted_doc = await shift_assignments_collection.find_one({"_id": result.inserted_id})
     if not inserted_doc:
