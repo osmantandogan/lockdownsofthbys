@@ -24,12 +24,321 @@ const A4_WIDTH = 595;
 const A4_HEIGHT = 842;
 const SCALE = 0.85;
 
-// Hazır kutucuk tanımları - Tablo editöründeki ile aynı
+// Grup tanımları
+const BLOCK_GROUPS = [
+  { id: 'vaka_formu', name: '📋 VAKA FORMUNDAN', color: 'bg-blue-50' },
+  { id: 'yeni_pdf', name: '🆕 YENİ PDF BLOKLARI', color: 'bg-green-50' },
+  { id: 'onceki', name: '⭐ ÖNCEKİ BLOKLAR', color: 'bg-yellow-50' },
+  { id: 'diger', name: '📦 DİĞER', color: 'bg-gray-50' }
+];
+
+// Hazır kutucuk tanımları - Gruplandırılmış
 const BLOCK_DEFINITIONS = [
-  // ===== YENİ BLOKLAR =====
+  // ========================================
+  // 📋 VAKA FORMUNDAN (Sistemdeki Bölümler)
+  // ========================================
+  {
+    id: 'vf_hasta_bilgileri',
+    name: '📋 Hasta Bilgileri',
+    group: 'vaka_formu',
+    icon: User,
+    color: 'bg-blue-100 text-blue-700 border-blue-300',
+    fields: [
+      { field_id: 'tc_no', label: 'TC Kimlik No' },
+      { field_id: 'ad', label: 'Ad' },
+      { field_id: 'soyad', label: 'Soyad' },
+      { field_id: 'dogum_tarihi', label: 'Doğum Tarihi' },
+      { field_id: 'yas', label: 'Yaş' },
+      { field_id: 'cinsiyet', label: 'Cinsiyet' },
+      { field_id: 'telefon', label: 'Telefon' },
+      { field_id: 'adres', label: 'Adres' },
+      { field_id: 'durum', label: 'Durumu' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 140
+  },
+  {
+    id: 'vf_cagri_bilgileri',
+    name: '📋 Çağrı Bilgileri',
+    group: 'vaka_formu',
+    icon: Phone,
+    color: 'bg-purple-100 text-purple-700 border-purple-300',
+    fields: [
+      { field_id: 'cagri_zamani', label: 'Çağrı Zamanı' },
+      { field_id: 'arayan_kisi', label: 'Arayan Kişi' },
+      { field_id: 'arayan_telefon', label: 'Arayan Telefon' },
+      { field_id: 'firma', label: 'Firma' },
+      { field_id: 'aciklama', label: 'Açıklama' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_konum_bilgileri',
+    name: '📋 Konum Bilgileri',
+    group: 'vaka_formu',
+    icon: MapPin,
+    color: 'bg-green-100 text-green-700 border-green-300',
+    fields: [
+      { field_id: 'il', label: 'İl' },
+      { field_id: 'ilce', label: 'İlçe' },
+      { field_id: 'mahalle', label: 'Mahalle' },
+      { field_id: 'adres', label: 'Adres' },
+      { field_id: 'koordinat', label: 'Koordinat' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_vital_bulgular',
+    name: '📋 Vital Bulgular',
+    group: 'vaka_formu',
+    icon: Heart,
+    color: 'bg-red-100 text-red-700 border-red-300',
+    fields: [
+      { field_id: 'saat', label: 'Ölçüm Saati' },
+      { field_id: 'tansiyon', label: 'Tansiyon (mmHg)' },
+      { field_id: 'nabiz', label: 'Nabız (dk)' },
+      { field_id: 'spo2', label: 'SpO2 (%)' },
+      { field_id: 'solunum', label: 'Solunum (dk)' },
+      { field_id: 'ates', label: 'Ateş (°C)' },
+      { field_id: 'kan_sekeri', label: 'Kan Şekeri (mg/dL)' }
+    ],
+    defaultWidth: 320,
+    defaultHeight: 120
+  },
+  {
+    id: 'vf_klinik_gozlemler',
+    name: '📋 Klinik Gözlemler',
+    group: 'vaka_formu',
+    icon: Eye,
+    color: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+    fields: [
+      { field_id: 'bilinc', label: 'Bilinç Durumu' },
+      { field_id: 'pupil', label: 'Pupil' },
+      { field_id: 'cilt', label: 'Cilt' },
+      { field_id: 'solunum_tipi', label: 'Solunum Tipi' },
+      { field_id: 'nabiz_tipi', label: 'Nabız Tipi' },
+      { field_id: 'motor', label: 'Motor Yanıt (GKS)' },
+      { field_id: 'verbal', label: 'Verbal Yanıt (GKS)' },
+      { field_id: 'goz', label: 'Göz Açma (GKS)' },
+      { field_id: 'gks_toplam', label: 'GKS Toplam' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 140
+  },
+  {
+    id: 'vf_anamnez',
+    name: '📋 Anamnez',
+    group: 'vaka_formu',
+    icon: FileText,
+    color: 'bg-teal-100 text-teal-700 border-teal-300',
+    fields: [
+      { field_id: 'sikayet', label: 'Şikayet' },
+      { field_id: 'oyku', label: 'Öykü' },
+      { field_id: 'kronik', label: 'Kronik Hastalıklar' },
+      { field_id: 'alerji', label: 'Alerjiler' },
+      { field_id: 'mevcut_ilaclar', label: 'Mevcut İlaçlar' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'vf_fizik_muayene',
+    name: '📋 Fizik Muayene',
+    group: 'vaka_formu',
+    icon: Stethoscope,
+    color: 'bg-cyan-100 text-cyan-700 border-cyan-300',
+    fields: [
+      { field_id: 'genel_durum', label: 'Genel Durum' },
+      { field_id: 'bas_boyun', label: 'Baş-Boyun' },
+      { field_id: 'gogus', label: 'Göğüs' },
+      { field_id: 'karin', label: 'Karın' },
+      { field_id: 'ekstremite', label: 'Ekstremite' },
+      { field_id: 'norolojik', label: 'Nörolojik' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'vf_uygulamalar',
+    name: '📋 Uygulanan İşlemler',
+    group: 'vaka_formu',
+    icon: Settings,
+    color: 'bg-violet-100 text-violet-700 border-violet-300',
+    fields: [
+      { field_id: 'islemler', label: 'Yapılan İşlemler' },
+      { field_id: 'damar_yolu', label: 'Damar Yolu' },
+      { field_id: 'hava_yolu', label: 'Hava Yolu' },
+      { field_id: 'cpr', label: 'CPR' },
+      { field_id: 'diger', label: 'Diğer' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_genel_notlar',
+    name: '📋 Genel Notlar',
+    group: 'vaka_formu',
+    icon: FileText,
+    color: 'bg-gray-100 text-gray-700 border-gray-300',
+    fields: [
+      { field_id: 'notlar', label: 'Notlar' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_ilaclar',
+    name: '📋 Kullanılan İlaçlar',
+    group: 'vaka_formu',
+    icon: Pill,
+    color: 'bg-green-100 text-green-700 border-green-300',
+    fields: [
+      { field_id: 'ilac_listesi', label: 'İlaç Listesi' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'vf_malzemeler',
+    name: '📋 Kullanılan Malzemeler',
+    group: 'vaka_formu',
+    icon: Package,
+    color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+    fields: [
+      { field_id: 'malzeme_listesi', label: 'Malzeme Listesi' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'vf_nakil_bilgileri',
+    name: '📋 Nakil Bilgileri',
+    group: 'vaka_formu',
+    icon: Truck,
+    color: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+    fields: [
+      { field_id: 'nakil_tipi', label: 'Nakil Tipi' },
+      { field_id: 'sonuc', label: 'Sonuç' },
+      { field_id: 'hastane', label: 'Nakil Hastanesi' },
+      { field_id: 'hastane_protokol', label: 'Hastane Protokol No' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_arac_bilgileri',
+    name: '📋 Araç Bilgileri',
+    group: 'vaka_formu',
+    icon: Truck,
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    fields: [
+      { field_id: 'plaka', label: 'Plaka' },
+      { field_id: 'arac_tipi', label: 'Araç Tipi' },
+      { field_id: 'baslangic_km', label: 'Başlangıç KM' },
+      { field_id: 'bitis_km', label: 'Bitiş KM' },
+      { field_id: 'protokol_112', label: '112 Protokol No' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_ekip_bilgileri',
+    name: '📋 Ekip Bilgileri',
+    group: 'vaka_formu',
+    icon: Users,
+    color: 'bg-blue-100 text-blue-700 border-blue-300',
+    fields: [
+      { field_id: 'sofor', label: 'Şoför' },
+      { field_id: 'paramedik', label: 'Paramedik' },
+      { field_id: 'att', label: 'ATT' },
+      { field_id: 'hemsire', label: 'Hemşire' },
+      { field_id: 'doktor', label: 'Doktor' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_onam_bilgilendirme',
+    name: '📋 Hasta Bilgilendirme Onamı',
+    group: 'vaka_formu',
+    icon: FileText,
+    color: 'bg-blue-100 text-blue-700 border-blue-300',
+    fields: [
+      { field_id: 'onam_metni', label: 'Onam Metni' },
+      { field_id: 'hasta_imza', label: 'Hasta İmza' },
+      { field_id: 'tarih', label: 'Tarih' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_hastane_reddi',
+    name: '📋 Hastanenin Hasta Reddi',
+    group: 'vaka_formu',
+    icon: AlertCircle,
+    color: 'bg-red-100 text-red-700 border-red-300',
+    fields: [
+      { field_id: 'red_nedeni', label: 'Red Nedeni' },
+      { field_id: 'hastane_adi', label: 'Hastane Adı' },
+      { field_id: 'kase', label: 'Kaşe' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_hasta_reddi',
+    name: '📋 Hastanın Hizmet Reddi',
+    group: 'vaka_formu',
+    icon: AlertCircle,
+    color: 'bg-orange-100 text-orange-700 border-orange-300',
+    fields: [
+      { field_id: 'red_nedeni', label: 'Red Nedeni' },
+      { field_id: 'hasta_adi', label: 'Hasta Adı' },
+      { field_id: 'yakini_adi', label: 'Yakını Adı' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_teslim_imzalari',
+    name: '📋 Teslim İmzaları',
+    group: 'vaka_formu',
+    icon: PenTool,
+    color: 'bg-green-100 text-green-700 border-green-300',
+    fields: [
+      { field_id: 'teslim_alan', label: 'Teslim Alan' },
+      { field_id: 'doktor_imza', label: 'Doktor/Paramedik İmza' },
+      { field_id: 'saglik_personeli_imza', label: 'Sağlık Personeli İmza' },
+      { field_id: 'sofor_imza', label: 'Şoför/Pilot İmza' }
+    ],
+    defaultWidth: 350,
+    defaultHeight: 100
+  },
+  {
+    id: 'vf_tarihce',
+    name: '📋 Vaka Tarihçesi',
+    group: 'vaka_formu',
+    icon: Clock,
+    color: 'bg-gray-100 text-gray-700 border-gray-300',
+    fields: [
+      { field_id: 'olusturma', label: 'Oluşturulma' },
+      { field_id: 'guncelleme', label: 'Son Güncelleme' },
+      { field_id: 'durum', label: 'Durum' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 80
+  },
+  // ========================================
+  // ⭐ ÖNCEKİ BLOKLAR (Daha Önce Eklenenler)
+  // ========================================
   {
     id: 'istasyon',
     name: '⭐ İSTASYON',
+    group: 'onceki',
     icon: MapPin,
     color: 'bg-indigo-200 text-indigo-800 border-indigo-400',
     fields: [
@@ -44,6 +353,7 @@ const BLOCK_DEFINITIONS = [
   {
     id: 'saatler',
     name: '⭐ Saatler',
+    group: 'onceki',
     icon: Clock,
     color: 'bg-amber-200 text-amber-800 border-amber-400',
     fields: [
@@ -60,6 +370,7 @@ const BLOCK_DEFINITIONS = [
   {
     id: 'hasta_bilgileri_detayli',
     name: '⭐ Hasta Bilgileri (Detaylı)',
+    group: 'onceki',
     icon: User,
     color: 'bg-blue-200 text-blue-800 border-blue-400',
     fields: [
@@ -1060,8 +1371,8 @@ const PdfTemplateEditor = () => {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Sol Panel - Kutucuklar */}
-        <div className="w-72 bg-white border-r overflow-y-auto">
+        {/* Sol Panel - Kutucuklar (Gruplandırılmış) */}
+        <div className="w-80 bg-white border-r overflow-y-auto">
           <div className="p-4">
             <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <GripVertical className="h-4 w-4" /> Hazır Kutucuklar
@@ -1070,34 +1381,85 @@ const PdfTemplateEditor = () => {
               Kutucukları sayfaya sürükleyin
             </p>
             
-            <div className="space-y-2">
-              {BLOCK_DEFINITIONS.map((block) => {
-                const Icon = block.icon;
-                const isUsed = template.blocks.some(b => b.block_type === block.id);
-                
-                return (
-                  <div
-                    key={block.id}
-                    draggable
-                    onDragStart={() => handleDragStart(block)}
-                    className={`p-3 rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${block.color} ${
-                      isUsed ? 'opacity-50' : 'hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 opacity-50" />
-                      <Icon className="h-4 w-4" />
-                      <span className="font-medium text-sm">{block.name}</span>
-                      {isUsed && <Badge className="ml-auto text-xs">Eklendi</Badge>}
-                    </div>
-                    <div className="mt-1 text-xs opacity-70">
-                      {block.fields.slice(0, 3).map(f => f.label).join(', ')}
-                      {block.fields.length > 3 && ` +${block.fields.length - 3}`}
-                    </div>
+            {/* Gruplandırılmış Bloklar */}
+            {BLOCK_GROUPS.map((group) => {
+              const groupBlocks = BLOCK_DEFINITIONS.filter(b => b.group === group.id);
+              if (groupBlocks.length === 0) return null;
+              
+              return (
+                <div key={group.id} className="mb-4">
+                  <div className={`font-bold text-sm mb-2 px-2 py-1 rounded ${group.color}`}>
+                    {group.name} ({groupBlocks.length})
                   </div>
-                );
-              })}
-            </div>
+                  <div className="space-y-1">
+                    {groupBlocks.map((block) => {
+                      const Icon = block.icon;
+                      const isUsed = template.blocks.some(b => b.block_type === block.id);
+                      
+                      return (
+                        <div
+                          key={block.id}
+                          draggable
+                          onDragStart={() => handleDragStart(block)}
+                          className={`p-2 rounded-lg border cursor-grab active:cursor-grabbing transition-all ${block.color} ${
+                            isUsed ? 'opacity-50' : 'hover:shadow-md hover:scale-[1.02]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <GripVertical className="h-3 w-3 opacity-50" />
+                            <Icon className="h-3 w-3" />
+                            <span className="font-medium text-xs flex-1 truncate">{block.name}</span>
+                            {isUsed && <Badge className="text-[10px] px-1">✓</Badge>}
+                          </div>
+                          <div className="mt-0.5 text-[10px] opacity-60 truncate pl-5">
+                            {block.fields.slice(0, 2).map(f => f.label).join(', ')}
+                            {block.fields.length > 2 && ` +${block.fields.length - 2}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Grupsuz Bloklar */}
+            {(() => {
+              const ungroupedBlocks = BLOCK_DEFINITIONS.filter(b => !b.group);
+              if (ungroupedBlocks.length === 0) return null;
+              
+              return (
+                <div className="mb-4">
+                  <div className="font-bold text-sm mb-2 px-2 py-1 rounded bg-gray-100">
+                    📦 DİĞER ({ungroupedBlocks.length})
+                  </div>
+                  <div className="space-y-1">
+                    {ungroupedBlocks.map((block) => {
+                      const Icon = block.icon;
+                      const isUsed = template.blocks.some(b => b.block_type === block.id);
+                      
+                      return (
+                        <div
+                          key={block.id}
+                          draggable
+                          onDragStart={() => handleDragStart(block)}
+                          className={`p-2 rounded-lg border cursor-grab active:cursor-grabbing transition-all ${block.color} ${
+                            isUsed ? 'opacity-50' : 'hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <GripVertical className="h-3 w-3 opacity-50" />
+                            <Icon className="h-3 w-3" />
+                            <span className="font-medium text-xs">{block.name}</span>
+                            {isUsed && <Badge className="ml-auto text-[10px]">✓</Badge>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
