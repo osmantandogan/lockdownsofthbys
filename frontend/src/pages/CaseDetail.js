@@ -1324,6 +1324,48 @@ const CaseDetail = () => {
                 <Layout className="h-4 w-4 mr-2" />
                 Özel Şablon (Varsayılan)
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  if (!caseData) {
+                    toast.error('Vaka verisi yüklenemedi');
+                    return;
+                  }
+                  try {
+                    toast.info('Tüm veriler ile PDF oluşturuluyor...');
+                    const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const token = localStorage.getItem('healmedy_session_token');
+                    const response = await fetch(
+                      `${apiUrl}/api/pdf-template/case/${id}/full`, 
+                      {
+                        method: 'GET',
+                        headers: {
+                          'Authorization': `Bearer ${token}`
+                        },
+                      }
+                    );
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.detail || 'PDF oluşturulamadı');
+                    }
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Vaka_${caseData.case_number || id}_TUM_VERILER.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    toast.success('Tam PDF indirildi!');
+                  } catch (error) {
+                    console.error(error);
+                    toast.error(error.message || 'PDF oluşturulurken hata oluştu');
+                  }
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                ⭐ Tüm Verileri İndir (Tam PDF)
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button

@@ -4,8 +4,10 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 import logging
+from datetime import datetime
 
 from services.template_pdf_generator import generate_pdf_from_template
+from services.full_case_pdf_generator import generate_full_case_pdf
 from auth_utils import get_current_user
 from database import cases_collection, pdf_templates_collection, db
 
@@ -142,6 +144,58 @@ async def generate_case_pdf_with_template(
         
     except Exception as e:
         logger.error(f"Error generating PDF with template for case {case_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"PDF oluşturma hatası: {str(e)}")
+
+
+@router.get("/case/{case_id}/full")
+async def generate_full_case_pdf_endpoint(case_id: str, request: Request):
+    """
+    Vaka formundaki TÜM verileri içeren PDF oluştur.
+    Şablondan bağımsız, sabit formatta tüm verileri döker.
+    """
+    user = await get_current_user(request)
+    
+    # Vaka verilerini al
+    case = await cases_collection.find_one({"_id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    try:
+        # Medical form verilerini al
+        medical_form = case.get("medical_form", {})
+        
+        # Tam PDF oluştur
+        pdf_buffer = generate_full_case_pdf(case, medical_form)
+        
+        # Dosya adı
+        def sanitize_filename(text):
+            if not text:
+                return ""
+            text = str(text)
+            tr_map = {
+                'ş': 's', 'Ş': 'S', 'ğ': 'g', 'Ğ': 'G',
+                'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O',
+                'ü': 'u', 'Ü': 'U', 'ç': 'c', 'Ç': 'C'
+            }
+            for tr, ascii_c in tr_map.items():
+                text = text.replace(tr, ascii_c)
+            return ''.join(c if c.isalnum() or c in '-_' else '_' for c in text)
+        
+        case_number = sanitize_filename(case.get('case_number', case_id))
+        filename = f"Vaka_Tam_{case_number}.pdf"
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating full PDF for case {case_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"PDF oluşturma hatası: {str(e)}")
 
 
