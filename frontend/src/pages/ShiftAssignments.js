@@ -9,7 +9,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ShiftAssignments = () => {
@@ -33,8 +33,15 @@ const ShiftAssignments = () => {
     start_time: '08:00',
     end_time: '16:00',
     end_date: new Date().toISOString().split('T')[0],
-    is_driver_duty: false  // Şoför görevi var mı? (ATT/Paramedik için)
+    is_driver_duty: false,  // Şoför görevi var mı? (ATT/Paramedik için)
+    shift_type: 'saha_24'  // Vardiya tipi: saha_24 veya ofis_8
   });
+  
+  // Excel toplu yükleme state'leri
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelUploading, setExcelUploading] = useState(false);
+  const [excelResults, setExcelResults] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -99,6 +106,75 @@ const ShiftAssignments = () => {
       toast.error(errorMsg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Excel şablon indirme
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/shifts/bulk-upload/template`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Şablon indirilemedi');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'vardiya_atama_sablonu.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Şablon indirildi');
+    } catch (error) {
+      console.error('Template download error:', error);
+      toast.error('Şablon indirilemedi');
+    }
+  };
+
+  // Excel dosyası yükleme
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      toast.error('Lütfen bir Excel dosyası seçin');
+      return;
+    }
+
+    setExcelUploading(true);
+    setExcelResults(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', excelFile);
+
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/shifts/bulk-upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      const results = await response.json();
+      
+      if (response.ok) {
+        setExcelResults(results);
+        if (results.successful_count > 0) {
+          toast.success(`${results.successful_count} atama başarıyla oluşturuldu`);
+          loadData(); // Listeyi yenile
+        }
+        if (results.error_count > 0) {
+          toast.warning(`${results.error_count} satırda hata oluştu`);
+        }
+      } else {
+        toast.error(results.detail || 'Yükleme başarısız');
+      }
+    } catch (error) {
+      console.error('Excel upload error:', error);
+      toast.error('Dosya yüklenirken hata oluştu');
+    } finally {
+      setExcelUploading(false);
     }
   };
 
@@ -340,13 +416,119 @@ const ShiftAssignments = () => {
           <h1 className="text-3xl font-bold">Vardiya Yönetimi</h1>
           <p className="text-gray-500">Vardiya atamaları ve aylık planlama</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="new-assignment-button">
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Atama
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          {/* Excel Toplu Yükleme Butonu */}
+          <Dialog open={excelDialogOpen} onOpenChange={setExcelDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Excel ile Toplu Atama
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Excel ile Toplu Vardiya Atama</DialogTitle>
+                <DialogDescription>
+                  Excel dosyası yükleyerek birden fazla vardiya ataması yapabilirsiniz.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {/* Şablon İndirme */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800 mb-2">
+                    Önce şablon dosyasını indirin ve doldurun.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Şablon İndir
+                  </Button>
+                </div>
+
+                {/* Dosya Yükleme */}
+                <div className="space-y-2">
+                  <Label>Excel Dosyası Seçin</Label>
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => {
+                      setExcelFile(e.target.files[0]);
+                      setExcelResults(null);
+                    }}
+                  />
+                </div>
+
+                {/* Yükleme Butonu */}
+                {excelFile && (
+                  <Button 
+                    onClick={handleExcelUpload} 
+                    disabled={excelUploading}
+                    className="w-full"
+                  >
+                    {excelUploading ? (
+                      <>
+                        <span className="animate-spin mr-2">⏳</span>
+                        Yükleniyor...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Dosyayı Yükle
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Sonuçlar */}
+                {excelResults && (
+                  <div className="space-y-3 mt-4">
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="h-5 w-5" />
+                        <span>{excelResults.successful_count} Başarılı</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-red-600">
+                        <AlertCircle className="h-5 w-5" />
+                        <span>{excelResults.error_count} Hatalı</span>
+                      </div>
+                    </div>
+
+                    {/* Başarılı Atamalar */}
+                    {excelResults.success?.length > 0 && (
+                      <div className="bg-green-50 p-3 rounded-lg max-h-32 overflow-y-auto">
+                        <p className="text-sm font-medium text-green-800 mb-1">Başarılı:</p>
+                        {excelResults.success.map((s, i) => (
+                          <p key={i} className="text-xs text-green-700">
+                            Satır {s.row}: {s.user} - {s.vehicle || 'SM'} ({s.date})
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hatalar */}
+                    {excelResults.errors?.length > 0 && (
+                      <div className="bg-red-50 p-3 rounded-lg max-h-32 overflow-y-auto">
+                        <p className="text-sm font-medium text-red-800 mb-1">Hatalar:</p>
+                        {excelResults.errors.map((e, i) => (
+                          <p key={i} className="text-xs text-red-700">
+                            Satır {e.row}: {e.error}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Tek Tek Atama Butonu */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="new-assignment-button">
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni Atama
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Vardiya Ataması Oluştur</DialogTitle>

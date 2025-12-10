@@ -57,12 +57,17 @@ const ShiftStartNew = () => {
   const [showManualInput, setShowManualInput] = useState(false);
   const [validating, setValidating] = useState(false);
   const [photos, setPhotos] = useState({
-    front: null,
-    back: null,
-    left: null,
-    right: null,
-    trunk: null,
-    interior: null,
+    front: null,           // Ön Taraf
+    back: null,            // Arka Taraf
+    left: null,            // Sol Taraf
+    right: null,           // Sağ Taraf
+    rear_cabin_open: null, // Arka kapılar açık - Arka kabin (eski trunk)
+    interior: null,        // İç Kabin
+    engine: null,          // Kaput içi motor
+    left_door_open: null,  // Sol kapı açık
+    right_door_open: null, // Sağ kapı açık
+    front_cabin: null,     // Ön kabin
+    front_cabin_seats_back: null, // Ön kabin koltuk arkası
     damages: []
   });
   const [controlForm, setControlForm] = useState({});
@@ -461,7 +466,18 @@ const ShiftStartNew = () => {
   };
 
   const photosComplete = () => {
-    return photos.front && photos.back && photos.left && photos.right && photos.trunk && photos.interior;
+    // 11 zorunlu fotoğraf kontrolü
+    return photos.front && 
+           photos.back && 
+           photos.left && 
+           photos.right && 
+           photos.rear_cabin_open &&  // Arka kapılar açık - arka kabin
+           photos.interior &&         // İç kabin
+           photos.engine &&           // Kaput içi motor
+           photos.left_door_open &&   // Sol kapı açık
+           photos.right_door_open &&  // Sağ kapı açık
+           photos.front_cabin &&      // Ön kabin
+           photos.front_cabin_seats_back;  // Ön kabin koltuk arkası
   };
 
   // Baş Şoför onayı iste
@@ -568,7 +584,7 @@ const ShiftStartNew = () => {
           <Progress value={progress} className="mb-2" />
           <p className="text-sm text-gray-500 text-center">
             {step === 1 && 'QR Kod Okutun'}
-            {step === 2 && 'Araç Fotoğrafları (6 Zorunlu)'}
+            {step === 2 && 'Araç Fotoğrafları (11 Zorunlu)'}
             {step === 3 && (userRole === 'sofor' || isDriverDuty ? 'Araç Devir + Günlük Kontrol Formu' : 'Ambulans Günlük Kontrol Formu')}
             {step === 4 && 'Onay ve Başlat'}
           </p>
@@ -712,13 +728,45 @@ const ShiftStartNew = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <PhotoCapture title="Ön Taraf" onPhotoCapture={(p) => handlePhotoUpdate('front', p)} required />
-                <PhotoCapture title="Arka Taraf" onPhotoCapture={(p) => handlePhotoUpdate('back', p)} required />
-                <PhotoCapture title="Sol Taraf" onPhotoCapture={(p) => handlePhotoUpdate('left', p)} required />
-                <PhotoCapture title="Sağ Taraf" onPhotoCapture={(p) => handlePhotoUpdate('right', p)} required />
-                <PhotoCapture title="Arka Bagaj" onPhotoCapture={(p) => handlePhotoUpdate('trunk', p)} required />
-                <PhotoCapture title="İç Kabin" onPhotoCapture={(p) => handlePhotoUpdate('interior', p)} required />
+              <p className="text-sm text-gray-600 mb-4">Toplam 11 zorunlu fotoğraf çekilmesi gerekmektedir.</p>
+              
+              {/* Dış Görünüm Fotoğrafları */}
+              <div>
+                <h4 className="font-medium text-gray-700 mb-3">Dış Görünüm (4 Fotoğraf)</h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <PhotoCapture title="Ön Taraf" onPhotoCapture={(p) => handlePhotoUpdate('front', p)} required />
+                  <PhotoCapture title="Arka Taraf" onPhotoCapture={(p) => handlePhotoUpdate('back', p)} required />
+                  <PhotoCapture title="Sol Taraf" onPhotoCapture={(p) => handlePhotoUpdate('left', p)} required />
+                  <PhotoCapture title="Sağ Taraf" onPhotoCapture={(p) => handlePhotoUpdate('right', p)} required />
+                </div>
+              </div>
+
+              {/* Kapı Fotoğrafları */}
+              <div>
+                <h4 className="font-medium text-gray-700 mb-3">Kapılar Açık Halde (2 Fotoğraf)</h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <PhotoCapture title="Sol Kapı Açık" onPhotoCapture={(p) => handlePhotoUpdate('left_door_open', p)} required />
+                  <PhotoCapture title="Sağ Kapı Açık" onPhotoCapture={(p) => handlePhotoUpdate('right_door_open', p)} required />
+                </div>
+              </div>
+
+              {/* Kabin Fotoğrafları */}
+              <div>
+                <h4 className="font-medium text-gray-700 mb-3">Kabin Fotoğrafları (4 Fotoğraf)</h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <PhotoCapture title="Ön Kabin" onPhotoCapture={(p) => handlePhotoUpdate('front_cabin', p)} required />
+                  <PhotoCapture title="Ön Kabin Koltuk Arkası" onPhotoCapture={(p) => handlePhotoUpdate('front_cabin_seats_back', p)} required />
+                  <PhotoCapture title="İç Kabin (Hasta Kabini)" onPhotoCapture={(p) => handlePhotoUpdate('interior', p)} required />
+                  <PhotoCapture title="Arka Kapılar Açık - Arka Kabin" onPhotoCapture={(p) => handlePhotoUpdate('rear_cabin_open', p)} required />
+                </div>
+              </div>
+
+              {/* Motor Fotoğrafı */}
+              <div>
+                <h4 className="font-medium text-gray-700 mb-3">Motor (1 Fotoğraf)</h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <PhotoCapture title="Kaput İçi Motor" onPhotoCapture={(p) => handlePhotoUpdate('engine', p)} required />
+                </div>
               </div>
 
               <div className="border-t pt-6">

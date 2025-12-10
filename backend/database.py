@@ -33,3 +33,5 @@ approvals_collection = db.approvals  # Onay kodları ve workflow
 patients_collection = db.patients  # Hasta kartları
 patient_access_logs_collection = db.patient_access_logs  # Hasta kartı erişim logları
 counters_collection = db.counters  # Atomic counters for sequential numbers
+handover_sessions_collection = db.handover_sessions  # Devir teslim oturumları
+material_requests_collection = db.material_requests  # Malzeme talepleri

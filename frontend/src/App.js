@@ -34,6 +34,8 @@ import NotificationSettings from "./pages/NotificationSettings";
 import VehicleKmReport from "./pages/VehicleKmReport";
 import PatientRegistration from "./pages/PatientRegistration";
 import MyLocationStock from "./pages/MyLocationStock";
+import ShiftApprovals from "./pages/ShiftApprovals";
+import MaterialRequests from "./pages/MaterialRequests";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -119,6 +121,9 @@ function App() {
             <Route path="shift-start" element={<ShiftStartNew />} />
             <Route path="shift-end" element={<ShiftEnd />} />
             <Route path="shift-forms" element={<ShiftForms />} />
+            <Route path="shift-approvals" element={<ShiftApprovals />} />
+            <Route path="shift-photos" element={<ShiftApprovals />} />
+            <Route path="material-requests" element={<MaterialRequests />} />
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
             <Route path="patient-cards" element={<PatientCards />} />

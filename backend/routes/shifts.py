@@ -3,7 +3,7 @@ from typing import List, Optional
 from database import shifts_collection, vehicles_collection, shift_assignments_collection, users_collection
 from models import Shift, ShiftStart, ShiftEnd, ShiftAssignment
 from auth_utils import get_current_user, require_roles
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel, validator
 import base64
 import uuid
@@ -736,4 +736,716 @@ async def get_shift_stats(request: Request, user_id: Optional[str] = None):
         "active_shifts": active,
         "total_shifts": total,
         "total_hours_worked": round(total_hours, 2)
+    }
+
+
+# ============================================================================
+# TOPLU VARDİYA ATAMA - EXCEL İLE
+# ============================================================================
+
+from fastapi import UploadFile, File
+from io import BytesIO
+
+@router.post("/bulk-upload")
+async def bulk_upload_shifts(file: UploadFile = File(...), request: Request = None):
+    """
+    Excel dosyası ile toplu vardiya atama
+    Sadece Mesul Müdür, Baş Şoför ve Merkez Ofis kullanabilir
+    
+    Excel formatı:
+    | TC/Email | Araç Plaka | Lokasyon Tipi | Lokasyon Adı | Başlangıç Tarihi | Bitiş Tarihi | Vardiya Tipi |
+    | 12345678901 | 34 ABC 123 | arac | - | 2025-01-15 | 2025-01-16 | saha_24 |
+    | email@test.com | - | saglik_merkezi | Filyos SM | 2025-01-15 | 2025-01-15 | ofis_8 |
+    """
+    current_user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor", "mesul_mudur"])(request)
+    
+    try:
+        import openpyxl
+    except ImportError:
+        raise HTTPException(status_code=500, detail="openpyxl kütüphanesi yüklü değil")
+    
+    # Dosyayı oku
+    contents = await file.read()
+    workbook = openpyxl.load_workbook(BytesIO(contents))
+    sheet = workbook.active
+    
+    results = {
+        "success": [],
+        "errors": [],
+        "total_rows": 0,
+        "successful_count": 0,
+        "error_count": 0
+    }
+    
+    # İlk satır başlık, 2. satırdan itibaren veri
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if not row or not row[0]:  # Boş satır
+            continue
+        
+        results["total_rows"] += 1
+        
+        try:
+            tc_or_email = str(row[0]).strip() if row[0] else None
+            vehicle_plate = str(row[1]).strip() if row[1] else None
+            location_type = str(row[2]).strip().lower() if row[2] else "arac"
+            location_name = str(row[3]).strip() if row[3] else None
+            start_date_str = str(row[4]).strip() if row[4] else None
+            end_date_str = str(row[5]).strip() if row[5] else None
+            shift_type = str(row[6]).strip() if row[6] else "saha_24"
+            
+            if not tc_or_email or not start_date_str:
+                results["errors"].append({
+                    "row": row_idx,
+                    "error": "TC/Email ve başlangıç tarihi zorunlu"
+                })
+                results["error_count"] += 1
+                continue
+            
+            # Kullanıcıyı bul (TC veya email ile)
+            user_doc = None
+            if "@" in tc_or_email:
+                user_doc = await users_collection.find_one({"email": tc_or_email})
+            else:
+                user_doc = await users_collection.find_one({"tc_no": tc_or_email})
+            
+            if not user_doc:
+                results["errors"].append({
+                    "row": row_idx,
+                    "error": f"Kullanıcı bulunamadı: {tc_or_email}"
+                })
+                results["error_count"] += 1
+                continue
+            
+            # Araç bul (eğer araç atama ise)
+            vehicle_id = None
+            if location_type == "arac" and vehicle_plate:
+                vehicle_doc = await vehicles_collection.find_one({"plate": vehicle_plate})
+                if not vehicle_doc:
+                    results["errors"].append({
+                        "row": row_idx,
+                        "error": f"Araç bulunamadı: {vehicle_plate}"
+                    })
+                    results["error_count"] += 1
+                    continue
+                vehicle_id = vehicle_doc["_id"]
+            
+            # Tarihleri parse et
+            from datetime import datetime as dt
+            try:
+                if isinstance(row[4], dt):
+                    start_date = row[4]
+                else:
+                    start_date = dt.strptime(start_date_str, "%Y-%m-%d")
+                
+                if end_date_str:
+                    if isinstance(row[5], dt):
+                        end_date = row[5]
+                    else:
+                        end_date = dt.strptime(end_date_str, "%Y-%m-%d")
+                else:
+                    end_date = start_date
+            except ValueError as e:
+                results["errors"].append({
+                    "row": row_idx,
+                    "error": f"Tarih formatı hatalı: {str(e)}"
+                })
+                results["error_count"] += 1
+                continue
+            
+            # Vardiya tipi ve saatleri belirle
+            if shift_type == "ofis_8":
+                start_time = "08:00"
+                end_time = "17:00"
+            else:  # saha_24
+                start_time = "08:00"
+                end_time = "08:00"
+                # 24 saat vardiya için bitiş tarihi bir gün sonra
+                if end_date == start_date:
+                    end_date = start_date + timedelta(days=1)
+            
+            # Atama oluştur
+            assignment = ShiftAssignment(
+                user_id=user_doc["_id"],
+                vehicle_id=vehicle_id,
+                location_type=location_type if location_type in ["arac", "saglik_merkezi"] else "arac",
+                health_center_name=location_name if location_type == "saglik_merkezi" else None,
+                assigned_by=current_user.id,
+                shift_date=start_date,
+                start_time=start_time,
+                end_time=end_time,
+                end_date=end_date,
+                shift_type=shift_type if shift_type in ["saha_24", "ofis_8"] else "saha_24"
+            )
+            
+            assignment_dict = assignment.model_dump(by_alias=True)
+            await shift_assignments_collection.insert_one(assignment_dict)
+            
+            results["success"].append({
+                "row": row_idx,
+                "user": user_doc.get("name"),
+                "vehicle": vehicle_plate,
+                "date": start_date.strftime("%Y-%m-%d")
+            })
+            results["successful_count"] += 1
+            
+        except Exception as e:
+            results["errors"].append({
+                "row": row_idx,
+                "error": str(e)
+            })
+            results["error_count"] += 1
+    
+    logger.info(f"Toplu vardiya atama: {results['successful_count']} başarılı, {results['error_count']} hatalı")
+    
+    return results
+
+
+@router.get("/bulk-upload/template")
+async def get_bulk_upload_template(request: Request):
+    """Excel şablon dosyasını indir"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor", "mesul_mudur"])(request)
+    
+    try:
+        import openpyxl
+        from fastapi.responses import StreamingResponse
+    except ImportError:
+        raise HTTPException(status_code=500, detail="openpyxl kütüphanesi yüklü değil")
+    
+    # Yeni workbook oluştur
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Vardiya Atama"
+    
+    # Başlıklar
+    headers = [
+        "TC/Email",
+        "Araç Plaka",
+        "Lokasyon Tipi (arac/saglik_merkezi)",
+        "Lokasyon Adı (Sağlık Merkezi ise)",
+        "Başlangıç Tarihi (YYYY-MM-DD)",
+        "Bitiş Tarihi (YYYY-MM-DD)",
+        "Vardiya Tipi (saha_24/ofis_8)"
+    ]
+    
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 25
+    
+    # Örnek satırlar
+    examples = [
+        ["12345678901", "34 ABC 123", "arac", "", "2025-01-15", "2025-01-16", "saha_24"],
+        ["email@test.com", "", "saglik_merkezi", "Filyos SM", "2025-01-15", "2025-01-15", "ofis_8"]
+    ]
+    
+    for row_idx, example in enumerate(examples, 2):
+        for col_idx, value in enumerate(example, 1):
+            ws.cell(row=row_idx, column=col_idx, value=value)
+    
+    # Dosyayı BytesIO'ya kaydet
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=vardiya_atama_sablonu.xlsx"}
+    )
+
+
+# ============================================================================
+# DEVİR TESLİM OTURUMU
+# ============================================================================
+
+from database import db
+handover_sessions_collection = db.handover_sessions
+
+@router.post("/handover/start")
+async def start_handover_session(request: Request):
+    """
+    Devir teslim oturumu başlat (Devreden şoför)
+    Sadece 07:30-08:30 arasında başlatılabilir
+    """
+    from models import HandoverSession
+    from datetime import time
+    
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    # Aktif vardiya kontrolü
+    active_shift = await shifts_collection.find_one({
+        "user_id": user.id,
+        "status": "active"
+    })
+    
+    if not active_shift:
+        raise HTTPException(status_code=400, detail="Aktif vardiyanz yok. Önce vardiya başlatın.")
+    
+    # Saat kontrolü (07:30-08:30 arası) - Türkiye saati
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    current_time = turkey_now.time()
+    handover_start = time(7, 30)
+    handover_end = time(8, 30)
+    
+    # Debug için saati logla
+    logger.info(f"Devir teslim saat kontrolü - Şu an: {current_time}, Aralık: {handover_start}-{handover_end}")
+    
+    # Test modunda saat kontrolünü atla
+    skip_time_check = body.get("skip_time_check", False)
+    
+    if not skip_time_check and not (handover_start <= current_time <= handover_end):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Devir teslim sadece 07:30-08:30 arasında yapılabilir. Şu an: {current_time.strftime('%H:%M')}"
+        )
+    
+    vehicle_id = active_shift.get("vehicle_id")
+    if not vehicle_id:
+        raise HTTPException(status_code=400, detail="Vardiyaya araç atanmamış")
+    
+    # Araç bilgisini al
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
+    # Sonraki vardiyalı kişiyi bul
+    today = turkey_now.date()
+    tomorrow = today + timedelta(days=1)
+    
+    next_assignments = await shift_assignments_collection.find({
+        "vehicle_id": vehicle_id,
+        "user_id": {"$ne": user.id},
+        "status": "pending"
+    }).to_list(100)
+    
+    # Bugün veya yarın için geçerli atama
+    receiver_assignment = None
+    for assignment in next_assignments:
+        shift_date = assignment.get("shift_date")
+        if isinstance(shift_date, str):
+            shift_date = datetime.fromisoformat(shift_date.replace('Z', '+00:00'))
+        if isinstance(shift_date, datetime):
+            assignment_date = shift_date.date()
+            if assignment_date == today or assignment_date == tomorrow:
+                receiver_assignment = assignment
+                break
+    
+    if not receiver_assignment:
+        raise HTTPException(status_code=400, detail="Bu araç için sonraki vardiya ataması bulunamadı")
+    
+    # Devralan kullanıcı bilgisi
+    receiver_user = await users_collection.find_one({"_id": receiver_assignment.get("user_id")})
+    if not receiver_user:
+        raise HTTPException(status_code=400, detail="Devralan kullanıcı bulunamadı")
+    
+    # Mevcut bekleyen oturum var mı kontrol et
+    existing_session = await handover_sessions_collection.find_one({
+        "vehicle_id": vehicle_id,
+        "status": {"$in": ["waiting_receiver", "waiting_manager"]}
+    })
+    
+    if existing_session:
+        # Varolan oturumu döndür
+        existing_session["id"] = existing_session.pop("_id")
+        return existing_session
+    
+    # Yeni oturum oluştur
+    session = HandoverSession(
+        giver_id=user.id,
+        giver_name=user.name,
+        receiver_id=receiver_user["_id"],
+        receiver_name=receiver_user.get("name", ""),
+        vehicle_id=vehicle_id,
+        vehicle_plate=vehicle.get("plate", ""),
+        giver_shift_id=active_shift["_id"],
+        expires_at=turkey_now + timedelta(hours=2)  # 2 saat geçerli
+    )
+    
+    session_dict = session.model_dump(by_alias=True)
+    await handover_sessions_collection.insert_one(session_dict)
+    
+    logger.info(f"Devir teslim oturumu başlatıldı: {session.id} - {user.name} -> {receiver_user.get('name')}")
+    
+    session_dict["id"] = session_dict.pop("_id")
+    return session_dict
+
+
+@router.get("/handover/active")
+async def get_active_handover(request: Request):
+    """
+    Kullanıcının aktif devir teslim oturumunu getir
+    (Hem devreden hem devralan için)
+    """
+    user = await get_current_user(request)
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Kullanıcının devreden veya devralan olduğu aktif oturum
+    session = await handover_sessions_collection.find_one({
+        "$or": [
+            {"giver_id": user.id},
+            {"receiver_id": user.id}
+        ],
+        "status": {"$in": ["waiting_receiver", "waiting_manager"]},
+        "expires_at": {"$gt": turkey_now}
+    })
+    
+    if not session:
+        return None
+    
+    session["id"] = session.pop("_id")
+    
+    # Kullanıcının rolünü ekle
+    session["user_role_in_session"] = "giver" if session["giver_id"] == user.id else "receiver"
+    
+    return session
+
+
+@router.post("/handover/{session_id}/sign")
+async def sign_handover(session_id: str, request: Request):
+    """
+    Devir teslim oturumunu imzala (Devralan şoför)
+    İmza veya OTP ile onay
+    """
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    session = await handover_sessions_collection.find_one({"_id": session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Oturum bulunamadı")
+    
+    if session["receiver_id"] != user.id:
+        raise HTTPException(status_code=403, detail="Bu oturumu sadece devralan onaylayabilir")
+    
+    if session["status"] != "waiting_receiver":
+        raise HTTPException(status_code=400, detail="Bu oturum zaten onaylanmış veya süresi dolmuş")
+    
+    signature = body.get("signature")  # Base64 imza
+    otp_code = body.get("otp_code")
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    update_data = {
+        "receiver_signed_at": turkey_now,
+        "status": "waiting_manager",
+        "receiver_login_at": turkey_now,  # Sisteme giriş zamanı
+        "updated_at": turkey_now
+    }
+    
+    if signature:
+        update_data["receiver_signature"] = signature
+    
+    if otp_code:
+        # OTP doğrulama
+        from services.otp_service import verify_user_otp
+        
+        otp_secret = user.otp_secret if hasattr(user, 'otp_secret') else None
+        if not otp_secret:
+            user_doc = await users_collection.find_one({"_id": user.id})
+            otp_secret = user_doc.get("otp_secret") if user_doc else None
+        
+        if otp_secret and verify_user_otp(otp_secret, otp_code):
+            update_data["receiver_otp_verified"] = True
+        else:
+            raise HTTPException(status_code=400, detail="Geçersiz OTP kodu")
+    
+    await handover_sessions_collection.update_one(
+        {"_id": session_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Devir teslim imzalandı: {session_id} - Devralan: {user.name}")
+    
+    # Baş şoförlere bildirim gönder
+    try:
+        from services.onesignal_service import onesignal_service, NotificationType
+        
+        managers = await users_collection.find({
+            "role": {"$in": ["bas_sofor", "operasyon_muduru"]},
+            "is_active": True
+        }).to_list(50)
+        
+        manager_ids = [m["_id"] for m in managers]
+        
+        if manager_ids:
+            await onesignal_service.send_notification(
+                NotificationType.SYSTEM_ALERT,
+                manager_ids,
+                {
+                    "message": f"Devir teslim onayı bekliyor: {session.get('giver_name')} → {user.name} ({session.get('vehicle_plate')})"
+                }
+            )
+    except Exception as e:
+        logger.warning(f"Bildirim gönderilemedi: {e}")
+    
+    return {"message": "Devir teslim imzalandı. Yönetici onayı bekleniyor."}
+
+
+@router.post("/handover/{session_id}/approve")
+async def approve_handover(session_id: str, request: Request):
+    """
+    Devir teslim oturumunu onayla (Baş Şoför/Yönetici)
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    body = await request.json()
+    
+    session = await handover_sessions_collection.find_one({"_id": session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Oturum bulunamadı")
+    
+    if session["status"] != "waiting_manager":
+        raise HTTPException(status_code=400, detail="Bu oturum yönetici onayı beklemeiyor")
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    approve = body.get("approve", True)
+    rejection_reason = body.get("rejection_reason")
+    
+    if approve:
+        # Onay
+        await handover_sessions_collection.update_one(
+            {"_id": session_id},
+            {"$set": {
+                "status": "approved",
+                "manager_id": user.id,
+                "manager_name": user.name,
+                "manager_action_at": turkey_now,
+                "updated_at": turkey_now
+            }}
+        )
+        
+        # Devreden şoförün vardiyasını bitir
+        if session.get("giver_shift_id"):
+            giver_shift = await shifts_collection.find_one({"_id": session["giver_shift_id"]})
+            if giver_shift:
+                start_time = giver_shift.get("start_time")
+                duration = int((turkey_now - start_time).total_seconds() / 60) if start_time else 0
+                
+                await shifts_collection.update_one(
+                    {"_id": session["giver_shift_id"]},
+                    {"$set": {
+                        "status": "completed",
+                        "end_time": turkey_now,
+                        "duration_minutes": duration,
+                        "handover_session_id": session_id
+                    }}
+                )
+        
+        # Devreden kişinin assignment'ını tamamla
+        if giver_shift and giver_shift.get("assignment_id"):
+            await shift_assignments_collection.update_one(
+                {"_id": giver_shift["assignment_id"]},
+                {"$set": {"status": "completed"}}
+            )
+        
+        logger.info(f"Devir teslim onaylandı: {session_id} - Onaylayan: {user.name}")
+        
+        return {"message": "Devir teslim onaylandı. Devralan artık vardiyasını başlatabilir."}
+    else:
+        # Red
+        await handover_sessions_collection.update_one(
+            {"_id": session_id},
+            {"$set": {
+                "status": "rejected",
+                "manager_id": user.id,
+                "manager_name": user.name,
+                "manager_action_at": turkey_now,
+                "rejection_reason": rejection_reason,
+                "updated_at": turkey_now
+            }}
+        )
+        
+        logger.info(f"Devir teslim reddedildi: {session_id} - Reddeden: {user.name}")
+        
+        return {"message": "Devir teslim reddedildi."}
+
+
+@router.get("/handover/pending-approvals")
+async def get_pending_handover_approvals(request: Request, date: Optional[str] = None):
+    """
+    Bekleyen devir teslim onaylarını getir (Baş Şoför için)
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    query = {"status": "waiting_manager"}
+    
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+            query["form_opened_at"] = {
+                "$gte": target_date,
+                "$lt": target_date + timedelta(days=1)
+            }
+        except ValueError:
+            pass
+    
+    sessions = await handover_sessions_collection.find(query).sort("form_opened_at", -1).to_list(100)
+    
+    for session in sessions:
+        session["id"] = session.pop("_id")
+    
+    return sessions
+
+
+@router.get("/handover/logs")
+async def get_handover_logs(request: Request, date: Optional[str] = None, vehicle_id: Optional[str] = None):
+    """
+    Devir teslim loglarını getir (Baş Şoför için)
+    Tarih ve araç bazlı filtreleme
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    query = {}
+    
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+            query["form_opened_at"] = {
+                "$gte": target_date,
+                "$lt": target_date + timedelta(days=1)
+            }
+        except ValueError:
+            # Bugün
+            today = turkey_now.date()
+            query["form_opened_at"] = {
+                "$gte": datetime.combine(today, datetime.min.time()),
+                "$lt": datetime.combine(today + timedelta(days=1), datetime.min.time())
+            }
+    else:
+        # Bugün
+        today = turkey_now.date()
+        query["form_opened_at"] = {
+            "$gte": datetime.combine(today, datetime.min.time()),
+            "$lt": datetime.combine(today + timedelta(days=1), datetime.min.time())
+        }
+    
+    if vehicle_id:
+        query["vehicle_id"] = vehicle_id
+    
+    sessions = await handover_sessions_collection.find(query).sort("form_opened_at", -1).to_list(100)
+    
+    result = []
+    for session in sessions:
+        session["id"] = session.pop("_id")
+        
+        # Log detayları
+        log = {
+            "session": session,
+            "logs": []
+        }
+        
+        # Form açılış
+        if session.get("form_opened_at"):
+            log["logs"].append({
+                "event": "form_opened",
+                "time": session["form_opened_at"],
+                "user": session.get("giver_name"),
+                "description": "Devir teslim formu açıldı"
+            })
+        
+        # Devralan giriş
+        if session.get("receiver_login_at"):
+            log["logs"].append({
+                "event": "receiver_login",
+                "time": session["receiver_login_at"],
+                "user": session.get("receiver_name"),
+                "description": "Devralan sisteme giriş yaptı"
+            })
+        
+        # İmza
+        if session.get("receiver_signed_at"):
+            log["logs"].append({
+                "event": "receiver_signed",
+                "time": session["receiver_signed_at"],
+                "user": session.get("receiver_name"),
+                "description": "Devralan imzaladı" + (" (OTP)" if session.get("receiver_otp_verified") else " (İmza)")
+            })
+        
+        # Yönetici işlemi
+        if session.get("manager_action_at"):
+            log["logs"].append({
+                "event": "manager_action",
+                "time": session["manager_action_at"],
+                "user": session.get("manager_name"),
+                "description": f"Yönetici {'onayladı' if session.get('status') == 'approved' else 'reddetti'}"
+            })
+        
+        # Vardiya başlatma
+        if session.get("shift_started_at"):
+            log["logs"].append({
+                "event": "shift_started",
+                "time": session["shift_started_at"],
+                "user": session.get("receiver_name"),
+                "description": "Vardiya başlatıldı"
+            })
+        
+        result.append(log)
+    
+    return result
+
+
+# ============================================================================
+# EKİP GRUPLAMA
+# ============================================================================
+
+@router.get("/today-team/{vehicle_id}")
+async def get_today_team(vehicle_id: str, request: Request):
+    """
+    Bugün bu araçta/lokasyonda çalışacak ekibi getir
+    Şoför, ATT, Paramedik otomatik gruplanır
+    """
+    user = await get_current_user(request)
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    today = turkey_now.date()
+    
+    # Bu araç için bugünkü atamaları al
+    assignments = await shift_assignments_collection.find({
+        "vehicle_id": vehicle_id,
+        "status": {"$in": ["pending", "started"]}
+    }).to_list(100)
+    
+    # Bugün için geçerli atamaları filtrele
+    today_assignments = []
+    for assignment in assignments:
+        shift_date = assignment.get("shift_date")
+        end_date = assignment.get("end_date") or shift_date
+        
+        if isinstance(shift_date, str):
+            shift_date = datetime.fromisoformat(shift_date.replace('Z', '+00:00'))
+        if isinstance(end_date, str):
+            end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        
+        if isinstance(shift_date, datetime) and isinstance(end_date, datetime):
+            if shift_date.date() <= today <= end_date.date():
+                today_assignments.append(assignment)
+    
+    # Ekip üyelerini topla
+    team = []
+    for assignment in today_assignments:
+        user_doc = await users_collection.find_one({"_id": assignment.get("user_id")})
+        if user_doc:
+            team.append({
+                "user_id": user_doc["_id"],
+                "name": user_doc.get("name"),
+                "role": user_doc.get("role"),
+                "phone": user_doc.get("phone"),
+                "profile_photo": user_doc.get("profile_photo"),
+                "assignment_id": assignment["_id"],
+                "status": assignment.get("status")
+            })
+    
+    # Araç bilgisi
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    
+    return {
+        "vehicle_id": vehicle_id,
+        "vehicle_plate": vehicle.get("plate") if vehicle else None,
+        "date": today.isoformat(),
+        "team": team,
+        "team_count": len(team)
     }

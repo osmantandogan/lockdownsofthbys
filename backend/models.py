@@ -362,6 +362,9 @@ class ParsedBarcodeData(BaseModel):
     expiry_date_parsed: Optional[datetime] = None  # Parsed datetime
     raw_data: str
 
+# Shift Types
+ShiftType = Literal["saha_24", "ofis_8"]  # saha_24: 08:00-08:00(+1), ofis_8: 08:00-17:00
+
 # Shift Models
 class ShiftAssignment(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -378,6 +381,7 @@ class ShiftAssignment(BaseModel):
     end_date: Optional[datetime] = None  # For night shifts that span to next day
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
     is_driver_duty: bool = False  # ATT/Paramedik için şoför görevi var mı?
+    shift_type: ShiftType = "saha_24"  # Vardiya tipi: saha 24 saat veya ofis 8 saat
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class Shift(BaseModel):
@@ -405,8 +409,14 @@ class Shift(BaseModel):
     admin_id: Optional[str] = None
     admin_note: Optional[str] = None
     
-    # Vehicle inspection photos
-    photos: Optional[dict] = None  # {"front": "url", "back": "url", "left": "url", "right": "url", "trunk": "url", "interior": "url", "damages": ["url1", "url2"]}
+    # Vehicle inspection photos - Updated with new photo fields
+    # front: Ön taraf, back: Arka taraf, left: Sol taraf, right: Sağ taraf
+    # rear_cabin_open: Arka kapılar açık arka kabin (eski trunk)
+    # interior: İç kabin, engine: Kaput içi motor
+    # left_door_open: Sol kapı açık, right_door_open: Sağ kapı açık
+    # front_cabin: Ön kabin, front_cabin_seats_back: Ön kabin koltuk arkası
+    # damages: Hasar fotoğrafları (opsiyonel, sınırsız)
+    photos: Optional[dict] = None
     
     # Daily control form
     daily_control: Optional[dict] = None
@@ -414,7 +424,61 @@ class Shift(BaseModel):
     # Handover form  
     handover_form: Optional[dict] = None
     
+    # Handover session reference
+    handover_session_id: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Handover Session - Devir Teslim Oturumu
+class HandoverSession(BaseModel):
+    """Vardiya devir teslim süreci"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    
+    # Taraflar
+    giver_id: str  # Devreden şoför
+    giver_name: str
+    receiver_id: str  # Devralan şoför
+    receiver_name: str
+    
+    # Araç
+    vehicle_id: str
+    vehicle_plate: str
+    
+    # Durum
+    status: Literal["waiting_receiver", "waiting_manager", "approved", "rejected", "expired"] = "waiting_receiver"
+    
+    # Zaman logları
+    form_opened_at: datetime = Field(default_factory=datetime.utcnow)  # Form ne zaman açıldı
+    receiver_signed_at: Optional[datetime] = None  # Devralan ne zaman imzaladı
+    manager_action_at: Optional[datetime] = None  # Yönetici ne zaman işlem yaptı
+    
+    # Onay bilgileri
+    receiver_signature: Optional[str] = None  # Base64 imza
+    receiver_otp_verified: bool = False  # OTP ile mi onaylandı
+    manager_id: Optional[str] = None  # Onaylayan yönetici
+    manager_name: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    
+    # Vardiya başlatma logları
+    receiver_login_at: Optional[datetime] = None  # Devralan sisteme ne zaman girdi
+    shift_start_clicked_at: Optional[datetime] = None  # Vardiya başlat ne zaman tıklandı
+    shift_started_at: Optional[datetime] = None  # Vardiya gerçekte ne zaman başladı
+    
+    # İlişkili kayıtlar
+    giver_shift_id: Optional[str] = None  # Devreden şoförün vardiyası
+    receiver_shift_id: Optional[str] = None  # Devralanın başlattığı vardiya
+    
+    # Form verileri
+    handover_form_data: Optional[dict] = None  # Devir teslim formu
+    
+    # Geçerlilik
+    expires_at: Optional[datetime] = None  # Oturum geçerlilik süresi
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ShiftStart(BaseModel):
     vehicle_qr: str
@@ -697,3 +761,62 @@ class PatientAccessLog(BaseModel):
     approved_by: Optional[str] = None  # Onaylayan (hemşire erişimi için)
     ip_address: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ==================== MALZEME TALEBİ MODELLERİ ====================
+
+MaterialRequestStatus = Literal["pending", "approved", "rejected", "completed"]
+MaterialRequestPriority = Literal["normal", "urgent", "critical"]
+
+class MaterialRequestItem(BaseModel):
+    """Talep edilen malzeme"""
+    name: str
+    quantity: int = 1
+    unit: str = "adet"
+    notes: Optional[str] = None
+
+class MaterialRequest(BaseModel):
+    """Malzeme Talebi - Şoförler tarafından oluşturulur"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    
+    # Talep eden
+    requester_id: str
+    requester_name: str
+    requester_role: str
+    
+    # Araç/Lokasyon bilgisi
+    vehicle_id: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    location: Optional[str] = None  # Lokasyon adı (araç veya bekleme noktası)
+    
+    # Talep detayları
+    items: List[MaterialRequestItem] = Field(default_factory=list)
+    priority: MaterialRequestPriority = "normal"
+    notes: Optional[str] = None
+    
+    # Durum
+    status: MaterialRequestStatus = "pending"
+    
+    # Onay bilgileri
+    reviewed_by: Optional[str] = None
+    reviewed_by_name: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    review_notes: Optional[str] = None
+    
+    # Tamamlama bilgileri
+    completed_by: Optional[str] = None
+    completed_at: Optional[datetime] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MaterialRequestCreate(BaseModel):
+    """Malzeme talebi oluşturma"""
+    vehicle_id: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    location: Optional[str] = None
+    items: List[MaterialRequestItem]
+    priority: MaterialRequestPriority = "normal"
+    notes: Optional[str] = None
