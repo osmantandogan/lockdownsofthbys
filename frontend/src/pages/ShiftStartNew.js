@@ -929,14 +929,24 @@ const ShiftStartNew = () => {
           
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(needsPhotos ? 2 : 1)}>Geri</Button>
-            <Button 
-              onClick={() => setStep(4)}
-              disabled={!formAlreadyFilled && Object.keys(controlForm?.checks || {}).length < 60}
-            >
-              {!formAlreadyFilled && Object.keys(controlForm?.checks || {}).length < 60 
-                ? `Form tamamlanıyor... (${Object.keys(controlForm?.checks || {}).length}/60+)` 
-                : 'Devam'}
-            </Button>
+            {(() => {
+              // Rol bazlı minimum kontrol sayısı
+              const isDriver = user?.role?.toLowerCase() === 'sofor';
+              const minChecks = isDriver ? 45 : 55; // Şoför: 52 madde, diğerleri: 60+ madde
+              const checkCount = Object.keys(controlForm?.checks || {}).length;
+              const isFormComplete = formAlreadyFilled || checkCount >= minChecks;
+              
+              return (
+                <Button 
+                  onClick={() => setStep(4)}
+                  disabled={!isFormComplete}
+                >
+                  {!isFormComplete 
+                    ? `Form tamamlanıyor... (${checkCount}/${minChecks}+)` 
+                    : 'Devam'}
+                </Button>
+              );
+            })()}
           </div>
         </div>
       )}

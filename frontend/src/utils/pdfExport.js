@@ -385,172 +385,365 @@ export const exportGenericForm = (formData, formType, formTitle) => {
 };
 
 /**
- * AMBULANS VAKA FORMU Export (Çok Sayfalı)
+ * AMBULANS VAKA FORMU Export (Tek Sayfa - Landscape)
  */
 export const exportAmbulanceCaseForm = (formData, vitalSigns = [], procedures = {}) => {
-  const doc = new jsPDF();
+  // Landscape mod kullan (daha geniş alan)
+  const doc = new jsPDF('landscape', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
-  let currentPage = 1;
-  const totalPages = 3; // Tahmini sayfa sayısı
+  const pageHeight = doc.internal.pageSize.getHeight();
   
-  // ==================== SAYFA 1 ====================
-  let y = addHeader(doc, 'AMBULANS VAKA FORMU', '', currentPage, totalPages);
+  // Kompakt header (daha az yer kaplar)
+  let y = 10;
+  doc.setFillColor(...COLORS.primary);
+  doc.rect(0, 0, pageWidth, 20, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AMBULANS VAKA FORMU', pageWidth / 2, 12, { align: 'center' });
+  doc.setDrawColor(...COLORS.dark);
+  doc.line(5, 22, pageWidth - 5, 22);
+  y = 25;
+  
+  // Küçük font boyutları
+  const compactFont = {
+    title: 8,
+    body: 7,
+    small: 6
+  };
+  
+  // Sol sütun başlangıcı
+  let leftX = 5;
+  let rightX = pageWidth / 2 + 2;
+  let currentY = y;
+  const lineHeight = 5;
+  
+  // ========== SOL SÜTUN ==========
   
   // Vaka Bilgileri
-  y = addSectionTitle(doc, 'Vaka Bilgileri', y);
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(leftX, currentY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Vaka Bilgileri', leftX + 2, currentY + 1);
+  currentY += 8;
   
-  y = addTwoColumnRow(doc, 'Tarih', formData.date || '-', 'ATN No', formData.atnNo || '-', y);
-  y = addTwoColumnRow(doc, 'HealMedy Protokol', formData.healmedyProtocol || '-', 
-                          '112 Protokol', formData.protocol112 || '-', y);
-  y = addTwoColumnRow(doc, 'Hastane Protokol', formData.hospitalProtocol || '-',
-                          'Gidis-Donus', formData.roundTrip || '-', y);
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.body);
+  doc.setFont('helvetica', 'normal');
   
-  y += 5;
+  const addCompactRow = (label, value, x, yPos) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(sanitizeText(label) + ':', x, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(sanitizeText(value || '-'), x + 35, yPos);
+    return yPos + lineHeight;
+  };
+  
+  currentY = addCompactRow('Tarih', formData.date, leftX, currentY);
+  currentY = addCompactRow('ATN No', formData.atnNo, leftX, currentY);
+  currentY = addCompactRow('HealMedy Protokol', formData.healmedyProtocol, leftX, currentY);
+  currentY = addCompactRow('112 Protokol', formData.protocol112, leftX, currentY);
+  currentY = addCompactRow('Hastane Protokol', formData.hospitalProtocol, leftX, currentY);
+  currentY = addCompactRow('Gidis-Donus', formData.roundTrip, leftX, currentY);
+  
+  currentY += 3;
   
   // Hasta Bilgileri
-  y = addSectionTitle(doc, 'Hasta Bilgileri', y);
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(leftX, currentY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Hasta Bilgileri', leftX + 2, currentY + 1);
+  currentY += 8;
   
-  y = addTwoColumnRow(doc, 'Ad Soyad', formData.patientName || '-', 'TC No', formData.tcNo || '-', y);
-  y = addTwoColumnRow(doc, 'Cinsiyet', formData.gender || '-', 'Yas', formData.age || '-', y);
-  y = addTwoColumnRow(doc, 'Telefon', formData.phone || '-', 'Bilinc', formData.consciousStatus ? 'Acik' : 'Kapali', y);
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.body);
   
-  y = addInfoRow(doc, 'Adres', formData.address || '-', y, 15, 30);
-  y = addInfoRow(doc, 'Sikayet', formData.complaint || '-', y, 15, 30);
-  y = addInfoRow(doc, 'On Tani', formData.diagnosis || '-', y, 15, 30);
-  y = addInfoRow(doc, 'Kronik Hastaliklar', formData.chronicDiseases || '-', y, 15, 45);
+  currentY = addCompactRow('Ad Soyad', formData.patientName, leftX, currentY);
+  currentY = addCompactRow('TC No', formData.tcNo, leftX, currentY);
+  currentY = addCompactRow('Cinsiyet', formData.gender, leftX, currentY);
+  currentY = addCompactRow('Yas', formData.age, leftX, currentY);
+  currentY = addCompactRow('Telefon', formData.phone, leftX, currentY);
+  currentY = addCompactRow('Bilinc', formData.consciousStatus ? 'Acik' : 'Kapali', leftX, currentY);
   
-  y += 5;
+  // Uzun metinler için özel işleme
+  if (formData.address) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Adres:', leftX, currentY);
+    doc.setFont('helvetica', 'normal');
+    const addrLines = doc.splitTextToSize(sanitizeText(formData.address), (pageWidth / 2) - 45);
+    doc.text(addrLines, leftX + 35, currentY);
+    currentY += addrLines.length * lineHeight;
+  }
+  
+  if (formData.complaint) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Sikayet:', leftX, currentY);
+    doc.setFont('helvetica', 'normal');
+    const complaintLines = doc.splitTextToSize(sanitizeText(formData.complaint), (pageWidth / 2) - 45);
+    doc.text(complaintLines, leftX + 35, currentY);
+    currentY += complaintLines.length * lineHeight;
+  }
+  
+  currentY = addCompactRow('On Tani', formData.diagnosis, leftX, currentY);
+  currentY = addCompactRow('Kronik Hastaliklar', formData.chronicDiseases, leftX, currentY);
+  
+  currentY += 3;
   
   // Zaman Bilgileri
-  y = addSectionTitle(doc, 'Zaman Bilgileri', y);
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(leftX, currentY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Zaman Bilgileri', leftX + 2, currentY + 1);
+  currentY += 8;
   
-  y = addTwoColumnRow(doc, 'Cagri Saati', formData.callTime || '-', 
-                          'Ulasim Saati', formData.arrivalTime || '-', y);
-  y = addTwoColumnRow(doc, 'Cikis Saati', formData.departureTime || '-',
-                          'Hastane Varis', formData.hospitalArrivalTime || '-', y);
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.body);
   
-  y += 5;
+  currentY = addCompactRow('Cagri Saati', formData.callTime, leftX, currentY);
+  currentY = addCompactRow('Ulasim Saati', formData.arrivalTime, leftX, currentY);
+  currentY = addCompactRow('Cikis Saati', formData.departureTime, leftX, currentY);
+  currentY = addCompactRow('Hastane Varis', formData.hospitalArrivalTime, leftX, currentY);
+  
+  currentY += 3;
   
   // Lokasyon Bilgileri
-  y = addSectionTitle(doc, 'Lokasyon Bilgileri', y);
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(leftX, currentY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Lokasyon Bilgileri', leftX + 2, currentY + 1);
+  currentY += 8;
   
-  y = addInfoRow(doc, 'Alindigi Yer', formData.pickupLocation || '-', y, 15, 40);
-  y = addInfoRow(doc, 'Transfer 1', formData.transfer1 || '-', y, 15, 40);
-  y = addInfoRow(doc, 'Transfer 2', formData.transfer2 || '-', y, 15, 40);
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.body);
   
-  addFooter(doc, currentPage);
+  currentY = addCompactRow('Alindigi Yer', formData.pickupLocation, leftX, currentY);
+  currentY = addCompactRow('Transfer 1', formData.transfer1, leftX, currentY);
+  currentY = addCompactRow('Transfer 2', formData.transfer2, leftX, currentY);
   
-  // ==================== SAYFA 2 ====================
-  doc.addPage();
-  currentPage = 2;
-  y = addHeader(doc, 'AMBULANS VAKA FORMU', 'Vital Bulgular & Uygulanan İşlemler', currentPage, totalPages);
+  // ========== SAĞ SÜTUN ==========
   
-  // Vital Bulgular Tablosu
-  y = addSectionTitle(doc, 'Vital Bulgular', y);
+  let rightY = y;
+  
+  // Vital Bulgular
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(rightX, rightY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Vital Bulgular', rightX + 2, rightY + 1);
+  rightY += 8;
   
   const vitalHeaders = ['Saat', 'Tansiyon', 'Nabiz', 'SpO2', 'Solunum', 'Ates'];
-  const vitalRows = (vitalSigns || []).map(v => [
-    v.time || '-',
-    v.bp || '-',
-    v.pulse || '-',
-    v.spo2 || '-',
-    v.respiration || '-',
-    v.temp || '-'
+  const vitalRows = (vitalSigns || []).filter(v => v.time || v.bp || v.pulse || v.spo2 || v.respiration || v.temp).map(v => [
+    (v.time || '-').substring(0, 5),
+    (v.bp || '-').substring(0, 8),
+    (v.pulse || '-').substring(0, 5),
+    (v.spo2 || '-').substring(0, 5),
+    (v.respiration || '-').substring(0, 5),
+    (v.temp || '-').substring(0, 5)
   ]);
   
   if (vitalRows.length > 0) {
-    y = addTable(doc, vitalHeaders, vitalRows, y);
+    doc.autoTable({
+      startY: rightY,
+      head: [vitalHeaders],
+      body: vitalRows,
+      theme: 'grid',
+      headStyles: {
+        fillColor: COLORS.secondary,
+        textColor: COLORS.white,
+        fontSize: compactFont.small,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: compactFont.small,
+        textColor: COLORS.dark
+      },
+      margin: { left: rightX, right: 5 },
+      tableWidth: (pageWidth / 2) - 7,
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 20 }
+      }
+    });
+    rightY = doc.lastAutoTable.finalY + 5;
   } else {
-    y += 10;
+    rightY += 10;
   }
   
   // Durum Degerlendirmesi
-  y = addSectionTitle(doc, 'Durum Degerlendirmesi', y);
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(rightX, rightY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Durum Degerlendirmesi', rightX + 2, rightY + 1);
+  rightY += 8;
   
-  y = addTwoColumnRow(doc, 'Duygusal Durum', formData.emotionalState || '-',
-                          'Pupiller', formData.pupils || '-', y);
-  y = addTwoColumnRow(doc, 'Cilt', formData.skin || '-',
-                          'Solunum', formData.respiration || '-', y);
-  y = addTwoColumnRow(doc, 'Nabiz', formData.pulse || '-',
-                          'Motor Yanit', formData.motorResponse || '-', y);
-  y = addTwoColumnRow(doc, 'Sozel Yanit', formData.verbalResponse || '-',
-                          'Goz Acma', formData.eyeOpening || '-', y);
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.body);
   
-  y += 5;
+  rightY = addCompactRow('Duygusal Durum', formData.emotionalState, rightX, rightY);
+  rightY = addCompactRow('Pupiller', formData.pupils, rightX, rightY);
+  rightY = addCompactRow('Cilt', formData.skin, rightX, rightY);
+  rightY = addCompactRow('Solunum', formData.respiration, rightX, rightY);
+  rightY = addCompactRow('Nabiz', formData.pulse, rightX, rightY);
+  rightY = addCompactRow('Motor Yanit', formData.motorResponse, rightX, rightY);
+  rightY = addCompactRow('Sozel Yanit', formData.verbalResponse, rightX, rightY);
+  rightY = addCompactRow('Goz Acma', formData.eyeOpening, rightX, rightY);
   
-  // Uygulanan Islemler
-  y = addSectionTitle(doc, 'Uygulanan Islemler', y);
+  rightY += 3;
+  
+  // Uygulanan Islemler (kompakt)
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(rightX, rightY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Uygulanan Islemler', rightX + 2, rightY + 1);
+  rightY += 8;
+  
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.small);
   
   const procedureEntries = Object.entries(procedures || {}).filter(([_, v]) => v);
   if (procedureEntries.length > 0) {
-    procedureEntries.forEach(([key, _]) => {
-      if (y > 270) {
-        addFooter(doc, currentPage);
-        doc.addPage();
-        currentPage++;
-        y = addHeader(doc, 'AMBULANS VAKA FORMU', 'Uygulanan Islemler (devam)', currentPage, totalPages);
-      }
-      y = addCheckboxRow(doc, sanitizeText(key), true, y);
-    });
+    const procText = procedureEntries.map(([key, _]) => sanitizeText(key)).join(', ');
+    const procLines = doc.splitTextToSize(procText, (pageWidth / 2) - 10);
+    doc.text(procLines, rightX, rightY);
+    rightY += procLines.length * 4;
   } else {
-    doc.setTextColor(...COLORS.dark);
-    doc.setFontSize(FONT.body);
-    doc.text('Islem kaydi yok', 15, y);
-    y += 10;
+    doc.text('Islem kaydi yok', rightX, rightY);
+    rightY += 5;
   }
   
-  addFooter(doc, currentPage);
-  
-  // ==================== SAYFA 3 ====================
-  doc.addPage();
-  currentPage = 3;
-  y = addHeader(doc, 'AMBULANS VAKA FORMU', 'Araç Bilgileri & İmzalar', currentPage, totalPages);
+  rightY += 3;
   
   // CPR Bilgileri
   if (formData.cprBy || formData.cprStart || formData.cprEnd) {
-    y = addSectionTitle(doc, 'CPR Bilgileri', y);
+    doc.setFillColor(...COLORS.secondary);
+    doc.rect(rightX, rightY - 3, (pageWidth / 2) - 7, 6, 'F');
+    doc.setTextColor(...COLORS.white);
+    doc.setFontSize(compactFont.title);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CPR Bilgileri', rightX + 2, rightY + 1);
+    rightY += 8;
     
-    y = addTwoColumnRow(doc, 'CPR Yapan', formData.cprBy || '-',
-                            'Baslangic', formData.cprStart || '-', y);
-    y = addTwoColumnRow(doc, 'Bitis', formData.cprEnd || '-',
-                            'Sebep', formData.cprReason || '-', y);
-    y += 5;
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(compactFont.body);
+    
+    rightY = addCompactRow('CPR Yapan', formData.cprBy, rightX, rightY);
+    rightY = addCompactRow('Baslangic', formData.cprStart, rightX, rightY);
+    rightY = addCompactRow('Bitis', formData.cprEnd, rightX, rightY);
+    rightY = addCompactRow('Sebep', formData.cprReason, rightX, rightY);
+    rightY += 3;
   }
   
   // Arac Bilgileri
-  y = addSectionTitle(doc, 'Arac Bilgileri', y);
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(rightX, rightY - 3, (pageWidth / 2) - 7, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Arac Bilgileri', rightX + 2, rightY + 1);
+  rightY += 8;
   
-  y = addTwoColumnRow(doc, 'Arac Tipi', formData.vehicleType || '-',
-                          'Kurum', formData.institution || '-', y);
-  y = addTwoColumnRow(doc, 'Baslangic KM', formData.startKm || '-',
-                          'Bitis KM', formData.endKm || '-', y);
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.body);
+  
+  rightY = addCompactRow('Arac Tipi', formData.vehicleType, rightX, rightY);
+  rightY = addCompactRow('Kurum', formData.institution, rightX, rightY);
+  rightY = addCompactRow('Baslangic KM', formData.startKm, rightX, rightY);
+  rightY = addCompactRow('Bitis KM', formData.endKm, rightX, rightY);
   
   if (formData.startKm && formData.endKm) {
     const totalKm = parseInt(formData.endKm) - parseInt(formData.startKm);
-    y = addInfoRow(doc, 'Toplam KM', totalKm.toString(), y, 15, 40);
+    rightY = addCompactRow('Toplam KM', totalKm.toString(), rightX, rightY);
   }
   
-  y += 5;
-  
-  // Refakatci Bilgileri
   if (formData.companions) {
-    y = addSectionTitle(doc, 'Refakatci Bilgileri', y);
-    y = addInfoRow(doc, 'Refakatciler', formData.companions || '-', y, 15, 35);
-    y += 5;
+    rightY = addCompactRow('Refakatciler', formData.companions, rightX, rightY);
   }
   
-  // Imzalar
-  y = addSectionTitle(doc, 'Onay ve Imzalar', y);
+  // ========== ALT KISIM - İMZALAR ==========
   
-  const sigY = y + 5;
+  const bottomY = Math.max(currentY, rightY) + 10;
   
-  // ATT/Paramedik Imzasi
-  addSignatureBox(doc, 'ATT/Paramedik', formData.attSignature, formData.attName, sigY, 15);
+  // İmza alanları (kompakt)
+  doc.setFillColor(...COLORS.secondary);
+  doc.rect(leftX, bottomY - 3, pageWidth - 10, 6, 'F');
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(compactFont.title);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Onay ve Imzalar', leftX + 2, bottomY + 1);
   
-  // Sofor Imzasi
-  addSignatureBox(doc, 'Sofor', formData.driverSignature, formData.driverName, sigY, pageWidth / 2 + 5);
+  const sigY = bottomY + 10;
+  const sigBoxHeight = 25;
+  const sigBoxWidth = (pageWidth - 20) / 4;
   
-  addFooter(doc, currentPage);
+  // 4 imza kutusu yan yana
+  const staffSigs = formData.staffSignatures || {};
+  const sigBoxes = [
+    { title: 'Hastayi Teslim Alan', sig: formData.receiverSignature || staffSigs.receiver, name: formData.receiverName || '' },
+    { title: 'Doktor/Paramedik', sig: formData.doctorParamedicSignature || staffSigs.doctorParamedic, name: formData.doctorParamedicName || '' },
+    { title: 'ATT/Hemsire', sig: formData.healthStaffSignature || staffSigs.healthStaff, name: formData.healthStaffName || '' },
+    { title: 'Sofor', sig: formData.driverSignature || staffSigs.driver, name: formData.driverName || '' }
+  ];
+  
+  sigBoxes.forEach((box, index) => {
+    const boxX = leftX + (index * (sigBoxWidth + 2));
+    
+    doc.setDrawColor(...COLORS.dark);
+    doc.setLineWidth(0.3);
+    doc.rect(boxX, sigY, sigBoxWidth, sigBoxHeight);
+    
+    doc.setTextColor(...COLORS.dark);
+    doc.setFontSize(compactFont.small);
+    doc.setFont('helvetica', 'bold');
+    doc.text(box.title, boxX + 2, sigY + 4);
+    
+    if (box.sig && box.sig.startsWith('data:image')) {
+      try {
+        doc.addImage(box.sig, 'PNG', boxX + 2, sigY + 6, sigBoxWidth - 4, sigBoxHeight - 10);
+      } catch (e) {
+        console.error('Imza eklenemedi:', e);
+      }
+    }
+    
+    if (box.name) {
+      doc.setFontSize(compactFont.small - 1);
+      doc.setFont('helvetica', 'normal');
+      doc.text(sanitizeText(box.name), boxX + 2, sigY + sigBoxHeight + 3);
+    }
+  });
+  
+  // Footer
+  doc.setDrawColor(...COLORS.dark);
+  doc.setLineWidth(0.3);
+  doc.line(5, pageHeight - 15, pageWidth - 5, pageHeight - 15);
+  
+  doc.setTextColor(...COLORS.dark);
+  doc.setFontSize(compactFont.small);
+  doc.setFont('helvetica', 'normal');
+  
+  const date = new Date().toLocaleDateString('tr-TR');
+  const time = new Date().toLocaleTimeString('tr-TR');
+  doc.text(sanitizeText(`Olusturulma: ${date} ${time}`), 10, pageHeight - 10);
+  doc.text(sanitizeText('HealMedy HBYS'), pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text('Sayfa 1/1', pageWidth - 10, pageHeight - 10, { align: 'right' });
   
   return doc;
 };

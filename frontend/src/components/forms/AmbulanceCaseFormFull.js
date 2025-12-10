@@ -777,7 +777,11 @@ const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, 
         }}>🗑 Temizle</Button>
         <PDFExportButton 
           formType="ambulance_case"
-          formData={formData}
+          formData={{
+            ...formData,
+            staffSignatures,
+            patientSignatures
+          }}
           extraData={{ vitalSigns, procedures }}
           filename={`ambulans_vaka_${formData.healmedyProtocol || formData.patientName || 'form'}`}
           variant="outline"
@@ -785,7 +789,11 @@ const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, 
           📄 PDF İndir
         </PDFExportButton>
         <Button variant="outline" onClick={() => {
-          const doc = exportAmbulanceCaseForm(formData, vitalSigns, procedures);
+          const doc = exportAmbulanceCaseForm({
+            ...formData,
+            staffSignatures,
+            patientSignatures
+          }, vitalSigns, procedures);
           const blob = doc.output('blob');
           const url = URL.createObjectURL(blob);
           window.open(url, '_blank');
