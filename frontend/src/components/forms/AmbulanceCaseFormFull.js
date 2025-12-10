@@ -78,20 +78,7 @@ const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, 
 };
 
 
-  const handleSave = async () => {
-    setSaving(true);
-    const saveFunc = handleFormSave('ambulance_case', formData, {
-      validateFields: ['patientName'],
-      validateSignature: false,
-      onSuccess: () => {
-        // Form saved successfully
-      }
-    });
-    await saveFunc();
-    setSaving(false);
-  };
-
-  const AmbulanceCaseFormFull = () => {
+const AmbulanceCaseFormFull = () => {
   const { user } = useAuth();
   const { caseId } = useParams(); // URL'den case ID çek
   const [saving, setSaving] = useState(false);
@@ -247,6 +234,117 @@ const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, 
     
     loadCaseData();
   }, [caseId]);
+
+  // =============== KAYDET FONKSİYONU ===============
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Tüm form verilerini medical_form formatında hazırla
+      const medicalFormData = {
+        // Temel bilgiler
+        date: formData.date,
+        atnNo: formData.atnNo,
+        healmedyProtocol: formData.healmedyProtocol,
+        patientName: formData.patientName,
+        tcNo: formData.tcNo,
+        gender: formData.gender,
+        age: formData.age,
+        phone: formData.phone,
+        address: formData.address,
+        pickupLocation: formData.pickupLocation,
+        complaint: formData.complaint,
+        
+        // Saatler
+        callTime: formData.callTime,
+        arrivalTime: formData.arrivalTime,
+        departureTime: formData.departureTime,
+        hospitalArrivalTime: formData.hospitalArrivalTime,
+        
+        // Transfer bilgileri
+        transfer1: formData.transfer1,
+        transfer2: formData.transfer2,
+        
+        // Klinik bilgiler
+        consciousStatus: formData.consciousStatus,
+        diagnosis: formData.diagnosis,
+        chronicDiseases: formData.chronicDiseases,
+        applications: formData.applications,
+        isolation: formData.isolation,
+        emotionalState: formData.emotionalState,
+        pupils: formData.pupils,
+        skin: formData.skin,
+        respiration: formData.respiration,
+        pulse: formData.pulse,
+        
+        // GKS (Glasgow Koma Skalası)
+        gcs: {
+          motorResponse: formData.motorResponse,
+          verbalResponse: formData.verbalResponse,
+          eyeOpening: formData.eyeOpening
+        },
+        
+        // CPR bilgileri
+        cpr: {
+          by: formData.cprBy,
+          start: formData.cprStart,
+          end: formData.cprEnd,
+          reason: formData.cprReason
+        },
+        
+        // Refakatçi bilgileri
+        companions: formData.companions,
+        waitHours: formData.waitHours,
+        waitMinutes: formData.waitMinutes,
+        
+        // Araç ve protokol bilgileri
+        vehicleType: formData.vehicleType,
+        startKm: formData.startKm,
+        endKm: formData.endKm,
+        institution: formData.institution,
+        protocol112: formData.protocol112,
+        hospitalProtocol: formData.hospitalProtocol,
+        referringInstitution: formData.referringInstitution,
+        roundTrip: formData.roundTrip,
+        
+        // Vital bulgular
+        vitalSigns: vitalSigns,
+        
+        // Uygulanan işlemler
+        procedures: procedures,
+        
+        // Transfer bilgileri (detaylı)
+        transfers: transfers,
+        
+        // İmzalar
+        staffSignatures: staffSignatures,
+        patientSignatures: patientSignatures,
+        
+        // Meta bilgiler
+        savedBy: user?.name || user?.username,
+        savedRole: user?.role,
+        savedAt: new Date().toISOString()
+      };
+
+      // Eğer caseId varsa, vakayı güncelle
+      if (caseId) {
+        await casesAPI.updateMedicalForm(caseId, medicalFormData);
+        toast.success('Form vakaya kaydedildi!');
+      } else {
+        // caseId yoksa sadece form_submissions'a kaydet
+        await handleFormSave('ambulance_case', formData, {
+          validateFields: [],
+          validateSignature: false,
+          extraData: { vitalSigns, procedures }
+        })();
+        toast.success('Form kaydedildi!');
+      }
+    } catch (error) {
+      console.error('Form kaydetme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Form kaydedilemedi');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const [vitalSigns, setVitalSigns] = useState([
     { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },

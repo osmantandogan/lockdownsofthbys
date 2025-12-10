@@ -189,11 +189,11 @@ def generate_full_case_pdf(case_data, medical_form):
     draw_section_title("2. SAATLER")
     draw_two_columns([
         ("Cagri Saati", safe_get(medical_form, "callTime") or safe_get(medical_form, "timestamps", "call")),
-        ("Olay Yerine Varis", safe_get(medical_form, "arrivalScene") or safe_get(medical_form, "timestamps", "scene")),
-        ("Hastaya Varis", safe_get(medical_form, "arrivalPatient") or safe_get(medical_form, "timestamps", "patient")),
-        ("Olay Yerinden Ayrilis", safe_get(medical_form, "departureScene") or safe_get(medical_form, "timestamps", "departure")),
-        ("Hastaneye Varis", safe_get(medical_form, "arrivalHospital") or safe_get(medical_form, "timestamps", "hospital")),
+        ("Olay Yerine Varis", safe_get(medical_form, "arrivalTime") or safe_get(medical_form, "arrivalScene") or safe_get(medical_form, "timestamps", "scene")),
+        ("Olay Yerinden Ayrilis", safe_get(medical_form, "departureTime") or safe_get(medical_form, "departureScene") or safe_get(medical_form, "timestamps", "departure")),
+        ("Hastaneye Varis", safe_get(medical_form, "hospitalArrivalTime") or safe_get(medical_form, "arrivalHospital") or safe_get(medical_form, "timestamps", "hospital")),
         ("Istasyona Donus", safe_get(medical_form, "returnStation") or safe_get(medical_form, "timestamps", "return")),
+        ("Bekleme Suresi", f"{safe_get(medical_form, 'waitHours') or '0'} saat {safe_get(medical_form, 'waitMinutes') or '0'} dk"),
     ])
     
     # 3. HASTA BİLGİLERİ
@@ -266,18 +266,28 @@ def generate_full_case_pdf(case_data, medical_form):
     # 7. KLİNİK GÖZLEMLER
     draw_section_title("7. KLINIK GOZLEMLER")
     clinical = medical_form.get("clinical_observations", {}) or {}
+    
+    # Bilinç durumu - hem eski hem yeni field'lara bak
+    consciousness = safe_get(clinical, "consciousness") or safe_get(medical_form, "consciousStatus")
+    if consciousness is True:
+        consciousness = "Açık"
+    elif consciousness is False:
+        consciousness = "Kapalı"
+    
     draw_two_columns([
-        ("Bilinc Durumu", safe_get(clinical, "consciousness")),
-        ("Pupil", safe_get(clinical, "pupil_response")),
-        ("Cilt", safe_get(clinical, "skin_status")),
-        ("Solunum Tipi", safe_get(clinical, "breathing_type")),
-        ("Nabiz Tipi", safe_get(clinical, "pulse_type")),
+        ("Bilinc Durumu", consciousness),
+        ("Pupil", safe_get(clinical, "pupil_response") or safe_get(medical_form, "pupils")),
+        ("Cilt", safe_get(clinical, "skin_status") or safe_get(medical_form, "skin")),
+        ("Solunum Tipi", safe_get(clinical, "breathing_type") or safe_get(medical_form, "respiration")),
+        ("Nabiz Tipi", safe_get(clinical, "pulse_type") or safe_get(medical_form, "pulse")),
+        ("Duygusal Durum", safe_get(medical_form, "emotionalState")),
     ])
     
-    # GKS
-    motor = safe_get(clinical, "motorResponse")
-    verbal = safe_get(clinical, "verbalResponse")
-    eye = safe_get(clinical, "eyeOpening")
+    # GKS - hem gcs objesi hem doğrudan field'lara bak
+    gcs = medical_form.get("gcs", {}) or {}
+    motor = safe_get(gcs, "motorResponse") or safe_get(clinical, "motorResponse") or safe_get(medical_form, "motorResponse")
+    verbal = safe_get(gcs, "verbalResponse") or safe_get(clinical, "verbalResponse") or safe_get(medical_form, "verbalResponse")
+    eye = safe_get(gcs, "eyeOpening") or safe_get(clinical, "eyeOpening") or safe_get(medical_form, "eyeOpening")
     gks_total = safe_get(clinical, "gcs_total")
     if motor or verbal or eye or gks_total:
         draw_two_columns([
@@ -320,7 +330,26 @@ def generate_full_case_pdf(case_data, medical_form):
     
     draw_field("Damar Yolu", safe_get(medical_form, "iv_access"))
     draw_field("Hava Yolu", safe_get(medical_form, "airway_management"))
-    draw_field("CPR", "Evet" if medical_form.get("cpr_performed") else "Hayir")
+    draw_field("Uygulamalar", safe_get(medical_form, "applications"))
+    
+    # CPR bilgileri - hem cpr objesi hem doğrudan field'lara bak
+    cpr = medical_form.get("cpr", {}) or {}
+    cpr_by = safe_get(cpr, "by") or safe_get(medical_form, "cprBy")
+    cpr_start = safe_get(cpr, "start") or safe_get(medical_form, "cprStart")
+    cpr_end = safe_get(cpr, "end") or safe_get(medical_form, "cprEnd")
+    cpr_reason = safe_get(cpr, "reason") or safe_get(medical_form, "cprReason")
+    
+    if cpr_by or cpr_start or cpr_end or cpr_reason:
+        draw_field("CPR", "Evet")
+        draw_two_columns([
+            ("CPR Yapan", cpr_by),
+            ("CPR Baslangic", cpr_start),
+            ("CPR Bitis", cpr_end),
+            ("CPR Sonuc", cpr_reason),
+        ])
+    else:
+        draw_field("CPR", "Yapilmadi")
+    
     draw_field("Diger Islemler", safe_get(medical_form, "other_procedures"))
     
     # 11. KULLANILAN İLAÇLAR
@@ -366,10 +395,12 @@ def generate_full_case_pdf(case_data, medical_form):
     team = case_data.get("team", {}) or {}
     
     draw_two_columns([
-        ("Plaka", safe_get(vehicle, "plate")),
+        ("Plaka", safe_get(vehicle, "plate") or safe_get(medical_form, "vehicleType")),
         ("Arac Tipi", safe_get(vehicle, "type")),
-        ("Baslangic KM", safe_get(vehicle, "start_km")),
-        ("Bitis KM", safe_get(vehicle, "end_km")),
+        ("Baslangic KM", safe_get(vehicle, "start_km") or safe_get(medical_form, "startKm")),
+        ("Bitis KM", safe_get(vehicle, "end_km") or safe_get(medical_form, "endKm")),
+        ("Kurum", safe_get(medical_form, "institution")),
+        ("Gidis-Donus", safe_get(medical_form, "roundTrip")),
     ])
     
     draw_two_columns([
@@ -379,6 +410,19 @@ def generate_full_case_pdf(case_data, medical_form):
         ("Hemsire", safe_get(team, "nurse", "name")),
         ("Doktor", safe_get(team, "doctor", "name")),
     ])
+    
+    # 14.5 REFAKATÇI BİLGİLERİ
+    companions = safe_get(medical_form, "companions")
+    if companions:
+        draw_section_title("14.5 REFAKATCI BILGILERI")
+        draw_field("Refakatci", companions)
+    
+    # 14.6 İZOLASYON
+    isolation = medical_form.get("isolation", [])
+    if isolation:
+        if isinstance(isolation, list):
+            draw_section_title("14.6 IZOLASYON")
+            draw_field("Izolasyon Onlemleri", ", ".join(str(i) for i in isolation))
     
     # 15. GENEL NOTLAR
     draw_section_title("15. GENEL NOTLAR")
