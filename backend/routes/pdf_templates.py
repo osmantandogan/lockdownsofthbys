@@ -262,48 +262,74 @@ async def get_template(template_id: str, request: Request):
 
 
 @router.post("")
-async def create_template(data: PdfTemplateCreate, request: Request):
+async def create_template(request: Request):
     """Yeni şablon oluştur"""
     user = await require_roles(["operasyon_muduru", "merkez_ofis"])(request)
     
+    # JSON body'yi al
+    try:
+        data = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    
     # Eğer varsayılan olarak işaretlendiyse, aynı kullanım tipindeki diğerlerini kaldır
-    if data.is_default and data.usage_types:
-        for usage_type in data.usage_types:
+    if data.get("is_default") and data.get("usage_types"):
+        for usage_type in data.get("usage_types", []):
             await pdf_templates_collection.update_many(
                 {"usage_types": usage_type, "is_default": True},
                 {"$set": {"is_default": False}}
             )
     
-    template = PdfTemplate(
-        **data.model_dump(),
-        created_by=user.id,
-        created_by_name=user.name
-    )
+    import uuid
+    template_id = str(uuid.uuid4())
     
-    template_dict = template.model_dump(by_alias=True)
+    template_dict = {
+        "_id": template_id,
+        "name": data.get("name", "Yeni Şablon"),
+        "description": data.get("description", ""),
+        "page_count": data.get("page_count", 1),
+        "page_size": data.get("page_size", "A4"),
+        "orientation": data.get("orientation", "portrait"),
+        "header": data.get("header", {"enabled": False, "height": 60}),
+        "footer": data.get("footer", {"enabled": False, "height": 40}),
+        "blocks": data.get("blocks", []),
+        "usage_types": data.get("usage_types", []),
+        "is_default": data.get("is_default", False),
+        "created_by": user.id,
+        "created_by_name": user.name,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "is_active": True
+    }
+    
     await pdf_templates_collection.insert_one(template_dict)
     
-    logger.info(f"PDF şablonu oluşturuldu: {template.name} by {user.name}")
+    logger.info(f"PDF şablonu oluşturuldu: {template_dict['name']} by {user.name}")
     
     template_dict["id"] = template_dict.pop("_id")
     return template_dict
 
 
 @router.patch("/{template_id}")
-async def update_template(template_id: str, data: PdfTemplateUpdate, request: Request):
+async def update_template(template_id: str, request: Request):
     """Şablonu güncelle"""
     user = await require_roles(["operasyon_muduru", "merkez_ofis"])(request)
+    
+    try:
+        data = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     
     template = await pdf_templates_collection.find_one({"_id": template_id})
     if not template:
         raise HTTPException(status_code=404, detail="Şablon bulunamadı")
     
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data = {k: v for k, v in data.items() if v is not None}
     update_data["updated_at"] = datetime.utcnow()
     
     # Varsayılan olarak işaretleniyorsa
-    if data.is_default and data.usage_types:
-        for usage_type in data.usage_types:
+    if data.get("is_default") and data.get("usage_types"):
+        for usage_type in data.get("usage_types", []):
             await pdf_templates_collection.update_many(
                 {"_id": {"$ne": template_id}, "usage_types": usage_type, "is_default": True},
                 {"$set": {"is_default": False}}

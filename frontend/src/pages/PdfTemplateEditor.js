@@ -415,26 +415,35 @@ const PdfTemplateEditor = () => {
                 width: A4_WIDTH * SCALE,
                 height: A4_HEIGHT * SCALE,
                 transform: `scale(1)`,
-                transformOrigin: 'top center'
+                transformOrigin: 'top center',
+                backgroundImage: `
+                  linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+                  linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+                `,
+                backgroundSize: `${20 * SCALE}px ${20 * SCALE}px`
               }}
             >
+              {/* Merkez ve kenar çizgileri */}
+              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-blue-200 opacity-50 pointer-events-none" />
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-200 opacity-50 pointer-events-none" />
+              
               {/* Üst Bilgi Alanı */}
               {template.header?.enabled && (
                 <div 
-                  className="absolute top-0 left-0 right-0 bg-gray-100 border-b border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500"
+                  className="absolute top-0 left-0 right-0 bg-gray-100/80 border-b-2 border-dashed border-gray-400 flex items-center justify-center text-xs text-gray-500 z-10"
                   style={{ height: template.header.height * SCALE }}
                 >
-                  Üst Bilgi Alanı
+                  📄 Üst Bilgi
                 </div>
               )}
 
               {/* Alt Bilgi Alanı */}
               {template.footer?.enabled && (
                 <div 
-                  className="absolute bottom-0 left-0 right-0 bg-gray-100 border-t border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500"
+                  className="absolute bottom-0 left-0 right-0 bg-gray-100/80 border-t-2 border-dashed border-gray-400 flex items-center justify-center text-xs text-gray-500 z-10"
                   style={{ height: template.footer.height * SCALE }}
                 >
-                  Alt Bilgi Alanı
+                  📄 Alt Bilgi
                 </div>
               )}
 
@@ -648,46 +657,65 @@ const DraggableBlock = ({ block, scale, isSelected, onClick, onDoubleClick, onMo
     };
   }, [isDragging, isResizing, startPos, startSize, scale, onMove, onResize]);
 
+  const visibleFields = block.fields?.filter(f => f.visible) || [];
+  const fieldCount = visibleFields.length;
+
   return (
     <div
       ref={blockRef}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onMouseDown={handleMouseDown}
-      className={`absolute cursor-move ${
-        isSelected ? 'ring-2 ring-blue-500' : ''
-      } ${block.show_border ? 'border border-gray-300' : ''}`}
+      className={`absolute cursor-move shadow-sm ${
+        isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'
+      } ${block.show_border !== false ? 'border border-gray-300' : ''}`}
       style={{
         left: block.x * scale,
         top: block.y * scale,
         width: block.width * scale,
         height: block.height * scale,
-        backgroundColor: block.background_color || 'white'
+        backgroundColor: block.background_color || 'white',
+        zIndex: isSelected ? 100 : 1
       }}
     >
       {/* Başlık */}
-      {block.show_title && (
-        <div className="bg-gray-100 px-2 py-1 text-xs font-medium border-b truncate">
-          {block.title}
+      {block.show_title !== false && (
+        <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-2 py-1 text-xs font-semibold border-b truncate flex items-center justify-between">
+          <span>{block.title}</span>
+          {fieldCount > 0 && (
+            <span className="text-gray-400 font-normal">({fieldCount})</span>
+          )}
         </div>
       )}
       
-      {/* İçerik önizleme */}
-      <div className="p-1 text-xs text-gray-400 overflow-hidden">
-        {block.fields?.filter(f => f.visible).slice(0, 3).map(f => (
-          <div key={f.field_id} className="truncate">{f.label}</div>
-        ))}
-        {block.fields?.filter(f => f.visible).length > 3 && (
-          <div>...</div>
+      {/* İçerik önizleme - sadece özet */}
+      <div className="p-1 text-xs text-gray-400 overflow-hidden flex-1">
+        {fieldCount === 0 ? (
+          <div className="text-center py-2 text-gray-300 italic">Boş</div>
+        ) : fieldCount <= 2 ? (
+          visibleFields.map(f => (
+            <div key={f.field_id} className="truncate">{f.label}</div>
+          ))
+        ) : (
+          <div className="text-center py-1">
+            <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-500">
+              {fieldCount} alan
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Boyutlandırma tutamacı */}
+      {/* Boyutlandırma tutamacı - 4 köşe */}
       {isSelected && (
-        <div
-          className="resize-handle absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize"
-          onMouseDown={handleResizeStart}
-        />
+        <>
+          <div
+            className="resize-handle absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize rounded-tl"
+            onMouseDown={handleResizeStart}
+          />
+          <div className="absolute top-0 left-0 w-2 h-2 bg-blue-500 rounded-br pointer-events-none" />
+          <div className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-bl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 bg-blue-500 rounded-tr pointer-events-none" />
+        </>
       )}
     </div>
   );
