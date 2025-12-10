@@ -37,6 +37,7 @@ import PatientRegistration from "./pages/PatientRegistration";
 import MyLocationStock from "./pages/MyLocationStock";
 import ShiftApprovals from "./pages/ShiftApprovals";
 import MaterialRequests from "./pages/MaterialRequests";
+import Tickets from "./pages/Tickets";
 import VehicleLocationManagement from "./pages/VehicleLocationManagement";
 import PdfTemplates from "./pages/PdfTemplates";
 import PdfTemplateEditor from "./pages/PdfTemplateEditor";
@@ -131,6 +132,7 @@ function App() {
             <Route path="shift-approvals" element={<ShiftApprovals />} />
             <Route path="shift-photos" element={<ShiftApprovals />} />
             <Route path="material-requests" element={<MaterialRequests />} />
+            <Route path="tickets" element={<Tickets />} />
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
             <Route path="patient-cards" element={<PatientCards />} />

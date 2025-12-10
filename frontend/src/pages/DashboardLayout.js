@@ -27,7 +27,8 @@ import {
   ClipboardCheck,
   ShoppingCart,
   Image,
-  MapPin
+  MapPin,
+  MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationDropdown from '../components/NotificationDropdown';
@@ -55,7 +56,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya', roles: ['att', 'paramedik', 'hemsire', 'sofor', 'cagri_merkezi'] },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Atama', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'mesul_mudur'] },
     { path: '/dashboard/shift-approvals', icon: ClipboardCheck, label: 'Vardiya Onayları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
-    { path: '/dashboard/material-requests', icon: ShoppingCart, label: 'Malzeme Talepleri' },
+    { path: '/dashboard/tickets', icon: MessageSquare, label: 'Bildirim ve Talepler' },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar' },
     { path: '/dashboard/form-history', icon: History, label: 'Form Geçmişi', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'bas_sofor'] },
     { path: '/dashboard/patient-cards', icon: User, label: 'Hasta Kartları', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi'] },
