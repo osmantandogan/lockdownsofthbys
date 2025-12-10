@@ -14,8 +14,32 @@ from io import BytesIO
 import os
 import logging
 from datetime import datetime
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+# Türkçe karakterleri ASCII'ye dönüştür (font sorunu için yedek)
+def normalize_turkish(text):
+    """Türkçe karakterleri ASCII karşılıklarına dönüştür"""
+    if not text:
+        return ""
+    
+    text = str(text)
+    
+    # Türkçe karakter eşleştirmesi
+    turkish_map = {
+        'ş': 's', 'Ş': 'S',
+        'ğ': 'g', 'Ğ': 'G',
+        'ı': 'i', 'İ': 'I',
+        'ö': 'o', 'Ö': 'O',
+        'ü': 'u', 'Ü': 'U',
+        'ç': 'c', 'Ç': 'C'
+    }
+    
+    for tr_char, ascii_char in turkish_map.items():
+        text = text.replace(tr_char, ascii_char)
+    
+    return text
 
 # Sayfa boyutları
 PAGE_SIZES = {
@@ -229,7 +253,7 @@ class TemplatePdfGenerator:
         if text:
             self.canvas.setFillColor(colors.black)
             self.canvas.setFont("Helvetica-Bold", 10)
-            self.canvas.drawCentredString(self.page_width / 2, y + height / 2 - 5, text)
+            self.canvas.drawCentredString(self.page_width / 2, y + height / 2 - 5, normalize_turkish(text))
         
         # Logo (eğer varsa)
         logo = header.get("logo")
@@ -250,13 +274,13 @@ class TemplatePdfGenerator:
         if text:
             self.canvas.setFillColor(colors.black)
             self.canvas.setFont("Helvetica", 8)
-            self.canvas.drawCentredString(self.page_width / 2, height / 2 - 3, text)
+            self.canvas.drawCentredString(self.page_width / 2, height / 2 - 3, normalize_turkish(text))
         
         # Sayfa numarası
         if footer.get("show_page_number"):
             format_str = footer.get("page_number_format", "Sayfa {current}/{total}")
             page_text = format_str.replace("{current}", str(page_num)).replace("{total}", str(self.page_count))
-            self.canvas.drawRightString(self.page_width - 20, height / 2 - 3, page_text)
+            self.canvas.drawRightString(self.page_width - 20, height / 2 - 3, normalize_turkish(page_text))
     
     def _draw_block(self, block):
         """Kutucuğu çiz"""
@@ -292,7 +316,7 @@ class TemplatePdfGenerator:
         # Başlık
         title_height = 0
         if block.get("show_title", True):
-            title = block.get("title", "")
+            title = normalize_turkish(block.get("title", ""))
             title_height = 15
             
             # Başlık arka planı
@@ -328,8 +352,8 @@ class TemplatePdfGenerator:
                 break
             
             field_id = field.get("field_id", "")
-            label = field.get("label", field_id)
-            value = get_field_value(block_type, field_id, self.case_data, self.medical_form)
+            label = normalize_turkish(field.get("label", field_id))
+            value = normalize_turkish(get_field_value(block_type, field_id, self.case_data, self.medical_form))
             
             # Label: Value formatında yazdır
             text = f"{label}: {value}" if value else f"{label}:"
@@ -344,7 +368,7 @@ class TemplatePdfGenerator:
         
         # Özel içerik (metin bloğu için)
         if block_type == "metin":
-            custom_text = block.get("custom_content", "")
+            custom_text = normalize_turkish(block.get("custom_content", ""))
             if custom_text:
                 self.canvas.drawString(x + 5, content_y, custom_text[:50])
 
