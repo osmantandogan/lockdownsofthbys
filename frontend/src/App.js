@@ -42,6 +42,8 @@ import TicketsApprovals from "./pages/TicketsApprovals";
 import VehicleLocationManagement from "./pages/VehicleLocationManagement";
 import PdfTemplates from "./pages/PdfTemplates";
 import PdfTemplateEditor from "./pages/PdfTemplateEditor";
+import FormTemplates from "./pages/FormTemplates";
+import TableTemplateEditor from "./pages/TableTemplateEditor";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -123,6 +125,11 @@ function App() {
             <Route path="vehicle-locations" element={<VehicleLocationManagement />} />
             <Route path="pdf-templates" element={<PdfTemplates />} />
             <Route path="pdf-templates/:templateId" element={<PdfTemplateEditor />} />
+            <Route path="form-templates" element={<FormTemplates />} />
+            <Route path="form-templates/pdf/new" element={<PdfTemplateEditor />} />
+            <Route path="form-templates/pdf/:templateId" element={<PdfTemplateEditor />} />
+            <Route path="form-templates/table/new" element={<TableTemplateEditor />} />
+            <Route path="form-templates/table/:templateId" element={<TableTemplateEditor />} />
             <Route path="stock" element={<StockManagement />} />
             <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />

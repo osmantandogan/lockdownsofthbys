@@ -150,7 +150,14 @@ export const stockAPI = {
   transfer: (data) => api.post('/stock/transfer', data),
   getTransfers: (params) => api.get('/stock/transfers', { params }),
   getLocationStock: (locationId) => api.get(`/stock/location/${locationId}/stock`),
-  getVehicleAllStock: (vehicleId) => api.get(`/stock/vehicle/${vehicleId}/all-stock`)
+  getVehicleAllStock: (vehicleId) => api.get(`/stock/vehicle/${vehicleId}/all-stock`),
+  
+  // YENİ: Karekod Bazlı Stok (Gruplu)
+  getBarcodeInventory: (params) => api.get('/stock-barcode/inventory', { params }),
+  getGroupedInventory: (params) => api.get('/stock-barcode/inventory/grouped', { params }),
+  getItemQRDetails: (itemName, location) => api.get(`/stock-barcode/inventory/item-details/${encodeURIComponent(itemName)}`, { params: { location } }),
+  addBarcodeStock: (data) => api.post('/stock-barcode/add', data),
+  deductBarcodeStock: (data) => api.post('/stock-barcode/deduct', data)
 };
 
 // Medications API (Vakada kullanılan ilaçlar)
@@ -282,6 +289,21 @@ export const pdfTemplatesAPI = {
   delete: (id) => api.delete(`/pdf-templates/${id}`),
   setDefault: (id) => api.post(`/pdf-templates/${id}/set-default`),
   duplicate: (id) => api.post(`/pdf-templates/${id}/duplicate`)
+};
+
+// Form Şablonları API (PDF + Tablo şablonları)
+export const formTemplatesAPI = {
+  getAll: (params) => api.get('/form-templates', { params }),
+  getById: (id) => api.get(`/form-templates/${id}`),
+  getDefault: (usageType) => api.get(`/form-templates/default/${usageType}`),
+  getBlockDefinitions: () => api.get('/form-templates/block-definitions'),
+  create: (data) => api.post('/form-templates', data),
+  update: (id, data) => api.patch(`/form-templates/${id}`, data),
+  delete: (id) => api.delete(`/form-templates/${id}`),
+  setDefault: (id) => api.post(`/form-templates/${id}/set-default`),
+  duplicate: (id) => api.post(`/form-templates/${id}/duplicate`),
+  // Tablo şablonu için PDF oluştur
+  generateTablePdf: (templateId, caseId) => api.get(`/form-templates/${templateId}/generate-pdf/${caseId}`, { responseType: 'blob' })
 };
 
 // Şablonlu PDF Oluşturma API

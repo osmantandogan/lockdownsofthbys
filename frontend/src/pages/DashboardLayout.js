@@ -63,7 +63,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/patient-cards', icon: User, label: 'Hasta Kartları', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi'] },
     { path: '/dashboard/staff', icon: Users, label: 'Personel', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/documents', icon: FileCog, label: 'Döküman Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
-    { path: '/dashboard/pdf-templates', icon: FileText, label: 'PDF Şablonları', roles: ['operasyon_muduru', 'merkez_ofis'] },
+    { path: '/dashboard/form-templates', icon: FileText, label: 'Form Şablonları', roles: ['operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/archive', icon: ArchiveIcon, label: 'Form Arşivi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/notifications', icon: Bell, label: 'Bildirim Ayarları' },
     { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }

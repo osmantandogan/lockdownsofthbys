@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { stockAPI, vehiclesAPI, itsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2 } from 'lucide-react';
+import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box } from 'lucide-react';
 import StockLocationSummary from '../components/StockLocationSummary';
 
 const StockManagement = () => {
@@ -38,9 +38,25 @@ const StockManagement = () => {
     expiry_date: ''
   });
 
+  // Karekod Bazlı Stok State
+  const [barcodeGroups, setBarcodeGroups] = useState([]);
+  const [barcodeLoading2, setBarcodeLoading2] = useState(false);
+  const [barcodeSearch, setBarcodeSearch] = useState('');
+  const [barcodeLocationFilter, setBarcodeLocationFilter] = useState('merkez_depo');
+  const [selectedMedication, setSelectedMedication] = useState(null);
+  const [medicationDetailsOpen, setMedicationDetailsOpen] = useState(false);
+  const [medicationDetails, setMedicationDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
   useEffect(() => {
     loadData();
+    loadBarcodeGroups();
   }, []);
+  
+  // Lokasyon filtresi değiştiğinde yeniden yükle
+  useEffect(() => {
+    loadBarcodeGroups();
+  }, [barcodeLocationFilter]);
 
   const loadData = async () => {
     try {
@@ -76,6 +92,72 @@ const StockManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Karekod Bazlı Stok Yükle
+  const loadBarcodeGroups = useCallback(async () => {
+    setBarcodeLoading2(true);
+    try {
+      const params = {};
+      if (barcodeLocationFilter && barcodeLocationFilter !== 'all') {
+        params.location = barcodeLocationFilter;
+      }
+      if (barcodeSearch) {
+        params.search = barcodeSearch;
+      }
+      
+      const response = await stockAPI.getGroupedInventory(params);
+      setBarcodeGroups(response.data.groups || []);
+    } catch (error) {
+      console.error('Karekod stok yüklenemedi:', error);
+      toast.error('Karekod stok yüklenemedi');
+    } finally {
+      setBarcodeLoading2(false);
+    }
+  }, [barcodeLocationFilter, barcodeSearch]);
+
+  // İlaç detaylarını yükle (QR kodları ile)
+  const loadMedicationDetails = async (medication) => {
+    setSelectedMedication(medication);
+    setMedicationDetailsOpen(true);
+    setLoadingDetails(true);
+    
+    try {
+      const location = barcodeLocationFilter !== 'all' ? barcodeLocationFilter : null;
+      const response = await stockAPI.getItemQRDetails(medication.name, location);
+      setMedicationDetails(response.data);
+    } catch (error) {
+      console.error('İlaç detayları yüklenemedi:', error);
+      toast.error('Detaylar yüklenemedi');
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  // Tab değiştiğinde karekod stokunu yükle
+  const handleTabChange = (value) => {
+    if (value === 'barcode') {
+      loadBarcodeGroups();
+    }
+  };
+
+  // Tarih formatla
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('tr-TR');
+  };
+
+  // SKT durumu kontrol
+  const getExpiryStatus = (expiryDate) => {
+    if (!expiryDate) return null;
+    const now = new Date();
+    const expiry = new Date(expiryDate);
+    const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) return { status: 'expired', label: 'Süresi Dolmuş', color: 'bg-red-500' };
+    if (daysLeft <= 30) return { status: 'expiring', label: `${daysLeft} gün`, color: 'bg-orange-500' };
+    if (daysLeft <= 90) return { status: 'warning', label: `${daysLeft} gün`, color: 'bg-yellow-500' };
+    return { status: 'ok', label: formatDate(expiryDate), color: 'bg-green-500' };
   };
 
   const handleCreate = async () => {
@@ -235,8 +317,12 @@ const StockManagement = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs defaultValue="barcode" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
+          <TabsTrigger value="barcode" className="flex items-center space-x-2">
+            <QrCode className="h-4 w-4" />
+            <span>Karekod Stok</span>
+          </TabsTrigger>
           <TabsTrigger value="all" className="flex items-center space-x-2">
             <Package className="h-4 w-4" />
             <span>Tüm Stoklar</span>
@@ -246,6 +332,260 @@ const StockManagement = () => {
             <span>Lokasyonlar</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Karekod Bazlı Stok Sekmesi */}
+        <TabsContent value="barcode">
+          <div className="space-y-4">
+            {/* Filtreler */}
+            <div className="flex gap-4 flex-wrap items-end">
+              <div className="flex-1 min-w-[200px]">
+                <Label className="text-sm text-gray-500 mb-1 block">İlaç Ara</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="İlaç adı ara..."
+                    value={barcodeSearch}
+                    onChange={(e) => setBarcodeSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && loadBarcodeGroups()}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="w-[200px]">
+                <Label className="text-sm text-gray-500 mb-1 block">Lokasyon</Label>
+                <Select value={barcodeLocationFilter} onValueChange={setBarcodeLocationFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
+                    <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
+                    <SelectItem value="ambulans">Ambulans</SelectItem>
+                    <SelectItem value="acil_canta">Acil Çanta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button onClick={loadBarcodeGroups} disabled={barcodeLoading2}>
+                {barcodeLoading2 ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Yenile
+              </Button>
+            </div>
+
+            {/* Özet Bilgi */}
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <span>
+                {barcodeGroups.length} çeşit ilaç, toplam{' '}
+                {barcodeGroups.reduce((sum, g) => sum + g.count, 0)} adet karekod
+              </span>
+            </div>
+
+            {/* İlaç Listesi - Gruplu Görünüm */}
+            {barcodeLoading2 ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : barcodeGroups.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-gray-500">
+                  <Box className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Stokta ürün bulunamadı</p>
+                  <p className="text-sm mt-2">Karekod okutarak stok ekleyebilirsiniz</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {barcodeGroups.map((group) => {
+                  const expiryStatus = getExpiryStatus(group.earliest_expiry);
+                  
+                  return (
+                    <Card 
+                      key={group.name}
+                      className={`cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border-l-4 ${
+                        expiryStatus?.status === 'expired' ? 'border-l-red-500 bg-red-50/50' :
+                        expiryStatus?.status === 'expiring' ? 'border-l-orange-500 bg-orange-50/50' :
+                        'border-l-green-500'
+                      }`}
+                      onClick={() => loadMedicationDetails(group)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Pill className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                              <h4 className="font-semibold text-sm truncate" title={group.name}>
+                                {group.name}
+                              </h4>
+                            </div>
+                            
+                            {group.manufacturer_name && (
+                              <p className="text-xs text-gray-500 mb-2 truncate">
+                                {group.manufacturer_name}
+                              </p>
+                            )}
+                            
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              <Badge className="bg-blue-600 text-white">
+                                {group.count} adet
+                              </Badge>
+                              
+                              {expiryStatus && (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${
+                                    expiryStatus.status === 'expired' ? 'border-red-300 text-red-700 bg-red-50' :
+                                    expiryStatus.status === 'expiring' ? 'border-orange-300 text-orange-700 bg-orange-50' :
+                                    expiryStatus.status === 'warning' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
+                                    'border-green-300 text-green-700 bg-green-50'
+                                  }`}
+                                >
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  {expiryStatus.label}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* İlaç Detay Popup */}
+          <Dialog open={medicationDetailsOpen} onOpenChange={setMedicationDetailsOpen}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <QrCode className="h-5 w-5 text-blue-600" />
+                  <span className="truncate">{selectedMedication?.name}</span>
+                </DialogTitle>
+              </DialogHeader>
+              
+              {loadingDetails ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : medicationDetails ? (
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  {/* Özet Bilgi */}
+                  <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg mb-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{medicationDetails.count}</p>
+                      <p className="text-xs text-gray-500">Toplam Adet</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-700">
+                        {selectedMedication?.gtin || '-'}
+                      </p>
+                      <p className="text-xs text-gray-500">GTIN</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-700">
+                        {selectedMedication?.manufacturer_name || '-'}
+                      </p>
+                      <p className="text-xs text-gray-500">Üretici</p>
+                    </div>
+                  </div>
+
+                  {/* QR Kod Listesi */}
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Karekod Detayları</p>
+                    <ScrollArea className="h-[350px] pr-2">
+                      <div className="space-y-2">
+                        {medicationDetails.items?.map((item, idx) => {
+                          const itemExpiry = getExpiryStatus(item.expiry_date);
+                          
+                          return (
+                            <div 
+                              key={item.id || idx}
+                              className={`p-3 rounded-lg border transition-colors ${
+                                item.is_expired ? 'bg-red-50 border-red-200' :
+                                item.is_expiring_soon ? 'bg-orange-50 border-orange-200' :
+                                'bg-white border-gray-200 hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3 flex-1 min-w-0">
+                                  <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0">
+                                    <QrCode className="h-5 w-5 text-gray-600" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                      <Badge variant="outline" className="text-xs font-mono">
+                                        #{idx + 1}
+                                      </Badge>
+                                      <span className="text-xs text-gray-500">
+                                        {item.location_detail || item.location}
+                                      </span>
+                                    </div>
+                                    
+                                    <p className="font-mono text-xs text-gray-600 truncate" title={item.serial_number}>
+                                      SN: {item.serial_number || 'N/A'}
+                                    </p>
+                                    
+                                    {item.lot_number && (
+                                      <p className="text-xs text-gray-500 flex items-center mt-1">
+                                        <Hash className="h-3 w-3 mr-1" />
+                                        LOT: {item.lot_number}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <div className="text-right flex-shrink-0 ml-3">
+                                  {itemExpiry && (
+                                    <Badge 
+                                      className={`text-xs ${
+                                        itemExpiry.status === 'expired' ? 'bg-red-500' :
+                                        itemExpiry.status === 'expiring' ? 'bg-orange-500' :
+                                        itemExpiry.status === 'warning' ? 'bg-yellow-500' :
+                                        'bg-green-500'
+                                      }`}
+                                    >
+                                      <Calendar className="h-3 w-3 mr-1" />
+                                      {formatDate(item.expiry_date)}
+                                    </Badge>
+                                  )}
+                                  
+                                  {item.days_until_expiry !== undefined && (
+                                    <p className={`text-xs mt-1 ${
+                                      item.days_until_expiry < 0 ? 'text-red-600' :
+                                      item.days_until_expiry <= 30 ? 'text-orange-600' :
+                                      'text-gray-500'
+                                    }`}>
+                                      {item.days_until_expiry < 0 
+                                        ? `${Math.abs(item.days_until_expiry)} gün geçti`
+                                        : `${item.days_until_expiry} gün kaldı`
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Detay bilgisi bulunamadı
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
 
         {/* Lokasyonlar Sekmesi */}
         <TabsContent value="locations">

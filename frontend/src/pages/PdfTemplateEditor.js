@@ -660,6 +660,119 @@ const DraggableBlock = ({ block, scale, isSelected, onClick, onDoubleClick, onMo
   const visibleFields = block.fields?.filter(f => f.visible) || [];
   const fieldCount = visibleFields.length;
 
+  // Örnek veri mapping'i - kutucuk tipine göre
+  const getSampleValue = (blockType, fieldId) => {
+    const sampleData = {
+      hasta_zaman: {
+        case_number: "20251210-000001",
+        case_date: "10.12.2025",
+        case_time: "16:55",
+        patient_name: "Test Hasta",
+        patient_surname: "Test Soyad",
+        patient_tc: "12345678901",
+        patient_age: "45",
+        patient_gender: "Erkek",
+        patient_phone: "05551234567"
+      },
+      tibbi_bilgiler: {
+        complaint: "Göğüs ağrısı",
+        chronic_diseases: "Hipertansiyon, Diyabet",
+        allergies: "Penisilin",
+        medications: "Aspirin 100mg",
+        blood_type: "A Rh+"
+      },
+      vitaller: {
+        blood_pressure: "120/80",
+        pulse: "72",
+        spo2: "98",
+        temperature: "36.5",
+        respiratory_rate: "16",
+        blood_sugar: "95",
+        gcs_total: "15"
+      },
+      nakil_hastanesi: {
+        hospital_name: "Test Hastanesi",
+        hospital_type: "Devlet",
+        hospital_address: "Test Mahallesi, Test Caddesi No:1",
+        transfer_reason: "Acil müdahale gerekiyor"
+      },
+      klinik_gozlemler: {
+        consciousness: "Bilinç açık",
+        pupil_response: "Normal",
+        skin_status: "Normal",
+        motor_response: "6",
+        verbal_response: "5",
+        eye_opening: "4"
+      },
+      anamnez: {
+        anamnez_text: "Hasta 2 saat önce göğüs ağrısı başladı",
+        history: "Hipertansiyon öyküsü var",
+        current_complaint: "Göğüs ağrısı, nefes darlığı"
+      },
+      fizik_muayene: {
+        general_status: "Orta",
+        head_neck: "Normal",
+        chest: "Solunum sesleri azalmış",
+        abdomen: "Yumuşak, hassasiyet yok",
+        extremities: "Normal",
+        neurological: "Bilinç açık, oriente"
+      },
+      uygulamalar: {
+        procedures_list: "IV açıldı, Oksijen verildi",
+        iv_access: "Evet",
+        airway: "Maske ile",
+        cpr: "Hayır",
+        other_procedures: "Monitörizasyon"
+      },
+      genel_notlar: {
+        notes: "Hasta stabil durumda",
+        special_notes: "Aile bilgilendirildi"
+      },
+      ilaclar_malzemeler: {
+        medications_used: "Aspirin 100mg, Nitrogliserin 0.5mg",
+        materials_used: "IV set, Oksijen maskesi",
+        quantities: "2 adet"
+      },
+      transfer_durumu: {
+        transfer_status: "Hastaneye nakledildi",
+        transfer_time: "17:30",
+        arrival_time: "17:45",
+        outcome: "Stabil"
+      },
+      tasit_protokol: {
+        vehicle_plate: "34 ABC 123",
+        vehicle_type: "Ambulans",
+        protocol_number: "20251210-000001",
+        driver_name: "Test Sürücü",
+        team_members: "Dr. Test, ATT Test"
+      },
+      onam_bilgilendirme: {
+        consent_text: "Hasta bilgilendirildi ve onay verdi",
+        patient_signature: "[İmza]",
+        consent_date: "10.12.2025"
+      },
+      hastane_reddi: {
+        rejection_reason: "Yatak yok",
+        hospital_signature: "[İmza]",
+        rejection_date: "10.12.2025"
+      },
+      hasta_reddi: {
+        service_rejection_reason: "Hasta nakli reddetti",
+        patient_rejection_signature: "[İmza]",
+        rejection_date: "10.12.2025"
+      },
+      teslim_imzalar: {
+        receiver_name: "Dr. Test",
+        receiver_signature: "[İmza]",
+        doctor_signature: "[İmza]",
+        paramedic_signature: "[İmza]",
+        driver_signature: "[İmza]"
+      }
+    };
+
+    return sampleData[blockType]?.[fieldId] || "-";
+  };
+
   return (
     <div
       ref={blockRef}
@@ -688,19 +801,31 @@ const DraggableBlock = ({ block, scale, isSelected, onClick, onDoubleClick, onMo
         </div>
       )}
       
-      {/* İçerik önizleme - sadece özet */}
-      <div className="p-1 text-xs text-gray-400 overflow-hidden flex-1">
+      {/* İçerik önizleme - örnek verilerle */}
+      <div className="p-2 text-[10px] text-gray-600 overflow-hidden flex-1 h-full overflow-y-auto" style={{ maxHeight: 'calc(100% - 30px)' }}>
         {fieldCount === 0 ? (
           <div className="text-center py-2 text-gray-300 italic">Boş</div>
-        ) : fieldCount <= 2 ? (
-          visibleFields.map(f => (
-            <div key={f.field_id} className="truncate">{f.label}</div>
-          ))
         ) : (
-          <div className="text-center py-1">
-            <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-500">
-              {fieldCount} alan
-            </span>
+          <div className="space-y-0.5">
+            {visibleFields.slice(0, Math.min(fieldCount, 15)).map(f => {
+              const sampleValue = getSampleValue(block.block_type, f.field_id);
+              const displayText = `${f.label}: ${sampleValue}`;
+              return (
+                <div 
+                  key={f.field_id} 
+                  className="leading-tight"
+                  title={displayText}
+                >
+                  <span className="font-semibold text-gray-700 text-[9px]">{f.label}:</span>{' '}
+                  <span className="text-gray-500 text-[9px]">{sampleValue}</span>
+                </div>
+              );
+            })}
+            {fieldCount > 15 && (
+              <div className="text-gray-400 italic text-center pt-1 text-[8px]">
+                +{fieldCount - 15} alan daha...
+              </div>
+            )}
           </div>
         )}
       </div>

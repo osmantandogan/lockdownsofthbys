@@ -615,6 +615,118 @@ async def get_inventory_by_location(request: Request):
     return {"locations": results}
 
 
+@router.get("/inventory/grouped")
+async def get_grouped_inventory(
+    request: Request,
+    location: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """
+    İlaç adına göre gruplandırılmış stok envanteri
+    Her ilaç için toplam adet ve detaylı QR kodları döndürür
+    """
+    await get_current_user(request)
+    
+    match_query = {"status": "available"}
+    
+    if location:
+        match_query["location"] = location
+    
+    if search:
+        match_query["name"] = {"$regex": search, "$options": "i"}
+    
+    # İlaçları grupla
+    pipeline = [
+        {"$match": match_query},
+        {"$sort": {"expiry_date": 1}},  # En yakın SKT önce
+        {"$group": {
+            "_id": "$name",
+            "count": {"$sum": 1},
+            "gtin": {"$first": "$gtin"},
+            "manufacturer_name": {"$first": "$manufacturer_name"},
+            "earliest_expiry": {"$min": "$expiry_date"},
+            "latest_expiry": {"$max": "$expiry_date"},
+            "locations": {"$addToSet": "$location"},
+            "items": {"$push": {
+                "id": "$_id",
+                "serial_number": "$serial_number",
+                "lot_number": "$lot_number",
+                "expiry_date": "$expiry_date",
+                "expiry_date_str": "$expiry_date_str",
+                "location": "$location",
+                "location_detail": "$location_detail",
+                "added_at": "$added_at",
+                "raw_barcode": "$raw_barcode"
+            }}
+        }},
+        {"$sort": {"count": -1, "_id": 1}}
+    ]
+    
+    groups = await barcode_stock_collection.aggregate(pipeline).to_list(500)
+    
+    # Format sonuçları
+    result = []
+    total_items = 0
+    
+    for group in groups:
+        total_items += group["count"]
+        result.append({
+            "name": group["_id"],
+            "count": group["count"],
+            "gtin": group.get("gtin"),
+            "manufacturer_name": group.get("manufacturer_name"),
+            "earliest_expiry": group.get("earliest_expiry"),
+            "latest_expiry": group.get("latest_expiry"),
+            "locations": group.get("locations", []),
+            "items": group.get("items", [])
+        })
+    
+    return {
+        "groups": result,
+        "total_groups": len(result),
+        "total_items": total_items
+    }
+
+
+@router.get("/inventory/item-details/{item_name}")
+async def get_item_qr_details(
+    item_name: str,
+    request: Request,
+    location: Optional[str] = None
+):
+    """
+    Belirli bir ilacın tüm QR kodlarını ve detaylarını getir
+    """
+    await get_current_user(request)
+    
+    from urllib.parse import unquote
+    decoded_name = unquote(item_name)
+    
+    query = {
+        "name": decoded_name,
+        "status": "available"
+    }
+    
+    if location:
+        query["location"] = location
+    
+    items = await barcode_stock_collection.find(query).sort("expiry_date", 1).to_list(500)
+    
+    for item in items:
+        item["id"] = item.pop("_id")
+        if item.get("expiry_date"):
+            days_left = (item["expiry_date"] - datetime.utcnow()).days
+            item["days_until_expiry"] = days_left
+            item["is_expired"] = days_left < 0
+            item["is_expiring_soon"] = 0 <= days_left <= 30
+    
+    return {
+        "item_name": decoded_name,
+        "count": len(items),
+        "items": items
+    }
+
+
 @router.get("/expiring")
 async def get_expiring_items(request: Request, days: int = 30):
     """
