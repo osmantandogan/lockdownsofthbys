@@ -46,6 +46,8 @@ async def get_forms(
     patient_name: Optional[str] = None,
     vehicle_plate: Optional[str] = None,
     case_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     limit: int = 100
 ):
     """Get form submissions with user and case details"""
@@ -64,6 +66,30 @@ async def get_forms(
     
     if case_id:
         query["case_id"] = case_id
+    
+    # Tarih filtresi
+    if start_date or end_date:
+        date_query = {}
+        if start_date:
+            try:
+                from datetime import datetime
+                start = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+                # Günün başlangıcı
+                start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+                date_query["$gte"] = start
+            except:
+                pass
+        if end_date:
+            try:
+                from datetime import datetime
+                end = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                # Günün sonu
+                end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
+                date_query["$lte"] = end
+            except:
+                pass
+        if date_query:
+            query["created_at"] = date_query
     
     # Non-admin users only see their own submissions
     if user.role not in ["merkez_ofis", "operasyon_muduru", "doktor"]:

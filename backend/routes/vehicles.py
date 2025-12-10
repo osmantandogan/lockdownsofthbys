@@ -228,30 +228,69 @@ async def get_vehicle_km_report(
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     
-    # Query filters
-    query = {}
+    vehicle_plate = vehicle.get("plate", "")
+    
+    # Query filters for date range
+    date_query = {}
     if start_date:
-        query["created_at"] = {"$gte": datetime.fromisoformat(start_date)}
+        try:
+            date_query["$gte"] = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+        except:
+            pass
     if end_date:
-        if "created_at" in query:
-            query["created_at"]["$lte"] = datetime.fromisoformat(end_date)
-        else:
-            query["created_at"] = {"$lte": datetime.fromisoformat(end_date)}
+        try:
+            date_query["$lte"] = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+        except:
+            pass
     
     # Get all forms (ambulance_case) for this vehicle
-    from database import forms_collection
-    case_forms = await forms_collection.find({
-        "form_type": "ambulance_case",
-        "vehicle_plate": vehicle["plate"],
-        **query
-    }).to_list(1000)
+    from database import forms_collection, cases_collection
     
-    # Get all shifts for this vehicle
-    shifts = await shifts_collection.find({
-        "vehicle_id": vehicle_id,
-        "end_time": {"$ne": None},
-        **query
-    }).to_list(1000)
+    # Try multiple queries to find case data
+    case_forms = []
+    
+    # Method 1: forms_collection with vehicle_plate
+    forms_query = {"form_type": "ambulance_case", "vehicle_plate": vehicle_plate}
+    if date_query:
+        forms_query["created_at"] = date_query
+    case_forms = await forms_collection.find(forms_query).to_list(1000)
+    
+    # Method 2: If no forms found, try cases_collection
+    if not case_forms:
+        cases_query = {
+            "$or": [
+                {"vehicle_info.plate": vehicle_plate},
+                {"vehicle_plate": vehicle_plate},
+                {"vehicle_id": vehicle_id}
+            ]
+        }
+        if date_query:
+            cases_query["created_at"] = date_query
+        cases = await cases_collection.find(cases_query).to_list(1000)
+        
+        for case in cases:
+            medical_form = case.get("medical_form", {})
+            extended = medical_form.get("extended_form", {})
+            if extended.get("startKm") or extended.get("endKm"):
+                case_forms.append({
+                    "case_id": case.get("_id"),
+                    "form_data": extended,
+                    "created_at": case.get("created_at"),
+                    "submitted_by": case.get("team", [{}])[0].get("id") if case.get("team") else None
+                })
+    
+    # Get all shifts for this vehicle - multiple approaches
+    shifts_query = {
+        "$or": [
+            {"vehicle_id": vehicle_id},
+            {"vehicle_plate": vehicle_plate}
+        ],
+        "end_time": {"$ne": None}
+    }
+    if date_query:
+        shifts_query["created_at"] = date_query
+    
+    shifts = await shifts_collection.find(shifts_query).to_list(1000)
     
     # Process case KM
     case_km_data = []
@@ -259,54 +298,80 @@ async def get_vehicle_km_report(
     
     for form in case_forms:
         form_data = form.get("form_data", {})
-        if form_data.get("startKm") and form_data.get("endKm"):
-            start_km = int(form_data["startKm"])
-            end_km = int(form_data["endKm"])
-            km_diff = end_km - start_km
-            
-            # Get driver info
-            submitted_by = form.get("submitted_by")
-            user = await users_collection.find_one({"_id": submitted_by})
-            
-            case_km_data.append({
-                "case_id": form.get("case_id"),
-                "case_number": form_data.get("healmedyProtocol", "N/A"),
-                "driver_name": user.get("name") if user else "Unknown",
-                "driver_id": submitted_by,
-                "start_km": start_km,
-                "end_km": end_km,
-                "km_used": km_diff,
-                "date": form.get("created_at").isoformat() if form.get("created_at") else None
-            })
-            total_case_km += km_diff
+        start_km_val = form_data.get("startKm") or form_data.get("start_km") or form_data.get("vakaBaslangicKm")
+        end_km_val = form_data.get("endKm") or form_data.get("end_km") or form_data.get("vakaBitisKm")
+        
+        if start_km_val and end_km_val:
+            try:
+                start_km = int(float(str(start_km_val).replace(",", ".")))
+                end_km = int(float(str(end_km_val).replace(",", ".")))
+                km_diff = abs(end_km - start_km)
+                
+                if km_diff > 0 and km_diff < 1000:  # Reasonable check
+                    submitted_by = form.get("submitted_by")
+                    user = await users_collection.find_one({"_id": submitted_by}) if submitted_by else None
+                    
+                    case_km_data.append({
+                        "case_id": form.get("case_id"),
+                        "case_number": form_data.get("healmedyProtocol") or form_data.get("protocol_number") or "N/A",
+                        "driver_name": user.get("name") if user else "Bilinmiyor",
+                        "driver_id": submitted_by,
+                        "start_km": start_km,
+                        "end_km": end_km,
+                        "km_used": km_diff,
+                        "date": form.get("created_at").isoformat() if form.get("created_at") else None
+                    })
+                    total_case_km += km_diff
+            except (ValueError, TypeError) as e:
+                logger.warning(f"KM parse error for case: {e}")
+                continue
     
     # Process shift KM
     shift_km_data = []
     total_shift_km = 0
     
     for shift in shifts:
-        shift_data = shift.get("handover_form", {})
-        if shift_data.get("teslimAlinanKm") and shift_data.get("currentKm"):
-            start_km = int(shift_data["teslimAlinanKm"])
-            end_km = int(shift_data.get("currentKm", start_km))
-            km_diff = end_km - start_km
-            
-            # Get user info
-            user = await users_collection.find_one({"_id": shift["user_id"]})
-            
-            shift_km_data.append({
-                "shift_id": shift["_id"],
-                "driver_name": user.get("name") if user else "Unknown",
-                "driver_id": shift["user_id"],
-                "start_km": start_km,
-                "end_km": end_km,
-                "km_used": km_diff,
-                "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
-                "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
-            })
-            total_shift_km += km_diff
+        # Try multiple sources for km data
+        shift_data = shift.get("handover_form", {}) or {}
+        
+        start_km_val = (
+            shift_data.get("teslimAlinanKm") or 
+            shift_data.get("start_km") or 
+            shift.get("start_km") or
+            shift_data.get("baslangicKm")
+        )
+        end_km_val = (
+            shift_data.get("currentKm") or 
+            shift_data.get("end_km") or 
+            shift.get("end_km") or
+            shift_data.get("bitisKm")
+        )
+        
+        if start_km_val and end_km_val:
+            try:
+                start_km = int(float(str(start_km_val).replace(",", ".")))
+                end_km = int(float(str(end_km_val).replace(",", ".")))
+                km_diff = abs(end_km - start_km)
+                
+                if km_diff >= 0 and km_diff < 2000:  # Reasonable daily km check
+                    user = await users_collection.find_one({"_id": shift.get("user_id")}) if shift.get("user_id") else None
+                    
+                    shift_km_data.append({
+                        "shift_id": shift["_id"],
+                        "driver_name": user.get("name") if user else "Bilinmiyor",
+                        "driver_id": shift.get("user_id"),
+                        "start_km": start_km,
+                        "end_km": end_km,
+                        "km_used": km_diff,
+                        "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
+                        "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
+                    })
+                    total_shift_km += km_diff
+            except (ValueError, TypeError) as e:
+                logger.warning(f"KM parse error for shift: {e}")
+                continue
     
-    non_case_km = total_shift_km - total_case_km if total_shift_km > total_case_km else 0
+    non_case_km = max(0, total_shift_km - total_case_km)
     
     return {
         "vehicle": {

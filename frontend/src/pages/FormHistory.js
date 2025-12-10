@@ -34,7 +34,9 @@ const FormHistory = () => {
   const [filters, setFilters] = useState({
     form_type: '',
     patient_name: '',
-    vehicle_plate: ''
+    vehicle_plate: '',
+    start_date: new Date().toISOString().split('T')[0], // Bugün
+    end_date: new Date().toISOString().split('T')[0]    // Bugün
   });
   
   // Vardiya fotoğrafları
@@ -558,9 +560,72 @@ const FormHistory = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Filtreler</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Filtreler</CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  setFilters({...filters, start_date: today, end_date: today});
+                }}
+              >
+                Bugün
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  const today = new Date();
+                  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  setFilters({
+                    ...filters, 
+                    start_date: weekAgo.toISOString().split('T')[0], 
+                    end_date: today.toISOString().split('T')[0]
+                  });
+                }}
+              >
+                Son 7 Gün
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  const today = new Date();
+                  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                  setFilters({
+                    ...filters, 
+                    start_date: monthAgo.toISOString().split('T')[0], 
+                    end_date: today.toISOString().split('T')[0]
+                  });
+                }}
+              >
+                Son 30 Gün
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-5">
+            {/* Tarih Aralığı */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Başlangıç Tarihi</label>
+              <Input
+                type="date"
+                value={filters.start_date}
+                onChange={(e) => setFilters({...filters, start_date: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Bitiş Tarihi</label>
+              <Input
+                type="date"
+                value={filters.end_date}
+                onChange={(e) => setFilters({...filters, end_date: e.target.value})}
+              />
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Form Tipi</label>
               <Select value={filters.form_type} onValueChange={(v) => setFilters({...filters, form_type: v === 'all' ? '' : v})}>
