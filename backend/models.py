@@ -168,7 +168,8 @@ class Case(BaseModel):
     location: LocationInfo
     priority: CasePriority
     status: CaseStatus = "acildi"
-    assigned_team: Optional[AssignedTeam] = None
+    assigned_team: Optional[AssignedTeam] = None  # Ana/ilk atanan ekip
+    assigned_teams: List[AssignedTeam] = Field(default_factory=list)  # YENİ: Birden fazla ekip desteği
     status_history: List[CaseStatusUpdate] = Field(default_factory=list)
     case_details: Optional[dict] = None  # Extra form fields
     
@@ -204,6 +205,11 @@ class CaseAssignTeam(BaseModel):
     att_id: Optional[str] = None
     nurse_id: Optional[str] = None
 
+
+class CaseAssignMultipleTeams(BaseModel):
+    """Birden fazla araç atama"""
+    vehicle_ids: List[str]  # Birden fazla araç ID
+
 class CaseUpdateStatus(BaseModel):
     status: CaseStatus
     note: Optional[str] = None
@@ -223,6 +229,10 @@ class Vehicle(BaseModel):
     fuel_level: Optional[int] = None  # 0-100
     qr_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
     current_case_id: Optional[str] = None
+    
+    # Lokasyon bilgisi
+    healmedy_location_id: Optional[str] = None
+    healmedy_location_name: Optional[str] = None
     
     # Maintenance tracking (from Excel)
     last_inspection_date: Optional[datetime] = None

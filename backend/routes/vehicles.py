@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
-from database import vehicles_collection, cases_collection, users_collection, shifts_collection, forms_collection
+from database import vehicles_collection, cases_collection, users_collection, shifts_collection, forms_collection, vehicle_current_locations_collection
 from models import Vehicle, VehicleCreate, VehicleUpdate
 from auth_utils import get_current_user, require_roles
 from datetime import datetime
@@ -25,7 +25,7 @@ async def get_vehicles(
     status: Optional[str] = None,
     type: Optional[str] = None
 ):
-    """Get all vehicles"""
+    """Get all vehicles with current location info"""
     await get_current_user(request)
     
     query = {}
@@ -36,8 +36,25 @@ async def get_vehicles(
     
     vehicles = await vehicles_collection.find(query).to_list(1000)
     
+    # Tüm araçların güncel lokasyonlarını getir
+    vehicle_ids = [v["_id"] for v in vehicles]
+    current_locations = await vehicle_current_locations_collection.find({
+        "vehicle_id": {"$in": vehicle_ids}
+    }).to_list(1000)
+    
+    # Lokasyon map oluştur
+    location_map = {loc["vehicle_id"]: loc for loc in current_locations}
+    
     for vehicle in vehicles:
         vehicle["id"] = vehicle.pop("_id")
+        
+        # Güncel lokasyon bilgisini ekle
+        loc = location_map.get(vehicle["id"])
+        if loc:
+            vehicle["current_location"] = loc.get("current_location_name")
+            vehicle["current_location_id"] = loc.get("current_location_id")
+            vehicle["healmedy_location_name"] = loc.get("assigned_location_name")
+            vehicle["healmedy_location_id"] = loc.get("assigned_location_id")
     
     return vehicles
 

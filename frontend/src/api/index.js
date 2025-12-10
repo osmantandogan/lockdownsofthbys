@@ -64,6 +64,7 @@ export const casesAPI = {
   getById: (id) => api.get(`/cases/${id}`),
   create: (data) => api.post('/cases', data),
   assignTeam: (id, data) => api.post(`/cases/${id}/assign-team`, data),
+  assignMultipleTeams: (id, vehicleIds) => api.post(`/cases/${id}/assign-multiple-teams`, { vehicle_ids: vehicleIds }),
   updateStatus: (id, data) => api.patch(`/cases/${id}/status`, data),
   getStats: () => api.get('/cases/stats/dashboard'),
   getNextCaseNumber: () => api.get('/cases/next-case-number'),

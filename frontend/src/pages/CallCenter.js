@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Phone, User, MapPin, AlertCircle, Truck, Bell, FileText, Building2, Hash, Heart, AlertTriangle, Search, UserPlus, Download } from 'lucide-react';
+import { Phone, User, MapPin, AlertCircle, Truck, Bell, FileText, Building2, Hash, Heart, AlertTriangle, Search, UserPlus, Download, Check } from 'lucide-react';
+import { Checkbox } from '../components/ui/checkbox';
 import { COMPANIES, searchCompanies } from '../constants/companies';
 
 const CallCenter = () => {
@@ -50,8 +51,9 @@ const CallCenter = () => {
     locationVillage: '',
     // Priority
     priority: '',
-    // Vehicle
-    vehicleId: ''
+    // Vehicle - YENİ: Birden fazla araç desteği
+    vehicleId: '',  // Geriye uyumluluk
+    vehicleIds: []  // Birden fazla araç
   });
 
   useEffect(() => {
@@ -248,7 +250,8 @@ const CallCenter = () => {
 
   const loadVehicles = async () => {
     try {
-      const response = await vehiclesAPI.getAll({ status: 'musait' });
+      // Tüm araçları getir (durumlarını göster)
+      const response = await vehiclesAPI.getAll({});
       setVehicles(response.data);
     } catch (error) {
       console.error('Error loading vehicles:', error);
@@ -341,7 +344,14 @@ const CallCenter = () => {
 
     setSendingNotification(true);
     try {
-      await casesAPI.sendNotification(createdCaseId, formData.vehicleId || null);
+      // Birden fazla araç seçildiyse, önce hepsini ata
+      if (formData.vehicleIds.length > 0) {
+        await casesAPI.assignMultipleTeams(createdCaseId, formData.vehicleIds);
+        toast.success(`${formData.vehicleIds.length} araç görevlendirildi`);
+      }
+      
+      // Sonra bildirimleri gönder
+      await casesAPI.sendNotification(createdCaseId, formData.vehicleIds[0] || null);
       toast.success('Bildirimler gönderildi!');
       
       // Navigate to case detail
@@ -829,30 +839,95 @@ const CallCenter = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Truck className="h-5 w-5 text-red-600" />
-              <span>Araç Seçimi (Opsiyonel)</span>
+              <span>Araç Seçimi (Birden Fazla Seçilebilir)</span>
+              {formData.vehicleIds.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{formData.vehicleIds.length} araç</Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="vehicle">Araç</Label>
-                <Select value={formData.vehicleId} onValueChange={(value) => handleChange('vehicleId', value)}>
-                  <SelectTrigger data-testid="vehicle-select">
-                    <SelectValue placeholder="Araç seçin (opsiyonel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Seçilmedi</SelectItem>
-                    {vehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.plate} - {vehicle.type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">
-                  Araç seçerseniz, bildirim o araçtaki ekibe de gönderilir
-                </p>
+              <p className="text-sm text-gray-600">
+                Vakaya göndermek istediğiniz araçları seçin. Birden fazla araç seçebilirsiniz.
+              </p>
+              
+              {/* Araç Listesi - Checkbox ile */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto">
+                {vehicles.map((vehicle) => {
+                  const isSelected = formData.vehicleIds.includes(vehicle.id);
+                  const statusColor = vehicle.status === 'musait' ? 'green' : vehicle.status === 'gorevde' ? 'orange' : 'red';
+                  const statusText = vehicle.status === 'musait' ? 'Müsait' : vehicle.status === 'gorevde' ? 'Görevde' : 'Bakımda';
+                  
+                  return (
+                    <div
+                      key={vehicle.id}
+                      onClick={() => {
+                        const newIds = isSelected
+                          ? formData.vehicleIds.filter(id => id !== vehicle.id)
+                          : [...formData.vehicleIds, vehicle.id];
+                        setFormData(prev => ({
+                          ...prev,
+                          vehicleIds: newIds,
+                          vehicleId: newIds[0] || ''  // Geriye uyumluluk
+                        }));
+                      }}
+                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        isSelected 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox checked={isSelected} />
+                          <div>
+                            <p className="font-semibold">{vehicle.plate}</p>
+                            <p className="text-xs text-gray-500">{vehicle.type}</p>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs bg-${statusColor}-50 text-${statusColor}-700 border-${statusColor}-200`}
+                        >
+                          {statusText}
+                        </Badge>
+                      </div>
+                      
+                      {/* Lokasyon Bilgisi */}
+                      {vehicle.current_location && (
+                        <div className="mt-2 flex items-center text-xs text-gray-600">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          <span>{vehicle.current_location}</span>
+                        </div>
+                      )}
+                      {vehicle.healmedy_location_name && (
+                        <div className="mt-1 flex items-center text-xs text-blue-600">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          <span>{vehicle.healmedy_location_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              
+              {formData.vehicleIds.length > 0 && (
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-blue-800">
+                    Seçili Araçlar: {formData.vehicleIds.length}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.vehicleIds.map(id => {
+                      const v = vehicles.find(v => v.id === id);
+                      return v ? (
+                        <Badge key={id} variant="secondary" className="bg-blue-100">
+                          {v.plate}
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -887,7 +962,7 @@ const CallCenter = () => {
                   </p>
                   <p className="text-xs text-gray-600">
                     Bildirim gönderilecek: Merkez Ofis, Operasyon Müdürü, Doktor, Hemşire
-                    {formData.vehicleId && formData.vehicleId !== 'none' && ' + Seçilen Araç Ekibi'}
+                    {formData.vehicleIds.length > 0 && ` + ${formData.vehicleIds.length} Araç Ekibi`}
                   </p>
                 </div>
                 <div className="flex space-x-2">

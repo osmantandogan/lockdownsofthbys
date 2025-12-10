@@ -561,6 +561,141 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     
     return {"message": "Team assigned successfully"}
 
+
+@router.post("/{case_id}/assign-multiple-teams")
+async def assign_multiple_teams(case_id: str, request: Request):
+    """
+    Vakaya birden fazla araç/ekip ata
+    Body: { "vehicle_ids": ["id1", "id2", ...] }
+    """
+    user = await get_current_user(request)
+    
+    # Yetki kontrolü - baş şoför de ekleyebilsin
+    allowed_roles = ["merkez_ofis", "operasyon_muduru", "cagri_merkezi", "hemsire", "doktor", "bas_sofor"]
+    if user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Bu işlemi yapmaya yetkiniz yok")
+    
+    body = await request.json()
+    vehicle_ids = body.get("vehicle_ids", [])
+    
+    if not vehicle_ids:
+        raise HTTPException(status_code=400, detail="En az bir araç seçmelisiniz")
+    
+    # Vakayı kontrol et
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    assigned_teams = []
+    all_recipient_ids = []
+    
+    for vehicle_id in vehicle_ids:
+        # Araç kontrolü
+        vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+        if not vehicle:
+            logger.warning(f"Vehicle {vehicle_id} not found, skipping")
+            continue
+        
+        # Araç müsait değilse uyarı ver ama engelleme (çoklu atama olabilir)
+        if vehicle["status"] != "musait":
+            logger.warning(f"Vehicle {vehicle_id} is not available (status: {vehicle['status']})")
+        
+        # Ekip bilgilerini al
+        vehicle_assignments = await shift_assignments_collection.find({
+            "vehicle_id": vehicle_id,
+            "status": {"$in": ["pending", "started"]}
+        }).to_list(100)
+        
+        team_data = {
+            "vehicle_id": vehicle_id,
+            "vehicle_plate": vehicle.get("plate"),
+            "assigned_at": datetime.utcnow()
+        }
+        
+        for assignment in vehicle_assignments:
+            user_id = assignment.get("user_id")
+            if user_id:
+                assigned_user = await users_collection.find_one({"_id": user_id})
+                if assigned_user:
+                    role = assigned_user.get("role")
+                    if role in ["sofor", "bas_sofor"] and not team_data.get("driver_id"):
+                        team_data["driver_id"] = user_id
+                    elif role == "paramedik" and not team_data.get("paramedic_id"):
+                        team_data["paramedic_id"] = user_id
+                    elif role == "att" and not team_data.get("att_id"):
+                        team_data["att_id"] = user_id
+                    elif role == "hemsire" and not team_data.get("nurse_id"):
+                        team_data["nurse_id"] = user_id
+                    
+                    # Bildirim listesine ekle
+                    if user_id not in all_recipient_ids:
+                        all_recipient_ids.append(user_id)
+        
+        assigned_teams.append(team_data)
+        
+        # Araç durumunu güncelle
+        await vehicles_collection.update_one(
+            {"_id": vehicle_id},
+            {
+                "$set": {
+                    "status": "gorevde",
+                    "current_case_id": case_id,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+    
+    if not assigned_teams:
+        raise HTTPException(status_code=400, detail="Hiçbir araç atanamadı")
+    
+    # Status update
+    status_update = CaseStatusUpdate(
+        status="ekip_bilgilendirildi",
+        note=f"{len(assigned_teams)} araç görevlendirildi",
+        updated_by=user.id,
+        updated_by_name=user.name,
+        updated_by_role=user.role
+    )
+    
+    # Vakayı güncelle - ilk ekibi assigned_team olarak, tümünü assigned_teams olarak kaydet
+    update_data = {
+        "assigned_team": assigned_teams[0],  # Geriye uyumluluk için ilk ekip
+        "assigned_teams": assigned_teams,     # Tüm ekipler
+        "status": "ekip_bilgilendirildi",
+        "updated_at": datetime.utcnow()
+    }
+    
+    await cases_collection.update_one(
+        {"_id": case_id},
+        {
+            "$set": update_data,
+            "$push": {"status_history": status_update.model_dump()}
+        }
+    )
+    
+    # Bildirimleri gönder
+    if NOTIFICATIONS_ENABLED and all_recipient_ids:
+        try:
+            recipients = await users_collection.find({"_id": {"$in": all_recipient_ids}}).to_list(100)
+            await onesignal_service.send_notification_to_users(
+                recipients,
+                title=f"🚨 Vaka: {case_doc.get('case_number')}",
+                message=f"Yeni vaka atandı. {len(assigned_teams)} araç görevlendirildi.",
+                data={
+                    "type": "case_assigned",
+                    "case_id": case_id,
+                    "url": f"/dashboard/cases/{case_id}"
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error sending notifications: {e}")
+    
+    return {
+        "message": f"{len(assigned_teams)} araç başarıyla görevlendirildi",
+        "assigned_teams": assigned_teams
+    }
+
+
 @router.patch("/{case_id}/status")
 async def update_case_status(case_id: str, data: CaseUpdateStatus, request: Request):
     """Update case status"""
