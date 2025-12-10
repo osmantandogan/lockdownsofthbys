@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,8 +9,8 @@ import { Progress } from '../ui/progress';
 import SignaturePad from '../SignaturePad';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { shiftsAPI, vehiclesAPI } from '../../api';
-import { Clock, Lock, Unlock, CheckCircle, AlertCircle, Timer } from 'lucide-react';
+import { shiftsAPI } from '../../api';
+import { Clock, Lock, CheckCircle, Timer } from 'lucide-react';
 
 // Bölüm süreleri (saniye cinsinden)
 const SECTION_TIMES = {
@@ -138,20 +138,15 @@ const formatTime = (seconds) => {
 
 /**
  * Zaman Kısıtlamalı Günlük Kontrol Formu (ATT/Paramedik için)
- * - Her bölüm sırayla açılır
- * - Bölüm süresi dolmadan sonraki açılmaz
- * - Tüm bölümler tamamlandıktan sonra hepsi düzenlenebilir olur
  */
 const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId, onComplete }) => {
   const { user } = useAuth();
   
   // Bölüm durumları
   const [currentSection, setCurrentSection] = useState(1);
-  const [sectionTimers, setSectionTimers] = useState({});
   const [timeRemaining, setTimeRemaining] = useState(SECTION_TIMES[1]);
   const [allCompleted, setAllCompleted] = useState(false);
-  const [sectionStartTimes, setSectionStartTimes] = useState({});
-  const [formStartTime, setFormStartTime] = useState(null);
+  const [sectionStartTimes, setSectionStartTimes] = useState({ 1: new Date() });
   
   // Form verileri
   const [checks, setChecks] = useState({});
@@ -163,7 +158,7 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
     aciklama: ''
   });
   
-  // Form zaten başka biri tarafından doldurulmuş mu kontrolü
+  // Form zaten doldurulmuş mu
   const [alreadyFilled, setAlreadyFilled] = useState(false);
   const [filledBy, setFilledBy] = useState(null);
   
@@ -187,7 +182,6 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
     };
     
     checkFormStatus();
-    setFormStartTime(new Date());
   }, [vehicleId]);
   
   // Timer yönetimi
@@ -197,18 +191,13 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
-          // Süre doldu, sonraki bölümü aç
           if (currentSection < 7) {
             const nextSection = currentSection + 1;
             setCurrentSection(nextSection);
-            setSectionStartTimes(prev => ({
-              ...prev,
-              [nextSection]: new Date()
-            }));
+            setSectionStartTimes(prev => ({ ...prev, [nextSection]: new Date() }));
             toast.info(`⏰ Bölüm ${nextSection} açıldı!`);
             return SECTION_TIMES[nextSection];
           } else {
-            // Son bölüm de tamamlandı
             setAllCompleted(true);
             toast.success('🎉 Tüm bölümler tamamlandı! Artık düzenleyebilirsiniz.');
             return 0;
@@ -221,23 +210,10 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
     return () => clearInterval(timer);
   }, [currentSection, allCompleted, alreadyFilled]);
   
-  // İlk bölüm başlangıç zamanını kaydet
-  useEffect(() => {
-    if (!sectionStartTimes[1]) {
-      setSectionStartTimes({ 1: new Date() });
-    }
-  }, []);
-  
   const handleCheck = (item, value) => {
     setChecks(prev => ({ ...prev, [item]: value }));
-    
-    // Dış bileşene bildir
     if (onChange) {
-      onChange({
-        ...formInfo,
-        checks: { ...checks, [item]: value },
-        section_times: sectionStartTimes
-      });
+      onChange({ ...formInfo, checks: { ...checks, [item]: value }, section_times: sectionStartTimes });
     }
   };
   
@@ -251,42 +227,28 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
     });
   };
   
-  // Bölümü manuel olarak tamamla (süre dolmadan)
   const completeCurrentSection = () => {
     if (currentSection < 7) {
       const nextSection = currentSection + 1;
       setCurrentSection(nextSection);
-      setSectionStartTimes(prev => ({
-        ...prev,
-        [nextSection]: new Date()
-      }));
+      setSectionStartTimes(prev => ({ ...prev, [nextSection]: new Date() }));
       setTimeRemaining(SECTION_TIMES[nextSection]);
       toast.success(`✓ Bölüm ${currentSection} tamamlandı!`);
     } else {
       setAllCompleted(true);
-      
-      // Backend'e form tamamlandı bilgisi gönder
       if (onComplete) {
-        onComplete({
-          ...formInfo,
-          checks,
-          section_times: sectionStartTimes,
-          form_completed_at: new Date()
-        });
+        onComplete({ ...formInfo, checks, section_times: sectionStartTimes, form_completed_at: new Date() });
       }
-      
       toast.success('🎉 Tüm bölümler tamamlandı!');
     }
   };
   
-  // Bölümün düzenlenebilir olup olmadığını kontrol et
   const isSectionEditable = (sectionId) => {
-    if (alreadyFilled) return false; // Başkası doldurmuşsa düzenlenemez
-    if (allCompleted) return true; // Tümü tamamlandıysa hepsi düzenlenebilir
-    return sectionId === currentSection; // Sadece aktif bölüm düzenlenebilir
+    if (alreadyFilled) return false;
+    if (allCompleted) return true;
+    return sectionId === currentSection;
   };
   
-  // Bölüm durumu
   const getSectionStatus = (sectionId) => {
     if (alreadyFilled) return 'filled';
     if (allCompleted) return 'completed';
@@ -302,15 +264,11 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
           <div className="flex items-center justify-center gap-3">
             <CheckCircle className="h-8 w-8 text-green-600" />
             <div className="text-center">
-              <p className="text-green-800 font-medium text-lg">
-                Form Zaten Dolduruldu
-              </p>
+              <p className="text-green-800 font-medium text-lg">Form Zaten Dolduruldu</p>
               <p className="text-green-600 mt-1">
                 Bu vardiya için günlük kontrol formu bugün <strong>{filledBy}</strong> tarafından doldurulmuş.
               </p>
-              <p className="text-sm text-green-500 mt-2">
-                Tekrar doldurmanıza gerek yok.
-              </p>
+              <p className="text-sm text-green-500 mt-2">Tekrar doldurmanıza gerek yok.</p>
             </div>
           </div>
         </CardContent>
@@ -320,13 +278,11 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
   
   return (
     <div className="space-y-6 pb-6">
-      {/* Başlık ve Durum */}
       <div className="text-center space-y-2 border-b pb-4">
         <h1 className="text-xl font-bold">AMBULANS CİHAZ, MALZEME VE İLAÇ GÜNLÜK KONTROL FORMU</h1>
         <p className="text-sm text-gray-500">ATT/Paramedik - Zaman Kısıtlamalı Form</p>
       </div>
       
-      {/* Süre Göstergesi */}
       {!allCompleted && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="py-4">
@@ -341,9 +297,7 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
                 <span className={`text-2xl font-mono font-bold ${timeRemaining <= 30 ? 'text-red-600' : 'text-blue-600'}`}>
                   {formatTime(timeRemaining)}
                 </span>
-                <Button size="sm" onClick={completeCurrentSection}>
-                  Devam →
-                </Button>
+                <Button size="sm" onClick={completeCurrentSection}>Devam →</Button>
               </div>
             </div>
             <div className="mt-3">
@@ -373,7 +327,6 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
         </Card>
       )}
       
-      {/* Genel Bilgiler */}
       <Card>
         <CardContent className="pt-6">
           <div className="grid gap-4 md:grid-cols-4">
@@ -418,7 +371,6 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
         </CardContent>
       </Card>
       
-      {/* Kontrol Bölümleri */}
       {CATEGORIES.map((category) => {
         const status = getSectionStatus(category.id);
         const isEditable = isSectionEditable(category.id);
@@ -501,7 +453,6 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
         );
       })}
       
-      {/* Açıklama */}
       {allCompleted && (
         <>
           <Card>
@@ -516,7 +467,6 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
             </CardContent>
           </Card>
           
-          {/* İmzalar */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader><CardTitle className="text-sm">Kontrol Eden</CardTitle></CardHeader>
@@ -536,4 +486,3 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
 };
 
 export default TimedDailyControlForm;
-
