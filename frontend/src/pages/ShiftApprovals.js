@@ -48,14 +48,17 @@ const ShiftApprovals = () => {
   const [selectedPhotos, setSelectedPhotos] = useState(null);
   const [activeTab, setActiveTab] = useState('start-approvals');
   
-  // YENİ: Vardiya Başlatma Onayları
+  // YENİ: Vardiya Başlatma ve Bitirme Onayları
   const [startApprovals, setStartApprovals] = useState([]);
+  const [endApprovals, setEndApprovals] = useState([]);
   const [startApprovalFilter, setStartApprovalFilter] = useState('all'); // 'all', 'medical', 'driver'
+  const [endApprovalFilter, setEndApprovalFilter] = useState('all'); // 'all', 'medical', 'driver'
 
   useEffect(() => {
     fetchPendingApprovals();
     fetchLogs();
     fetchStartApprovals();
+    fetchEndApprovals();
   }, [selectedDate]);
   
   // Vardiya başlatma onaylarını çek
@@ -85,6 +88,40 @@ const ShiftApprovals = () => {
       await shiftsAPI.rejectStartApproval(approvalId, reason || 'Belirtilmedi');
       toast.success('Vardiya başlatma reddedildi');
       fetchStartApprovals();
+    } catch (error) {
+      toast.error('Red işlemi başarısız');
+    }
+  };
+  
+  // Vardiya bitirme onaylarını çek
+  const fetchEndApprovals = async () => {
+    try {
+      const response = await shiftsAPI.getPendingShiftApprovals();
+      // Sadece end tipindeki onayları al
+      const endOnly = (response.data || []).filter(a => a.type === 'end');
+      setEndApprovals(endOnly);
+    } catch (error) {
+      console.error('Error fetching end approvals:', error);
+    }
+  };
+  
+  // Vardiya bitirme onayı ver
+  const handleApproveEnd = async (approvalId) => {
+    try {
+      await shiftsAPI.approveShiftApproval(approvalId);
+      toast.success('Vardiya bitirme onaylandı');
+      fetchEndApprovals();
+    } catch (error) {
+      toast.error('Onay başarısız');
+    }
+  };
+  
+  // Vardiya bitirme onayını reddet
+  const handleRejectEnd = async (approvalId, reason) => {
+    try {
+      await shiftsAPI.rejectShiftApproval(approvalId, reason || 'Belirtilmedi');
+      toast.success('Vardiya bitirme reddedildi');
+      fetchEndApprovals();
     } catch (error) {
       toast.error('Red işlemi başarısız');
     }
@@ -260,17 +297,23 @@ const ShiftApprovals = () => {
           🚀 Vardiya Başlatma ({startApprovals.length})
         </button>
         <button
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'end-approvals' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('end-approvals')}
+        >
+          🏁 Vardiya Bitirme ({endApprovals.length})
+        </button>
+        <button
           className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'pending' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
           onClick={() => setActiveTab('pending')}
         >
           🔄 Devir Teslim ({pendingApprovals.length})
         </button>
         <button
-          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'logs' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'logs' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-500'}`}
           onClick={() => setActiveTab('logs')}
         >
           <History className="h-4 w-4 inline mr-1" />
-          Loglar
+          Tüm Loglar
         </button>
       </div>
       
@@ -370,6 +413,136 @@ const ShiftApprovals = () => {
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700"
                           onClick={() => handleApproveStart(approval.id)}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Onayla
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+          )}
+        </div>
+      )}
+
+      {/* Vardiya Bitirme Onayları */}
+      {activeTab === 'end-approvals' && (
+        <div className="space-y-4">
+          {/* Filtreler */}
+          <div className="flex gap-2">
+            <Button 
+              variant={endApprovalFilter === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setEndApprovalFilter('all')}
+            >
+              Tümü ({endApprovals.length})
+            </Button>
+            <Button 
+              variant={endApprovalFilter === 'medical' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setEndApprovalFilter('medical')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Stethoscope className="h-4 w-4 mr-1" />
+              ATT/Paramedik ({endApprovals.filter(a => a.role_type === 'medical').length})
+            </Button>
+            <Button 
+              variant={endApprovalFilter === 'driver' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setEndApprovalFilter('driver')}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <Car className="h-4 w-4 mr-1" />
+              Şoför ({endApprovals.filter(a => a.role_type === 'driver').length})
+            </Button>
+          </div>
+          
+          {/* Onay Listesi */}
+          {endApprovals.filter(a => endApprovalFilter === 'all' || a.role_type === endApprovalFilter).length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-gray-500">
+                <Check className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                <p>Bekleyen vardiya bitirme onayı bulunmuyor</p>
+              </CardContent>
+            </Card>
+          ) : (
+            endApprovals
+              .filter(a => endApprovalFilter === 'all' || a.role_type === endApprovalFilter)
+              .map((approval) => (
+                <Card 
+                  key={approval.id} 
+                  className={`border-l-4 ${approval.role_type === 'medical' ? 'border-l-blue-500' : 'border-l-amber-500'}`}
+                >
+                  <CardContent className="py-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          {approval.role_type === 'medical' ? (
+                            <Badge className="bg-blue-100 text-blue-800">
+                              <Stethoscope className="h-3 w-3 mr-1" />
+                              ATT/Paramedik
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-100 text-amber-800">
+                              <Car className="h-3 w-3 mr-1" />
+                              Şoför
+                            </Badge>
+                          )}
+                          <Badge variant="destructive">Vardiya Bitirme</Badge>
+                          <span className="font-bold text-lg">{approval.vehicle_plate}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-gray-400" />
+                            <span className="font-medium">{approval.user_name}</span>
+                            <Badge variant="outline">{approval.user_role}</Badge>
+                          </div>
+                        </div>
+                        
+                        {/* Zaman bilgileri */}
+                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                          <div>
+                            <span className="font-medium">Form Açıldı:</span> {formatDateTime(approval.form_opened_at)}
+                          </div>
+                          <div>
+                            <span className="font-medium">İstek Gönderildi:</span> {formatDateTime(approval.request_sent_at || approval.created_at)}
+                          </div>
+                          {approval.end_km && (
+                            <div>
+                              <span className="font-medium">Teslim KM:</span> {approval.end_km}
+                            </div>
+                          )}
+                          {approval.devralan_adi && (
+                            <div>
+                              <span className="font-medium">Devralan:</span> {approval.devralan_adi}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="text-sm text-gray-500">
+                          <Clock className="h-3 w-3 inline mr-1" />
+                          {formatDateTime(approval.created_at)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => {
+                            const reason = prompt('Red sebebi (isteğe bağlı):');
+                            handleRejectEnd(approval.id, reason);
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Reddet
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleApproveEnd(approval.id)}
                         >
                           <Check className="h-4 w-4 mr-1" />
                           Onayla

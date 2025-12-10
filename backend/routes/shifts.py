@@ -1772,3 +1772,205 @@ async def reject_shift_start(approval_id: str, request: Request, reason: str = N
     logger.info(f"Vardiya başlatma reddedildi: {approval['user_name']} - {approval['vehicle_plate']} - Reddeden: {user.name}")
     
     return {"message": "Vardiya başlatma reddedildi", "status": "rejected"}
+
+
+# ===================== VARDİYA BİTİRME ONAY SİSTEMİ =====================
+
+# Vardiya Bitirme Onayları Collection
+shift_end_approvals_collection = db["shift_end_approvals"]
+
+
+class EndApprovalRequest(BaseModel):
+    shift_id: str
+    vehicle_id: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    end_km: Optional[str] = None
+    devralan_adi: Optional[str] = None
+    form_opened_at: Optional[str] = None
+    request_sent_at: Optional[str] = None
+
+
+@router.post("/end-approval/request")
+async def request_end_approval(data: EndApprovalRequest, request: Request):
+    """
+    Vardiya bitirme için yönetici onayı iste
+    """
+    user = await get_current_user(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Rol tipini belirle
+    role_type = "driver" if user.role.lower() == "sofor" else "medical"
+    
+    approval_id = str(uuid.uuid4())
+    approval_doc = {
+        "_id": approval_id,
+        "type": "end",
+        "shift_id": data.shift_id,
+        "vehicle_id": data.vehicle_id,
+        "vehicle_plate": data.vehicle_plate,
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_role": user.role,
+        "role_type": role_type,
+        "end_km": data.end_km,
+        "devralan_adi": data.devralan_adi,
+        "form_opened_at": data.form_opened_at,
+        "request_sent_at": data.request_sent_at or turkey_now.isoformat(),
+        "status": "pending",
+        "created_at": turkey_now
+    }
+    
+    await shift_end_approvals_collection.insert_one(approval_doc)
+    
+    logger.info(f"Vardiya bitirme onayı istendi: {user.name} ({user.role}) - {data.vehicle_plate}")
+    
+    return {
+        "message": "Vardiya bitirme onay talebi gönderildi",
+        "request_id": approval_id
+    }
+
+
+@router.get("/shift-approvals/pending")
+async def get_pending_shift_approvals(request: Request):
+    """
+    Tüm bekleyen vardiya onaylarını getir (başlatma + bitirme)
+    """
+    await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    
+    # Başlatma onayları
+    start_approvals = await shift_start_approvals_collection.find({"status": "pending"}).sort("created_at", -1).to_list(100)
+    for a in start_approvals:
+        a["id"] = a.pop("_id")
+        a["type"] = "start"
+    
+    # Bitirme onayları
+    end_approvals = await shift_end_approvals_collection.find({"status": "pending"}).sort("created_at", -1).to_list(100)
+    for a in end_approvals:
+        a["id"] = a.pop("_id")
+        a["type"] = "end"
+    
+    return start_approvals + end_approvals
+
+
+@router.post("/shift-approvals/{approval_id}/approve")
+async def approve_shift_approval(approval_id: str, request: Request):
+    """
+    Vardiya onayı ver (başlatma veya bitirme)
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Önce başlatma onaylarına bak
+    approval = await shift_start_approvals_collection.find_one({"_id": approval_id})
+    collection = shift_start_approvals_collection
+    approval_type = "başlatma"
+    
+    if not approval:
+        # Bitirme onaylarına bak
+        approval = await shift_end_approvals_collection.find_one({"_id": approval_id})
+        collection = shift_end_approvals_collection
+        approval_type = "bitirme"
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Onay talebi bulunamadı")
+    
+    if approval["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Bu talep zaten işlenmiş")
+    
+    await collection.update_one(
+        {"_id": approval_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": user.id,
+            "approved_by_name": user.name,
+            "approved_at": turkey_now
+        }}
+    )
+    
+    logger.info(f"Vardiya {approval_type} onaylandı: {approval['user_name']} - {approval.get('vehicle_plate', 'N/A')} - Onaylayan: {user.name}")
+    
+    return {"message": f"Vardiya {approval_type} onaylandı", "status": "approved"}
+
+
+@router.post("/shift-approvals/{approval_id}/reject")
+async def reject_shift_approval(approval_id: str, request: Request, reason: str = None):
+    """
+    Vardiya onayını reddet (başlatma veya bitirme)
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Önce başlatma onaylarına bak
+    approval = await shift_start_approvals_collection.find_one({"_id": approval_id})
+    collection = shift_start_approvals_collection
+    approval_type = "başlatma"
+    
+    if not approval:
+        # Bitirme onaylarına bak
+        approval = await shift_end_approvals_collection.find_one({"_id": approval_id})
+        collection = shift_end_approvals_collection
+        approval_type = "bitirme"
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Onay talebi bulunamadı")
+    
+    if approval["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Bu talep zaten işlenmiş")
+    
+    await collection.update_one(
+        {"_id": approval_id},
+        {"$set": {
+            "status": "rejected",
+            "approved_by": user.id,
+            "approved_by_name": user.name,
+            "approved_at": turkey_now,
+            "rejection_reason": reason or "Belirtilmedi"
+        }}
+    )
+    
+    logger.info(f"Vardiya {approval_type} reddedildi: {approval['user_name']} - {approval.get('vehicle_plate', 'N/A')} - Reddeden: {user.name}")
+    
+    return {"message": f"Vardiya {approval_type} reddedildi", "status": "rejected"}
+
+
+@router.get("/shift-approvals/logs")
+async def get_shift_approval_logs(
+    request: Request,
+    date: str = None,
+    limit: int = 50
+):
+    """
+    Vardiya onay loglarını getir (başlatma + bitirme)
+    """
+    await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    
+    query = {}
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+            query["created_at"] = {
+                "$gte": target_date,
+                "$lt": target_date + timedelta(days=1)
+            }
+        except ValueError:
+            pass
+    
+    # Başlatma logları
+    start_logs = await shift_start_approvals_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    for log in start_logs:
+        log["id"] = log.pop("_id")
+        log["type"] = "start"
+        log["type_label"] = "Vardiya Başlatma"
+    
+    # Bitirme logları
+    end_logs = await shift_end_approvals_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    for log in end_logs:
+        log["id"] = log.pop("_id")
+        log["type"] = "end"
+        log["type_label"] = "Vardiya Bitirme"
+    
+    # Birleştir ve sırala
+    all_logs = start_logs + end_logs
+    all_logs.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+    
+    return all_logs[:limit]

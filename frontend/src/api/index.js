@@ -210,7 +210,14 @@ export const shiftsAPI = {
   getPendingStartApprovals: (roleType) => api.get('/shifts/start-approval/pending', { params: { role_type: roleType } }),
   checkStartApproval: (approvalId) => api.get(`/shifts/start-approval/check/${approvalId}`),
   approveStartApproval: (approvalId) => api.post(`/shifts/start-approval/${approvalId}/approve`),
-  rejectStartApproval: (approvalId, reason) => api.post(`/shifts/start-approval/${approvalId}/reject`, null, { params: { reason } })
+  rejectStartApproval: (approvalId, reason) => api.post(`/shifts/start-approval/${approvalId}/reject`, null, { params: { reason } }),
+  
+  // YENİ: Vardiya Bitirme Onay Sistemi
+  endApprovalRequest: (data) => api.post('/shifts/end-approval/request', data),
+  getPendingShiftApprovals: () => api.get('/shifts/shift-approvals/pending'),
+  approveShiftApproval: (id) => api.post(`/shifts/shift-approvals/${id}/approve`),
+  rejectShiftApproval: (id, reason) => api.post(`/shifts/shift-approvals/${id}/reject`, null, { params: { reason } }),
+  getShiftApprovalLogs: (params) => api.get('/shifts/shift-approvals/logs', { params })
 };
 
 // Locations API (YENİ)
@@ -472,10 +479,12 @@ export const stockBarcodeAPI = {
 
 // Tickets API - Bildirim ve Talepler
 export const ticketsAPI = {
-  createTicket: (data) => api.post('/tickets', data),
-  getTickets: (params) => api.get('/tickets', { params }),
-  getTicketById: (id) => api.get(`/tickets/${id}`),
-  updateTicket: (id, data) => api.patch(`/tickets/${id}`, data)
+  create: (data) => api.post('/tickets', data),
+  getAll: (params) => api.get('/tickets', { params }),
+  getById: (id) => api.get(`/tickets/${id}`),
+  update: (id, data) => api.patch(`/tickets/${id}`, data),
+  updateStatus: (id, status, notes) => api.patch(`/tickets/${id}/status`, null, { params: { status, notes } }),
+  getPendingCount: () => api.get('/tickets/pending/count')
 };
 
 export default api;

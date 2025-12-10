@@ -13,9 +13,7 @@ import {
   Send, Clock, CheckCircle, XCircle, Truck, Calendar, Plus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { casesAPI, shiftsAPI, vehiclesAPI } from '../api';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+import { casesAPI, shiftsAPI, vehiclesAPI, ticketsAPI } from '../api';
 
 const Tickets = () => {
   const { user } = useAuth();
@@ -74,10 +72,9 @@ const Tickets = () => {
       
       // Mevcut vardiyayı kontrol et
       try {
-        const shiftRes = await fetch(`${API_URL}/shifts/current`, { credentials: 'include' });
-        if (shiftRes.ok) {
-          const shiftData = await shiftRes.json();
-          setCurrentShift(shiftData);
+        const shiftRes = await shiftsAPI.getActive();
+        if (shiftRes.data) {
+          setCurrentShift(shiftRes.data);
         }
       } catch (e) {
         console.log('Shift yüklenemedi');
@@ -119,34 +116,25 @@ const Tickets = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/tickets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          type: 'bildirim',
-          ...bildirimForm,
-          created_by: user?.id,
-          created_by_name: user?.name
-        })
+      await ticketsAPI.create({
+        type: 'bildirim',
+        ...bildirimForm,
+        created_by: user?.id,
+        created_by_name: user?.name
       });
 
-      if (response.ok) {
-        toast.success('Bildirim başarıyla gönderildi');
-        setBildirimForm({
-          title: '',
-          description: '',
-          category: '',
-          priority: 'normal',
-          vehicle_id: '',
-          case_id: '',
-          shift_id: '',
-          photos: []
-        });
-        setTicketType(null);
-      } else {
-        throw new Error('Bildirim gönderilemedi');
-      }
+      toast.success('Bildirim başarıyla gönderildi');
+      setBildirimForm({
+        title: '',
+        description: '',
+        category: '',
+        priority: 'normal',
+        vehicle_id: '',
+        case_id: '',
+        shift_id: '',
+        photos: []
+      });
+      setTicketType(null);
     } catch (error) {
       toast.error('Bildirim gönderilemedi');
     } finally {
@@ -164,27 +152,18 @@ const Tickets = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/tickets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          type: 'malzeme_talep',
-          items: validItems,
-          notes: malzemeForm.notes,
-          urgency: malzemeForm.urgency,
-          created_by: user?.id,
-          created_by_name: user?.name
-        })
+      await ticketsAPI.create({
+        type: 'malzeme_talep',
+        items: validItems,
+        notes: malzemeForm.notes,
+        urgency: malzemeForm.urgency,
+        created_by: user?.id,
+        created_by_name: user?.name
       });
 
-      if (response.ok) {
-        toast.success('Malzeme talebi gönderildi');
-        setMalzemeForm({ items: [{ name: '', quantity: 1, unit: 'adet' }], notes: '', urgency: 'normal' });
-        setTicketType(null);
-      } else {
-        throw new Error('Talep gönderilemedi');
-      }
+      toast.success('Malzeme talebi gönderildi');
+      setMalzemeForm({ items: [{ name: '', quantity: 1, unit: 'adet' }], notes: '', urgency: 'normal' });
+      setTicketType(null);
     } catch (error) {
       toast.error('Malzeme talebi gönderilemedi');
     } finally {
@@ -202,27 +181,18 @@ const Tickets = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/tickets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          type: 'ilac_talep',
-          items: validItems,
-          notes: ilacForm.notes,
-          urgency: ilacForm.urgency,
-          created_by: user?.id,
-          created_by_name: user?.name
-        })
+      await ticketsAPI.create({
+        type: 'ilac_talep',
+        items: validItems,
+        notes: ilacForm.notes,
+        urgency: ilacForm.urgency,
+        created_by: user?.id,
+        created_by_name: user?.name
       });
 
-      if (response.ok) {
-        toast.success('İlaç talebi gönderildi');
-        setIlacForm({ items: [{ name: '', quantity: 1, unit: 'adet', barcode: '' }], notes: '', urgency: 'normal' });
-        setTicketType(null);
-      } else {
-        throw new Error('Talep gönderilemedi');
-      }
+      toast.success('İlaç talebi gönderildi');
+      setIlacForm({ items: [{ name: '', quantity: 1, unit: 'adet', barcode: '' }], notes: '', urgency: 'normal' });
+      setTicketType(null);
     } catch (error) {
       toast.error('İlaç talebi gönderilemedi');
     } finally {
