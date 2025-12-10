@@ -36,6 +36,7 @@ import PatientRegistration from "./pages/PatientRegistration";
 import MyLocationStock from "./pages/MyLocationStock";
 import ShiftApprovals from "./pages/ShiftApprovals";
 import MaterialRequests from "./pages/MaterialRequests";
+import VehicleLocationManagement from "./pages/VehicleLocationManagement";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -114,6 +115,7 @@ function App() {
             <Route path="cases" element={<Cases />} />
             <Route path="cases/:id" element={<CaseDetail />} />
             <Route path="vehicles" element={<Vehicles />} />
+            <Route path="vehicle-locations" element={<VehicleLocationManagement />} />
             <Route path="stock" element={<StockManagement />} />
             <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />

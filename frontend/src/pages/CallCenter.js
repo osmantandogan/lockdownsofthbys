@@ -881,31 +881,36 @@ const CallCenter = () => {
                         <div className="flex items-center space-x-2">
                           <Checkbox checked={isSelected} />
                           <div>
-                            <p className="font-semibold">{vehicle.plate}</p>
-                            <p className="text-xs text-gray-500">{vehicle.type}</p>
+                            <p className="font-semibold text-sm">
+                              {vehicle.plate} 
+                              <span className="text-gray-500 font-normal ml-1">
+                                ({vehicle.type === 'ambulans' ? 'Ambulans' : 'Araç'})
+                              </span>
+                            </p>
+                            {/* Lokasyon - daha belirgin */}
+                            {(vehicle.healmedy_location_name || vehicle.current_location) ? (
+                              <div className="flex items-center mt-1">
+                                <MapPin className="h-3 w-3 mr-1 text-blue-600" />
+                                <span className="text-xs font-medium text-blue-700">
+                                  {vehicle.healmedy_location_name || vehicle.current_location}'da
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 mt-1">Lokasyon atanmamış</p>
+                            )}
                           </div>
                         </div>
                         <Badge 
                           variant="outline" 
-                          className={`text-xs bg-${statusColor}-50 text-${statusColor}-700 border-${statusColor}-200`}
+                          className={`text-xs ${
+                            statusColor === 'green' ? 'bg-green-50 text-green-700 border-green-200' :
+                            statusColor === 'orange' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                            'bg-red-50 text-red-700 border-red-200'
+                          }`}
                         >
                           {statusText}
                         </Badge>
                       </div>
-                      
-                      {/* Lokasyon Bilgisi */}
-                      {vehicle.current_location && (
-                        <div className="mt-2 flex items-center text-xs text-gray-600">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          <span>{vehicle.current_location}</span>
-                        </div>
-                      )}
-                      {vehicle.healmedy_location_name && (
-                        <div className="mt-1 flex items-center text-xs text-blue-600">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          <span>{vehicle.healmedy_location_name}</span>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -919,11 +924,13 @@ const CallCenter = () => {
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.vehicleIds.map(id => {
                       const v = vehicles.find(v => v.id === id);
-                      return v ? (
-                        <Badge key={id} variant="secondary" className="bg-blue-100">
-                          {v.plate}
+                      if (!v) return null;
+                      const locName = v.healmedy_location_name || v.current_location;
+                      return (
+                        <Badge key={id} variant="secondary" className="bg-blue-100 text-blue-800">
+                          {v.plate} {locName && `• ${locName}`}
                         </Badge>
-                      ) : null;
+                      );
                     })}
                   </div>
                 </div>

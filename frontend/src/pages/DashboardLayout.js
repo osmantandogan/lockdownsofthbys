@@ -26,7 +26,8 @@ import {
   QrCode,
   ClipboardCheck,
   ShoppingCart,
-  Image
+  Image,
+  MapPin
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationDropdown from '../components/NotificationDropdown';
@@ -48,6 +49,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/my-stock', icon: Package, label: 'Lokasyon Stoğum', roles: ['att', 'paramedik', 'hemsire', 'sofor'] },
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi', 'bas_sofor'] },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi', 'doktor', 'hemsire'] },
+    { path: '/dashboard/vehicle-locations', icon: MapPin, label: 'Araç Lokasyonları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
     { path: '/dashboard/stock', icon: Package, label: 'Stok', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
     { path: '/dashboard/stock-barcode-entry', icon: QrCode, label: 'Karekod Stok Girişi', roles: ['operasyon_muduru', 'merkez_ofis', 'att', 'paramedik', 'hemsire'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya' },
