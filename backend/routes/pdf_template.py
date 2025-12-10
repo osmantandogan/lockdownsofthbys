@@ -243,6 +243,42 @@ async def get_available_templates(request: Request, usage_type: str = "vaka_form
     return result
 
 
+@router.get("/debug/case/{case_id}")
+async def debug_case_data(case_id: str, request: Request):
+    """Debug: Vaka verisinin yapısını göster"""
+    await get_current_user(request)
+    
+    case = await cases_collection.find_one({"_id": case_id})
+    if not case:
+        return {"error": "Vaka bulunamadı"}
+    
+    # Datetime objeleri string'e çevir
+    def serialize(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, dict):
+            return {k: serialize(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [serialize(v) for v in obj]
+        return obj
+    
+    return {
+        "case_id": case_id,
+        "case_keys": list(case.keys()),
+        "patient": serialize(case.get("patient", {})),
+        "caller": serialize(case.get("caller", {})),
+        "location": serialize(case.get("location", {})),
+        "vehicle_info": serialize(case.get("vehicle_info", {})),
+        "vehicle": serialize(case.get("vehicle", {})),
+        "team": serialize(case.get("team", {})),
+        "medical_form": serialize(case.get("medical_form", {})),
+        "medical_form_keys": list(case.get("medical_form", {}).keys()) if case.get("medical_form") else [],
+        "status": case.get("status"),
+        "case_number": case.get("case_number"),
+        "protocol_112": case.get("protocol_112"),
+    }
+
+
 @router.get("/debug")
 async def debug_templates(request: Request):
     """Debug: Tüm şablonları listele (her iki collection'dan)"""
