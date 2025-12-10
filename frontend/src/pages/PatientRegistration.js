@@ -317,6 +317,10 @@ const PatientRegistration = () => {
                       value={companySearch}
                       onChange={(e) => handleCompanySearch(e.target.value)}
                       className="h-8"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                     />
                   </div>
                   {filteredCompanies.map((company) => (

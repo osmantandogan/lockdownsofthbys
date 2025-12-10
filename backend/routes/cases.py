@@ -354,6 +354,7 @@ class PatientInfoUpdate(BaseModel):
     surname: Optional[str] = None
     tc_no: Optional[str] = None
     age: Optional[int] = None
+    birth_date: Optional[str] = None
     gender: Optional[str] = None
 
 
@@ -385,6 +386,8 @@ async def update_patient_info(case_id: str, data: PatientInfoUpdate, request: Re
         update_fields["patient.tc_no"] = data.tc_no
     if data.age is not None:
         update_fields["patient.age"] = data.age
+    if data.birth_date is not None:
+        update_fields["patient.birth_date"] = data.birth_date
     if data.gender is not None:
         update_fields["patient.gender"] = data.gender
     
