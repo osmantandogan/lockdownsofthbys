@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
+import DailyControlFormForDriver from '../components/forms/DailyControlFormForDriver';
 import TimedDailyControlForm from '../components/forms/TimedDailyControlForm';
 import HandoverFormFull from '../components/forms/HandoverFormFull';
 import { useAuth } from '../contexts/AuthContext';
@@ -836,42 +837,26 @@ const ShiftStartNew = () => {
             </Card>
           )}
           
-          {/* ŞOFÖR İSE: Günlük Kontrol Formu (Devir Teslim vardiya bitişinde yapılacak) */}
+          {/* ŞOFÖR İSE: Araç Günlük Kontrol ve Devir Alma Formu */}
           {user?.role?.toLowerCase() === 'sofor' && (
             <>
               <Card className="border-amber-200 bg-amber-50">
                 <CardContent className="py-3">
                   <p className="text-amber-800 font-medium">
-                    🚗 Şoför Vardiya Başlatma - Günlük Kontrol Formu
+                    🚗 Şoför Vardiya Başlatma - Araç Kontrol ve Devir Alma
                   </p>
                   <p className="text-sm text-amber-600">
-                    Aracın günlük kontrollerini yapın. Devir teslim işlemi vardiya bitişinde yapılacaktır.
+                    Aracı kontrol edin ve devir alın. Devir teslim işlemi vardiya bitişinde yapılacaktır.
                   </p>
                 </CardContent>
               </Card>
               
-              {/* Araç Bilgileri */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500">Araç Plakası</p>
-                      <p className="font-bold text-lg">{vehicleInfo?.plate || '-'}</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500">Tarih (TR)</p>
-                      <p className="font-bold">{formatTurkeyDate()}</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500">Saat (TR)</p>
-                      <p className="font-bold">{formatTurkeyTime()}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Şoför için Günlük Kontrol Formu */}
-              <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
+              {/* Şoför için Araç Kontrol ve Devir Alma Formu */}
+              <DailyControlFormForDriver 
+                formData={controlForm} 
+                onChange={setControlForm} 
+                vehiclePlate={vehicleInfo?.plate}
+              />
             </>
           )}
           
