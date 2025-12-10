@@ -38,42 +38,40 @@ async def generate_case_pdf_with_template(
         template = await pdf_templates_collection.find_one({"_id": template_id})
         logger.info(f"Template by ID: {template_id} -> {template is not None}")
     
-    # 2. Varsayılan vaka formu şablonunu bul
+    # 2. Varsayılan ve aktif şablonu bul
     if not template:
         template = await pdf_templates_collection.find_one({
-            "$or": [
-                {"usage_types": "vaka_formu"},
-                {"usage_types": {"$in": ["vaka_formu"]}}
-            ],
+            "is_default": True,
+            "is_active": True
+        })
+        logger.info(f"Default active template -> {template is not None}")
+    
+    # 3. Sadece varsayılan şablon (aktif olmasa da)
+    if not template:
+        template = await pdf_templates_collection.find_one({
             "is_default": True
         })
-        logger.info(f"Default vaka_formu template -> {template is not None}")
+        logger.info(f"Default template (any) -> {template is not None}")
     
-    # 3. Herhangi bir vaka formu şablonu
+    # 4. Herhangi bir aktif şablon
     if not template:
         template = await pdf_templates_collection.find_one({
-            "$or": [
-                {"usage_types": "vaka_formu"},
-                {"usage_types": {"$in": ["vaka_formu"]}}
-            ]
+            "is_active": True
         })
-        logger.info(f"Any vaka_formu template -> {template is not None}")
+        logger.info(f"Any active template -> {template is not None}")
     
-    # 4. Herhangi bir şablon (son çare)
+    # 5. Herhangi bir şablon (son çare)
     if not template:
-        template = await pdf_templates_collection.find_one({})
+        template = await pdf_templates_collection.find_one()
         logger.info(f"Any template at all -> {template is not None}")
     
     if not template:
-        # Debug: Koleksiyondaki tüm şablonları listele
-        all_templates = await pdf_templates_collection.find({}).to_list(10)
-        logger.error(f"No templates found. All templates in DB: {[t.get('name') for t in all_templates]}")
         raise HTTPException(
             status_code=404, 
             detail="Kullanılabilir şablon bulunamadı. Lütfen önce bir şablon oluşturun."
         )
     
-    logger.info(f"Using template: {template.get('name')}")
+    logger.info(f"Using template: {template.get('name')} (id: {template.get('_id')})")
     
     try:
         # Medical form verilerini al
