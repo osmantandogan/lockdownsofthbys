@@ -83,11 +83,11 @@ const ShiftStartNew = () => {
   const [isDriverDuty, setIsDriverDuty] = useState(false); // Şoför görevi var mı?
   const [formAlreadyFilled, setFormAlreadyFilled] = useState(false); // Form zaten doldurulmuş mu?
   
-  // Baş Şoför Onay Sistemi
-  const [managerApprovalCode, setManagerApprovalCode] = useState('');
-  const [managerApproved, setManagerApproved] = useState(false);
+  // Baş Şoför Onay Sistemi (Yeni - Sayfa Bazlı)
+  const [approvalId, setApprovalId] = useState(null);
+  const [approvalStatus, setApprovalStatus] = useState(null); // null, 'pending', 'approved', 'rejected'
   const [sendingApproval, setSendingApproval] = useState(false);
-  const [approvalSent, setApprovalSent] = useState(false);
+  const [checkingApproval, setCheckingApproval] = useState(false);
   
   // Türkiye saati (UTC+3)
   const [turkeyNow, setTurkeyNow] = useState(getTurkeyTime());
@@ -481,7 +481,7 @@ const ShiftStartNew = () => {
            photos.front_cabin_seats_back;  // Ön kabin koltuk arkası
   };
 
-  // Baş Şoför onayı iste
+  // Vardiya başlatma onayı iste (Sayfa bazlı - shift-approvals'a düşer)
   const handleRequestApproval = async () => {
     const vehicleId = vehicleInfo?._id || vehicleInfo?.id;
     if (!vehicleId) {
@@ -492,45 +492,59 @@ const ShiftStartNew = () => {
     
     setSendingApproval(true);
     try {
-      await approvalsAPI.requestManagerApproval({
+      // Rol tipini belirle
+      const roleType = ['att', 'paramedik', 'hemsire'].includes(user?.role?.toLowerCase()) ? 'medical' : 'driver';
+      
+      const response = await shiftsAPI.requestStartApproval({
         vehicle_id: vehicleId,
-        action: 'shift_start',
-        user_name: user?.name || 'Bilinmiyor'
+        role_type: roleType,
+        daily_control_data: controlForm,
+        photos: photos
       });
       
-      setApprovalSent(true);
-      toast.success('✅ Onay kodu Baş Şoför ve Operasyon Müdürüne gönderildi!');
+      setApprovalId(response.data.id);
+      setApprovalStatus('pending');
+      toast.success('✅ Onay talebi gönderildi! Yönetici onayı bekleniyor...');
     } catch (error) {
       console.error('Approval request error:', error);
-      toast.error(error.response?.data?.detail || 'Onay kodu gönderilemedi');
+      toast.error(error.response?.data?.detail || 'Onay talebi gönderilemedi');
     } finally {
       setSendingApproval(false);
     }
   };
   
-  // Onay kodunu doğrula
-  const handleVerifyApproval = async () => {
-    if (!managerApprovalCode || managerApprovalCode.length !== 6) {
-      toast.error('Geçerli bir 6 haneli kod girin');
-      return;
-    }
+  // Onay durumunu kontrol et
+  const handleCheckApproval = async () => {
+    if (!approvalId) return;
     
+    setCheckingApproval(true);
     try {
-      const result = await approvalsAPI.verifyManagerApproval({
-        code: managerApprovalCode,
-        approval_type: 'shift_start'
-      });
+      const response = await shiftsAPI.checkStartApproval(approvalId);
       
-      if (result.data?.valid) {
-        setManagerApproved(true);
-        toast.success('✅ Onay kodu doğrulandı! Vardiya başlatılabilir.');
+      if (response.data?.status === 'approved') {
+        setApprovalStatus('approved');
+        toast.success('✅ Vardiya onaylandı! Şimdi başlatabilirsiniz.');
+      } else if (response.data?.status === 'rejected') {
+        setApprovalStatus('rejected');
+        toast.error(`❌ Onay reddedildi: ${response.data?.rejection_reason || 'Sebep belirtilmedi'}`);
       } else {
-        toast.error('Onay kodu geçersiz');
+        toast.info('⏳ Onay henüz beklemede...');
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Onay kodu doğrulanamadı');
+      console.error('Check approval error:', error);
+      toast.error('Onay durumu kontrol edilemedi');
+    } finally {
+      setCheckingApproval(false);
     }
   };
+  
+  // Onay durumunu periyodik kontrol et
+  useEffect(() => {
+    if (approvalId && approvalStatus === 'pending') {
+      const interval = setInterval(handleCheckApproval, 5000); // 5 saniyede bir kontrol
+      return () => clearInterval(interval);
+    }
+  }, [approvalId, approvalStatus]);
 
   const handleStartShift = async () => {
     // ATT/Paramedik/Hemşire (şoför görevi yoksa) fotoğraf çekmiyor
@@ -542,8 +556,8 @@ const ShiftStartNew = () => {
       return;
     }
     
-    if (!managerApproved) {
-      toast.error('Baş Şoför onayı gerekli');
+    if (approvalStatus !== 'approved') {
+      toast.error('Yönetici onayı gerekli');
       return;
     }
 
@@ -553,7 +567,7 @@ const ShiftStartNew = () => {
         vehicle_qr: qrCode,
         photos: photos,
         daily_control: controlForm,
-        approval_code: managerApprovalCode // Onay kodunu da gönder
+        approval_id: approvalId // Onay ID'sini gönder
       });
       toast.success('🎉 Vardiya başarıyla başlatıldı!');
       navigate('/dashboard/shifts');
@@ -956,7 +970,14 @@ const ShiftStartNew = () => {
           
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(needsPhotos ? 2 : 1)}>Geri</Button>
-            <Button onClick={() => setStep(4)}>Devam</Button>
+            <Button 
+              onClick={() => setStep(4)}
+              disabled={!formAlreadyFilled && Object.keys(controlForm?.checks || {}).length < 60}
+            >
+              {!formAlreadyFilled && Object.keys(controlForm?.checks || {}).length < 60 
+                ? `Form tamamlanıyor... (${Object.keys(controlForm?.checks || {}).length}/60+)` 
+                : 'Devam'}
+            </Button>
           </div>
         </div>
       )}
@@ -995,74 +1016,75 @@ const ShiftStartNew = () => {
               </div>
             </div>
 
-            {/* Baş Şoför Onay Sistemi */}
-            <Card className={`border-2 ${managerApproved ? 'border-green-500 bg-green-50' : 'border-purple-300 bg-purple-50'}`}>
+            {/* Yönetici Onay Sistemi (Sayfa Bazlı) */}
+            <Card className={`border-2 ${
+              approvalStatus === 'approved' ? 'border-green-500 bg-green-50' : 
+              approvalStatus === 'rejected' ? 'border-red-500 bg-red-50' :
+              'border-purple-300 bg-purple-50'
+            }`}>
               <CardHeader className="py-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className={`h-5 w-5 ${managerApproved ? 'text-green-600' : 'text-purple-600'}`} />
-                  Baş Şoför / Operasyon Müdürü Onayı
-                  {managerApproved && <span className="text-green-600 text-sm ml-2">✓ Onaylandı</span>}
+                  <Shield className={`h-5 w-5 ${
+                    approvalStatus === 'approved' ? 'text-green-600' : 
+                    approvalStatus === 'rejected' ? 'text-red-600' :
+                    'text-purple-600'
+                  }`} />
+                  Yönetici Onayı
+                  {approvalStatus === 'approved' && <span className="text-green-600 text-sm ml-2">✓ Onaylandı</span>}
+                  {approvalStatus === 'rejected' && <span className="text-red-600 text-sm ml-2">✗ Reddedildi</span>}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!managerApproved ? (
+                {approvalStatus === null && (
                   <>
                     <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
                       <p className="text-sm text-yellow-800">
-                        ⚠️ Vardiyayı başlatmak için Baş Şoför veya Operasyon Müdürü onayı gerekli.
+                        ⚠️ Vardiyayı başlatmak için yönetici onayı gerekli.
                         <br />
-                        <span className="text-xs">SMS, Email ve Push bildirim gönderilecek.</span>
+                        <span className="text-xs">Onay talebi Vardiya Onayları sayfasına düşecek.</span>
                       </p>
                     </div>
                     
-                    {!approvalSent ? (
-                      <Button 
-                        onClick={handleRequestApproval} 
-                        disabled={sendingApproval}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        {sendingApproval ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
-                        ) : (
-                          <><Send className="h-4 w-4 mr-2" /> Onay Kodu İste</>
-                        )}
-                      </Button>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="p-2 bg-green-100 rounded text-center text-sm text-green-700">
-                          ✓ Onay kodu yöneticilere gönderildi
-                        </div>
-                        <p className="text-xs text-center text-gray-500">
-                          Baş Şoför veya Operasyon Müdürü size onay kodunu verecek
-                        </p>
-                        <div className="flex gap-2">
-                          <Input 
-                            placeholder="6 haneli kod"
-                            value={managerApprovalCode}
-                            onChange={(e) => setManagerApprovalCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="text-center font-mono text-xl tracking-[0.3em] h-12"
-                            maxLength={6}
-                          />
-                          <Button 
-                            onClick={handleVerifyApproval}
-                            disabled={managerApprovalCode.length !== 6}
-                          >
-                            Doğrula
-                          </Button>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="w-full text-gray-500"
-                          onClick={handleRequestApproval}
-                          disabled={sendingApproval}
-                        >
-                          Tekrar Gönder
-                        </Button>
-                      </div>
-                    )}
+                    <Button 
+                      onClick={handleRequestApproval} 
+                      disabled={sendingApproval}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      {sendingApproval ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" /> Onay Talebi Gönder</>
+                      )}
+                    </Button>
                   </>
-                ) : (
+                )}
+                
+                {approvalStatus === 'pending' && (
+                  <div className="space-y-3">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
+                      <p className="text-blue-800 font-medium">Onay Bekleniyor...</p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        Yönetici onayı için bekleyiniz. Bu süre zarfında görevlerinize devam edebilirsiniz.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCheckApproval}
+                      disabled={checkingApproval}
+                      className="w-full"
+                    >
+                      {checkingApproval ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Kontrol ediliyor...</>
+                      ) : (
+                        'Onay Durumunu Kontrol Et'
+                      )}
+                    </Button>
+                    <p className="text-xs text-center text-gray-400">Otomatik olarak 5 saniyede bir kontrol edilir</p>
+                  </div>
+                )}
+                
+                {approvalStatus === 'approved' && (
                   <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-green-300">
                     <CheckCircle className="h-8 w-8 text-green-600" />
                     <div>
@@ -1071,11 +1093,30 @@ const ShiftStartNew = () => {
                     </div>
                   </div>
                 )}
+                
+                {approvalStatus === 'rejected' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-red-300">
+                      <AlertCircle className="h-8 w-8 text-red-600" />
+                      <div>
+                        <p className="font-medium text-red-700">Onay Reddedildi!</p>
+                        <p className="text-sm text-gray-500">Yöneticinizle iletişime geçin</p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => { setApprovalId(null); setApprovalStatus(null); }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Yeniden Talep Gönder
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Uyarı */}
-            {managerApproved && (
+            {approvalStatus === 'approved' && (
               <div className="flex items-start space-x-2 bg-green-50 p-4 rounded-lg border border-green-200">
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                 <div className="text-sm">
@@ -1089,8 +1130,8 @@ const ShiftStartNew = () => {
               <Button variant="outline" onClick={() => setStep(3)}>Geri</Button>
               <Button
                 onClick={handleStartShift}
-                disabled={loading || !managerApproved}
-                className={`${managerApproved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                disabled={loading || approvalStatus !== 'approved'}
+                className={`${approvalStatus === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
                 data-testid="confirm-start-button"
               >
                 {loading ? (

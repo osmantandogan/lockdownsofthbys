@@ -203,7 +203,14 @@ export const shiftsAPI = {
   getHandoverLogs: (params) => api.get('/shifts/handover/logs', { params }),
   
   // YENİ: Ekip Gruplama
-  getTodayTeam: (vehicleId) => api.get(`/shifts/today-team/${vehicleId}`)
+  getTodayTeam: (vehicleId) => api.get(`/shifts/today-team/${vehicleId}`),
+  
+  // YENİ: Vardiya Başlatma Onay Sistemi
+  requestStartApproval: (data) => api.post('/shifts/start-approval/request', data),
+  getPendingStartApprovals: (roleType) => api.get('/shifts/start-approval/pending', { params: { role_type: roleType } }),
+  checkStartApproval: (approvalId) => api.get(`/shifts/start-approval/check/${approvalId}`),
+  approveStartApproval: (approvalId) => api.post(`/shifts/start-approval/${approvalId}/approve`),
+  rejectStartApproval: (approvalId, reason) => api.post(`/shifts/start-approval/${approvalId}/reject`, null, { params: { reason } })
 };
 
 // Locations API (YENİ)
@@ -461,6 +468,14 @@ export const stockBarcodeAPI = {
   lookupBarcode: (barcode) => api.get(`/stock-barcode/lookup-barcode/${encodeURIComponent(barcode)}`),
   lookupBarcodePost: (barcode) => api.post('/stock-barcode/lookup-barcode', { barcode }),
   searchMedications: (query) => api.get('/stock-barcode/search-medications', { params: { q: query } })
+};
+
+// Tickets API - Bildirim ve Talepler
+export const ticketsAPI = {
+  createTicket: (data) => api.post('/tickets', data),
+  getTickets: (params) => api.get('/tickets', { params }),
+  getTicketById: (id) => api.get(`/tickets/${id}`),
+  updateTicket: (id, data) => api.patch(`/tickets/${id}`, data)
 };
 
 export default api;

@@ -227,19 +227,14 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
     });
   };
   
-  const completeCurrentSection = () => {
-    if (currentSection < 7) {
-      const nextSection = currentSection + 1;
-      setCurrentSection(nextSection);
-      setSectionStartTimes(prev => ({ ...prev, [nextSection]: new Date() }));
-      setTimeRemaining(SECTION_TIMES[nextSection]);
-      toast.success(`✓ Bölüm ${currentSection} tamamlandı!`);
-    } else {
-      setAllCompleted(true);
+  // Timer dolana kadar geçiş yapılamaz - bu fonksiyon artık çağrılmayacak
+  // Timer otomatik olarak bölümleri açacak
+  const handleSectionComplete = () => {
+    // Sadece timer bittiğinde veya allCompleted olduğunda kullanılır
+    if (allCompleted) {
       if (onComplete) {
         onComplete({ ...formInfo, checks, section_times: sectionStartTimes, form_completed_at: new Date() });
       }
-      toast.success('🎉 Tüm bölümler tamamlandı!');
     }
   };
   
@@ -293,11 +288,14 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
                   Bölüm {currentSection}/7 - {CATEGORIES[currentSection - 1]?.title}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-2xl font-mono font-bold ${timeRemaining <= 30 ? 'text-red-600' : 'text-blue-600'}`}>
+              <div className="flex items-center gap-3">
+                <span className={`text-2xl font-mono font-bold ${timeRemaining <= 30 ? 'text-red-600 animate-pulse' : 'text-blue-600'}`}>
                   {formatTime(timeRemaining)}
                 </span>
-                <Button size="sm" onClick={completeCurrentSection}>Devam →</Button>
+                <div className="text-xs text-gray-500 text-right">
+                  <p>Süre dolunca</p>
+                  <p>sonraki bölüm açılır</p>
+                </div>
               </div>
             </div>
             <div className="mt-3">
@@ -310,6 +308,9 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
                 ))}
               </div>
             </div>
+            <p className="mt-3 text-center text-sm text-blue-700">
+              ⏳ Her bölümü dikkatlice kontrol edin. Süre dolmadan sonraki bölüme geçemezsiniz.
+            </p>
           </CardContent>
         </Card>
       )}

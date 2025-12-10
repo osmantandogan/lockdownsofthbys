@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import PhotoCapture from '../components/PhotoCapture';
 import SignaturePad from '../components/SignaturePad';
+import DailyControlFormNonTimed from '../components/forms/DailyControlFormNonTimed';
 
 const ShiftEnd = () => {
   const navigate = useNavigate();
@@ -77,6 +78,9 @@ const ShiftEnd = () => {
     rear_cabin_corner_4: null  // Sağ-arka köşe
   });
   const [endSignature, setEndSignature] = useState(null);
+  
+  // Günlük kontrol formu (vardiya bitirme için)
+  const [dailyControlData, setDailyControlData] = useState({});
   
   // Rol kontrolü
   const isATTOrParamedik = ['att', 'paramedik'].includes(user?.role?.toLowerCase());
@@ -458,6 +462,31 @@ const ShiftEnd = () => {
                 Ekipman kontrolü ve hasar bildirimi atlandı
               </p>
             )}
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* ATT/Paramedik için Günlük Kontrol Formu (Timer'sız) */}
+      {isATTOrParamedik && !quickCheckout && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Ambulans Günlük Kontrol Formu
+            </CardTitle>
+            <CardDescription>
+              Vardiya bitirmeden önce cihaz, malzeme ve ilaç kontrolü yapın
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DailyControlFormNonTimed 
+              formData={dailyControlData}
+              onChange={setDailyControlData}
+              onQuickFill={(data) => {
+                setDailyControlData(data);
+                setQuickCheckout(true);
+              }}
+            />
           </CardContent>
         </Card>
       )}

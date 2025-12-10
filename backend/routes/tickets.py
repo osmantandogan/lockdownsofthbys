@@ -77,30 +77,8 @@ async def create_ticket(data: TicketCreate, request: Request):
     
     logger.info(f"Ticket oluşturuldu: {ticket['_id']} by {user.name}")
     
-    # Yöneticilere bildirim gönder
-    try:
-        from services.onesignal_service import send_notification_to_roles
-        
-        type_labels = {
-            "bildirim": "🔔 Yeni Bildirim",
-            "malzeme_talep": "📦 Malzeme Talebi",
-            "ilac_talep": "💊 İlaç Talebi"
-        }
-        
-        title = type_labels.get(data.type, "Yeni Ticket")
-        message = f"{user.name}: {data.title or data.description or 'Yeni talep'}"
-        
-        if data.priority == "urgent" or data.urgency == "urgent":
-            title = "🚨 ACİL: " + title
-        
-        await send_notification_to_roles(
-            roles=TICKET_ADMIN_ROLES,
-            title=title,
-            message=message[:100],
-            data={"ticket_id": ticket_id, "type": "ticket"}
-        )
-    except Exception as e:
-        logger.warning(f"Ticket bildirimi gönderilemedi: {e}")
+    # Bildirim: Yöneticiler /dashboard/tickets-approvals sayfasından görecek
+    # OneSignal yerine sayfa bazlı sistem kullanılıyor
     
     ticket["id"] = ticket.pop("_id")
     return ticket
@@ -149,6 +127,45 @@ async def get_ticket(ticket_id: str, request: Request):
     return ticket
 
 
+class TicketUpdate(BaseModel):
+    status: Optional[str] = None
+    resolution_notes: Optional[str] = None
+
+
+@router.patch("/{ticket_id}")
+async def update_ticket(ticket_id: str, data: TicketUpdate, request: Request):
+    """Ticket güncelle (durum, notlar)"""
+    user = await get_current_user(request)
+    
+    if user.role not in TICKET_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+    
+    update_data = {"updated_at": datetime.utcnow()}
+    
+    if data.status:
+        update_data["status"] = data.status
+    
+    if data.status in ["completed", "rejected"]:
+        update_data["resolved_by"] = user.id
+        update_data["resolved_by_name"] = user.name
+        update_data["resolved_at"] = datetime.utcnow()
+        
+    if data.resolution_notes:
+        update_data["resolution_notes"] = data.resolution_notes
+    
+    result = await tickets_collection.update_one(
+        {"_id": ticket_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Ticket bulunamadı")
+    
+    logger.info(f"Ticket güncellendi: {ticket_id} - {data.status} by {user.name}")
+    
+    return {"message": "Ticket güncellendi"}
+
+
 @router.patch("/{ticket_id}/status")
 async def update_ticket_status(
     ticket_id: str,
@@ -156,10 +173,10 @@ async def update_ticket_status(
     status: str,
     notes: Optional[str] = None
 ):
-    """Ticket durumunu güncelle"""
+    """Ticket durumunu güncelle (eski API uyumluluğu için)"""
     user = await get_current_user(request)
     
-    if user.role not in ["operasyon_muduru", "merkez_ofis", "bas_sofor"]:
+    if user.role not in TICKET_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
     
     update_data = {

@@ -1600,3 +1600,175 @@ async def get_today_team(vehicle_id: str, request: Request):
         "team": team,
         "team_count": len(team)
     }
+
+
+# ============================================================================
+# VARDİYA BAŞLATMA ONAY SİSTEMİ (ATT/Paramedik ve Şoför için ayrı)
+# ============================================================================
+
+from database import db
+shift_start_approvals_collection = db.shift_start_approvals
+
+
+class ShiftStartApprovalCreate(BaseModel):
+    vehicle_id: str
+    role_type: str  # "medical" (ATT/Paramedik) veya "driver" (Şoför)
+    daily_control_data: Optional[dict] = None
+    photos: Optional[dict] = None
+
+
+@router.post("/start-approval/request")
+async def request_shift_start_approval(data: ShiftStartApprovalCreate, request: Request):
+    """
+    Vardiya başlatma onayı iste (ATT/Paramedik veya Şoför)
+    Onay shift-approvals sayfasına düşer
+    """
+    user = await get_current_user(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Araç bilgisini al
+    vehicle = await vehicles_collection.find_one({"_id": data.vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
+    # Aynı gün için bekleyen onay var mı?
+    today_start = turkey_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    existing = await shift_start_approvals_collection.find_one({
+        "user_id": user.id,
+        "vehicle_id": data.vehicle_id,
+        "status": "pending",
+        "created_at": {"$gte": today_start}
+    })
+    
+    if existing:
+        return {"id": existing["_id"], "message": "Zaten bekleyen onay mevcut", "status": "pending"}
+    
+    approval_id = str(uuid.uuid4())
+    approval = {
+        "_id": approval_id,
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_role": user.role,
+        "vehicle_id": data.vehicle_id,
+        "vehicle_plate": vehicle.get("plate"),
+        "role_type": data.role_type,  # "medical" veya "driver"
+        "daily_control_data": data.daily_control_data,
+        "photos": data.photos,
+        "status": "pending",  # pending, approved, rejected
+        "created_at": turkey_now,
+        "approved_by": None,
+        "approved_by_name": None,
+        "approved_at": None,
+        "rejection_reason": None
+    }
+    
+    await shift_start_approvals_collection.insert_one(approval)
+    
+    logger.info(f"Vardiya başlatma onayı istendi: {user.name} - {vehicle.get('plate')} - {data.role_type}")
+    
+    return {"id": approval_id, "message": "Onay talebi oluşturuldu", "status": "pending"}
+
+
+@router.get("/start-approval/pending")
+async def get_pending_shift_start_approvals(request: Request, role_type: Optional[str] = None):
+    """
+    Bekleyen vardiya başlatma onaylarını getir
+    role_type: "medical" (ATT/Paramedik) veya "driver" (Şoför) veya None (tümü)
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    
+    query = {"status": "pending"}
+    
+    if role_type:
+        query["role_type"] = role_type
+    
+    approvals = await shift_start_approvals_collection.find(query).sort("created_at", -1).to_list(100)
+    
+    for approval in approvals:
+        approval["id"] = approval.pop("_id")
+    
+    return approvals
+
+
+@router.get("/start-approval/check/{approval_id}")
+async def check_shift_start_approval(approval_id: str, request: Request):
+    """
+    Belirli bir onay talebinin durumunu kontrol et
+    """
+    user = await get_current_user(request)
+    
+    approval = await shift_start_approvals_collection.find_one({"_id": approval_id})
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Onay talebi bulunamadı")
+    
+    return {
+        "id": approval["_id"],
+        "status": approval["status"],
+        "approved_by_name": approval.get("approved_by_name"),
+        "approved_at": approval.get("approved_at"),
+        "rejection_reason": approval.get("rejection_reason")
+    }
+
+
+@router.post("/start-approval/{approval_id}/approve")
+async def approve_shift_start(approval_id: str, request: Request):
+    """
+    Vardiya başlatma onayı ver
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    approval = await shift_start_approvals_collection.find_one({"_id": approval_id})
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Onay talebi bulunamadı")
+    
+    if approval["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Bu talep zaten işlenmiş")
+    
+    await shift_start_approvals_collection.update_one(
+        {"_id": approval_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": user.id,
+            "approved_by_name": user.name,
+            "approved_at": turkey_now
+        }}
+    )
+    
+    logger.info(f"Vardiya başlatma onaylandı: {approval['user_name']} - {approval['vehicle_plate']} - Onaylayan: {user.name}")
+    
+    return {"message": "Vardiya başlatma onaylandı", "status": "approved"}
+
+
+@router.post("/start-approval/{approval_id}/reject")
+async def reject_shift_start(approval_id: str, request: Request, reason: str = None):
+    """
+    Vardiya başlatma onayını reddet
+    """
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    approval = await shift_start_approvals_collection.find_one({"_id": approval_id})
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Onay talebi bulunamadı")
+    
+    if approval["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Bu talep zaten işlenmiş")
+    
+    await shift_start_approvals_collection.update_one(
+        {"_id": approval_id},
+        {"$set": {
+            "status": "rejected",
+            "approved_by": user.id,
+            "approved_by_name": user.name,
+            "approved_at": turkey_now,
+            "rejection_reason": reason or "Belirtilmedi"
+        }}
+    )
+    
+    logger.info(f"Vardiya başlatma reddedildi: {approval['user_name']} - {approval['vehicle_plate']} - Reddeden: {user.name}")
+    
+    return {"message": "Vardiya başlatma reddedildi", "status": "rejected"}

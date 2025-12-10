@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -27,7 +28,9 @@ import {
   Eye,
   Image,
   FileText,
-  History
+  History,
+  Stethoscope,
+  Car
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -43,12 +46,49 @@ const ShiftApprovals = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [showPhotosDialog, setShowPhotosDialog] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('start-approvals');
+  
+  // YENİ: Vardiya Başlatma Onayları
+  const [startApprovals, setStartApprovals] = useState([]);
+  const [startApprovalFilter, setStartApprovalFilter] = useState('all'); // 'all', 'medical', 'driver'
 
   useEffect(() => {
     fetchPendingApprovals();
     fetchLogs();
+    fetchStartApprovals();
   }, [selectedDate]);
+  
+  // Vardiya başlatma onaylarını çek
+  const fetchStartApprovals = async () => {
+    try {
+      const response = await shiftsAPI.getPendingStartApprovals();
+      setStartApprovals(response.data || []);
+    } catch (error) {
+      console.error('Error fetching start approvals:', error);
+    }
+  };
+  
+  // Vardiya başlatma onayı ver
+  const handleApproveStart = async (approvalId) => {
+    try {
+      await shiftsAPI.approveStartApproval(approvalId);
+      toast.success('Vardiya başlatma onaylandı');
+      fetchStartApprovals();
+    } catch (error) {
+      toast.error('Onay başarısız');
+    }
+  };
+  
+  // Vardiya başlatma onayını reddet
+  const handleRejectStart = async (approvalId, reason) => {
+    try {
+      await shiftsAPI.rejectStartApproval(approvalId, reason || 'Belirtilmedi');
+      toast.success('Vardiya başlatma reddedildi');
+      fetchStartApprovals();
+    } catch (error) {
+      toast.error('Red işlemi başarısız');
+    }
+  };
 
   const fetchPendingApprovals = async () => {
     try {
@@ -212,21 +252,136 @@ const ShiftApprovals = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b overflow-x-auto">
         <button
-          className={`px-4 py-2 font-medium ${activeTab === 'pending' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('pending')}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'start-approvals' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('start-approvals')}
         >
-          Bekleyen Onaylar ({pendingApprovals.length})
+          🚀 Vardiya Başlatma ({startApprovals.length})
         </button>
         <button
-          className={`px-4 py-2 font-medium ${activeTab === 'logs' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'pending' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('pending')}
+        >
+          🔄 Devir Teslim ({pendingApprovals.length})
+        </button>
+        <button
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'logs' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
           onClick={() => setActiveTab('logs')}
         >
           <History className="h-4 w-4 inline mr-1" />
-          Günlük Loglar
+          Loglar
         </button>
       </div>
+      
+      {/* Vardiya Başlatma Onayları */}
+      {activeTab === 'start-approvals' && (
+        <div className="space-y-4">
+          {/* Filtreler */}
+          <div className="flex gap-2">
+            <Button 
+              variant={startApprovalFilter === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setStartApprovalFilter('all')}
+            >
+              Tümü ({startApprovals.length})
+            </Button>
+            <Button 
+              variant={startApprovalFilter === 'medical' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setStartApprovalFilter('medical')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Stethoscope className="h-4 w-4 mr-1" />
+              ATT/Paramedik ({startApprovals.filter(a => a.role_type === 'medical').length})
+            </Button>
+            <Button 
+              variant={startApprovalFilter === 'driver' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setStartApprovalFilter('driver')}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <Car className="h-4 w-4 mr-1" />
+              Şoför ({startApprovals.filter(a => a.role_type === 'driver').length})
+            </Button>
+          </div>
+          
+          {/* Onay Listesi */}
+          {startApprovals.filter(a => startApprovalFilter === 'all' || a.role_type === startApprovalFilter).length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-gray-500">
+                <Check className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                <p>Bekleyen vardiya başlatma onayı bulunmuyor</p>
+              </CardContent>
+            </Card>
+          ) : (
+            startApprovals
+              .filter(a => startApprovalFilter === 'all' || a.role_type === startApprovalFilter)
+              .map((approval) => (
+                <Card 
+                  key={approval.id} 
+                  className={`border-l-4 ${approval.role_type === 'medical' ? 'border-l-blue-500' : 'border-l-amber-500'}`}
+                >
+                  <CardContent className="py-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          {approval.role_type === 'medical' ? (
+                            <Badge className="bg-blue-100 text-blue-800">
+                              <Stethoscope className="h-3 w-3 mr-1" />
+                              ATT/Paramedik
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-100 text-amber-800">
+                              <Car className="h-3 w-3 mr-1" />
+                              Şoför
+                            </Badge>
+                          )}
+                          <span className="font-bold text-lg">{approval.vehicle_plate}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-gray-400" />
+                            <span className="font-medium">{approval.user_name}</span>
+                            <Badge variant="outline">{approval.user_role}</Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm text-gray-500">
+                          <Clock className="h-3 w-3 inline mr-1" />
+                          {formatDateTime(approval.created_at)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => {
+                            const reason = prompt('Red sebebi (isteğe bağlı):');
+                            handleRejectStart(approval.id, reason);
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Reddet
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleApproveStart(approval.id)}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Onayla
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+          )}
+        </div>
+      )}
 
       {/* Bekleyen Onaylar */}
       {activeTab === 'pending' && (
