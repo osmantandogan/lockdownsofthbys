@@ -422,6 +422,14 @@ export const patientsAPI = {
   getStats: () => api.get('/patients/stats/summary')
 };
 
+// Documents API - Döküman ve Arşiv Yönetimi
+export const documentsAPI = {
+  getArchive: (params) => api.get('/documents/archive', { params }),
+  getById: (id) => api.get(`/documents/${id}`),
+  upload: (data) => api.post('/documents/upload', data),
+  delete: (id) => api.delete(`/documents/${id}`)
+};
+
 // Auth API (token yönetimi için)
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),

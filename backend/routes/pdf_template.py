@@ -80,8 +80,25 @@ async def generate_case_pdf_with_template(
         # PDF oluştur
         pdf_buffer = generate_pdf_from_template(template, case, medical_form)
         
-        # Dosya adı
-        filename = f"Vaka_{case.get('case_number', case_id)}_{template.get('name', 'Form')}.pdf"
+        # Dosya adı - Türkçe karakterleri ASCII'ye dönüştür
+        def sanitize_filename(text):
+            """Dosya adı için Türkçe karakterleri temizle"""
+            if not text:
+                return ""
+            text = str(text)
+            tr_map = {
+                'ş': 's', 'Ş': 'S', 'ğ': 'g', 'Ğ': 'G',
+                'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O',
+                'ü': 'u', 'Ü': 'U', 'ç': 'c', 'Ç': 'C'
+            }
+            for tr, ascii_c in tr_map.items():
+                text = text.replace(tr, ascii_c)
+            # Sadece alfanumerik ve alt çizgi karakterleri tut
+            return ''.join(c if c.isalnum() or c in '-_' else '_' for c in text)
+        
+        case_number = sanitize_filename(case.get('case_number', case_id))
+        template_name = sanitize_filename(template.get('name', 'Form'))
+        filename = f"Vaka_{case_number}_{template_name}.pdf"
         
         return StreamingResponse(
             pdf_buffer,

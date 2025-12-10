@@ -8,14 +8,17 @@ from datetime import datetime
 import uuid
 import logging
 
-from auth_utils import get_current_user
-from database import db
+from auth_utils import get_current_user, require_roles
+from database import db, users_collection
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # MongoDB collection
 tickets_collection = db.tickets
+
+# Ticket'ları görebilecek roller
+TICKET_ADMIN_ROLES = ["operasyon_muduru", "merkez_ofis", "bas_sofor"]
 
 
 class TicketItem(BaseModel):
@@ -45,8 +48,9 @@ async def create_ticket(data: TicketCreate, request: Request):
     """Yeni ticket oluştur"""
     user = await get_current_user(request)
     
+    ticket_id = str(uuid.uuid4())
     ticket = {
-        "_id": str(uuid.uuid4()),
+        "_id": ticket_id,
         "type": data.type,
         "title": data.title,
         "description": data.description,
@@ -72,6 +76,31 @@ async def create_ticket(data: TicketCreate, request: Request):
     await tickets_collection.insert_one(ticket)
     
     logger.info(f"Ticket oluşturuldu: {ticket['_id']} by {user.name}")
+    
+    # Yöneticilere bildirim gönder
+    try:
+        from services.onesignal_service import send_notification_to_roles
+        
+        type_labels = {
+            "bildirim": "🔔 Yeni Bildirim",
+            "malzeme_talep": "📦 Malzeme Talebi",
+            "ilac_talep": "💊 İlaç Talebi"
+        }
+        
+        title = type_labels.get(data.type, "Yeni Ticket")
+        message = f"{user.name}: {data.title or data.description or 'Yeni talep'}"
+        
+        if data.priority == "urgent" or data.urgency == "urgent":
+            title = "🚨 ACİL: " + title
+        
+        await send_notification_to_roles(
+            roles=TICKET_ADMIN_ROLES,
+            title=title,
+            message=message[:100],
+            data={"ticket_id": ticket_id, "type": "ticket"}
+        )
+    except Exception as e:
+        logger.warning(f"Ticket bildirimi gönderilemedi: {e}")
     
     ticket["id"] = ticket.pop("_id")
     return ticket

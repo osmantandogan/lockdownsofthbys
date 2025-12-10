@@ -209,30 +209,7 @@ const CallCenter = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* SOL: Harita */}
-        <Card className="h-[600px]">
-          <CardHeader className="py-3 bg-blue-50">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <MapPin className="h-4 w-4" /> Konum Seçimi
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 h-[calc(100%-52px)]">
-            <MapContainer
-              center={[position.lat, position.lng]}
-              zoom={12}
-              style={{ height: '100%', width: '100%' }}
-            >
-              <TileLayer
-                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-                attribution='&copy; Google Maps'
-                maxZoom={20}
-              />
-              <LocationPicker position={position} setPosition={setPosition} />
-            </MapContainer>
-          </CardContent>
-        </Card>
-
-        {/* SAĞ: Form */}
+        {/* SOL: Form */}
         <div className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Arayan Kişi Bilgileri + Firma */}
@@ -487,6 +464,29 @@ const CallCenter = () => {
             )}
           </form>
         </div>
+
+        {/* SAĞ: Harita */}
+        <Card className="h-[600px]">
+          <CardHeader className="py-3 bg-blue-50">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MapPin className="h-4 w-4" /> Konum Seçimi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 h-[calc(100%-52px)]">
+            <MapContainer
+              center={[position.lat, position.lng]}
+              zoom={12}
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                attribution='&copy; Google Maps'
+                maxZoom={20}
+              />
+              <LocationPicker position={position} setPosition={setPosition} />
+            </MapContainer>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

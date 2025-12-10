@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { documentsAPI, casesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -77,7 +77,6 @@ const Archive = () => {
   const loadArchive = async () => {
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
       const params = {};
       if (filters.form_type) params.form_type = filters.form_type;
       if (filters.start_date) params.start_date = filters.start_date;
@@ -85,15 +84,13 @@ const Archive = () => {
       if (filters.case_id) params.case_id = filters.case_id;
       if (filters.submitted_by) params.submitted_by = filters.submitted_by;
       
+      const casesParams = {};
+      if (filters.start_date) casesParams.start_date = filters.start_date;
+      if (filters.end_date) casesParams.end_date = filters.end_date;
+      
       const [archiveRes, casesRes] = await Promise.all([
-        axios.get(`${API_URL}/documents/archive`, { params, withCredentials: true }),
-        axios.get(`${API_URL}/cases`, { 
-          params: filters.start_date || filters.end_date ? {
-            start_date: filters.start_date,
-            end_date: filters.end_date
-          } : {},
-          withCredentials: true 
-        })
+        documentsAPI.getArchive(params),
+        casesAPI.getAll(casesParams)
       ]);
       
       setForms(archiveRes.data);

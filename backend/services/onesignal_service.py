@@ -565,3 +565,56 @@ async def broadcast_to_roles(notification_type: NotificationType, roles: List[st
         results.append({"role": role, **result})
     return results
 
+
+async def send_notification_to_roles(roles: List[str], title: str, message: str, data: Dict[str, Any] = None, url: str = None):
+    """
+    Belirli rollere özel bildirim gönder (şablon kullanmadan)
+    Ticket, talep gibi dinamik bildirimler için kullanılır
+    """
+    from database import users_collection
+    
+    # Bu rollerdeki kullanıcıları bul
+    user_ids = []
+    async for user in users_collection.find({"role": {"$in": roles}, "is_active": True}):
+        user_ids.append(user["_id"])
+    
+    if not user_ids:
+        logger.warning(f"No active users found for roles: {roles}")
+        return {"success": False, "error": "No users found"}
+    
+    # Doğrudan bildirim gönder
+    payload = {
+        "app_id": ONESIGNAL_APP_ID,
+        "include_external_user_ids": user_ids,
+        "headings": {"en": title, "tr": title},
+        "contents": {"en": message, "tr": message},
+        "data": data or {},
+        "chrome_web_icon": "https://healmedy.com/logo192.png"
+    }
+    
+    if url:
+        payload["url"] = url
+        payload["web_url"] = url
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{ONESIGNAL_API_URL}/notifications",
+                headers={
+                    "Authorization": f"Basic {ONESIGNAL_REST_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json=payload
+            )
+            
+            result = response.json()
+            logger.info(f"[OneSignal] Role notification sent: {response.status_code}")
+            
+            return {
+                "success": response.status_code in [200, 201],
+                "recipients": result.get("recipients", 0),
+                "notification_id": result.get("id")
+            }
+    except Exception as e:
+        logger.error(f"[OneSignal] Role notification error: {e}")
+        return {"success": False, "error": str(e)}

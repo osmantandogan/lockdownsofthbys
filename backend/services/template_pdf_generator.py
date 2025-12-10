@@ -392,6 +392,23 @@ class TemplatePdfGenerator:
 
 def generate_pdf_from_template(template, case_data, medical_form=None):
     """Şablondan PDF oluştur"""
-    generator = TemplatePdfGenerator(template, case_data, medical_form)
+    # Template içindeki tüm metinleri normalize et
+    def deep_normalize(obj):
+        """Nested dict/list içindeki tüm stringleri normalize et"""
+        if isinstance(obj, str):
+            return normalize_turkish(obj)
+        elif isinstance(obj, dict):
+            return {k: deep_normalize(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [deep_normalize(item) for item in obj]
+        else:
+            return obj
+    
+    # Template ve verileri normalize et
+    normalized_template = deep_normalize(template)
+    normalized_case = deep_normalize(case_data)
+    normalized_medical = deep_normalize(medical_form) if medical_form else {}
+    
+    generator = TemplatePdfGenerator(normalized_template, normalized_case, normalized_medical)
     return generator.generate()
 
