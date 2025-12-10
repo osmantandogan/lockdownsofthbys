@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formTemplatesAPI } from '../api';
+import { formTemplatesAPI, excelTemplatesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -8,13 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { 
   FileText, Plus, Edit, Trash2, Copy, Star, 
-  RefreshCw, MoreVertical, Table, FileSpreadsheet, Layout
+  RefreshCw, MoreVertical, Table, FileSpreadsheet, Layout, Upload
 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu';
 
 const FormTemplates = () => {
@@ -30,13 +31,36 @@ const FormTemplates = () => {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const response = await formTemplatesAPI.getAll({});
-      setTemplates(response.data || []);
+      // Hem form templates hem excel templates yükle
+      const [formRes, excelRes] = await Promise.all([
+        formTemplatesAPI.getAll({}),
+        excelTemplatesAPI.getAll().catch(() => ({ data: [] }))
+      ]);
+      
+      const allTemplates = [
+        ...(formRes.data || []),
+        ...(excelRes.data || []).map(t => ({ ...t, template_type: 'excel' }))
+      ];
+      
+      setTemplates(allTemplates);
     } catch (error) {
       console.error('Şablonlar yüklenemedi:', error);
       toast.error('Şablonlar yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // VAKA FORMU.xlsx dosyasını içe aktar
+  const handleImportVakaFormu = async () => {
+    try {
+      toast.info('VAKA FORMU içe aktarılıyor...');
+      await excelTemplatesAPI.importVakaFormu();
+      toast.success('VAKA FORMU başarıyla içe aktarıldı!');
+      loadTemplates();
+    } catch (error) {
+      console.error('İçe aktarma hatası:', error);
+      toast.error('İçe aktarma başarısız');
     }
   };
 
@@ -99,8 +123,47 @@ const FormTemplates = () => {
     if (activeTab === 'all') return true;
     if (activeTab === 'pdf') return t.template_type === 'pdf' || !t.template_type;
     if (activeTab === 'table') return t.template_type === 'table';
+    if (activeTab === 'excel') return t.template_type === 'excel';
     return true;
   });
+
+  // Excel şablon silme
+  const handleDeleteExcel = async (id) => {
+    if (!window.confirm('Bu Excel şablonunu silmek istediğinize emin misiniz?')) return;
+    
+    try {
+      await excelTemplatesAPI.delete(id);
+      toast.success('Excel şablonu silindi');
+      loadTemplates();
+    } catch (error) {
+      console.error('Silme hatası:', error);
+      toast.error('Excel şablonu silinemedi');
+    }
+  };
+
+  const getTemplateIcon = (type) => {
+    switch (type) {
+      case 'table': return <Table className="h-5 w-5 text-green-600" />;
+      case 'excel': return <FileSpreadsheet className="h-5 w-5 text-emerald-600" />;
+      default: return <FileText className="h-5 w-5 text-blue-600" />;
+    }
+  };
+
+  const getTemplateBadge = (type) => {
+    switch (type) {
+      case 'table': return <Badge className="bg-green-100 text-green-700">Tablo</Badge>;
+      case 'excel': return <Badge className="bg-emerald-100 text-emerald-700">Excel</Badge>;
+      default: return <Badge className="bg-blue-100 text-blue-700">PDF</Badge>;
+    }
+  };
+
+  const getTemplateEditPath = (template) => {
+    switch (template.template_type) {
+      case 'table': return `/dashboard/form-templates/table/${template.id}`;
+      case 'excel': return `/dashboard/form-templates/excel/${template.id}`;
+      default: return `/dashboard/form-templates/pdf/${template.id}`;
+    }
+  };
 
   const TemplateCard = ({ template }) => (
     <Card 
@@ -111,11 +174,7 @@ const FormTemplates = () => {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            {template.template_type === 'table' ? (
-              <Table className="h-5 w-5 text-green-600" />
-            ) : (
-              <FileText className="h-5 w-5 text-blue-600" />
-            )}
+            {getTemplateIcon(template.template_type)}
             <CardTitle className="text-base">{template.name}</CardTitle>
           </div>
           <div className="flex items-center gap-1">
@@ -124,9 +183,7 @@ const FormTemplates = () => {
                 <Star className="h-3 w-3 mr-1 fill-current" /> Varsayılan
               </Badge>
             )}
-            <Badge className={template.template_type === 'table' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}>
-              {template.template_type === 'table' ? 'Tablo' : 'PDF'}
-            </Badge>
+            {getTemplateBadge(template.template_type)}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -134,23 +191,24 @@ const FormTemplates = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate(
-                  template.template_type === 'table' 
-                    ? `/dashboard/form-templates/table/${template.id}`
-                    : `/dashboard/form-templates/pdf/${template.id}`
-                )}>
+                <DropdownMenuItem onClick={() => navigate(getTemplateEditPath(template))}>
                   <Edit className="h-4 w-4 mr-2" /> Düzenle
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDuplicate(template.id)}>
-                  <Copy className="h-4 w-4 mr-2" /> Kopyala
-                </DropdownMenuItem>
+                {template.template_type !== 'excel' && (
+                  <DropdownMenuItem onClick={() => handleDuplicate(template.id)}>
+                    <Copy className="h-4 w-4 mr-2" /> Kopyala
+                  </DropdownMenuItem>
+                )}
                 {!template.is_default && (
                   <DropdownMenuItem onClick={() => handleSetDefault(template.id)}>
                     <Star className="h-4 w-4 mr-2" /> Varsayılan Yap
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem 
-                  onClick={() => handleDelete(template.id)}
+                  onClick={() => template.template_type === 'excel' 
+                    ? handleDeleteExcel(template.id) 
+                    : handleDelete(template.id)
+                  }
                   className="text-red-600"
                 >
                   <Trash2 className="h-4 w-4 mr-2" /> Sil
@@ -160,11 +218,7 @@ const FormTemplates = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent onClick={() => navigate(
-        template.template_type === 'table' 
-          ? `/dashboard/form-templates/table/${template.id}`
-          : `/dashboard/form-templates/pdf/${template.id}`
-      )}>
+      <CardContent onClick={() => navigate(getTemplateEditPath(template))}>
         {template.description && (
           <p className="text-sm text-gray-500 mb-3">{template.description}</p>
         )}
@@ -178,13 +232,22 @@ const FormTemplates = () => {
         </div>
 
         <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>{template.page_count || 1} sayfa</span>
-          <span>
-            {template.template_type === 'table' 
-              ? `${template.rows || 0}x${template.columns || 0} hücre`
-              : `${template.blocks?.length || 0} kutucuk`
-            }
-          </span>
+          {template.template_type === 'excel' ? (
+            <>
+              <span>{template.max_row || 0} satır</span>
+              <span>{template.max_column || 0} sütun</span>
+            </>
+          ) : template.template_type === 'table' ? (
+            <>
+              <span>{template.page_count || 1} sayfa</span>
+              <span>{template.rows || 0}x{template.columns || 0} hücre</span>
+            </>
+          ) : (
+            <>
+              <span>{template.page_count || 1} sayfa</span>
+              <span>{template.blocks?.length || 0} kutucuk</span>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -202,6 +265,9 @@ const FormTemplates = () => {
           <Button variant="outline" onClick={loadTemplates}>
             <RefreshCw className="h-4 w-4 mr-1" /> Yenile
           </Button>
+          <Button variant="outline" onClick={handleImportVakaFormu}>
+            <Upload className="h-4 w-4 mr-1" /> VAKA FORMU İçe Aktar
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="bg-blue-600">
@@ -216,6 +282,11 @@ const FormTemplates = () => {
               <DropdownMenuItem onClick={() => navigate('/dashboard/form-templates/table/new')}>
                 <Table className="h-4 w-4 mr-2 text-green-600" />
                 Tablo Şablonu
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/dashboard/form-templates/excel/new')}>
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" />
+                Excel Şablonu
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -236,6 +307,10 @@ const FormTemplates = () => {
           <TabsTrigger value="table" className="flex items-center gap-2">
             <Table className="h-4 w-4" />
             Tablo ({templates.filter(t => t.template_type === 'table').length})
+          </TabsTrigger>
+          <TabsTrigger value="excel" className="flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            Excel ({templates.filter(t => t.template_type === 'excel').length})
           </TabsTrigger>
         </TabsList>
       </Tabs>

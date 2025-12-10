@@ -320,6 +320,24 @@ export const formTemplatesAPI = {
   generateTablePdf: (templateId, caseId) => api.get(`/form-templates/${templateId}/generate-pdf/${caseId}`, { responseType: 'blob' })
 };
 
+// Excel Şablonları API
+export const excelTemplatesAPI = {
+  getAll: () => api.get('/excel-templates'),
+  getById: (id) => api.get(`/excel-templates/${id}`),
+  create: (data) => api.post('/excel-templates', data),
+  update: (id, data) => api.put(`/excel-templates/${id}`, data),
+  delete: (id) => api.delete(`/excel-templates/${id}`),
+  setDefault: (id) => api.post(`/excel-templates/${id}/set-default`),
+  upload: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/excel-templates/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  importVakaFormu: () => api.post('/excel-templates/import-from-file')
+};
+
 // Şablonlu PDF Oluşturma API
 export const pdfGeneratorAPI = {
   getAvailableTemplates: (usageType = 'vaka_formu') => api.get('/pdf-template/available', { params: { usage_type: usageType } }),
