@@ -257,6 +257,19 @@ export const settingsAPI = {
   getSystemInfo: () => api.get('/settings/system')
 };
 
+// PDF Templates API
+export const pdfTemplatesAPI = {
+  getAll: (params) => api.get('/pdf-templates', { params }),
+  getById: (id) => api.get(`/pdf-templates/${id}`),
+  getDefault: (usageType) => api.get(`/pdf-templates/default/${usageType}`),
+  getBlockDefinitions: () => api.get('/pdf-templates/block-definitions'),
+  create: (data) => api.post('/pdf-templates', data),
+  update: (id, data) => api.patch(`/pdf-templates/${id}`, data),
+  delete: (id) => api.delete(`/pdf-templates/${id}`),
+  setDefault: (id) => api.post(`/pdf-templates/${id}/set-default`),
+  duplicate: (id) => api.post(`/pdf-templates/${id}/duplicate`)
+};
+
 // Forms API
 export const formsAPI = {
   submit: (data) => api.post('/forms', data),

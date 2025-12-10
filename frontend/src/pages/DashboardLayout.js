@@ -63,6 +63,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/user-management', icon: UserCog, label: 'Kullanıcı Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/staff', icon: Users, label: 'Personel Performansı', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/documents', icon: FileCog, label: 'Döküman Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
+    { path: '/dashboard/pdf-templates', icon: FileText, label: 'PDF Şablonları', roles: ['operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/archive', icon: ArchiveIcon, label: 'Form Arşivi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/notifications', icon: Bell, label: 'Bildirim Ayarları' },
     { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }

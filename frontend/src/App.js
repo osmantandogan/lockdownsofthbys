@@ -38,6 +38,8 @@ import MyLocationStock from "./pages/MyLocationStock";
 import ShiftApprovals from "./pages/ShiftApprovals";
 import MaterialRequests from "./pages/MaterialRequests";
 import VehicleLocationManagement from "./pages/VehicleLocationManagement";
+import PdfTemplates from "./pages/PdfTemplates";
+import PdfTemplateEditor from "./pages/PdfTemplateEditor";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -117,6 +119,8 @@ function App() {
             <Route path="cases/:id" element={<CaseDetail />} />
             <Route path="vehicles" element={<Vehicles />} />
             <Route path="vehicle-locations" element={<VehicleLocationManagement />} />
+            <Route path="pdf-templates" element={<PdfTemplates />} />
+            <Route path="pdf-templates/:templateId" element={<PdfTemplateEditor />} />
             <Route path="stock" element={<StockManagement />} />
             <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />

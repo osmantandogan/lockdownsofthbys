@@ -41,3 +41,6 @@ field_locations_collection = db.field_locations  # Saha lokasyonları (araç, ca
 stock_transfers_collection = db.stock_transfers  # Stok transferleri
 location_change_requests_collection = db.location_change_requests  # Lokasyon değişikliği istekleri
 vehicle_current_locations_collection = db.vehicle_current_locations  # Araçların güncel lokasyonları
+
+# YENİ: PDF Şablon Sistemi
+pdf_templates_collection = db.pdf_templates  # PDF şablonları

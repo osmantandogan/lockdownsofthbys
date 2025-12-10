@@ -1067,3 +1067,158 @@ class VehicleCurrentLocation(BaseModel):
     # Vardiya bilgisi
     shift_id: Optional[str] = None
     shift_date: Optional[datetime] = None
+
+
+# ==================== PDF ŞABLON MODELLERİ ====================
+
+# Kullanılabilir kutucuk tipleri
+PdfBlockType = Literal[
+    "hasta_zaman",          # Hasta ve Zaman Bilgileri
+    "tibbi_bilgiler",       # Tıbbi Bilgiler
+    "nakil_hastanesi",      # Nakil Hastanesi
+    "vitaller",             # Vital Bulgular
+    "klinik_gozlemler",     # Klinik Gözlemler
+    "anamnez",              # Anamnez
+    "fizik_muayene",        # Fizik Muayene
+    "uygulamalar",          # Uygulamalar/Müdahaleler
+    "genel_notlar",         # Genel Notlar
+    "ilac_malzeme",         # Kullanılan İlaç ve Malzemeler
+    "transfer_durumu",      # Transfer Durumu
+    "tasit_protokol",       # Taşıt ve Protokol Bilgileri
+    "hasta_bilgilendirme",  # Hasta Bilgilendirme Onayı
+    "hastane_reddi",        # Hastanenin Hasta Reddi
+    "hasta_reddi",          # Hastanın Hizmet Reddi
+    "teslim_imzalar",       # Teslim İmzaları
+    "resim",                # Özel Resim
+    "metin",                # Özel Metin
+    "bos"                   # Boş Alan
+]
+
+# Şablonun kullanılabileceği yerler
+PdfTemplateUsage = Literal[
+    "vaka_formu",           # Vaka Formu PDF
+    "vardiya_formu",        # Vardiya Formu PDF
+    "hasta_karti",          # Hasta Kartı PDF
+    "genel_rapor"           # Genel Rapor
+]
+
+
+class PdfBlockField(BaseModel):
+    """Kutucuk içindeki alan tanımı"""
+    field_id: str           # Alan ID'si (örn: "patient_name", "blood_pressure")
+    label: str              # Görünen etiket
+    visible: bool = True    # Görünür mü?
+    order: int = 0          # Sıralama
+
+
+class PdfBlock(BaseModel):
+    """PDF'teki bir kutucuk"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    block_type: PdfBlockType
+    title: str              # Kutucuk başlığı
+    
+    # Pozisyon ve boyut (piksel cinsinden, A4: 595x842 pt)
+    x: float = 0
+    y: float = 0
+    width: float = 280      # Varsayılan genişlik
+    height: float = 100     # Varsayılan yükseklik
+    
+    # Sayfa numarası (0-indexed)
+    page: int = 0
+    
+    # İçerik alanları (özelleştirilebilir)
+    fields: List[PdfBlockField] = Field(default_factory=list)
+    
+    # Özel içerik (metin veya resim bloğu için)
+    custom_content: Optional[str] = None
+    custom_image: Optional[str] = None  # Base64
+    
+    # Stil
+    show_border: bool = True
+    show_title: bool = True
+    font_size: int = 10
+    background_color: Optional[str] = None
+
+
+class PdfHeaderFooter(BaseModel):
+    """Üst/Alt bilgi alanı"""
+    enabled: bool = False
+    height: float = 50      # Piksel
+    
+    # İçerik
+    left_text: Optional[str] = None     # Sol metin (örn: "HEALMEDY")
+    center_text: Optional[str] = None   # Orta metin
+    right_text: Optional[str] = None    # Sağ metin (örn: tarih)
+    
+    # Logo
+    logo: Optional[str] = None          # Base64
+    logo_position: Literal["left", "center", "right"] = "left"
+    
+    # Sayfa numarası
+    show_page_number: bool = False
+    page_number_format: str = "Sayfa {current}/{total}"
+
+
+class PdfTemplate(BaseModel):
+    """PDF Şablon tanımı"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    name: str                           # Şablon adı
+    description: Optional[str] = None   # Açıklama
+    
+    # Sayfa ayarları
+    page_count: int = 1                 # Sayfa sayısı
+    page_size: Literal["A4", "A5", "Letter"] = "A4"
+    orientation: Literal["portrait", "landscape"] = "portrait"
+    
+    # Üst/Alt bilgi
+    header: PdfHeaderFooter = Field(default_factory=PdfHeaderFooter)
+    footer: PdfHeaderFooter = Field(default_factory=PdfHeaderFooter)
+    
+    # Kutucuklar
+    blocks: List[PdfBlock] = Field(default_factory=list)
+    
+    # Kullanım yeri
+    usage_types: List[PdfTemplateUsage] = Field(default_factory=list)
+    
+    # Varsayılan mı?
+    is_default: bool = False
+    
+    # Oluşturan
+    created_by: str
+    created_by_name: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Aktif mi?
+    is_active: bool = True
+
+
+class PdfTemplateCreate(BaseModel):
+    """Şablon oluşturma"""
+    name: str
+    description: Optional[str] = None
+    page_count: int = 1
+    page_size: Literal["A4", "A5", "Letter"] = "A4"
+    orientation: Literal["portrait", "landscape"] = "portrait"
+    header: Optional[PdfHeaderFooter] = None
+    footer: Optional[PdfHeaderFooter] = None
+    blocks: List[PdfBlock] = Field(default_factory=list)
+    usage_types: List[PdfTemplateUsage] = Field(default_factory=list)
+    is_default: bool = False
+
+
+class PdfTemplateUpdate(BaseModel):
+    """Şablon güncelleme"""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    page_count: Optional[int] = None
+    page_size: Optional[Literal["A4", "A5", "Letter"]] = None
+    orientation: Optional[Literal["portrait", "landscape"]] = None
+    header: Optional[PdfHeaderFooter] = None
+    footer: Optional[PdfHeaderFooter] = None
+    blocks: Optional[List[PdfBlock]] = None
+    usage_types: Optional[List[PdfTemplateUsage]] = None
+    is_default: Optional[bool] = None
+    is_active: Optional[bool] = None
