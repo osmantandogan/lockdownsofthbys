@@ -32,29 +32,48 @@ async def generate_case_pdf_with_template(
     
     # Şablonu al
     template = None
+    
+    # 1. Belirli template_id varsa onu bul
     if template_id:
-        template = await pdf_templates_collection.find_one({"_id": template_id, "is_active": True})
+        template = await pdf_templates_collection.find_one({"_id": template_id})
+        logger.info(f"Template by ID: {template_id} -> {template is not None}")
     
+    # 2. Varsayılan vaka formu şablonunu bul
     if not template:
-        # Varsayılan şablonu bul
         template = await pdf_templates_collection.find_one({
-            "usage_types": "vaka_formu",
-            "is_default": True,
-            "is_active": True
+            "$or": [
+                {"usage_types": "vaka_formu"},
+                {"usage_types": {"$in": ["vaka_formu"]}}
+            ],
+            "is_default": True
         })
+        logger.info(f"Default vaka_formu template -> {template is not None}")
     
+    # 3. Herhangi bir vaka formu şablonu
     if not template:
-        # Herhangi bir vaka formu şablonu bul
         template = await pdf_templates_collection.find_one({
-            "usage_types": "vaka_formu",
-            "is_active": True
+            "$or": [
+                {"usage_types": "vaka_formu"},
+                {"usage_types": {"$in": ["vaka_formu"]}}
+            ]
         })
+        logger.info(f"Any vaka_formu template -> {template is not None}")
+    
+    # 4. Herhangi bir şablon (son çare)
+    if not template:
+        template = await pdf_templates_collection.find_one({})
+        logger.info(f"Any template at all -> {template is not None}")
     
     if not template:
+        # Debug: Koleksiyondaki tüm şablonları listele
+        all_templates = await pdf_templates_collection.find({}).to_list(10)
+        logger.error(f"No templates found. All templates in DB: {[t.get('name') for t in all_templates]}")
         raise HTTPException(
             status_code=404, 
             detail="Kullanılabilir şablon bulunamadı. Lütfen önce bir şablon oluşturun."
         )
+    
+    logger.info(f"Using template: {template.get('name')}")
     
     try:
         # Medical form verilerini al
@@ -84,9 +103,13 @@ async def get_available_templates(request: Request, usage_type: str = "vaka_form
     """Kullanılabilir şablonları listele"""
     await get_current_user(request)
     
+    # Daha esnek sorgu
     templates = await pdf_templates_collection.find({
-        "usage_types": usage_type,
-        "is_active": True
+        "$or": [
+            {"usage_types": usage_type},
+            {"usage_types": {"$in": [usage_type]}},
+            {}  # Fallback: tüm şablonlar
+        ]
     }).to_list(100)
     
     result = []
@@ -96,8 +119,32 @@ async def get_available_templates(request: Request, usage_type: str = "vaka_form
             "name": t.get("name", ""),
             "description": t.get("description", ""),
             "is_default": t.get("is_default", False),
-            "page_count": t.get("page_count", 1)
+            "page_count": t.get("page_count", 1),
+            "usage_types": t.get("usage_types", [])
         })
     
     return result
+
+
+@router.get("/debug")
+async def debug_templates(request: Request):
+    """Debug: Tüm şablonları listele"""
+    await get_current_user(request)
+    
+    templates = await pdf_templates_collection.find({}).to_list(100)
+    
+    return {
+        "count": len(templates),
+        "templates": [
+            {
+                "id": t.get("_id"),
+                "name": t.get("name"),
+                "usage_types": t.get("usage_types"),
+                "is_default": t.get("is_default"),
+                "is_active": t.get("is_active"),
+                "blocks_count": len(t.get("blocks", []))
+            }
+            for t in templates
+        ]
+    }
 
