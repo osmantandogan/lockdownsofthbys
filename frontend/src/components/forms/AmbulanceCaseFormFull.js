@@ -106,14 +106,18 @@ const AmbulanceCaseFormFull = () => {
     date: new Date().toISOString().split('T')[0],
     atnNo: '',
     healmedyProtocol: '',
+    caseCode: '', // Vaka Kodu
     patientName: '',
     tcNo: '',
     gender: '',
     age: '',
+    // Saatler
     callTime: '',
-    arrivalTime: '',
+    arrivalSceneTime: '', // Olay Yerine Varış
+    arrivalPatientTime: '', // Hastaya Varış
     departureTime: '',
     hospitalArrivalTime: '',
+    returnStationTime: '', // İstasyona Dönüş
     phone: '',
     address: '',
     pickupLocation: '',
@@ -147,7 +151,19 @@ const AmbulanceCaseFormFull = () => {
     protocol112: '',
     hospitalProtocol: '',
     referringInstitution: '',
-    roundTrip: ''
+    roundTrip: '',
+    // Yeni Alanlar - Excel'den
+    callType: '', // Çağrı Tipi: telsiz, telefon, diger
+    callReason: '', // Çağrı Nedeni: medikal, trafik_kaza, diger_kaza, is_kazasi
+    // Hastane Reddi
+    hospitalRejectReason: '',
+    hospitalRejectName: '',
+    hospitalRejectDoctorName: '',
+    // Hasta Reddi
+    patientRejectName: '',
+    // Teslim Alan
+    receiverName: '',
+    receiverTitle: ''
   });
 
   // Kullanıcının kayıtlı imzasını yükle
@@ -241,10 +257,13 @@ const AmbulanceCaseFormFull = () => {
     try {
       // Tüm form verilerini medical_form formatında hazırla
       const medicalFormData = {
-        // Temel bilgiler
+        // İstasyon Bilgileri
         date: formData.date,
         atnNo: formData.atnNo,
         healmedyProtocol: formData.healmedyProtocol,
+        caseCode: formData.caseCode,
+        
+        // Hasta Bilgileri
         patientName: formData.patientName,
         tcNo: formData.tcNo,
         gender: formData.gender,
@@ -254,11 +273,17 @@ const AmbulanceCaseFormFull = () => {
         pickupLocation: formData.pickupLocation,
         complaint: formData.complaint,
         
-        // Saatler
+        // Saatler (Excel formatına uygun)
         callTime: formData.callTime,
-        arrivalTime: formData.arrivalTime,
+        arrivalSceneTime: formData.arrivalSceneTime,
+        arrivalPatientTime: formData.arrivalPatientTime,
         departureTime: formData.departureTime,
         hospitalArrivalTime: formData.hospitalArrivalTime,
+        returnStationTime: formData.returnStationTime,
+        
+        // Çağrı Bilgileri (Excel'den)
+        callType: formData.callType,
+        callReason: formData.callReason,
         
         // Transfer bilgileri
         transfer1: formData.transfer1,
@@ -306,13 +331,27 @@ const AmbulanceCaseFormFull = () => {
         referringInstitution: formData.referringInstitution,
         roundTrip: formData.roundTrip,
         
+        // Hastane/Hasta Reddi (Excel'den)
+        hospitalReject: {
+          reason: formData.hospitalRejectReason,
+          hospitalName: formData.hospitalRejectName,
+          doctorName: formData.hospitalRejectDoctorName
+        },
+        patientReject: {
+          name: formData.patientRejectName
+        },
+        receiver: {
+          name: formData.receiverName,
+          title: formData.receiverTitle
+        },
+        
         // Vital bulgular
         vitalSigns: vitalSigns,
         
-        // Uygulanan işlemler
+        // Uygulanan işlemler (kategorili)
         procedures: procedures,
         
-        // Transfer bilgileri (detaylı)
+        // Transfer/Sonuç bilgileri
         transfers: transfers,
         
         // İmzalar
@@ -355,57 +394,102 @@ const AmbulanceCaseFormFull = () => {
   const [procedures, setProcedures] = useState({});
   const [transfers, setTransfers] = useState({});
 
-  const proceduresList = [
-    'Maske ile hava yolu desteği',
-    'Airway ile hava yolu desteği',
-    'Entübasyon uygulaması',
-    'Nazal Entübasyon uygulaması',
-    'LMA uygulaması',
-    'Combi tüp uygulaması',
-    'Acil trakeotomi açılması',
-    'Mekanik ventilasyon',
-    'Nebulizatör ile ilaç uygulama',
-    'Oksijen inhalasyon tedavisi 1 Saat',
-    'Aspirasyon uygulaması',
-    'Ventilatör ile takip (CPAP BİPAP dahil)',
-    'Balon valf maske uygulaması',
-    'CPR uygulaması',
-    'Defibrilasyon',
-    'Kardiyoversiyon',
-    'Monitörizasyon',
-    'İnfüzyon pompası',
-    'Kanama kontrolü',
-    'Çubuk atel uygulaması',
-    'Vakum atel uygulaması',
-    'Şişme atel uygulaması',
-    'U atel uygulaması',
-    'Traksiyon atel uygulaması',
-    'Pelvis kemeri uygulaması',
-    'Sekiz bandaj uygulaması',
-    'Elastik bandaj (velpa)',
-    'Femur(vücut) traksiyonu',
-    'Eklem çıkığı kapalı redüksiyonu',
-    'Servical collar uygulama',
-    'Travma yeleği',
-    'Sırt tahtası uygulaması',
-    'Vakum sedye uygulaması'
-  ];
+  // Excel'deki tüm işlemler
+  const procedureCategories = {
+    'GENEL MÜDAHALE': [
+      'Muayene (Acil)',
+      'Ş.I. Ambulans Ücreti',
+      'Enjeksiyon IM',
+      'Enjeksiyon IV',
+      'Enjeksiyon SC',
+      'I.V. İlaç uygulaması',
+      'Damar yolu açılması',
+      'Sütür (küçük)',
+      'Mesane sondası takılması',
+      'Mide yıkanması',
+      'Pansuman (küçük)',
+      'Apse açmak',
+      'Yabancı cisim çıkartılması',
+      'Yanık pansuman (küçük)',
+      'Yanık pansuman (orta)',
+      'NG sonda takma',
+      'Kulaktan buşon temizliği',
+      'Kol atel (kısa)',
+      'Bacak atel (kısa)',
+      'Cilt traksiyonu uygulaması',
+      'Servikal collar uygulaması',
+      'Travma yeleği',
+      'Vakum sedye uygulaması',
+      'Sırt tahtası uygulaması'
+    ],
+    'DOLAŞIM DESTEĞİ': [
+      'CPR (Resüsitasyon)',
+      'EKG Uygulaması',
+      'Defibrilasyon (CPR)',
+      'Kardiyoversiyon',
+      'Monitörizasyon',
+      'Kanama kontrolü',
+      'Cut down'
+    ],
+    'SOLUNUM DESTEĞİ': [
+      'Balon Valf Maske',
+      'Aspirasyon uygulaması',
+      'Orofaringeal tüp uygulaması',
+      'Endotrakeal entübasyon',
+      'Mekanik ventilasyon (CPAP–BIPAP dahil)',
+      'Oksijen inhalasyon tedavisi'
+    ],
+    'DİĞER İŞLEMLER': [
+      'Normal doğum',
+      'Kan şekeri ölçümü',
+      'Lokal anestezi',
+      'Tırnak avülizyonu',
+      'Transkutan PaO2 ölçümü',
+      'Debritman alınması',
+      'Sütür alınması'
+    ],
+    'YENİDOĞAN İŞLEMLERİ': [
+      'Transport küvözi ile nakil',
+      'Yenidoğan canlandırma',
+      'Yenidoğan I.M. enjeksiyon',
+      'Yenidoğan I.V. enjeksiyon',
+      'Yenidoğan I.V. mayi takılması',
+      'Yenidoğan entübasyonu'
+    ],
+    'SIVI TEDAVİSİ': [
+      '%0.9 NaCl 100 cc',
+      '%0.9 NaCl 250 cc',
+      '%0.9 NaCl 500 cc',
+      '%5 Dextroz 500 cc',
+      '%20 Mannitol 500 cc',
+      'İsolyte P 500 cc',
+      'İsolyte S 500 cc',
+      '%10 Dengeleyici Elektrolit 500 cc',
+      'Laktatlı Ringer 500 cc'
+    ]
+  };
+  
+  // Geriye uyumluluk için düz liste
+  const proceduresList = Object.values(procedureCategories).flat();
 
+  // Excel'deki tüm sonuç/transfer seçenekleri
   const transferList = [
-    'Evde Muayene',
-    'Yerinde Muayene',
+    'Yerinde Müdahale',
     'Hastaneye Nakil',
     'Hastaneler Arası Nakil',
     'Tıbbi Tetkik İçin Nakil',
     'Eve Nakil',
+    'EX Yerinde Bırakıldı',
+    'EX Morga Nakil',
+    'Nakil Reddi',
+    'Diğer Ulaşılan',
+    'Görev İptali',
     'Şehirler Arası Nakil',
     'Uluslar Arası Nakil',
     'İlçe Dışı Transport',
     'İlçe İçi Transfer',
-    'EX (Yerinde Bırakıldı)',
     'Başka Araçla Nakil',
-    'Sağlık Tedbir',
-    'Diğer'
+    'Sağlık Tedbir'
   ];
 
   const gksPuani = (parseInt(formData.motorResponse) || 0) + 
@@ -432,12 +516,13 @@ const AmbulanceCaseFormFull = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>📋 Temel Bilgiler</CardTitle></CardHeader>
+        <CardHeader><CardTitle>📋 İstasyon Bilgileri</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2"><Label>Protokol No</Label><Input value={formData.healmedyProtocol} onChange={(e) => setFormData({...formData, healmedyProtocol: e.target.value})} /></div>
             <div className="space-y-2"><Label>Tarih</Label><Input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Vaka Kodu</Label><Input value={formData.caseCode} onChange={(e) => setFormData({...formData, caseCode: e.target.value})} placeholder="Örn: A1, B2" /></div>
             <div className="space-y-2"><Label>ATN No</Label><Input value={formData.atnNo} onChange={(e) => setFormData({...formData, atnNo: e.target.value})} /></div>
-            <div className="space-y-2"><Label>HealMedy Protokol</Label><Input value={formData.healmedyProtocol} onChange={(e) => setFormData({...formData, healmedyProtocol: e.target.value})} /></div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2"><Label>Adı Soyadı</Label><Input value={formData.patientName} onChange={(e) => setFormData({...formData, patientName: e.target.value})} /></div>
@@ -456,15 +541,49 @@ const AmbulanceCaseFormFull = () => {
             <div className="space-y-2"><Label>Yaşı</Label><Input type="number" value={formData.age} onChange={(e) => setFormData({...formData, age: e.target.value})} /></div>
             <div className="space-y-2"><Label>Telefon Numarası</Label><Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} /></div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2"><Label>Vaka Çağrı Saati</Label><Input type="time" value={formData.callTime} onChange={(e) => setFormData({...formData, callTime: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Vaka Varış Saati</Label><Input type="time" value={formData.arrivalTime} onChange={(e) => setFormData({...formData, arrivalTime: e.target.value})} /></div>
+          {/* SAATLER - Excel formatına uygun */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <Label className="font-semibold text-blue-800 mb-3 block">⏰ Saatler</Label>
+            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+              <div className="space-y-1"><Label className="text-xs">Çağrı Saati</Label><Input type="time" className="h-9" value={formData.callTime} onChange={(e) => setFormData({...formData, callTime: e.target.value})} /></div>
+              <div className="space-y-1"><Label className="text-xs">Olay Yerine Varış</Label><Input type="time" className="h-9" value={formData.arrivalSceneTime} onChange={(e) => setFormData({...formData, arrivalSceneTime: e.target.value})} /></div>
+              <div className="space-y-1"><Label className="text-xs">Hastaya Varış</Label><Input type="time" className="h-9" value={formData.arrivalPatientTime} onChange={(e) => setFormData({...formData, arrivalPatientTime: e.target.value})} /></div>
+              <div className="space-y-1"><Label className="text-xs">Olay Yerinden Ayrılış</Label><Input type="time" className="h-9" value={formData.departureTime} onChange={(e) => setFormData({...formData, departureTime: e.target.value})} /></div>
+              <div className="space-y-1"><Label className="text-xs">Hastaneye Varış</Label><Input type="time" className="h-9" value={formData.hospitalArrivalTime} onChange={(e) => setFormData({...formData, hospitalArrivalTime: e.target.value})} /></div>
+              <div className="space-y-1"><Label className="text-xs">İstasyona Dönüş</Label><Input type="time" className="h-9" value={formData.returnStationTime} onChange={(e) => setFormData({...formData, returnStationTime: e.target.value})} /></div>
+            </div>
           </div>
+          <div className="space-y-2"><Label>Hastanın Alındığı Adres</Label><Textarea value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} rows={2} /></div>
+          
+          {/* ÇAĞRI TİPİ ve ÇAĞRI NEDENİ - Excel formatına uygun */}
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2"><Label>Vakadan Ayrılış Saati</Label><Input type="time" value={formData.departureTime} onChange={(e) => setFormData({...formData, departureTime: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Hastaneye Varış Saati</Label><Input type="time" value={formData.hospitalArrivalTime} onChange={(e) => setFormData({...formData, hospitalArrivalTime: e.target.value})} /></div>
+            <div className="space-y-2 bg-gray-50 p-3 rounded">
+              <Label className="font-semibold">📞 Çağrı Tipi</Label>
+              <RadioGroup value={formData.callType} onValueChange={(v) => setFormData({...formData, callType: v})}>
+                <div className="flex flex-wrap gap-4">
+                  {[{v: 'telsiz', l: 'Telsiz'}, {v: 'telefon', l: 'Telefon'}, {v: 'diger', l: 'Diğer'}].map(opt => (
+                    <div key={opt.v} className="flex items-center space-x-2">
+                      <RadioGroupItem value={opt.v} id={`ct-${opt.v}`} />
+                      <Label htmlFor={`ct-${opt.v}`} className="font-normal text-sm cursor-pointer">{opt.l}</Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="space-y-2 bg-gray-50 p-3 rounded">
+              <Label className="font-semibold">🚨 Çağrı Nedeni</Label>
+              <RadioGroup value={formData.callReason} onValueChange={(v) => setFormData({...formData, callReason: v})}>
+                <div className="flex flex-wrap gap-4">
+                  {[{v: 'medikal', l: 'Medikal'}, {v: 'trafik_kaza', l: 'Trafik Kaz.'}, {v: 'diger_kaza', l: 'Diğer Kaza'}, {v: 'is_kazasi', l: 'İş Kazası'}].map(opt => (
+                    <div key={opt.v} className="flex items-center space-x-2">
+                      <RadioGroupItem value={opt.v} id={`cr-${opt.v}`} />
+                      <Label htmlFor={`cr-${opt.v}`} className="font-normal text-sm cursor-pointer">{opt.l}</Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            </div>
           </div>
-          <div className="space-y-2"><Label>Adres</Label><Textarea value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} rows={2} /></div>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2"><Label>Hastanın Alındığı Yer</Label><Input value={formData.pickupLocation} onChange={(e) => setFormData({...formData, pickupLocation: e.target.value})} /></div>
             <div className="space-y-2"><Label>Nakledildiği 1. Yer</Label><Input value={formData.transfer1} onChange={(e) => setFormData({...formData, transfer1: e.target.value})} /></div>
@@ -661,15 +780,24 @@ const AmbulanceCaseFormFull = () => {
 
       <Card>
         <CardHeader><CardTitle>💉 Yapılan Uygulamalar ve İşlemler</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {proceduresList.map((proc, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <Checkbox id={`proc-${index}`} checked={procedures[proc] || false} onCheckedChange={(checked) => setProcedures({...procedures, [proc]: checked})} />
-                <Label htmlFor={`proc-${index}`} className="text-xs font-normal cursor-pointer">{proc}</Label>
+        <CardContent className="space-y-4">
+          {Object.entries(procedureCategories).map(([category, procs]) => (
+            <div key={category} className="border rounded-lg p-3">
+              <Label className="font-semibold text-sm mb-2 block text-blue-800">{category}</Label>
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {procs.map((proc, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`proc-${category}-${index}`} 
+                      checked={procedures[proc] || false} 
+                      onCheckedChange={(checked) => setProcedures({...procedures, [proc]: checked})} 
+                    />
+                    <Label htmlFor={`proc-${category}-${index}`} className="text-xs font-normal cursor-pointer">{proc}</Label>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -706,12 +834,15 @@ const AmbulanceCaseFormFull = () => {
 
           <div className="space-y-4 border-t pt-4">
             <h3 className="font-semibold">Hastanenin Hasta Reddi</h3>
-            <div className="space-y-2"><Label>Red Nedeni</Label><Textarea rows={2} /></div>
+            <div className="space-y-2"><Label>Red Nedeni</Label><Textarea rows={2} value={formData.hospitalRejectReason} onChange={(e) => setFormData({...formData, hospitalRejectReason: e.target.value})} /></div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2"><Label>Kurumun/Hastanenin Adı</Label><Input /></div>
-              <div className="space-y-2"><Label>Hekimin Adı Soyadı</Label><Input /></div>
+              <div className="space-y-2"><Label>Kurumun/Hastanenin Adı</Label><Input value={formData.hospitalRejectName} onChange={(e) => setFormData({...formData, hospitalRejectName: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Hekimin Adı Soyadı</Label><Input value={formData.hospitalRejectDoctorName} onChange={(e) => setFormData({...formData, hospitalRejectDoctorName: e.target.value})} /></div>
             </div>
-            <SignaturePad label="Hekim İmzası" />
+            <SignaturePad 
+              label="Hekim İmzası" 
+              onSignature={(sig) => setPatientSignatures(prev => ({ ...prev, hospitalReject: sig }))}
+            />
           </div>
 
           <div className="space-y-4 border-t pt-4">
@@ -719,8 +850,11 @@ const AmbulanceCaseFormFull = () => {
             <p className="text-xs text-justify bg-red-50 p-3 rounded">
               Ambulansla gelen görevli bana hastanın hemen tedavisi / hastaneye nakli gerektiğini, aksi halde kötü sonuçlar doğurabileceğini anlayacağım şekilde ayrıntılı olarak anlattı. Buna rağmen tedaviyi /hasta naklini kabul etmiyorum.
             </p>
-            <div className="space-y-2"><Label>Hastanın/Yakınının Adı Soyadı</Label><Input placeholder="Ad Soyad" /></div>
-            <SignaturePad label="İmza" />
+            <div className="space-y-2"><Label>Hastanın/Yakınının Adı Soyadı</Label><Input value={formData.patientRejectName} onChange={(e) => setFormData({...formData, patientRejectName: e.target.value})} placeholder="Ad Soyad" /></div>
+            <SignaturePad 
+              label="İmza" 
+              onSignature={(sig) => setPatientSignatures(prev => ({ ...prev, patientReject: sig }))}
+            />
           </div>
 
           <div className="space-y-4 border-t pt-4">
@@ -732,7 +866,10 @@ const AmbulanceCaseFormFull = () => {
             )}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-3">
-                <div className="space-y-2"><Label>Hastayı Teslim Alanın Ünvanı Adı Soyadı</Label><Input /></div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <div className="space-y-2"><Label>Teslim Alanın Adı Soyadı</Label><Input value={formData.receiverName} onChange={(e) => setFormData({...formData, receiverName: e.target.value})} /></div>
+                  <div className="space-y-2"><Label>Ünvanı</Label><Input value={formData.receiverTitle} onChange={(e) => setFormData({...formData, receiverTitle: e.target.value})} /></div>
+                </div>
                 <AutoSignature 
                   label="İmza"
                   userSignature={userSignature}
@@ -855,15 +992,18 @@ const AmbulanceCaseFormFull = () => {
         <Button variant="outline" onClick={() => {
           setFormData({
             date: new Date().toISOString().split('T')[0],
-            atnNo: '', healmedyProtocol: '', patientName: '', tcNo: '', gender: '', age: '',
-            callTime: '', arrivalTime: '', departureTime: '', hospitalArrivalTime: '',
+            atnNo: '', healmedyProtocol: '', caseCode: '', patientName: '', tcNo: '', gender: '', age: '',
+            callTime: '', arrivalSceneTime: '', arrivalPatientTime: '', departureTime: '', hospitalArrivalTime: '', returnStationTime: '',
             phone: '', address: '', pickupLocation: '', transfer1: '', transfer2: '',
             complaint: '', consciousStatus: true, diagnosis: '', chronicDiseases: '',
             applications: '', isolation: [], emotionalState: '', pupils: '', skin: '',
             respiration: '', pulse: '', motorResponse: '', verbalResponse: '', eyeOpening: '',
             cprBy: '', cprStart: '', cprEnd: '', cprReason: '', companions: '',
             waitHours: '', waitMinutes: '', vehicleType: '', startKm: '', endKm: '',
-            institution: '', protocol112: '', hospitalProtocol: '', referringInstitution: '', roundTrip: ''
+            institution: '', protocol112: '', hospitalProtocol: '', referringInstitution: '', roundTrip: '',
+            callType: '', callReason: '',
+            hospitalRejectReason: '', hospitalRejectName: '', hospitalRejectDoctorName: '',
+            patientRejectName: '', receiverName: '', receiverTitle: ''
           });
           setVitalSigns([
             { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' },
@@ -871,6 +1011,7 @@ const AmbulanceCaseFormFull = () => {
             { time: '', bp: '', pulse: '', spo2: '', respiration: '', temp: '' }
           ]);
           setProcedures({});
+          setTransfers({});
           toast.success('Form temizlendi');
         }}>🗑 Temizle</Button>
         <PDFExportButton 

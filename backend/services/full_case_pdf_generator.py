@@ -179,20 +179,23 @@ def generate_full_case_pdf(case_data, medical_form):
     # 1. İSTASYON BİLGİLERİ
     draw_section_title("1. ISTASYON BILGILERI")
     draw_two_columns([
-        ("Vaka Kodu", safe_get(case_data, "case_number")),
-        ("Tarih", format_datetime(safe_get(case_data, "created_at"))),
+        ("Protokol No", safe_get(case_data, "case_number") or safe_get(medical_form, "healmedyProtocol")),
+        ("Tarih", safe_get(medical_form, "date") or format_datetime(safe_get(case_data, "created_at"))),
+        ("Vaka Kodu", safe_get(medical_form, "caseCode")),
+        ("ATN No", safe_get(medical_form, "atnNo")),
         ("112 Protokol No", safe_get(case_data, "protocol_112") or safe_get(medical_form, "protocol112")),
-        ("Plaka", safe_get(case_data, "vehicle_info", "plate") or safe_get(case_data, "vehicle", "plate")),
+        ("Plaka", safe_get(case_data, "vehicle_info", "plate") or safe_get(medical_form, "vehicleType")),
     ])
     
     # 2. SAATLER
     draw_section_title("2. SAATLER")
     draw_two_columns([
-        ("Cagri Saati", safe_get(medical_form, "callTime") or safe_get(medical_form, "timestamps", "call")),
-        ("Olay Yerine Varis", safe_get(medical_form, "arrivalTime") or safe_get(medical_form, "arrivalScene") or safe_get(medical_form, "timestamps", "scene")),
-        ("Olay Yerinden Ayrilis", safe_get(medical_form, "departureTime") or safe_get(medical_form, "departureScene") or safe_get(medical_form, "timestamps", "departure")),
-        ("Hastaneye Varis", safe_get(medical_form, "hospitalArrivalTime") or safe_get(medical_form, "arrivalHospital") or safe_get(medical_form, "timestamps", "hospital")),
-        ("Istasyona Donus", safe_get(medical_form, "returnStation") or safe_get(medical_form, "timestamps", "return")),
+        ("Cagri Saati", safe_get(medical_form, "callTime")),
+        ("Olay Yerine Varis", safe_get(medical_form, "arrivalSceneTime") or safe_get(medical_form, "arrivalTime")),
+        ("Hastaya Varis", safe_get(medical_form, "arrivalPatientTime")),
+        ("Olay Yerinden Ayrilis", safe_get(medical_form, "departureTime")),
+        ("Hastaneye Varis", safe_get(medical_form, "hospitalArrivalTime")),
+        ("Istasyona Donus", safe_get(medical_form, "returnStationTime") or safe_get(medical_form, "returnStation")),
         ("Bekleme Suresi", f"{safe_get(medical_form, 'waitHours') or '0'} saat {safe_get(medical_form, 'waitMinutes') or '0'} dk"),
     ])
     
@@ -216,11 +219,21 @@ def generate_full_case_pdf(case_data, medical_form):
     
     # 4. ÇAĞRI BİLGİLERİ
     draw_section_title("4. CAGRI BILGILERI")
+    
+    # Çağrı tipi dönüşümü
+    call_type_map = {'telsiz': 'Telsiz', 'telefon': 'Telefon', 'diger': 'Diğer'}
+    call_reason_map = {'medikal': 'Medikal', 'trafik_kaza': 'Trafik Kazası', 'diger_kaza': 'Diğer Kaza', 'is_kazasi': 'İş Kazası'}
+    
+    call_type = safe_get(medical_form, "callType")
+    call_reason = safe_get(medical_form, "callReason")
+    
     draw_two_columns([
         ("Arayan Kisi", safe_get(caller, "name")),
         ("Arayan Telefon", safe_get(caller, "phone")),
-        ("Firma/Kurum", safe_get(caller, "company_name")),
-        ("Cagri Tipi", safe_get(case_data, "call_type") or safe_get(medical_form, "callType")),
+        ("Firma/Kurum", safe_get(caller, "company_name") or safe_get(medical_form, "institution")),
+        ("Cagri Tipi", call_type_map.get(call_type, call_type) if call_type else "-"),
+        ("Cagri Nedeni", call_reason_map.get(call_reason, call_reason) if call_reason else "-"),
+        ("Vakayi Veren Kurum", safe_get(medical_form, "referringInstitution")),
     ])
     draw_field("Sikayet/Aciklama", safe_get(patient, "complaint") or safe_get(medical_form, "complaint"))
     
