@@ -582,14 +582,14 @@ const ShiftAssignments = () => {
                   Görev Lokasyonu
                 </Label>
                 <Select 
-                  value={formData.healmedy_location_id || ''} 
-                  onValueChange={(v) => setFormData(prev => ({...prev, healmedy_location_id: v}))}
+                  value={formData.healmedy_location_id || 'none'} 
+                  onValueChange={(v) => setFormData(prev => ({...prev, healmedy_location_id: v === 'none' ? '' : v}))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Lokasyon seçin (opsiyonel)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Belirtilmemiş</SelectItem>
+                    <SelectItem value="none">Belirtilmemiş</SelectItem>
                     {healmedyLocations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
                         <div className="flex items-center gap-2">

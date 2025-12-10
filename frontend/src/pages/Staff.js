@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { usersAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
-import { Users, TrendingUp, Clock, MapPin, Search } from 'lucide-react';
+import { Users, TrendingUp, Clock, MapPin, Search, Settings } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import UserManagement from './UserManagement';
 
 const Staff = () => {
+  const { user } = useAuth();
+  const canManageUsers = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
   const [staffData, setStaffData] = useState([]);
   const [filteredStaff, setFilteredStaff] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,12 +92,25 @@ const Staff = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Personel Performansı</h1>
-          <p className="text-gray-500">Tüm personelin operasyonel verileri ve analizleri</p>
+          <h1 className="text-3xl font-bold">Personel</h1>
+          <p className="text-gray-500">Personel performansı ve yönetimi</p>
         </div>
       </div>
 
-      {/* Summary Stats */}
+      <Tabs defaultValue="performance" className="w-full">
+        <TabsList className={`grid w-full max-w-md ${canManageUsers ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" /> Performans
+          </TabsTrigger>
+          {canManageUsers && (
+            <TabsTrigger value="management" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" /> Kullanıcı Yönetimi
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="performance" className="mt-6 space-y-6">
+          {/* Summary Stats */}
       <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardContent className="pt-6">
@@ -269,6 +287,14 @@ const Staff = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {canManageUsers && (
+          <TabsContent value="management" className="mt-6">
+            <UserManagement embedded={true} />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 };

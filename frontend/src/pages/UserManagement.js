@@ -14,7 +14,7 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-const UserManagement = () => {
+const UserManagement = ({ embedded = false }) => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -195,11 +195,13 @@ const UserManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Kullanıcı Yönetimi</h1>
-          <p className="text-gray-500">Kullanıcı ekle, düzenle veya sil</p>
-        </div>
-        <Button onClick={openCreateDialog}>
+        {!embedded && (
+          <div>
+            <h1 className="text-3xl font-bold">Kullanıcı Yönetimi</h1>
+            <p className="text-gray-500">Kullanıcı ekle, düzenle veya sil</p>
+          </div>
+        )}
+        <Button onClick={openCreateDialog} className={embedded ? '' : ''}>
           <Plus className="h-4 w-4 mr-2" />
           Yeni Kullanıcı
         </Button>

@@ -223,8 +223,9 @@ const CallCenter = () => {
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap'
+                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                attribution='&copy; Google Maps'
+                maxZoom={20}
               />
               <LocationPicker position={position} setPosition={setPosition} />
             </MapContainer>

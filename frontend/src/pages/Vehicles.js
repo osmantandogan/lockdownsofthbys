@@ -9,10 +9,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Truck, Plus, Edit, QrCode, Download, Trash2, AlertTriangle } from 'lucide-react';
+import { Truck, Plus, Edit, QrCode, Download, Trash2, AlertTriangle, Calendar, Clock } from 'lucide-react';
 import VehicleKmReport from './VehicleKmReport';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
+
+// Sonraki muayene tarihini hesapla (1 yıl sonra)
+const getNextInspectionDate = (lastInspection) => {
+  if (!lastInspection) return null;
+  const date = new Date(lastInspection);
+  date.setFullYear(date.getFullYear() + 1);
+  return date;
+};
+
+// Kalan gün sayısını hesapla
+const getDaysUntilInspection = (lastInspection) => {
+  const nextDate = getNextInspectionDate(lastInspection);
+  if (!nextDate) return null;
+  const today = new Date();
+  const diffTime = nextDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Muayene durumu rengini belirle
+const getInspectionStatus = (daysRemaining) => {
+  if (daysRemaining === null) return null;
+  if (daysRemaining <= 0) return { color: 'bg-red-500 text-white', label: 'Süresi Geçti!' };
+  if (daysRemaining <= 30) return { color: 'bg-red-100 text-red-700', label: `${daysRemaining} gün kaldı` };
+  if (daysRemaining <= 60) return { color: 'bg-yellow-100 text-yellow-700', label: `${daysRemaining} gün kaldı` };
+  return { color: 'bg-green-100 text-green-700', label: `${daysRemaining} gün kaldı` };
+};
 
 const Vehicles = () => {
   const { user } = useAuth();
@@ -397,6 +424,33 @@ const Vehicles = () => {
                   <span className="font-mono">{vehicle.qr_code}</span>
                 </p>
               </div>
+              
+              {/* Muayene Tarihi Uyarısı */}
+              {(() => {
+                const daysRemaining = getDaysUntilInspection(vehicle.last_inspection_date);
+                const status = getInspectionStatus(daysRemaining);
+                const nextDate = getNextInspectionDate(vehicle.last_inspection_date);
+                
+                if (status && daysRemaining !== null && daysRemaining <= 60) {
+                  return (
+                    <div className={`mt-3 p-2 rounded-lg ${status.color} flex items-center justify-between`}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-xs font-medium">Muayene</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold">{status.label}</p>
+                        {nextDate && (
+                          <p className="text-xs opacity-75">
+                            {nextDate.toLocaleDateString('tr-TR')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </CardContent>
           </Card>
         ))}
