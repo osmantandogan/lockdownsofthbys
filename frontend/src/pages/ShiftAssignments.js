@@ -33,8 +33,7 @@ const ShiftAssignments = () => {
     start_time: '08:00',
     end_time: '16:00',
     end_date: new Date().toISOString().split('T')[0],
-    is_driver_duty: false,  // Şoför görevi var mı? (ATT/Paramedik için)
-    shift_type: 'saha_24'  // Vardiya tipi: saha_24 veya ofis_8
+    is_driver_duty: false  // Şoför görevi var mı? (ATT/Paramedik için)
   });
   
   // Excel toplu yükleme state'leri
@@ -162,7 +161,7 @@ const ShiftAssignments = () => {
         setExcelResults(results);
         if (results.successful_count > 0) {
           toast.success(`${results.successful_count} atama başarıyla oluşturuldu`);
-          loadData(); // Listeyi yenile
+          loadData();
         }
         if (results.error_count > 0) {
           toast.warning(`${results.error_count} satırda hata oluştu`);
@@ -417,7 +416,7 @@ const ShiftAssignments = () => {
           <p className="text-gray-500">Vardiya atamaları ve aylık planlama</p>
         </div>
         <div className="flex gap-2">
-          {/* Excel Toplu Yükleme Butonu */}
+          {/* Excel Toplu Yükleme */}
           <Dialog open={excelDialogOpen} onOpenChange={setExcelDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -433,7 +432,6 @@ const ShiftAssignments = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                {/* Şablon İndirme */}
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <p className="text-sm text-blue-800 mb-2">
                     Önce şablon dosyasını indirin ve doldurun.
@@ -443,8 +441,6 @@ const ShiftAssignments = () => {
                     Şablon İndir
                   </Button>
                 </div>
-
-                {/* Dosya Yükleme */}
                 <div className="space-y-2">
                   <Label>Excel Dosyası Seçin</Label>
                   <Input
@@ -456,29 +452,11 @@ const ShiftAssignments = () => {
                     }}
                   />
                 </div>
-
-                {/* Yükleme Butonu */}
                 {excelFile && (
-                  <Button 
-                    onClick={handleExcelUpload} 
-                    disabled={excelUploading}
-                    className="w-full"
-                  >
-                    {excelUploading ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        Yükleniyor...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Dosyayı Yükle
-                      </>
-                    )}
+                  <Button onClick={handleExcelUpload} disabled={excelUploading} className="w-full">
+                    {excelUploading ? 'Yükleniyor...' : <><Upload className="h-4 w-4 mr-2" />Dosyayı Yükle</>}
                   </Button>
                 )}
-
-                {/* Sonuçlar */}
                 {excelResults && (
                   <div className="space-y-3 mt-4">
                     <div className="flex gap-4">
@@ -491,27 +469,11 @@ const ShiftAssignments = () => {
                         <span>{excelResults.error_count} Hatalı</span>
                       </div>
                     </div>
-
-                    {/* Başarılı Atamalar */}
-                    {excelResults.success?.length > 0 && (
-                      <div className="bg-green-50 p-3 rounded-lg max-h-32 overflow-y-auto">
-                        <p className="text-sm font-medium text-green-800 mb-1">Başarılı:</p>
-                        {excelResults.success.map((s, i) => (
-                          <p key={i} className="text-xs text-green-700">
-                            Satır {s.row}: {s.user} - {s.vehicle || 'SM'} ({s.date})
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Hatalar */}
                     {excelResults.errors?.length > 0 && (
                       <div className="bg-red-50 p-3 rounded-lg max-h-32 overflow-y-auto">
                         <p className="text-sm font-medium text-red-800 mb-1">Hatalar:</p>
                         {excelResults.errors.map((e, i) => (
-                          <p key={i} className="text-xs text-red-700">
-                            Satır {e.row}: {e.error}
-                          </p>
+                          <p key={i} className="text-xs text-red-700">Satır {e.row}: {e.error}</p>
                         ))}
                       </div>
                     )}
@@ -520,15 +482,15 @@ const ShiftAssignments = () => {
               </div>
             </DialogContent>
           </Dialog>
-
-          {/* Tek Tek Atama Butonu */}
+          
+          {/* Tek Tek Atama */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="new-assignment-button">
-                <Plus className="h-4 w-4 mr-2" />
-                Yeni Atama
-              </Button>
-            </DialogTrigger>
+          <DialogTrigger asChild>
+            <Button data-testid="new-assignment-button">
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Atama
+            </Button>
+          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Vardiya Ataması Oluştur</DialogTitle>
@@ -669,6 +631,7 @@ const ShiftAssignments = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="atamalar" className="w-full">
