@@ -68,6 +68,38 @@ PAGE_SIZES = {
 
 # Kutucuk tipinden veri çekme eşleştirmesi
 BLOCK_DATA_MAPPING = {
+    # === YILDIZLI BLOKLAR (Yeni Eklenen) ===
+    "istasyon": {
+        "protokol_112": lambda c, m: c.get("protocol_112", "") or m.get("protocol112", "") or "",
+        "tarih": lambda c, m: c.get("created_at", "").strftime("%d.%m.%Y") if hasattr(c.get("created_at", ""), "strftime") else datetime.now().strftime("%d.%m.%Y"),
+        "vaka_kodu": lambda c, m: c.get("case_number", "") or c.get("_id", "")[:8],
+        "plaka": lambda c, m: c.get("vehicle_info", {}).get("plate", "") or c.get("vehicle", {}).get("plate", "") or "",
+    },
+    "saatler": {
+        "cagri_saati": lambda c, m: m.get("callTime", "") or m.get("timestamps", {}).get("call", "") or "",
+        "olay_yerine_varis": lambda c, m: m.get("arrivalScene", "") or m.get("timestamps", {}).get("scene", "") or "",
+        "hastaya_varis": lambda c, m: m.get("arrivalPatient", "") or m.get("timestamps", {}).get("patient", "") or "",
+        "olay_yerinden_ayrilis": lambda c, m: m.get("departureScene", "") or m.get("timestamps", {}).get("departure", "") or "",
+        "hastaneye_varis": lambda c, m: m.get("arrivalHospital", "") or m.get("timestamps", {}).get("hospital", "") or "",
+        "istasyona_donus": lambda c, m: m.get("returnStation", "") or m.get("timestamps", {}).get("return", "") or "",
+    },
+    "hasta_bilgileri_detayli": {
+        "ad_soyad": lambda c, m: f"{c.get('patient', {}).get('name', '')} {c.get('patient', {}).get('surname', '')}".strip() or m.get("patientName", "") or "",
+        "tc_kimlik": lambda c, m: c.get("patient", {}).get("tc_no", "") or m.get("tcNo", "") or "",
+        "dogum_tarihi_yas": lambda c, m: f"{c.get('patient', {}).get('birth_date', '')} / {c.get('patient', {}).get('age', '')} yaş".strip(" /") or str(m.get("age", "")) or "",
+        "cinsiyet": lambda c, m: c.get("patient", {}).get("gender", "") or m.get("gender", "") or "",
+        "adres": lambda c, m: c.get("patient", {}).get("address", "") or m.get("address", "") or c.get("location", {}).get("address", "") or "",
+        "telefon": lambda c, m: c.get("patient", {}).get("phone", "") or m.get("phone", "") or c.get("caller", {}).get("phone", "") or "",
+    },
+    "hasta_durumu": {
+        "durum": lambda c, m: m.get("patient_status", "") or m.get("patientStatus", "") or m.get("status", "") or c.get("patient", {}).get("status", "") or "",
+    },
+    "kronik_hastaliklar": {
+        "kronik": lambda c, m: m.get("chronicDiseases", "") or m.get("chronic_diseases", "") or c.get("patient", {}).get("chronic_diseases", "") or "",
+    },
+    "hasta_sikayeti": {
+        "sikayet": lambda c, m: c.get("patient", {}).get("complaint", "") or m.get("complaint", "") or m.get("chief_complaint", "") or "",
+    },
     # === YENİ FORMAT BLOCK TYPES ===
     "hasta_bilgileri": {
         "tc_no": lambda c, m: c.get("patient", {}).get("tc_no", "") or m.get("tcNo", ""),

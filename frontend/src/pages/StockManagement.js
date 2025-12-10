@@ -202,6 +202,21 @@ const StockManagement = () => {
     }
   };
 
+  // Eski "Bekleme Noktası" Lokasyonlarını Temizle
+  const cleanupOldLocations = async () => {
+    setSyncingLocations(true);
+    try {
+      const response = await stockAPI.cleanupOldLocations();
+      toast.success(response.data.message);
+      loadStockLocations();
+    } catch (error) {
+      console.error('Temizleme hatası:', error);
+      toast.error('Eski lokasyonlar temizlenemedi');
+    } finally {
+      setSyncingLocations(false);
+    }
+  };
+
   // Stok Parçalama İşlemi
   const openSplitDialog = (item) => {
     setSelectedItemForSplit(item);

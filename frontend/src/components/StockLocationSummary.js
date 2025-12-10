@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   Truck, MapPin, AlertTriangle, Clock, Package, Plus, X,
   ChevronRight, AlertCircle, CheckCircle2, RefreshCw, QrCode,
-  Calendar, Hash
+  Calendar, Hash, Trash2
 } from 'lucide-react';
 
 /**
@@ -41,6 +41,7 @@ const StockLocationSummary = () => {
 
   // Yetkili roller
   const canAddLocation = ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'].includes(user?.role);
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   const loadLocations = useCallback(async () => {
     try {
@@ -110,6 +111,25 @@ const StockLocationSummary = () => {
     }
   };
 
+  // Eski "Bekleme Noktası" lokasyonlarını temizle
+  const handleCleanupOldLocations = async () => {
+    if (!window.confirm('Eski "PLAKA Bekleme Noktası" formatındaki lokasyonları silmek istediğinize emin misiniz?')) {
+      return;
+    }
+    
+    setCleaningUp(true);
+    try {
+      const response = await stockAPI.cleanupOldLocations();
+      toast.success(response.data.message);
+      loadLocations();
+    } catch (error) {
+      console.error('Temizleme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Eski lokasyonlar temizlenemedi');
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
   const getStatusBadge = (loc) => {
     if (loc.expired > 0) {
       return <Badge className="bg-red-500">Tarihi Geçmiş: {loc.expired}</Badge>;
@@ -150,14 +170,30 @@ const StockLocationSummary = () => {
           <h3 className="text-lg font-semibold">Lokasyon Bazlı Stok</h3>
           <p className="text-sm text-gray-500">Araçlar ve bekleme noktalarındaki stok durumu</p>
         </div>
-        {canAddLocation && (
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-red-600 hover:bg-red-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Lokasyon Ekle
-              </Button>
-            </DialogTrigger>
+        <div className="flex gap-2">
+          {canAddLocation && (
+            <Button 
+              variant="outline" 
+              onClick={handleCleanupOldLocations}
+              disabled={cleaningUp}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              {cleaningUp ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Eski Lokasyonları Temizle
+            </Button>
+          )}
+          {canAddLocation && (
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-red-600 hover:bg-red-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Lokasyon Ekle
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Yeni Stok Lokasyonu</DialogTitle>
@@ -201,7 +237,8 @@ const StockLocationSummary = () => {
               </div>
             </DialogContent>
           </Dialog>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Lokasyon Listesi */}

@@ -72,7 +72,10 @@ const CaseDetail = () => {
     tc_no: '',
     age: '',
     birth_date: '',
-    gender: ''
+    gender: '',
+    phone: '',
+    address: '',
+    status: ''
   });
   const [patientInfoChanged, setPatientInfoChanged] = useState(false);
   const [savingPatientInfo, setSavingPatientInfo] = useState(false);
@@ -430,7 +433,10 @@ const CaseDetail = () => {
           tc_no: caseRes.data.patient.tc_no || '',
           age: caseRes.data.patient.age || '',
           birth_date: caseRes.data.patient.birth_date || '',
-          gender: caseRes.data.patient.gender || ''
+          gender: caseRes.data.patient.gender || '',
+          phone: caseRes.data.patient.phone || caseRes.data.caller?.phone || '',
+          address: caseRes.data.patient.address || caseRes.data.location?.address || '',
+          status: caseRes.data.patient.status || ''
         });
       }
       
@@ -1605,6 +1611,46 @@ const CaseDetail = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              {/* Ek Bilgiler: Telefon, Adres, Durumu */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <Label>Telefon</Label>
+                  <Input 
+                    type="tel"
+                    value={patientInfo.phone} 
+                    onChange={(e) => handlePatientInfoChange('phone', e.target.value)}
+                    placeholder="05XX XXX XX XX"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Adres</Label>
+                  <Input 
+                    value={patientInfo.address} 
+                    onChange={(e) => handlePatientInfoChange('address', e.target.value)}
+                    placeholder="Adres"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Label>Durumu</Label>
+                <Select value={patientInfo.status} onValueChange={(value) => handlePatientInfoChange('status', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Durumu Seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="stabil">Stabil</SelectItem>
+                    <SelectItem value="kritik">Kritik</SelectItem>
+                    <SelectItem value="agir">Ağır</SelectItem>
+                    <SelectItem value="orta">Orta</SelectItem>
+                    <SelectItem value="hafif">Hafif</SelectItem>
+                    <SelectItem value="bilincsiz">Bilinçsiz</SelectItem>
+                    <SelectItem value="olum">Ölüm</SelectItem>
+                    <SelectItem value="diger">Diğer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               {/* Kaydet Butonu */}

@@ -26,6 +26,87 @@ const SCALE = 0.85;
 
 // Hazır kutucuk tanımları - Tablo editöründeki ile aynı
 const BLOCK_DEFINITIONS = [
+  // ===== YENİ BLOKLAR =====
+  {
+    id: 'istasyon',
+    name: '⭐ İSTASYON',
+    icon: MapPin,
+    color: 'bg-indigo-200 text-indigo-800 border-indigo-400',
+    fields: [
+      { field_id: 'protokol_112', label: 'Protokol No' },
+      { field_id: 'tarih', label: 'Tarih' },
+      { field_id: 'vaka_kodu', label: 'Kodu' },
+      { field_id: 'plaka', label: 'Plaka' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 80
+  },
+  {
+    id: 'saatler',
+    name: '⭐ Saatler',
+    icon: Clock,
+    color: 'bg-amber-200 text-amber-800 border-amber-400',
+    fields: [
+      { field_id: 'cagri_saati', label: 'Çağrı Saati' },
+      { field_id: 'olay_yerine_varis', label: 'Olay Yerine Varış' },
+      { field_id: 'hastaya_varis', label: 'Hastaya Varış' },
+      { field_id: 'olay_yerinden_ayrilis', label: 'Olay Yerinden Ayrılış' },
+      { field_id: 'hastaneye_varis', label: 'Hastaneye Varış' },
+      { field_id: 'istasyona_donus', label: 'İstasyona Dönüş' }
+    ],
+    defaultWidth: 350,
+    defaultHeight: 100
+  },
+  {
+    id: 'hasta_bilgileri_detayli',
+    name: '⭐ Hasta Bilgileri (Detaylı)',
+    icon: User,
+    color: 'bg-blue-200 text-blue-800 border-blue-400',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Adı Soyadı' },
+      { field_id: 'tc_kimlik', label: 'T.C. Kimlik' },
+      { field_id: 'dogum_tarihi_yas', label: 'Doğum Tarihi / Yaşı' },
+      { field_id: 'cinsiyet', label: 'Cinsiyet' },
+      { field_id: 'adres', label: 'Adres' },
+      { field_id: 'telefon', label: 'Telefon' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'hasta_durumu',
+    name: '⭐ Durumu',
+    icon: AlertCircle,
+    color: 'bg-red-200 text-red-800 border-red-400',
+    fields: [
+      { field_id: 'durum', label: 'Durumu' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 50
+  },
+  {
+    id: 'kronik_hastaliklar',
+    name: '⭐ Kronik Hastalıklar',
+    icon: Heart,
+    color: 'bg-pink-200 text-pink-800 border-pink-400',
+    fields: [
+      { field_id: 'kronik', label: 'Kronik Hastalıklar' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 60
+  },
+  {
+    id: 'hasta_sikayeti',
+    name: '⭐ Hastanın Şikayeti',
+    icon: FileText,
+    color: 'bg-teal-200 text-teal-800 border-teal-400',
+    fields: [
+      { field_id: 'sikayet', label: 'Şikayet' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 80
+  },
+  // ===== DİĞER BLOKLAR =====
   {
     id: 'hasta_bilgileri',
     name: 'Hasta Bilgileri',

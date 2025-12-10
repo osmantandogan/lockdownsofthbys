@@ -356,6 +356,9 @@ class PatientInfoUpdate(BaseModel):
     age: Optional[int] = None
     birth_date: Optional[str] = None
     gender: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    status: Optional[str] = None
 
 
 @router.patch("/{case_id}/patient")
@@ -390,6 +393,12 @@ async def update_patient_info(case_id: str, data: PatientInfoUpdate, request: Re
         update_fields["patient.birth_date"] = data.birth_date
     if data.gender is not None:
         update_fields["patient.gender"] = data.gender
+    if data.phone is not None:
+        update_fields["patient.phone"] = data.phone
+    if data.address is not None:
+        update_fields["patient.address"] = data.address
+    if data.status is not None:
+        update_fields["patient.status"] = data.status
     
     if not update_fields:
         return {"message": "Güncellenecek alan yok"}
