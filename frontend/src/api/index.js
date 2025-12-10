@@ -99,7 +99,11 @@ export const videoCallAPI = {
 export const referenceAPI = {
   searchIcdCodes: (query) => api.get('/reference/icd-codes', { params: { q: query } }),
   getHospitals: (params) => api.get('/reference/hospitals', { params }),
-  getHospitalsGrouped: () => api.get('/reference/hospitals/grouped')
+  getHospitalsGrouped: () => api.get('/reference/hospitals/grouped'),
+  // YENİ: Tüm Türkiye hastaneleri
+  getTurkeyProvinces: () => api.get('/reference/hospitals/turkey/provinces'),
+  getHospitalsByProvince: (province, type = 'all') => api.get(`/reference/hospitals/turkey/by-province/${encodeURIComponent(province)}`, { params: { hospital_type: type } }),
+  searchTurkeyHospitals: (query, province = '') => api.get('/reference/hospitals/turkey/search', { params: { q: query, province } })
 };
 
 // Vehicles API

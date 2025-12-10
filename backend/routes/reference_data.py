@@ -29,9 +29,19 @@ def load_hospitals():
         print(f"Error loading hospitals: {e}")
         return {"custom": [], "zonguldak_all": [], "all": []}
 
+def load_hospitals_turkey():
+    """Load all Turkey hospitals from JSON file"""
+    try:
+        with open(DATA_DIR / "hospitals_turkey.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading Turkey hospitals: {e}")
+        return {"provinces": [], "hospitals_by_province": {}, "total_hospitals": 0}
+
 # Cache data in memory
 ICD_CODES = load_icd_codes()
 HOSPITALS = load_hospitals()
+HOSPITALS_TURKEY = load_hospitals_turkey()
 
 @router.get("/icd-codes")
 async def search_icd_codes(
@@ -109,17 +119,103 @@ async def get_hospitals(
 @router.get("/hospitals/grouped")
 async def get_hospitals_grouped():
     """Get hospitals grouped by category for dropdown"""
+    
+    # Zonguldak hastanelerini Turkey veritabanından al
+    zonguldak_hospitals = HOSPITALS_TURKEY.get("hospitals_by_province", {}).get("Zonguldak", {})
+    zonguldak_kamu = [{"name": h["name"], "type": h["original_type"]} for h in zonguldak_hospitals.get("kamu_universite", [])]
+    zonguldak_ozel = [{"name": h["name"], "type": h["original_type"]} for h in zonguldak_hospitals.get("ozel", [])]
+    
     return {
         "healmedy": [
             {"name": "HEALMEDY Filyos Sağlık Merkezi", "type": "ÖZEL SAĞLIK MERKEZİ"},
-            {"name": "Filyos Sağlık Merkezi Saha Ambulans Bekleme Noktaları", "type": "AMBULANS NOKTASI"}
         ],
-        "ozel_hastaneler": [
-            {"name": "Özel Level Hospital", "type": "ÖZEL HASTANE"},
-            {"name": "Özel Ereğli Echomar Hastanesi", "type": "ÖZEL HASTANE"},
-            {"name": "Özel Ereğli Anadolu Hastanesi", "type": "ÖZEL HASTANE"}
+        "healmedy_bekleme_noktalari": [
+            {"name": "Osman Gazi/FPU", "type": "BEKLEME NOKTASI"},
+            {"name": "Green Zone/Rönesans", "type": "BEKLEME NOKTASI"},
+            {"name": "Batı-Kuzey/İSG BİNA", "type": "BEKLEME NOKTASI"},
+            {"name": "Red Zone/Kara Tesisleri", "type": "BEKLEME NOKTASI"},
+            {"name": "Doğu Rıhtımı", "type": "BEKLEME NOKTASI"}
         ],
-        "devlet_hastaneleri": HOSPITALS.get("zonguldak_all", []),
-        "diger_iller": "autocomplete"  # Kullanıcı aratacak
+        "zonguldak_devlet": zonguldak_kamu,
+        "zonguldak_ozel": zonguldak_ozel,
+        "diger_iller": "autocomplete",  # Kullanıcı aratacak
+        "provinces": HOSPITALS_TURKEY.get("provinces", []),
+        "total_hospitals": HOSPITALS_TURKEY.get("total_hospitals", 0)
     }
+
+
+@router.get("/hospitals/turkey/provinces")
+async def get_turkey_provinces():
+    """Tüm illeri listele"""
+    return HOSPITALS_TURKEY.get("provinces", [])
+
+
+@router.get("/hospitals/turkey/by-province/{province}")
+async def get_hospitals_by_province(province: str, hospital_type: str = "all"):
+    """
+    Belirli bir ilin hastanelerini getir
+    hospital_type: all, kamu_universite, ozel
+    """
+    hospitals_by_province = HOSPITALS_TURKEY.get("hospitals_by_province", {})
+    province_hospitals = hospitals_by_province.get(province, {})
+    
+    if hospital_type == "kamu_universite":
+        return province_hospitals.get("kamu_universite", [])
+    elif hospital_type == "ozel":
+        return province_hospitals.get("ozel", [])
+    else:
+        # Tümü
+        kamu = province_hospitals.get("kamu_universite", [])
+        ozel = province_hospitals.get("ozel", [])
+        return kamu + ozel
+
+
+@router.get("/hospitals/turkey/search")
+async def search_turkey_hospitals(
+    q: str = Query("", description="Hastane adı araması"),
+    province: str = Query("", description="İl filtresi"),
+    limit: int = Query(30, description="Maksimum sonuç sayısı")
+):
+    """
+    Tüm Türkiye hastanelerinde arama yap
+    """
+    if len(q) < 2 and not province:
+        return []
+    
+    q_lower = q.lower() if q else ""
+    results = []
+    hospitals_by_province = HOSPITALS_TURKEY.get("hospitals_by_province", {})
+    
+    # Belirli il seçildiyse sadece o ilde ara
+    provinces_to_search = [province] if province else hospitals_by_province.keys()
+    
+    for prov in provinces_to_search:
+        if prov not in hospitals_by_province:
+            continue
+            
+        prov_hospitals = hospitals_by_province[prov]
+        
+        for h in prov_hospitals.get("kamu_universite", []):
+            if q_lower in h["name"].lower():
+                results.append({
+                    "name": h["name"],
+                    "type": h["original_type"],
+                    "province": prov,
+                    "category": "kamu_universite"
+                })
+                if len(results) >= limit:
+                    return results
+        
+        for h in prov_hospitals.get("ozel", []):
+            if q_lower in h["name"].lower():
+                results.append({
+                    "name": h["name"],
+                    "type": h["original_type"],
+                    "province": prov,
+                    "category": "ozel"
+                })
+                if len(results) >= limit:
+                    return results
+    
+    return results
 

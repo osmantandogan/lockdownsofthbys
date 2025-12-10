@@ -1,0 +1,6872 @@
+{
+  "provinces": [
+    "Adana",
+    "Adıyaman",
+    "Afyonkarahisar",
+    "Aksaray",
+    "Amasya",
+    "Antalya",
+    "Ardahan",
+    "Artvin",
+    "Aydın",
+    "Ağrı",
+    "Balıkesir",
+    "Bartın",
+    "Batman",
+    "Bayburt",
+    "Bilecik",
+    "Bingöl",
+    "Bitlis",
+    "Bolu",
+    "Burdur",
+    "Bursa",
+    "Denizli",
+    "Diyarbakır",
+    "Düzce",
+    "Edirne",
+    "Elazığ",
+    "Erzincan",
+    "Erzurum",
+    "Eskişehir",
+    "Gaziantep",
+    "Giresun",
+    "Gümüşhane",
+    "Hakkâri",
+    "Hatay",
+    "Isparta",
+    "Iğdır",
+    "Kahramanmaraş",
+    "Karabük",
+    "Karaman",
+    "Kars",
+    "Kastamonu",
+    "Kayseri",
+    "Kilis",
+    "Kocaeli",
+    "Konya",
+    "Kütahya",
+    "Kırklareli",
+    "Kırıkkale",
+    "Kırşehir",
+    "Malatya",
+    "Manisa",
+    "Mardin",
+    "Mersin",
+    "Muğla",
+    "Muş",
+    "Nevşehir",
+    "Niğde",
+    "Ordu",
+    "Osmaniye",
+    "Rize",
+    "Sakarya",
+    "Samsun",
+    "Siirt",
+    "Sinop",
+    "Sivas",
+    "Tekirdağ",
+    "Tokat",
+    "Trabzon",
+    "Tunceli",
+    "Uşak",
+    "Van",
+    "Yalova",
+    "Yozgat",
+    "Zonguldak",
+    "nan",
+    "Çanakkale",
+    "Çankırı",
+    "Çorum",
+    "İstanbul",
+    "İzmir",
+    "Şanlıurfa",
+    "Şırnak"
+  ],
+  "hospitals_by_province": {
+    "Adana": {
+      "kamu_universite": [
+        {
+          "name": "Adana 5 Ocak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Adana Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Adana Şehir Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Adana Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Adana Karşıyaka Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aladağ İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ceyhan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çukurova Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Ekrem Tok Ruh Sağlığı ve Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Fatma Kemal Timuçin Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Feke İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İmamoğlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karaisalı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kozan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pozantı 80. Yıl Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Saimbeyli Şehit Uzman Çavuş Adem Ambarcı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Seyhan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tufanbeyli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yüreğir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yüreğir Karşıyaka Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başkent Üniversitesi Adana Dr. Turgut Noyan Uygulama ve Araştırma Merkezi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Başkent Üniversitesi Kışla Sağlık Yerleşkesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Başkent Üniversitesi Seyhan Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Çukurova Üniversitesi Tıp Fakültesi Balcalı Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Acıbadem Adana Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Acıbadem Ortopedia Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Adana Metro Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Adana Ortadoğu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Algomed Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Altınkoza Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Avrupa Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ceyhan Çınar Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Hastanesi Adana",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel EPC Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Era Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Güzelyalı Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicalpark Adana Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicalpark Seyhan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medline Adana Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Sezar Hospital Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "nan": {
+      "kamu_universite": [
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        },
+        {
+          "name": "nan",
+          "original_type": "Belirtilmemis"
+        }
+      ],
+      "ozel": []
+    },
+    "Adıyaman": {
+      "kamu_universite": [
+        {
+          "name": "Adıyaman Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu + Üniversite"
+        },
+        {
+          "name": "Adıyaman Gölbaşı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Besni Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çelikhan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gerger İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kahta Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kahta Göçeri Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Samsat İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sincik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tut İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Adıyaman Park Hospital",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Afyonkarahisar": {
+      "kamu_universite": [
+        {
+          "name": "Afyonkarahisar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başmakçı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bayat Dr. Mete Tan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çay Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çobanlar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dazkırı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dinar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Halil İbrahim Özsoy Bolvadin Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Emirdağ Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Evciler İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Haydarlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hocalar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İhsaniye İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İscehisar Karamehmet Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sandıklı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sinanpaşa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultandağı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şuhut Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Afyonkarahisar Sağlık Bilimleri Üniversitesi Sağlık Uygulama ve Araştırma Merkezi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Fertillife Afyon Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Afyon Fuar Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Parkhayat Afyon Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Ağrı": {
+      "kamu_universite": [
+        {
+          "name": "Ağrı Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Diyadin İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Yaşar Eryılmaz Doğubeyazıt Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eleşkirt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hamur Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Patnos Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Taşlıçay İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tutak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Lena Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mediza Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Aksaray": {
+      "kamu_universite": [
+        {
+          "name": "Ağaçören İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aksaray Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskil Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gülağaç İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güzelyurt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ortaköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıyahşi İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultanhanı Dr. Hüseyin Ağır İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Aksaray Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İnova Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Maya Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Amasya": {
+      "kamu_universite": [
+        {
+          "name": "Amasya Göynücek İlçe Entegre Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gümüşhacıköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hamamözü İlçe Entegre Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Merzifon Kara Mustafa Paşa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Suluova Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Taşova Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Amasya Üniversitesi Sabuncuoğlu Şerefeddin Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Kolmed Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Antalya": {
+      "kamu_universite": [
+        {
+          "name": "Akseki İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Antalya Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Antalya Atatürk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Antalya Döşemealtı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Antalya Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Antalya Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Demre Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Elmalı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Finike Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gazipaşa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gündoğmuş İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kaş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kemer Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kepez Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Korkuteli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kumluca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Manavgat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Serik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Akdeniz Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Alanya Alaaddin Keykubat Üniversitesi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Başkent Üniversitesi Alanya Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Akdeniz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Akdeniz Sağlık Vakfı Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Akdeniz Şifa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Alanya Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Alanya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Antalya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Aspendos Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Belek Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Kemer Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Lara Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anatolia Hospital Side Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Antalya Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Hastanesi Antalya",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Hospitadent Alanya Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Hospitadent Antalya Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kemer Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Manavgat Eslem Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Manavgat Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medi-Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Park Antalya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medikum Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medstar Antalya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medstar Topçular Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Memorial Antalya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel OFM Antalya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Olimpos Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Opera Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Rich Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Termessos Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Vitale Kadın Hastalıkları ve Doğum Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Uncalı Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Ardahan": {
+      "kamu_universite": [
+        {
+          "name": "Ardahan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Göle Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Posof Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Artvin": {
+      "kamu_universite": [
+        {
+          "name": "Ardanuç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Arhavi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Artvin Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Borçka Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hopa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Murgul Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şavşat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yusufeli Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Aydın": {
+      "kamu_universite": [
+        {
+          "name": "Aydın Atatürk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aydın Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aydın Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bozdoğan Rasim Menteşe İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Buharkent İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çine Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Didim Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Germencik İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karpuzlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Koçarlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Köşk İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kuşadası Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kuyucak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Nazilli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Söke Fehime Faik Kocagöz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultanhisar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenipazar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aydın Adnan Menderes Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Nazilli Özel Referans Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Aydın Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ege Liva Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Egemed Kuşadası Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Egemed Söke Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Gözde Kuşadası Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medinova Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Balıkesir": {
+      "kamu_universite": [
+        {
+          "name": "Ayvalık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balıkesir Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balıkesir Atatürk Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balıkesir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balıkesir Göğüs Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balya Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bandırma Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bigadiç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Burhaniye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dursunbey Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Edremit Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erdek Neyyire Sıtkı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gömeç İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gönen Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Havran Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İvrindi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kepsut İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Manyas Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Marmara Süleyman İlik İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Savaştepe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sındırgı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Susurluk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balıkesir Üniversitesi Sağlık Uygulama ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Balıkesir Sevgi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bandırma Royal Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Edremit Körfez Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İzmiryolu Sevgi Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Bartın": {
+      "kamu_universite": [
+        {
+          "name": "Amasra İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bartın Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ulus Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Aktıp Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Batman": {
+      "kamu_universite": [
+        {
+          "name": "Batman Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beşiri Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gercüş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hasankeyf Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İluh Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kozluk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sason Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Batman Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Batman Dünya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Batman Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Point Batman Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Zilan Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Bayburt": {
+      "kamu_universite": [
+        {
+          "name": "Aydıntepe İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bayburt Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Demirözü İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Bilecik": {
+      "kamu_universite": [
+        {
+          "name": "Bilecik Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bozüyük Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gölpazarı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İnhisar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Osmaneli Mustafa Selahattin Çetintaş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pazaryeri İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Söğüt Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenipazar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Bingöl": {
+      "kamu_universite": [
+        {
+          "name": "Adaklı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bingöl Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bingöl Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Genç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karlıova Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kiğı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Solhan Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Bingöl Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Bitlis": {
+      "kamu_universite": [
+        {
+          "name": "Adilcevaz Onkoloji Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ahlat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bitlis Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güroymak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hizan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mutki Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tatvan Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Tatvan Can Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Bolu": {
+      "kamu_universite": [
+        {
+          "name": "Gerede Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Göynük Şehit Ziya Sarpkaya İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İzzet Baysal Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İzzet Baysal Fizik Tedavi ve Rehabilitasyon Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İzzet Baysal Ruh Sağlığı ve Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mengen Dr. Mustafa Körpeoğlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mudurnu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yeniçağa İlçe Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "AİBÜ İzzet Baysal Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Bolu Çağsu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Fatma Hatun Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Burdur": {
+      "kamu_universite": [
+        {
+          "name": "Ağlasun İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bucak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Burdur Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çavdır İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gölhisar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karamanlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tefenni İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yeşilova Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Bursa": {
+      "kamu_universite": [
+        {
+          "name": "Ali Osman Sönmez Onkoloji Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bursa Ağız ve Diş Sağlığı Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bursa Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Büyükorhan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çekirge Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dörtçelik Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Ayten Bozkaya Spastik Çocuklar Hastanesi ve Rehabilitasyon Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gemlik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gürsu Cüneyt Yıldız Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Harmancık İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İlker Çelikcan Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İnegöl Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İnegöl Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İznik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karacabey Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Keles İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kestel Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mudanya Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mustafa Kemal Paşa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Orhaneli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Orhangazi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Bursa Yüksek İhtisas Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenişehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bursa Uludağ Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Acıbadem Bursa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Aritmi İnegöl Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Aritmi Osmangazi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Çekirge Kalp ve Aritmi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Cihangir Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Doruk Bursa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Doruk Nilüfer Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Doruk Yıldırım Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Bursa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Jimer Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicabil Nilüfer Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicabil Yıldırım Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicana Bursa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Nev Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Nev Esentepe Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel PembeMavi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Retina Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Romatem Bursa Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel VM Medical Park Bursa Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Çanakkale": {
+      "kamu_universite": [
+        {
+          "name": "Ayvacık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bayramiç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Biga Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ezine Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gelibolu Şehit Koray Onay Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gökçeada Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Lapseki Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mehmet Akif Ersoy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenice Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çanakkale Onsekiz Mart Üniversitesi Üniversite Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Biga Royal Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Çankırı": {
+      "kamu_universite": [
+        {
+          "name": "Atkaracalar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çankırı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çerkeş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ilgaz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kızılırmak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kurşunlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Orta İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şabanözü Dr. Sami Baran İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Çankırı Özel Karatekin Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Çorum": {
+      "kamu_universite": [
+        {
+          "name": "Alaca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bayat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Boğazkale İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çorum Göğüs Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dodurga İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İskilip Atıf Hoca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kargı Ahmet Hamdi Akpınar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mecitözü İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Oğuzlar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ortaköy İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Osmancık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sungurlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uğurludağ İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hitit Üniversitesi Çorum Erol Olçok Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Çorum Özel Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Elitpark Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Denizli": {
+      "kamu_universite": [
+        {
+          "name": "Acıpayam Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Buldan Göğüs Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çal Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çameli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çardak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çivril Şehit Hilmi Öz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Denizli Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Denizli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güney İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Honaz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kale Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Serinhisar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Servergazi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tavas Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pamukkale Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Denizli Özel Denipol Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Denizli Özel Odak Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Denizli Özel Sağlık Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Denizli Cerrahi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Denizli Tekden Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Egekent Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Gözakademi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Vizyongöz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Yaylalı Göz Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Diyarbakır": {
+      "kamu_universite": [
+        {
+          "name": "Bismil Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bismil Tepe Entegre Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çermik İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çınar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çüngüş İlçe Entegre Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dağkapı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dicle Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Diyarbakır Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eğil İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ergani Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gazi Yaşargil Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hani İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hazro İlçe Entegre Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kocaköy İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kulp Dr. Abdullah Biroğul İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Lice Halis Toprak Vakfı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Selahaddin Eyyubi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Silvan Dr. Yusuf Azizoğlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dicle Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Bağlar Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Batı Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bower Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Diyarlife Dağkapı Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyapark Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Genesis Hospital",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Memorial Diyarbakır Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Memorial Dicle Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Sultan Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Düzce": {
+      "kamu_universite": [
+        {
+          "name": "Atatürk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Düzce Akçakoca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gümüşova İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kaynaşlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yığılca İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Düzce Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Düzce Çağsu Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Edirne": {
+      "kamu_universite": [
+        {
+          "name": "Enez İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İpsala Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Keşan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Lalapaşa İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Meriç İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Süloğlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultan 1. Murat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultan 1. Murat Devlet Hastanesi Havsa Ünitesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uzunköprü Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Trakya Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Ekol Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Keşan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Trakya Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Elazığ": {
+      "kamu_universite": [
+        {
+          "name": "Baskil İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Elazığ Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Elazığ Arıcak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Elazığ Fethi Sekin Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Elazığ Ruh Sağlığı ve Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karakoçan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kovancılar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Maden Şehit Cengiz Erdur Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Palu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Fırat Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Elazığ Özel Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Doğu Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Elazığ Medikal Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medlines Hospital Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Erzincan": {
+      "kamu_universite": [
+        {
+          "name": "Çayırlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Fahrettin Uğur Refahiye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İliç İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kemah İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kemaliye İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Otlukbeli İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tercan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Üzümlü İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Binali Yıldırım Üniversitesi Mengücek Gazi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Neon Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Erzurum": {
+      "kamu_universite": [
+        {
+          "name": "Aşkale İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çat İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erzurum Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hınıs Şehit Yavuz Yürekseven Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Horasan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İspir İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karaçoban İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karayazı Türk Eczacıları Birliği İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Köprüköy İlçe Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Narman İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Oltu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Olur İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pasinler İbrahim Hakkı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pazaryolu Hasan Basri Demirbağ İlçe Entegre Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şenkaya İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tekman Şehit Piyade Çavuş Muhammet Binici Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tortum İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uzundere Şehit İhsan Erdoğan İlçe Entegre Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Atatürk Üniversitesi Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Buhara Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Eskişehir": {
+      "kamu_universite": [
+        {
+          "name": "Alpu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beylikova İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çifteler Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskişehir Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskişehir Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskişehir Yunus Emre Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskişehir Yunus Emre Devlet Hastanesi 2 Eylül Hizmet Binası",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Günyüzü Şehit Melih Özcan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mahmudiye İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mihalıççık Gün Sazak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sivrihisar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskişehir Osmangazi Üniversitesi Sağlık, Uygulama ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Acıbadem Eskişehir Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Eskişehir Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Gürlife Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Oldciydent Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ümit Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ümit Vişnelik Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Gaziantep": {
+      "kamu_universite": [
+        {
+          "name": "25 Aralık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Abdulkadir Yüksel Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Araban İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Cengiz Gökçek Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Ersin Arslan Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gaziantep Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İslahiye İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karkamış Şehit Fuat Oğuzcan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Nizip İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Nurdağı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Oğuzeli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şahinbey Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şehitkamil Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yavuzeli İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gaziantep Üniversite Şahinbey Araştırma ve Uygulama Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Sanko Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Anka Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Gaziantep Deva Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Gaziantep Özel Emek Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Gaziantep Özel NCR İnternational Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Liv Hospital Gaziantep Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel ADN İnternational Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bossan Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Defa Life Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Gaziantep Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Düztepe Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Gaziantep Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Göznuru Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Hatem Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kemal Bayındır Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Point Gaziantep Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel MMT Amerikan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Tam-Med Özel Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Giresun": {
+      "kamu_universite": [
+        {
+          "name": "Alucra İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bulancak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çamoluk İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dereli İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Ali Menekşe Göğüs Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Espiye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eynesil İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Giresun Prof. Dr. A. İlhan Özdemir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Görele Op. Dr. Ergun Özdemir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güce İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Piraziz İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şebinkarahisar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tirebolu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yağlıdere İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Giresun Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Giresun Kadın Doğum ve Çocuk Hastalıkları Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Giresun Ada Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Giresun Kent Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Gümüşhane": {
+      "kamu_universite": [
+        {
+          "name": "Gümüşhane Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kelkit Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Köse Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kürtün İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şiran Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Torul Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Hakkâri": {
+      "kamu_universite": [
+        {
+          "name": "Çukurca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Direcik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hakkâri Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şemdinli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yüksekova Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Hatay": {
+      "kamu_universite": [
+        {
+          "name": "Altınözü Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Arsuz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Belen Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Defne Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dörtyol Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erzin Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hassa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hatay Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İskenderun Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kırıkhan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kumlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Reyhanlı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Samandağ Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yayladağı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hatay Mustafa Kemal Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel İskenderun Gelişim Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kırıkhan Bilim Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mozaik Kadın Hastalıkları ve Doğum Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Palmiye Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Reyhanlı MMT Amerikan Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Iğdır": {
+      "kamu_universite": [
+        {
+          "name": "Aralık İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Nevruz Erez Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tuzluca İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Iğdır Medlife Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Isparta": {
+      "kamu_universite": [
+        {
+          "name": "Eğirdir Kemik Eklem Hastalıkları Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gelendost İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Isparta Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Keçiborlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şarkikaraağaç Dr. Sadettin Bilgiç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şehit Yunus Emre Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Senirkent İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sütçüler İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uluborlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yalvaç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Süleyman Demirel Üniversitesi Uygulama ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Atanur Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Davraz Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Meddem Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medikaya Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "İzmir": {
+      "kamu_universite": [
+        {
+          "name": "Eşrefpaşa Hastanesi",
+          "original_type": "Belirtilmemiş"
+        },
+        {
+          "name": "İzmir Bayraklı Şehir Hastanesi",
+          "original_type": "Belirtilmemiş"
+        },
+        {
+          "name": "İzmir Gureba-i Müslimin Hastanesi",
+          "original_type": "Belirtilmemiş"
+        },
+        {
+          "name": "Karataş Yahudi Hastanesi",
+          "original_type": "Belirtilmemiş"
+        }
+      ],
+      "ozel": []
+    },
+    "Kahramanmaraş": {
+      "kamu_universite": [
+        {
+          "name": "Afşin Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Andırın Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çağlayancerit İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Elbistan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Göksun Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kahramanmaraş Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kahramanmaraş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kahramanmaraş Ekinözü İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Necip Fazıl Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pazarcık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Türkoğlu Dr. Kemal Beyazıt Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kahramanmaraş Sütçü İmam Üniversitesi Sağlık Uygulama ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Elbistan Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Marash Life Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Markasi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Megapark Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Sular Akademi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Uğur Göz Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Karabük": {
+      "kamu_universite": [
+        {
+          "name": "Eflani İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eskipazar Entegre İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karabük Ağız ve Diş Sağlığı Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karabük Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Safranbolu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenice İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Medikar Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Karaman": {
+      "kamu_universite": [
+        {
+          "name": "Ayrancı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ermenek Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karaman Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kazımkarabekir İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıveliler İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Karaman Selçuklu Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kars": {
+      "kamu_universite": [
+        {
+          "name": "Akyaka İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Arpaçay Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Digor Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Harakani Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kağızman Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıkamış Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Selim Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Kastamonu": {
+      "kamu_universite": [
+        {
+          "name": "Abana İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Araç İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Azdavay İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bozkurt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çatalzeytin İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Cide İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Daday İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Devrekani İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Doğanyurt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hanönü İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İhsangazi İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İnebolu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kastamonu Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kastamonu Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Küre İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pınarbaşı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şenpazar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Taşköprü Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tosya Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Kastamonu Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Nefes Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kayseri": {
+      "kamu_universite": [
+        {
+          "name": "Akkışla İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bünyan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Develi Dr. Ekrem Karakaya Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Felahiye İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İncesu Arif-İsrafil-Yusuf Uçurum İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kayseri Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kayseri Pınarbaşı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kayseri Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kayseri Tomarza Yaşar Karayel Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Nimet Bayraktar Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Özvatan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıoğlan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarız İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yahyalı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yeşilhisar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erciyes Üniversitesi Tıp Fakültesi Hastaneleri",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "KANKA Çocuk Hematoloji Onkoloji ve Kemik İliği Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Mehmet Kemal Dedeman Hematoloji Onkoloji Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Mustafa Eraslan ve Fevzi Mercan Çocuk Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Semiha Kibar Organ Nakli ve Diyaliz Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Yılmaz - Mehmet Öztaşkın Kalp Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Nuh Naci Yazgan Üniversitesi Diş Hekimliği Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Hüma Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Kayseri Kızılay Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Acıbadem Kayseri Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Erciyes Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Hospitadent Kayseri Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İbni Sina Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kayseri Tekden Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Maya Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Palace Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Melikgazi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Memorial Kayseri Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Uzmandent Kayseri Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "System Hospital Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kırıkkale": {
+      "kamu_universite": [
+        {
+          "name": "Delice İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karakeçili İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Keskin İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kırıkkale Hacı Hidayet Doğruer Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sulakyurt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yüksek İhtisas Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kırıkkale Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Kırıkkale Yaşam Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kırklareli": {
+      "kamu_universite": [
+        {
+          "name": "Babaeski Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Demirköy İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kırklareli Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Lüleburgaz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pınarhisar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Vize Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Balkan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bir Nefes Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Derman Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medikent Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kırşehir": {
+      "kamu_universite": [
+        {
+          "name": "Akpınar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çiçekdağı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kaman Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kırşehir Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mucur Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Musa Gül Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kilis": {
+      "kamu_universite": [
+        {
+          "name": "Kilis Prof. Dr. Alaeddin Yavaşca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Musabeyli İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Kocaeli": {
+      "kamu_universite": [
+        {
+          "name": "Darıca Farabi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Derince Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dilovası Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gebze Fatih Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gölcük Necati Çelik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İzmit Seka Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kandıra Ecz. Kazım Dinç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karamürsel Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kocaeli Derince Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kocaeli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kocaeli Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Körfez Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kocaeli Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Büyük Anadolu Hastanesi Darıca",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Anadolu Sağlık Merkezi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Aktif İnternational Kocaeli Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Çağın Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz İzmit Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Hospitadent Kocaeli Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kocaeli Akademi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kocaeli Atakent Cihan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konak Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medar Gölcük Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicalpark Gebze Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Merkez Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Merkez Prime Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Romatem FTR Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel VM Medicalpark Gebze Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel VM Medicalpark Kocaeli Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Yüzyıl Gebze Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Konya": {
+      "kamu_universite": [
+        {
+          "name": "Akören İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Akşehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Altınekin İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beyşehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bozkır Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çeltik Şehit Jandarma Uzman Çavuş Ramazan Gülle İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Cihanbeyli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Cihanbeyli Yeniceoba İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çumra Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çumra Şehit Ahmet Elbuğa İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Derebucak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Doğanhisar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Ali Kemal Belviranlı Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Emirgazi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ereğli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güneysınır Vali İhsan Dede İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hadim Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hüyük Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ilgın Dr. Vefa Tanır Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kadınhanı Refik Saime Koyuncu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karapınar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Konya Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Konya Ereğli Ceza İnfaz Kurumu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Konya Numune Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Konya Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kulu Bölge Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kulu Ömeranlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Meram Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sağlık Birimleri Üniversitesi Beyhekim Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarayönü Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Seydişehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Taşkent İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tuzlukçu Şehit Halim Ünal İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yunak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başkent Üniversitesi Konya Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Necmettin Erbakan Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Selçuk Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Akademi Konya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Akademi Meram Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Konya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konya Anıt Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konya Büyükşehir Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konya Farabi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konyagöz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konya Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Konya Kızılay Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicana Konya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medova Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Parkhayat Akşehir Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Kütahya": {
+      "kamu_universite": [
+        {
+          "name": "Altıntaş İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aslanapa İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çavdarhisar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Domaniç İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Emet Dr. Fazıl Doğan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Evliya Çelebi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gediz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hisarcık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kütahya Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kütahya Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şaphane İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Simav Doç. Dr. İsmail Karakuyu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tavşanlı Doç. Dr. Mustafa Kalemli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yoncalı Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kütahya Sağlık Bilimleri Üniversitesi Evliya Çelebi Eğitim ve Araştırma Hastanesi Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Kütahya Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Parkhayat Kütahya Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Malatya": {
+      "kamu_universite": [
+        {
+          "name": "Akçadağ Şehir Gökhan Aslan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Arapgir Ali Özge Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Battalgazi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Darende Hulusi Efendi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Doğanşehir Şehit Esra Köse Başaran Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hekimhan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kale İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kuluncak Şehit Mehmet Ali Şekerci İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Malatya Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Malatya Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pütürge Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şehit Mehmet Kılınç Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yazihan Şehit Eyüp Hacıoğlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yeşilyurt Hasan Çalık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İnönü Üniversitesi Turgut Özal Tıp Merkezi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Divan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Malatya Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Malatya Park Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Sıtmapınarı Gözde Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Manisa": {
+      "kamu_universite": [
+        {
+          "name": "Ahmetli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Akhisar Mustafa Kirazoğlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Alaşehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Demirci Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gördes Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kırkağaç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Köprübaşı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kula Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Manisa Ruh Sağlığı ve Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Manisa Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Manisa Soma Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Merkezefendi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Salihli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıgöl Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Saruhanlı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Selendi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Turgutlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Manisa Celal Bayar Üniversitesi Hafsa Sultan Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Akhisar Doğuş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Egeumut Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Grandmedical Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medigün Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medigüneş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Salihli Can Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Salihli Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Sarıkız Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Sekiz Eylül Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Mardin": {
+      "kamu_universite": [
+        {
+          "name": "Dargeçit Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Derik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kızıltepe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mardin Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mazıdağı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Midyat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Nusaybin Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ömerli İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Savur Prof. Dr. Aziz Sancar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Cihanpol Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kızıltepe İpekyolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mardin Park Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Mersin": {
+      "kamu_universite": [
+        {
+          "name": "Anamur Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aydıncık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bozyazı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çamlıyayla İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erdemli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gülnar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mersin Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mersin Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mut Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Silifke Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tarsus Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Toros Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mersin Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Anamur Anamed Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Erdemli Yenişehir Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel IMC Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel M City Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mersin Akademi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mersin Forum Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mersin Ortadoğu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mersin Su Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mersin Vizyon Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Mersin Yenişehir Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Olbamed Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Tarsus Kadın Doğum Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Tarsus MMT Amerikan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Tarsus Ortadoğu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel VM Medical Park Mersin Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Muğla": {
+      "kamu_universite": [
+        {
+          "name": "Bodrum Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dalaman Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Datça Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Fethiye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kavaklıdere İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Köyceğiz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Marmaris Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Menteşe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Milas Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Muğla Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ortaca Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Seydikemer Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yatağan Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Acıbadem Bodrum Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ahu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bodrum Amerikan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Güney Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İzan Sağlık Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Letoon Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Lokman Hekim Esnaf Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Marmaris Yücelen Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Muğla Yücelen Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ortaca Yücelen Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Muş": {
+      "kamu_universite": [
+        {
+          "name": "Bulanık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hasköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Korkut Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Malazgirt Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Muş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Varto Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Muş Şifa Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Nevşehir": {
+      "kamu_universite": [
+        {
+          "name": "Acıgöl İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Avanos İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Derinkuyu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gülşehir İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hacıbektaş İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kozaklı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kozaklı Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Nevşehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ürgüp Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Kapadokya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Versa Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Niğde": {
+      "kamu_universite": [
+        {
+          "name": "Altunhisar İlçe Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bor Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çamardı İlçe Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çiftlik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ulukışla İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ömer Halisdemir Üniversitesi Bor Fizik Tedavi ve Rehabilitasyon Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Ömer Halisdemir Üniversitesi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Niğde Hayat Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Ordu": {
+      "kamu_universite": [
+        {
+          "name": "Akkuş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aybastı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Fatsa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gölköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gürgentepe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Korgan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kumru Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mesudiye İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ordu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Perşembe İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ulubey Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ünye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ordu Üniversitesi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Medi-Tech Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Park Ordu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ordu Sevgi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ordu Umut Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ünye Çakırtepe Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Osmaniye": {
+      "kamu_universite": [
+        {
+          "name": "Bahçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Düziçi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kadirli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Osmaniye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Toprakkale İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Kadirli Yedi Mart Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Osmaniye İbn-i Sina Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Osmaniye Park Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Osmaniye Sevgi Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Yeni Hayat Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Rize": {
+      "kamu_universite": [
+        {
+          "name": "Çamlıhemşin İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güneysu Tenzile Erdoğan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İshakoğlu Çayeli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İkizdere Hakkı Emine Ekşi İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İyidere Mukaddes Kalkavan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kaçkar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Rize Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Rize Fındıklı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Recep Tayyip Erdoğan Üniversitesi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Şar Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Sakarya": {
+      "kamu_universite": [
+        {
+          "name": "Akyazı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ferizli İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Geyve Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hendek Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karasu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kaynarca Şehit Gökhan Ayder İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kocaali İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pamukova İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sadıka Sabancı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sakarya Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sakarya Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sapanca İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Serdivan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Taraklı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenikent Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Adatıp Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Beyhekim Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bilge Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Sakarya Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İncigöz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medar Sakarya Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Samsun": {
+      "kamu_universite": [
+        {
+          "name": "19 Mayıs İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Alaçam Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Asarcık İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ayvacık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bafra Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çarşamba Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gazi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Havza Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kavak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ladik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Salıpazarı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Samsun Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Samsun Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Samsun Fiziksel Tıp ve Rehabilitasyon Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Samsun Ruh Sağlığı ve Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Terme Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Vezirköprü Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ondokuz Mayıs Üniversitesi Sağlık Uygulama ve Araştırma Merkezi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Atasam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Samsun Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Liv Hospital Samsun Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medi Bafra Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medicana International Samsun Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Meydan Büyük Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Romatem Samsun Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Samsun Büyük Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel VM Medical Park Samsun Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Siirt": {
+      "kamu_universite": [
+        {
+          "name": "Baykan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eruh Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kurtalan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pervari Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Siirt Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şirvan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Siirt Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Siirt İbn-i Sina Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Sinop": {
+      "kamu_universite": [
+        {
+          "name": "Atatürk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ayancık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Boyabat 75. Yıl Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Durağan Şehir Hakan Tanrıkulu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erfelek İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gerze Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Türkeli Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Sivas": {
+      "kamu_universite": [
+        {
+          "name": "Akıncılar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Divriği Sadık Özgür Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Doğanşar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gemerek Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gölova Kazım Ayan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gürün Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hafik Hacı Esma Kocacık İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İmranlı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kangal Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Koyulhisar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şarkışla Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sivas Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sivas Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sivas Numune Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Suşehri Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yıldızeli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Zara Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sivas Cumhuriyet Üniversitesi Uygulama ve Araştırma Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Medicana Sivas Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Şanlıurfa": {
+      "kamu_universite": [
+        {
+          "name": "Akçakale Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Balıklıgöl Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Birecik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bozova Mehmet-Enver Yıldırım Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ceylanpınar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Halfeti Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Haliliye Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Harran Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hilvan Şehit Halit Şiltak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mehmet Akif İnan Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şanlıurfa Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şanlıurfa Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Siverek Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Suruç Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Viranşehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şanlıurfa Harran Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Metrolife Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Meydan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Nev Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ruha Academia Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Şanmed Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Urfa Lotus Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Şırnak": {
+      "kamu_universite": [
+        {
+          "name": "Beytüşşebap Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Cizre Dr. Selahattin Cizrelioğlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güçlükonak İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İdil Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şehit Aydoğan Aydın Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Silopi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şırnak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uludere Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Tekirdağ": {
+      "kamu_universite": [
+        {
+          "name": "Çerkezköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çorlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. İsmail Fehmi Cumalıoğlu Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hayrabolu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kapaklı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Malkara Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Marmara Ereğlisi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Muratlı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Saray Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şarköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tekirdağ Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tekirdağ Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tekirdağ Namık Kemal Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Çorlu Reyap Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Çorlu Vatan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Dünyagöz Çorlu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İrmet Hospital Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Optimed Çerkezköy Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Optimed International Çorlu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Star Medica Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Tekirdağ Yaşam Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Vega Hospital Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Tokat": {
+      "kamu_universite": [
+        {
+          "name": "Almus Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Artova İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başçiftlik İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Cevdet Aykan Ruh Sağlığı ve Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erbaa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Niksar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pazar İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Reşadiye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sulusaray İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tokat Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Turhal Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yeşilyurt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Zile Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tokat Gaziosmanpaşa Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Medical Park Tokat Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Trabzon": {
+      "kamu_universite": [
+        {
+          "name": "Ahi Evren Göğüs Kalp ve Damar Cerrahisi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Akçaabat Haçkalı Baba Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Araklı Bayram Halil Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Arsin İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ataköy Ruh ve Sinir Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çaykara Dr. M. İlhan Durgun İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Düzköy İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Fatih Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kanuni Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Köprübaşı Vali Recep Yazıcıoğlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Maçka Ömer Burhanoğlu Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Of Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şalpazarı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sürmene Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tonya Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Trabzon Ağız ve Diş Sağlığı Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Vakfıkebir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yavuz Selim Kemik Hastalıkları ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karadeniz Teknik Üniversitesi Farabi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel 7M Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İmperial Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Park Trabzon Karadeniz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Medical Park Trabzon Yıldızlı Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Tunceli": {
+      "kamu_universite": [
+        {
+          "name": "Çemişgezek İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Hozat İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Mazgirt İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ovacık İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pertek 70. Yıl Cumhuriyet İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tunceli Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": []
+    },
+    "Uşak": {
+      "kamu_universite": [
+        {
+          "name": "Banaz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eşme Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karahallı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sivaslı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uşak Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Öztan Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Van": {
+      "kamu_universite": [
+        {
+          "name": "Bahçesaray Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başkale Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çaldıran Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çatak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erciş Şehit Rıdvan Çevik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gevaş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gürpınar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Muradiye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Özalp Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Saray Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Van Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Van Yüzüncü Yıl Üniversitesi Dursun Odabaş Tıp Merkezi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Lokman Hekim Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Lokman Hekim Van Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Van Akdamar Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Yalova": {
+      "kamu_universite": [
+        {
+          "name": "Altınova Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Armutlu İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çınarcık Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yalova Devlet Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Aktif International Çiftlikköy Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Aktif International Yalova Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Yalova Atakent Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "Yozgat": {
+      "kamu_universite": [
+        {
+          "name": "Akdağmadeni Şehit Sinan Babacan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Aydıncık İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Boğazlıyan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çandır İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çayıralan İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çekerek Şehit Harun Koçak Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Saraykent Şehit Beytullah Yeşilay İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıkata Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şefaatli Şehit Osman Belkaya Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sorgun Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yenifakılı İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yerköy Şehit Korgeneral Osman Erbaş Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yozgat Kadışehri İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yozgat Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yozgat Bozok Üniversitesi Sağlık Uygulama ve Araştırma Merkezi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": []
+    },
+    "Zonguldak": {
+      "kamu_universite": [
+        {
+          "name": "Alaplı Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Atatürk Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çaycuma Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Devrek Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gökçebey İlçe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Karadeniz Ereğli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Uzunmehmet Göğüs ve Meslek Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Zonguldak Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Zonguldak Bülent Ecevit Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Özel Echomar Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Ereğli Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Level Hospital Hastanesi",
+          "original_type": "Özel"
+        }
+      ]
+    },
+    "İstanbul": {
+      "kamu_universite": [
+        {
+          "name": "Arnavutköy Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Avcılar Murat Kölük Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başakşehir Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bahçelievler Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bayrampaşa Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beşiktaş Sait Çiftçi Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beykoz Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Büyükçekmece Mimar Sinan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çatalca İlyas Çokay Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Esenyurt Necmi Kadıoğlu Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Eyüpsultan Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İstinye Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kağıthane Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Küçükçekmece Kanuni Sultan Süleyman Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Maltepe Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Pendik Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Tuzla Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Silivri Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Esenler Kadın Doğum ve Çocuk Hastalıkları Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultanbeyli Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Şile Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Üsküdar Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beylikdüzü Devlet Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Bağcılar Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Prof. Dr. Mazhar Osman Ruh ve Sinir Hastalıkları Eğitim ve Araştırma Hastanesi, Bakırköy",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Bakırköy Dr. Sadi Konuk Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Metin Sabancı Baltalimanı Kemik Hastalıkları Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Erenköy Ruh ve Sinir Hastalıkları Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Fatih Sultan Mehmet Eğitim ve Araştırma Hastanesi, Ataşehir",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Gaziosmanpaşa Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Haseki Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Haydarpaşa Numune Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. İstanbul Fizik Tedavi, Rehabilitasyon Eğitim ve Araştırma Hastanesi, Bahçelievler",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. İstanbul Eğitim ve Araştırma Hastanesi, Cerrahpaşa",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Kanuni Sultan Süleyman Eğitim ve Araştırma Hastanesi, Küçükçekmece",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Kartal Koşuyolu Yüksek İhtisas Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Medeniyet Üniversitesi Göztepe Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Mehmet Akif Ersoy Göğüs Kalp Damar Cerrahisi Eğitim ve Araştırma Hastanesi, Küçükçekmece",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Dr. Siyami Ersek Göğüs Kalp ve Damar Cerrahisi Eğitim ve Araştırma Hastanesi, Haydarpaşa",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Süreyyapaşa Göğüs Hastalıkları ve Göğüs Cerrahisi Eğitim ve Araştırma Hastanesi, Maltepe",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sarıyer Hamidiye Eftal Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Şişli Hamidiye Etfal Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Taksim Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yakacık Doğum ve Çocuk Hastalıkları Hastanesi, Kartal",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Yedikule Göğüs Hastalıkları ve Göğüs Cerrahisi Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Zeynep Kamil Kadın ve Çocuk Hastalıkları Eğitim ve Araştırma Hastanesi, Üsküdar",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "S.B.Ü. Ümraniye Eğitim ve Araştırma Hastanesi, Ümraniye",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Marmara Üniversitesi Pendik Eğitim ve Araştırma Hastanesi, Pendik",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sancaktepe Dr. İlhan Varank Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Başakşehir Çam ve Sakura Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kartal Dr. Lütfi Kırdar Şehir Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Prof. Dr. Cemil Taşcıoğlu Şehir Hastanesi, Okmeydanı",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Dr. Süleyman Yalçın Şehir Hastanesi, Göztepe (Kadıköy)",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Lepra Deri ve Zührevi Hastalıkları Hastanesi, Bakırköy",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İstanbul Meslek Hastalıkları Hastanesi, Kartal",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Erenköy Fizik Tedavi ve Rehabilitasyon Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sancaktepe Prof. Dr. Feriha Öz Acil Durum Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Yeşilköy Prof. Dr. Murat Dilmener Acil Durum Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ahmet Yüksel Özemre Ağız ve Diş Sağlığı Merkezi, Üsküdar",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Ataşehir Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Bağcılar Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Beykoz Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Çekmeköy Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Göztepe Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Güngören Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Küçükçekmece Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kartal Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Okmeydanı Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sancaktepe Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Sultanbeyli Ağız ve Diş Sağlığı Merkezi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Acıbadem Üniversitesi Atakent Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Altınbaş Üniversitesi Medical Park Bahçelievler Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Bahçeşehir Üniversitesi Medical Park Göztepe Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Başkent Üniversitesi İstanbul Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Bezmiâlem Vakıf Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Biruni Üniversite Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "İstanbul Aydın Üniversitesi VM Medical Park Florya Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "İstanbul Üniversitesi Cerrahpaşa Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "İstanbul Üniversitesi İstanbul Tıp Fakültesi Hastanesi (Çapa)",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "İstinye Üniversitesi Medical Park Gaziosmanpaşa Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "İstinye Üniversitesi Liv Hospital, Bahçeşehir",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Maltepe Üniversitesi Tıp Fakültesi Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Medipol Mega Üniversite Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Koç Üniversitesi Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Yeditepe Üniversitesi Göz Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Yeditepe Üniversitesi Diş Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Yeditepe Üniversitesi Koşuyolu Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "Yeditepe Üniversitesi Kozyatağı Hastanesi",
+          "original_type": "Üniversite"
+        },
+        {
+          "name": "İstanbul Sultan Abdülhamid Han Eğitim ve Araştırma Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Gümüşsuyu Askeri Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "Kasımpaşa Deniz Hastanesi",
+          "original_type": "Kamu"
+        },
+        {
+          "name": "İstanbul Çamlıca Askeri Hastanesi",
+          "original_type": "Kamu"
+        }
+      ],
+      "ozel": [
+        {
+          "name": "Academic Hospital, Altunizade",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Lokman Hekim İstanbul Hastanesi, Kurtköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Aile Hastanesi, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem Hastanesi, Bakırköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem Hastanesi, Fulya",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem Hastanesi, Kadıköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem Hastanesi, Kozyatağı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem Hastanesi, Maslak",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem Hastanesi, Taksim",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Elitium Hastanesi, Avcılar 7",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Acıbadem International Hospital, Yeşilköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Akça Hastanesi, Fatih",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Aksaray Vatan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Aksoy Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Alman Hastanesi, Taksim",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Amerikan Hastanesi (American Hospital), Nişantaşı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Anadolu Hastanesi, Üsküdar",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Ataköy Hastanesi, Yenibosna",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avcılar Anadolu Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avcılar Candan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avcılar Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Haliç Üniversitesi Tıp Fakültesi Hastanesi - Avcılar Hospital",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avicenna Hastanesi, Esenler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avicenna Hastanesi, Ataşehir",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avrasya Hospital, Sultangazi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avrasya Hospital, Zeytinburnu",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avrupa Hastanesi, Mecidiyeköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avrupa Cerrahi, Bakırköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Avusturya Saint George Hastanesi, Karaköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Bağcılar Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bahat Hospital Sultangazi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bahçelievler Ömür Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bakırköy Ömür Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Balat Or-Ahayim Musevi Hastanesi, Fatih",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Balıklı Rum Hastanesi, Zeytinburnu",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Balkan Hastanesi, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bayındır Hastanesi İçerenköy, Ataşehir",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bayrampaşa Göz Hastanesi, Eyüpsultan",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Beşyüzevler Hayat Hastanesi, Bayrampaşa",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Birincigöz Hastanesi, Beylikdüzü",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Birinci Hastanesi, Beylikdüzü",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Biruni Üniversite Hastanesi, Sefaköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Biruni Üniversitesi Diş Hastanesi, Topkapı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bilge Hastanesi, Gaziosmanpaşa",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Bilgi Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Büyük Anadolu Hastanesi, Şirinevler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Büyükçekmece Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Can Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Can Özel Sağlık Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Central Hospital, Kozyatağı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çağıner Hastanesi, Kadıköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çamlıca Hayat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çamlıca Ömür Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çamlık Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çapa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çapa Millet Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Çevre Hastanesi, Mecidiyeköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Acarkent",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Ataşehir",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Bağdat Caddesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Çekmeköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Göztepe",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Kids Diş Hastanesi, Caddebostan",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Maltepe",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Maslak",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Nişantaşı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "DentGroup Diş Hastanesi, Yenibosna",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Diyabet Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Dora Hospital, Kağıthane",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Doğan Hastanesi, Küçükçekmece",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Doğaner Hastanesi, Fatih",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Dragos Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Dragos Şifa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Dünya Göz Hastanesi, 1. Levent",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Düzey Göz Merkezi - Avcılar",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Erdem Hastanesi, Ümraniye",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Eren Hastanesi, Ataşehir",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Esnaf Hastanesi, Eminönü",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Fatih Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Fatih Tıp Merkezi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Ferihan Laçin Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Fertijin Kadın Hastalıkları ve Doğum Merkezi, Nişantaşı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Florence Nightingale Avrupa Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Florence Nightingale Hastanesi, Çağlayan",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Florence Nightingale Metropolitan Hastanesi, Gayrettepe",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Gaziosmanpaşa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Gelişim Hastanesi, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Göksoy Hastanesi, Kadıköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Göz Nurunu Koruma Vakfı Bayrampaşa Göz Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Göz Sağlığı Merkezi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Güzelbahçe Hastanesi, Nişantaşı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Halkalı Kent Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hattat Hastanesi, 3. Levent",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitadent Diş Hastanesi, Bakırköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitadent Diş Hastanesi, Fatih",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitadent Diş Hastanesi, Mecidiyeköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitadent Diş Hastanesi, Çamlıca",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitadent Diş Hastanesi, Pendik",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitadent Diş Hastanesi, Bağcılar",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hospitalist Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Haznedar Hastanesi, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Haznedar Ömür Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hisar Intercontinental Hospital, Ümraniye",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hisar Hospital, Çamlıca",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Hizmet Hastanesi, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Huzur Hastanesi, Fatih",
+          "original_type": "Özel"
+        },
+        {
+          "name": "İncirli Hastanesi, Bakırköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "İstanbul Diş Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İstanbul Hospital, İkitelli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "İtalyan Hastanesi, Tophane",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Ota-Jinemed Hospital, Beşiktaş",
+          "original_type": "Özel"
+        },
+        {
+          "name": "John F. Kennedy Hospital, Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Kadıköy Şifa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Kadıköy Vatan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Kadıoğlu Hastanesi, Mecidiyeköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Kolan Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Kolan Hastanesi, Beylikdüzü",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Lape Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Levent Hastanesi, 4. Levent",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Lifemed Tıp Merkezi, Kadıköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Liv Hospital, Ulus",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Marmara Hastanesi, Maltepe",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medicalist Cerrahi Tıp Merkezi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medicana Beylikdüzü Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medicana Bahçelievler Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medicine Hospital, Bağcılar",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medipol Mega Hastanesi Bağcılar",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medipol Hastanesi Bahçelievler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medipol Hastanesi Sefaköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medipol Hastanesi Pendik",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medipol Hastanesi Çamlıca",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Medistate Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Megadent Ağız ve Diş Sağlığı Kurumları",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Memorial Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Merter Vatan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Meyan Hastanesi, Kozyatağı",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Nisa Hastanesi, Yenibosna",
+          "original_type": "Özel"
+        },
+        {
+          "name": "NPİSTANBUL Beyin Hastanesi, Ümraniye",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Okmeydanı Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Ortadoğu Hastanesi, Kartal",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Akgün Tem Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Avusturya Sen Jorj Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Çapa Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Göztepe Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Güngören Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel İkitelli Bahat Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kartal Hospital, Kartal",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Kurtköy Tıp Merkezi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Pendik Bölge Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Prodenta Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Umut Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Safa Hastanesi Yenibosna",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Sanita Diş Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Saygı Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Sema Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Seyfi Basa Çocuk Hastanesi, Kadıköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Surp Agop Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Surp Pırgiç Ermeni Hastanesi, Kazlıçeşme",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Şafak Hastanesi, Gaziosmanpaşa",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Tekden Özel Hastane, İkitelli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Tem Hospital, İkitelli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Tepebaşı Vatan Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Tosunoğlu Hastanesi, Şenesenevler",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Türkiye Gazetesi Hastanesi, Şişli",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Üsküdar Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Vatan Hastanesi, Aksaray",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Yaşar Hastanesi, Bakırköy",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Yeni Bosna Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Yeni Ufuk Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Yeşil Bahar Hastanesi, Çiftehavuzlar",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Yunus Emre Hastanesi",
+          "original_type": "Özel"
+        },
+        {
+          "name": "ERKA Hastanesi, Gaziosmanpaşa",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Asya Hastanesi, Gaziosmanpaşa",
+          "original_type": "Özel"
+        },
+        {
+          "name": "Özel Başarı Hastanesi, Gaziosmanpaşa",
+          "original_type": "Özel"
+        }
+      ]
+    }
+  },
+  "total_hospitals": 1578,
+  "total_provinces": 81
+}

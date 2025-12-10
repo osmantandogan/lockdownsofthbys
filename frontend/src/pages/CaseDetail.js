@@ -847,7 +847,7 @@ const CaseDetail = () => {
     }
   };
   
-  // Hospital search
+  // Hospital search - Tüm Türkiye
   const searchHospitals = async (query) => {
     if (!query || query.length < 2) {
       setHospitalResults([]);
@@ -855,10 +855,18 @@ const CaseDetail = () => {
     }
     
     try {
-      const response = await referenceAPI.getHospitals({ q: query });
+      // Önce yeni Türkiye API'sini dene
+      const response = await referenceAPI.searchTurkeyHospitals(query);
       setHospitalResults(response.data);
     } catch (error) {
       console.error('Error searching hospitals:', error);
+      // Fallback: eski API
+      try {
+        const fallback = await referenceAPI.getHospitals({ q: query });
+        setHospitalResults(fallback.data);
+      } catch (e) {
+        console.error('Fallback also failed:', e);
+      }
     }
   };
   
@@ -1791,21 +1799,69 @@ const CaseDetail = () => {
               <CardTitle className="flex items-center space-x-2 text-lg">
                 <Building2 className="h-5 w-5" />
                 <span>Nakil Hastanesi</span>
+                {hospitalsGrouped?.total_hospitals && (
+                  <Badge variant="secondary" className="ml-2 bg-white/20 text-white">
+                    {hospitalsGrouped.total_hospitals} hastane
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               {hospitalsGrouped && (
-                <div className="grid gap-4 lg:grid-cols-3">
+                <div className="grid gap-4 lg:grid-cols-4">
+                  {/* HEALMEDY + Bekleme Noktaları */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-emerald-700">🏥 HEALMEDY</Label>
+                      <div className="space-y-1 mt-2">
+                        {hospitalsGrouped.healmedy?.map((h, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => selectHospital(h)}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
+                              medicalForm.transfer_hospital?.name === h.name
+                                ? 'bg-emerald-100 border-emerald-500 text-emerald-800'
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            {h.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Sabit Bekleme Noktaları */}
+                    <div>
+                      <Label className="text-sm font-semibold text-amber-700">📍 Bekleme Noktaları</Label>
+                      <div className="space-y-1 mt-2">
+                        {hospitalsGrouped.healmedy_bekleme_noktalari?.map((h, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => selectHospital(h)}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
+                              medicalForm.transfer_hospital?.name === h.name
+                                ? 'bg-amber-100 border-amber-500 text-amber-800'
+                                : 'hover:bg-amber-50 border-amber-200'
+                            }`}
+                          >
+                            {h.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Zonguldak Devlet/Üniversite Hastaneleri */}
                   <div>
-                    <Label className="text-sm font-semibold text-emerald-700">HEALMEDY</Label>
-                    <div className="space-y-1 mt-2">
-                      {hospitalsGrouped.healmedy?.map((h, idx) => (
+                    <Label className="text-sm font-semibold text-purple-700">🏛️ Zonguldak Devlet</Label>
+                    <div className="space-y-1 mt-2 max-h-[250px] overflow-y-auto">
+                      {hospitalsGrouped.zonguldak_devlet?.map((h, idx) => (
                         <button
                           key={idx}
                           onClick={() => selectHospital(h)}
                           className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
                             medicalForm.transfer_hospital?.name === h.name
-                              ? 'bg-emerald-100 border-emerald-500 text-emerald-800'
+                              ? 'bg-purple-100 border-purple-500 text-purple-800'
                               : 'hover:bg-gray-50'
                           }`}
                         >
@@ -1815,10 +1871,11 @@ const CaseDetail = () => {
                     </div>
                   </div>
                   
+                  {/* Zonguldak Özel Hastaneler */}
                   <div>
-                    <Label className="text-sm font-semibold text-blue-700">Özel Hastaneler</Label>
-                    <div className="space-y-1 mt-2">
-                      {hospitalsGrouped.ozel_hastaneler?.map((h, idx) => (
+                    <Label className="text-sm font-semibold text-blue-700">🏥 Zonguldak Özel</Label>
+                    <div className="space-y-1 mt-2 max-h-[250px] overflow-y-auto">
+                      {hospitalsGrouped.zonguldak_ozel?.map((h, idx) => (
                         <button
                           key={idx}
                           onClick={() => selectHospital(h)}
@@ -1834,67 +1891,75 @@ const CaseDetail = () => {
                     </div>
                   </div>
                   
+                  {/* Diğer İller Arama */}
                   <div>
-                    <Label className="text-sm font-semibold text-purple-700">Zonguldak Devlet Hastaneleri</Label>
-                    <div className="space-y-1 mt-2 max-h-[200px] overflow-y-auto">
-                      {hospitalsGrouped.devlet_hastaneleri?.map((h, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => selectHospital(h)}
-                          className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
-                            medicalForm.transfer_hospital?.name === h.name
-                              ? 'bg-purple-100 border-purple-500 text-purple-800'
-                              : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          {h.name}
-                        </button>
-                      ))}
+                    <Label className="text-sm font-semibold text-gray-700">🔍 Tüm Türkiye ({hospitalsGrouped.total_hospitals} hastane)</Label>
+                    <div className="relative mt-2">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Hastane veya il adı..."
+                        className="pl-10"
+                        value={hospitalSearch}
+                        onChange={(e) => {
+                          setHospitalSearch(e.target.value);
+                          searchHospitals(e.target.value);
+                        }}
+                        disabled={!canEditForm}
+                      />
+                      
+                      {hospitalResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {hospitalResults.map((h, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => selectHospital(h)}
+                              className="w-full px-4 py-2 text-left hover:bg-blue-50 border-b last:border-b-0"
+                            >
+                              <div className="font-medium text-sm">{h.name}</div>
+                              <div className="text-xs text-gray-500">
+                                {h.province && `${h.province} • `}
+                                {h.type || h.category}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* İl Bazlı Hızlı Erişim */}
+                    {hospitalsGrouped.provinces && (
+                      <div className="mt-3">
+                        <Label className="text-xs text-gray-500">İl seçin:</Label>
+                        <Select onValueChange={async (province) => {
+                          try {
+                            const res = await referenceAPI.getHospitalsByProvince(province);
+                            setHospitalResults(res.data.map(h => ({...h, province})));
+                          } catch (e) { console.error(e); }
+                        }}>
+                          <SelectTrigger className="h-8 mt-1">
+                            <SelectValue placeholder="İl seçin..." />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60">
+                            {hospitalsGrouped.provinces.map((prov) => (
+                              <SelectItem key={prov} value={prov}>{prov}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
               
-              <Separator />
-              
-              <div>
-                <Label>Diğer İller (Arama)</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Hastane adı yazın..."
-                    className="pl-10"
-                    value={hospitalSearch}
-                    onChange={(e) => {
-                      setHospitalSearch(e.target.value);
-                      searchHospitals(e.target.value);
-                    }}
-                    disabled={!canEditForm}
-                  />
-                  
-                  {hospitalResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {hospitalResults.map((h, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => selectHospital(h)}
-                          className="w-full px-4 py-2 text-left hover:bg-blue-50"
-                        >
-                          <div className="font-medium">{h.name}</div>
-                          <div className="text-xs text-gray-500">{h.il} - {h.ilce}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
               {medicalForm.transfer_hospital && (
-                <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                <div className="p-4 bg-teal-50 rounded-lg border border-teal-200 mt-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-teal-800">{medicalForm.transfer_hospital.name}</p>
-                      <p className="text-sm text-teal-600">{medicalForm.transfer_hospital.type}</p>
+                      <p className="text-sm text-teal-600">
+                        {medicalForm.transfer_hospital.type}
+                        {medicalForm.transfer_hospital.province && ` • ${medicalForm.transfer_hospital.province}`}
+                      </p>
                     </div>
                     {canEditForm && (
                       <Button variant="ghost" size="sm" onClick={() => updateFormField('transfer_hospital', null)} className="text-red-500 hover:text-red-700">
