@@ -22,8 +22,16 @@ import {
   Shield, 
   Loader2,
   AlertTriangle,
-  FileText
+  FileText,
+  Camera,
+  Sparkles,
+  CornerUpLeft,
+  CornerUpRight,
+  CornerDownLeft,
+  CornerDownRight
 } from 'lucide-react';
+import PhotoCapture from '../components/PhotoCapture';
+import SignaturePad from '../components/SignaturePad';
 
 const ShiftEnd = () => {
   const navigate = useNavigate();
@@ -59,6 +67,20 @@ const ShiftEnd = () => {
   // Dialog
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalDialogType, setApprovalDialogType] = useState('receiver');
+  
+  // YENİ: Hızlı doldurma ve 4 köşe fotoğraf (ATT/Paramedik için)
+  const [quickCheckout, setQuickCheckout] = useState(false);
+  const [endPhotos, setEndPhotos] = useState({
+    rear_cabin_corner_1: null, // Sol-ön köşe
+    rear_cabin_corner_2: null, // Sağ-ön köşe
+    rear_cabin_corner_3: null, // Sol-arka köşe
+    rear_cabin_corner_4: null  // Sağ-arka köşe
+  });
+  const [endSignature, setEndSignature] = useState(null);
+  
+  // Rol kontrolü
+  const isATTOrParamedik = ['att', 'paramedik'].includes(user?.role?.toLowerCase());
+  const isDriver = user?.role?.toLowerCase() === 'sofor';
 
   useEffect(() => {
     loadData();
@@ -207,6 +229,15 @@ const ShiftEnd = () => {
   const handleEndShift = async () => {
     if (!activeShift) return;
 
+    // ATT/Paramedik için fotoğraf kontrolü
+    if (isATTOrParamedik) {
+      const photoCount = Object.values(endPhotos).filter(Boolean).length;
+      if (photoCount < 4) {
+        toast.error(`Lütfen 4 köşe fotoğrafını çekin (${photoCount}/4)`);
+        return;
+      }
+    }
+
     // Onay kontrolleri
     if (nextShiftUser && !receiverApproved) {
       toast.error('Önce teslim alan onayı alınmalı');
@@ -234,7 +265,11 @@ const ShiftEnd = () => {
           receiverApproved,
           managerApproved
         },
-        notes: formData.teslimEdenNotlar
+        notes: formData.teslimEdenNotlar,
+        // YENİ: ATT/Paramedik için ek alanlar
+        quick_checkout: quickCheckout,
+        end_photos: isATTOrParamedik ? endPhotos : null,
+        end_signature: isATTOrParamedik ? endSignature : null
       });
 
       toast.success('🎉 Vardiya başarıyla sonlandırıldı!');
@@ -375,6 +410,122 @@ const ShiftEnd = () => {
         </CardContent>
       </Card>
 
+      {/* ATT/Paramedik için Hızlı Doldurma */}
+      {isATTOrParamedik && (
+        <Card className={`border-2 ${quickCheckout ? 'border-green-500 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className={`h-5 w-5 ${quickCheckout ? 'text-green-600' : 'text-amber-600'}`} />
+              Hızlı Doldurma
+            </CardTitle>
+            <CardDescription>
+              Her şey başlangıçtaki gibi temiz ve çalışıyor ise bu seçeneği işaretleyin
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              variant={quickCheckout ? 'default' : 'outline'}
+              className={`w-full h-16 text-lg ${quickCheckout ? 'bg-green-600 hover:bg-green-700' : ''}`}
+              onClick={() => {
+                setQuickCheckout(!quickCheckout);
+                if (!quickCheckout) {
+                  // Tüm ekipmanları otomatik "var" olarak işaretle
+                  setFormData(prev => ({
+                    ...prev,
+                    fosforluYelek: 'var',
+                    takviyeKablosu: 'var',
+                    cekmeKablosu: 'var',
+                    ucgen: 'var'
+                  }));
+                  toast.success('✨ Tüm alanlar otomatik dolduruldu!');
+                }
+              }}
+            >
+              {quickCheckout ? (
+                <>
+                  <CheckCircle className="h-6 w-6 mr-2" />
+                  ✓ Her şey aldığım gibi çalışıyor ve temiz
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-6 w-6 mr-2" />
+                  Her şey aldığım gibi çalışıyor ve temiz
+                </>
+              )}
+            </Button>
+            {quickCheckout && (
+              <p className="text-sm text-green-600 text-center">
+                Ekipman kontrolü ve hasar bildirimi atlandı
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* ATT/Paramedik için 4 Köşe Arka Kabin Fotoğrafları */}
+      {isATTOrParamedik && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Arka Kabin Fotoğrafları (4 Köşe)
+            </CardTitle>
+            <CardDescription>
+              Arka kabinin 4 köşesinden fotoğraf çekin
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="relative">
+                <div className="absolute top-2 left-2 z-10 bg-black/60 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
+                  <CornerUpLeft className="h-4 w-4" /> Sol-Ön
+                </div>
+                <PhotoCapture 
+                  title="Sol-Ön Köşe" 
+                  onPhotoCapture={(p) => setEndPhotos(prev => ({ ...prev, rear_cabin_corner_1: p }))}
+                  required
+                />
+              </div>
+              <div className="relative">
+                <div className="absolute top-2 left-2 z-10 bg-black/60 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
+                  <CornerUpRight className="h-4 w-4" /> Sağ-Ön
+                </div>
+                <PhotoCapture 
+                  title="Sağ-Ön Köşe" 
+                  onPhotoCapture={(p) => setEndPhotos(prev => ({ ...prev, rear_cabin_corner_2: p }))}
+                  required
+                />
+              </div>
+              <div className="relative">
+                <div className="absolute top-2 left-2 z-10 bg-black/60 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
+                  <CornerDownLeft className="h-4 w-4" /> Sol-Arka
+                </div>
+                <PhotoCapture 
+                  title="Sol-Arka Köşe" 
+                  onPhotoCapture={(p) => setEndPhotos(prev => ({ ...prev, rear_cabin_corner_3: p }))}
+                  required
+                />
+              </div>
+              <div className="relative">
+                <div className="absolute top-2 left-2 z-10 bg-black/60 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
+                  <CornerDownRight className="h-4 w-4" /> Sağ-Arka
+                </div>
+                <PhotoCapture 
+                  title="Sağ-Arka Köşe" 
+                  onPhotoCapture={(p) => setEndPhotos(prev => ({ ...prev, rear_cabin_corner_4: p }))}
+                  required
+                />
+              </div>
+            </div>
+            <div className="mt-4 text-center">
+              <p className={`text-sm ${Object.values(endPhotos).filter(Boolean).length === 4 ? 'text-green-600' : 'text-amber-600'}`}>
+                {Object.values(endPhotos).filter(Boolean).length}/4 fotoğraf çekildi
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Notlar */}
       <Card>
         <CardHeader>
@@ -402,12 +553,12 @@ const ShiftEnd = () => {
         </CardContent>
       </Card>
 
-      {/* Teslim Eden (Mevcut Kullanıcı) */}
+      {/* Teslim Eden (Mevcut Kullanıcı) + İmza */}
       <Card className="border-green-200 bg-green-50/50">
         <CardHeader>
           <CardTitle className="text-green-700">✍️ Teslim Eden (Siz)</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center gap-4 p-4 bg-white rounded-lg border">
             <Avatar className="h-16 w-16">
               <AvatarImage src={user?.profile_photo} />
@@ -421,6 +572,17 @@ const ShiftEnd = () => {
             </div>
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
+          
+          {/* İmza Alanı */}
+          {isATTOrParamedik && (
+            <div className="border-t pt-4">
+              <SignaturePad 
+                label="Vardiya Bitirme İmzası"
+                required
+                onSignatureChange={(sig) => setEndSignature(sig)}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

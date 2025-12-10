@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { shiftsAPI, usersAPI, vehiclesAPI } from '../api';
+import { shiftsAPI, usersAPI, vehiclesAPI, locationsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
@@ -9,7 +9,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ShiftAssignments = () => {
@@ -33,8 +33,12 @@ const ShiftAssignments = () => {
     start_time: '08:00',
     end_time: '16:00',
     end_date: new Date().toISOString().split('T')[0],
-    is_driver_duty: false  // Şoför görevi var mı? (ATT/Paramedik için)
+    is_driver_duty: false,  // Şoför görevi var mı? (ATT/Paramedik için)
+    healmedy_location_id: ''  // YENİ: Healmedy lokasyonu
   });
+  
+  // Healmedy lokasyonları
+  const [healmedyLocations, setHealmedyLocations] = useState([]);
   
   // Excel toplu yükleme state'leri
   const [excelDialogOpen, setExcelDialogOpen] = useState(false);
@@ -48,11 +52,17 @@ const ShiftAssignments = () => {
 
   const loadData = async () => {
     try {
-      const [assignmentsRes, usersRes, vehiclesRes] = await Promise.all([
+      const [assignmentsRes, usersRes, vehiclesRes, locationsRes] = await Promise.all([
         shiftsAPI.getAllAssignments(),
         usersAPI.getAll(),
-        vehiclesAPI.getAll()
+        vehiclesAPI.getAll(),
+        locationsAPI.getHealmedy().catch(() => ({ data: [] }))  // Healmedy lokasyonları
       ]);
+      
+      // Healmedy lokasyonlarını ayarla
+      if (Array.isArray(locationsRes.data)) {
+        setHealmedyLocations(locationsRes.data);
+      }
       
       const allUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
       const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
@@ -237,6 +247,11 @@ const ShiftAssignments = () => {
         assignmentData.is_driver_duty = true;
       }
       
+      // Healmedy lokasyonu
+      if (formData.healmedy_location_id && formData.healmedy_location_id.trim() !== '') {
+        assignmentData.healmedy_location_id = formData.healmedy_location_id.trim();
+      }
+      
       // Remove undefined values to avoid sending them
       Object.keys(assignmentData).forEach(key => {
         if (assignmentData[key] === undefined || assignmentData[key] === null) {
@@ -257,7 +272,8 @@ const ShiftAssignments = () => {
         start_time: '08:00',
         end_time: '16:00',
         end_date: new Date().toISOString().split('T')[0],
-        is_driver_duty: false
+        is_driver_duty: false,
+        healmedy_location_id: ''
       });
       loadData();
     } catch (error) {
@@ -558,6 +574,36 @@ const ShiftAssignments = () => {
                   </Select>
                 </div>
               )}
+
+              {/* YENİ: Healmedy Lokasyonu Seçimi */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Building className="h-4 w-4" />
+                  Görev Lokasyonu
+                </Label>
+                <Select 
+                  value={formData.healmedy_location_id || ''} 
+                  onValueChange={(v) => setFormData(prev => ({...prev, healmedy_location_id: v}))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Lokasyon seçin (opsiyonel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Belirtilmemiş</SelectItem>
+                    {healmedyLocations.map(loc => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3 w-3" />
+                          {loc.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Aracın görev yapacağı saha lokasyonu (örn: Green Zone, Osman Gazi/FPU)
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <Label>Vardiya Tarihi *</Label>

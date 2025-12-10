@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
 import PhotoCapture from '../components/PhotoCapture';
 import DailyControlFormFull from '../components/forms/DailyControlFormFull';
+import TimedDailyControlForm from '../components/forms/TimedDailyControlForm';
 import HandoverFormFull from '../components/forms/HandoverFormFull';
 import { useAuth } from '../contexts/AuthContext';
 import { QrCode, Camera, CheckCircle, AlertCircle, Truck, Keyboard, XCircle, Loader2, Shield, Send, Clock, User } from 'lucide-react';
@@ -923,18 +924,26 @@ const ShiftStartNew = () => {
                     </>
                   )}
                   
-                  {/* Günlük Kontrol Formu (her zaman) */}
+                  {/* Günlük Kontrol Formu (ATT/Paramedik için zaman kısıtlamalı) */}
                   <Card className="border-blue-200 bg-blue-50">
                     <CardContent className="py-3">
                       <p className="text-blue-800 font-medium">
                         🩺 Ambulans Cihaz, Malzeme ve İlaç Günlük Kontrol Formu
                       </p>
                       <p className="text-sm text-blue-600">
-                        Lütfen ambulanstaki tüm cihaz, malzeme ve ilaçları kontrol edin.
+                        Her bölüm sırayla açılacak. Bölüm süreleri: 5dk, 1dk, 2dk, 1dk, 1dk, 1dk, 2dk
                       </p>
                     </CardContent>
                   </Card>
-                  <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
+                  <TimedDailyControlForm 
+                    formData={controlForm} 
+                    onChange={setControlForm}
+                    vehicleId={vehicleInfo?._id || vehicleInfo?.id}
+                    onComplete={(data) => {
+                      setControlForm(data);
+                      toast.success('✅ Günlük kontrol formu tamamlandı!');
+                    }}
+                  />
                 </>
               )}
             </>
