@@ -270,6 +270,15 @@ export const pdfTemplatesAPI = {
   duplicate: (id) => api.post(`/pdf-templates/${id}/duplicate`)
 };
 
+// Şablonlu PDF Oluşturma API
+export const pdfGeneratorAPI = {
+  getAvailableTemplates: (usageType = 'vaka_formu') => api.get('/pdf-template/available', { params: { usage_type: usageType } }),
+  generateCasePdf: (caseId, templateId = null) => api.get(`/pdf-template/case/${caseId}`, { 
+    params: templateId ? { template_id: templateId } : {},
+    responseType: 'blob'
+  })
+};
+
 // Forms API
 export const formsAPI = {
   submit: (data) => api.post('/forms', data),

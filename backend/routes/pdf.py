@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 import os
 import logging
 
 from services.excel_to_pdf_with_data import excel_form_to_pdf_with_data
+from services.template_pdf_generator import generate_pdf_from_template
 from auth_utils import get_current_user
-from database import cases_collection
+from database import cases_collection, pdf_templates_collection
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
 logger = logging.getLogger(__name__)

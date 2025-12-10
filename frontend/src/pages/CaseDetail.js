@@ -21,8 +21,16 @@ import {
   Check, X, Search, Building2, Stethoscope, Activity, FileText,
   Heart, Thermometer, Droplet, Brain, AlertCircle, Eye, Syringe,
   Ambulance, ClipboardList, VideoOff, FileSignature, Shield, Scissors, Save,
-  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown
+  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown, ChevronDown, Layout
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { useAuth } from '../contexts/AuthContext';
 import VideoCall from '../components/VideoCall';
 import { ScrollArea } from '../components/ui/scroll-area';
@@ -1165,72 +1173,99 @@ const CaseDetail = () => {
             </div>
           </div>
           
-          {/* Video Call Button */}
-          {/* PDF Export Button */}
-          <Button 
-            variant="outline"
-            onClick={async () => {
-              if (!caseData) {
-                toast.error('Vaka verisi yüklenemedi');
-                return;
-              }
-
-              try {
-                toast.info('PDF oluşturuluyor...');
-                
-                // Prepare form data to send to backend
-                const formDataObj = {
-                  ...medicalForm,
-                  // Add any additional data needed for PDF
-                  patientName: patientInfo.name && patientInfo.surname 
-                    ? `${patientInfo.name} ${patientInfo.surname}` 
-                    : '',
-                  age: patientInfo.age || '',
-                  tcNo: patientInfo.tc_no || '',
-                  date: new Date().toLocaleDateString('tr-TR'),
-                };
-
-                // Call backend API
-                const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
-                const response = await fetch(
-                  `${apiUrl}/api/pdf/case/${id}/with-form-data`, 
-                  {
-                    method: 'POST',
-                    headers: { 
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formDataObj),
-                    credentials: 'include',
+          {/* PDF Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline"
+                className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                PDF İndir
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>PDF Formatı Seçin</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={async () => {
+                  if (!caseData) {
+                    toast.error('Vaka verisi yüklenemedi');
+                    return;
                   }
-                );
-
-                if (!response.ok) {
-                  const errorData = await response.json().catch(() => ({}));
-                  throw new Error(errorData.detail || 'PDF generation failed');
-                }
-
-                // Download PDF
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Ambulans_Vaka_Formu_${caseData.case_number || id}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                toast.success('PDF başarıyla indirildi!');
-              } catch (error) {
-                console.error('PDF oluşturma hatası:', error);
-                toast.error(error.message || 'PDF oluşturulurken hata oluştu');
-              }
-            }}
-            className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            PDF İndir
-          </Button>
+                  try {
+                    toast.info('PDF oluşturuluyor...');
+                    const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const response = await fetch(
+                      `${apiUrl}/api/pdf/case/${id}/with-form-data`, 
+                      {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(medicalForm),
+                        credentials: 'include',
+                      }
+                    );
+                    if (!response.ok) throw new Error('PDF oluşturulamadı');
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Vaka_${caseData.case_number || id}_Standart.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    toast.success('PDF indirildi!');
+                  } catch (error) {
+                    toast.error('PDF oluşturulurken hata oluştu');
+                  }
+                }}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Standart Format
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  if (!caseData) {
+                    toast.error('Vaka verisi yüklenemedi');
+                    return;
+                  }
+                  try {
+                    toast.info('Özel şablon ile PDF oluşturuluyor...');
+                    const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const response = await fetch(
+                      `${apiUrl}/api/pdf-template/case/${id}`, 
+                      {
+                        method: 'GET',
+                        credentials: 'include',
+                      }
+                    );
+                    if (!response.ok) {
+                      const err = await response.json().catch(() => ({}));
+                      throw new Error(err.detail || 'PDF oluşturulamadı');
+                    }
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Vaka_${caseData.case_number || id}_Ozel.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    toast.success('PDF indirildi!');
+                  } catch (error) {
+                    console.error(error);
+                    toast.error(error.message || 'PDF oluşturulurken hata oluştu');
+                  }
+                }}
+              >
+                <Layout className="h-4 w-4 mr-2" />
+                Özel Şablon (Varsayılan)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             onClick={async () => {
