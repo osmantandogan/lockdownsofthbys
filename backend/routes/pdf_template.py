@@ -271,11 +271,16 @@ async def debug_case_data(case_id: str, request: Request):
         "vehicle_info": serialize(case.get("vehicle_info", {})),
         "vehicle": serialize(case.get("vehicle", {})),
         "team": serialize(case.get("team", {})),
+        "assigned_team": serialize(case.get("assigned_team", {})),
+        "case_details": serialize(case.get("case_details", {})),
+        "case_details_keys": list(case.get("case_details", {}).keys()) if case.get("case_details") else [],
         "medical_form": serialize(case.get("medical_form", {})),
         "medical_form_keys": list(case.get("medical_form", {}).keys()) if case.get("medical_form") else [],
         "status": case.get("status"),
         "case_number": case.get("case_number"),
         "protocol_112": case.get("protocol_112"),
+        "last_form_update": serialize(case.get("last_form_update")),
+        "last_form_updater": case.get("last_form_updater"),
     }
 
 
