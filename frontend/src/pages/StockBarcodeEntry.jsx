@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Checkbox } from '../components/ui/checkbox';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
 import BarcodeScanner from '../components/BarcodeScanner';
@@ -34,7 +35,7 @@ import {
 
 const StockBarcodeEntry = () => {
   const { user } = useAuth();
-  const [step, setStep] = useState('location'); // location, scan, summary
+  const [step, setStep] = useState('location'); // location, scan, summary, transfer
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,15 @@ const StockBarcodeEntry = () => {
   const [scannedItems, setScannedItems] = useState([]);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [expiringItems, setExpiringItems] = useState([]);
+  
+  // YENİ: Transfer modu state
+  const [transferMode, setTransferMode] = useState(false);
+  const [transferBarcode, setTransferBarcode] = useState('');
+  const [transferLookup, setTransferLookup] = useState(null);
+  const [transferQuantity, setTransferQuantity] = useState(1);
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [boxFinished, setBoxFinished] = useState(false);
+  const [targetLocation, setTargetLocation] = useState(null);
 
   // Lokasyon seçenekleri
   const locationOptions = [
@@ -78,14 +88,98 @@ const StockBarcodeEntry = () => {
     setStep('scan');
     setScannerOpen(true);
   };
+  
+  // YENİ: Transfer modu için barkod ile ilaç adı sorgulama
+  const handleTransferLookup = async (barcode) => {
+    if (!barcode || barcode.length < 5) {
+      setTransferLookup(null);
+      return;
+    }
+    
+    setTransferLoading(true);
+    try {
+      // TİTCK veritabanından ilaç adını sorgula
+      const response = await stockBarcodeAPI.lookupBarcodePost(barcode);
+      setTransferLookup(response.data);
+      
+      if (response.data.found) {
+        toast.success(`İlaç bulundu: ${response.data.name}`);
+      } else {
+        toast.info('Barkod veritabanında bulunamadı. Manuel isim girebilirsiniz.');
+      }
+    } catch (error) {
+      console.error('Lookup error:', error);
+      toast.error('Barkod sorgulanamadı');
+      setTransferLookup(null);
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+  
+  // YENİ: Transfer işlemi
+  const handleTransferSubmit = async () => {
+    if (!transferLookup || !targetLocation) {
+      toast.error('Lütfen barkod okutun ve hedef lokasyon seçin');
+      return;
+    }
+    
+    setTransferLoading(true);
+    try {
+      // Ana depodan hedef lokasyona transfer
+      const response = await stockBarcodeAPI.addByBarcode({
+        barcode: transferBarcode,
+        location: targetLocation.location,
+        location_detail: targetLocation.locationDetail,
+        name: transferLookup.name || 'Bilinmeyen İlaç',
+        quantity: transferQuantity,
+        box_finished: boxFinished
+      });
+      
+      toast.success(`${transferQuantity} adet "${transferLookup.name || 'İlaç'}" ${targetLocation.locationDetail || targetLocation.location} lokasyonuna transfer edildi`);
+      
+      // State'i temizle
+      setTransferBarcode('');
+      setTransferLookup(null);
+      setTransferQuantity(1);
+      setBoxFinished(false);
+      
+      // İlgili item'ı scannedItems'a ekle
+      const newItem = {
+        ...response.data.stock_item,
+        parsed: response.data.parsed,
+        timestamp: new Date(),
+        quantity: transferQuantity,
+        transfer_type: 'depo_to_lokasyon'
+      };
+      setScannedItems(prev => [newItem, ...prev]);
+      
+    } catch (error) {
+      const message = error.response?.data?.detail || 'Transfer işlemi başarısız';
+      toast.error(message);
+    } finally {
+      setTransferLoading(false);
+    }
+  };
 
   const handleScan = async (barcode) => {
     try {
-      // Backend'e karekod gönder
+      // Önce TİTCK veritabanından ilaç adını ara
+      let medicationName = null;
+      try {
+        const lookupRes = await stockBarcodeAPI.lookupBarcodePost(barcode);
+        if (lookupRes.data?.found) {
+          medicationName = lookupRes.data.name;
+        }
+      } catch (lookupErr) {
+        console.warn('TİTCK lookup failed:', lookupErr);
+      }
+      
+      // Backend'e karekod gönder (bulunan ismi de ekle)
       const response = await stockBarcodeAPI.addByBarcode({
         barcode: barcode,
         location: selectedLocation.location,
-        location_detail: selectedLocation.locationDetail
+        location_detail: selectedLocation.locationDetail,
+        name: medicationName // TİTCK'den bulunan isim
       });
       
       toast.success(response.data.message || 'İlaç stoğa eklendi');
@@ -93,7 +187,8 @@ const StockBarcodeEntry = () => {
       const newItem = {
         ...response.data.stock_item,
         parsed: response.data.parsed,
-        timestamp: new Date()
+        timestamp: new Date(),
+        titck_name: medicationName // TİTCK'den bulunan ismi de kaydet
       };
       
       setScannedItems(prev => [newItem, ...prev]);
@@ -198,6 +293,158 @@ const StockBarcodeEntry = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* ==================== ANA DEPODAN TRANSFER ==================== */}
+        <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-indigo-800">
+              <Package className="h-5 w-5" />
+              Ana Depodan Lokasyona Transfer
+            </CardTitle>
+            <CardDescription>
+              Merkez depodan araç veya carter'a ilaç transfer edin
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Barkod Girişi */}
+            <div className="space-y-2">
+              <Label>İlaç Barkodu (Karekod) Okutun</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Barkodu okutun veya girin..."
+                  value={transferBarcode}
+                  onChange={(e) => {
+                    setTransferBarcode(e.target.value);
+                    if (e.target.value.length >= 8) {
+                      handleTransferLookup(e.target.value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && transferBarcode.length >= 5) {
+                      handleTransferLookup(transferBarcode);
+                    }
+                  }}
+                  className="font-mono"
+                />
+                <Button 
+                  onClick={() => handleTransferLookup(transferBarcode)}
+                  disabled={transferLoading || transferBarcode.length < 5}
+                  variant="outline"
+                >
+                  {transferLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Bulunan İlaç Bilgisi */}
+            {transferLookup && (
+              <Card className={`${transferLookup.found ? 'border-green-300 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {transferLookup.found ? (
+                      <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                    ) : (
+                      <AlertCircle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-1" />
+                    )}
+                    <div className="flex-1">
+                      <h4 className={`font-semibold ${transferLookup.found ? 'text-green-800' : 'text-amber-800'}`}>
+                        {transferLookup.found ? transferLookup.name : 'Barkod veritabanında bulunamadı'}
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Barkod: {transferLookup.barcode || transferBarcode}
+                        {transferLookup.gtin && ` | GTIN: ${transferLookup.gtin}`}
+                      </p>
+                      {!transferLookup.found && (
+                        <Input
+                          className="mt-2"
+                          placeholder="Manuel ilaç adı girin..."
+                          onChange={(e) => setTransferLookup(prev => ({...prev, name: e.target.value, found: true}))}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Transfer Detayları */}
+            {transferLookup?.found && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Hedef Lokasyon */}
+                <div className="space-y-2">
+                  <Label>Hedef Lokasyon</Label>
+                  <Select 
+                    value={targetLocation ? `${targetLocation.location}|${targetLocation.locationDetail || ''}` : ''}
+                    onValueChange={(val) => {
+                      const [loc, detail] = val.split('|');
+                      setTargetLocation({ location: loc, locationDetail: detail || null });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Lokasyon seçin..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="acil_canta|">Acil Çanta</SelectItem>
+                      <SelectItem value="saha_ofis|">Saha Ofis</SelectItem>
+                      {vehicles.map(v => (
+                        <SelectItem key={v.id || v._id} value={`ambulans|${v.plate}`}>
+                          🚑 {v.plate}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Adet */}
+                <div className="space-y-2">
+                  <Label>Transfer Adedi</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={transferQuantity}
+                    onChange={(e) => setTransferQuantity(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Kutu Bitti Seçeneği */}
+            {transferLookup?.found && (
+              <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                <Checkbox
+                  id="boxFinished"
+                  checked={boxFinished}
+                  onCheckedChange={(checked) => setBoxFinished(checked)}
+                />
+                <div>
+                  <Label htmlFor="boxFinished" className="text-red-800 font-medium cursor-pointer">
+                    Bu kutu bitti
+                  </Label>
+                  <p className="text-xs text-red-600">
+                    İşaretlerseniz kalan stok sıfırlanır ve kutu sistemden düşürülür
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Transfer Butonu */}
+            {transferLookup?.found && targetLocation && (
+              <Button 
+                onClick={handleTransferSubmit}
+                disabled={transferLoading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                size="lg"
+              >
+                {transferLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : (
+                  <Package className="h-5 w-5 mr-2" />
+                )}
+                {transferQuantity} Adet Transfer Et
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Lokasyon Seçimi */}
         <Card>

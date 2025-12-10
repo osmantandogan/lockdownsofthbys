@@ -420,7 +420,12 @@ export const stockBarcodeAPI = {
   // Envanter sorgulama
   getInventory: (params) => api.get('/stock-barcode/inventory', { params }),
   getInventoryByLocation: () => api.get('/stock-barcode/inventory/by-location'),
-  getExpiringItems: (days = 30) => api.get(`/stock-barcode/expiring?days=${days}`)
+  getExpiringItems: (days = 30) => api.get(`/stock-barcode/expiring?days=${days}`),
+  
+  // YENİ: TİTCK Veritabanı ile İlaç Adı Sorgulama
+  lookupBarcode: (barcode) => api.get(`/stock-barcode/lookup-barcode/${encodeURIComponent(barcode)}`),
+  lookupBarcodePost: (barcode) => api.post('/stock-barcode/lookup-barcode', { barcode }),
+  searchMedications: (query) => api.get('/stock-barcode/search-medications', { params: { q: query } })
 };
 
 export default api;

@@ -11,6 +11,9 @@ from typing import Optional, List
 from datetime import datetime
 import uuid
 
+import json
+import os
+
 from database import (
     db,
     stock_collection,
@@ -21,6 +24,23 @@ from database import (
 )
 from auth_utils import get_current_user, require_roles
 from services.its_service import parse_datamatrix, get_its_service
+
+# İlaç barkod veritabanını yükle
+MEDICATIONS_BARCODE_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'medications_barcode.json')
+_medications_cache = None
+
+def get_medications_barcode_db():
+    """İlaç barkod veritabanını lazy load et"""
+    global _medications_cache
+    if _medications_cache is None:
+        try:
+            with open(MEDICATIONS_BARCODE_FILE, 'r', encoding='utf-8') as f:
+                _medications_cache = json.load(f)
+            print(f"[INFO] Loaded {len(_medications_cache)} medications from barcode database")
+        except Exception as e:
+            print(f"[ERROR] Could not load medications barcode database: {e}")
+            _medications_cache = {}
+    return _medications_cache
 
 router = APIRouter()
 
@@ -618,3 +638,133 @@ async def get_expiring_items(request: Request, days: int = 30):
             item["days_until_expiry"] = max(0, days_left)
     
     return {"expiring_items": items, "count": len(items)}
+
+
+# ============================================================================
+# BARKOD İLE İLAÇ ADI SORGULAMA (TİTCK VERİTABANI)
+# ============================================================================
+
+@router.get("/lookup-barcode/{barcode}")
+async def lookup_medication_by_barcode(barcode: str, request: Request):
+    """
+    Barkod ile ilaç adını TİTCK veritabanından sorgula
+    22,000+ ruhsatlı beşeri tıbbi ürün
+    """
+    await get_current_user(request)
+    
+    # Barkodu temizle (boşluk, tire vb. kaldır)
+    barcode = barcode.strip().replace("-", "").replace(" ", "")
+    
+    # Veritabanından ara
+    medications_db = get_medications_barcode_db()
+    
+    # Direkt eşleşme
+    if barcode in medications_db:
+        return {
+            "found": True,
+            "barcode": barcode,
+            "name": medications_db[barcode],
+            "source": "titck_database"
+        }
+    
+    # GTIN formatında olabilir (01 prefix'i ile başlıyorsa)
+    if barcode.startswith("01") and len(barcode) >= 16:
+        gtin = barcode[2:16]  # 01 + 14 haneli GTIN
+        if gtin in medications_db:
+            return {
+                "found": True,
+                "barcode": gtin,
+                "name": medications_db[gtin],
+                "source": "titck_database"
+            }
+    
+    # Son 13 haneyi dene (EAN-13 formatı)
+    if len(barcode) > 13:
+        ean13 = barcode[-13:]
+        if ean13 in medications_db:
+            return {
+                "found": True,
+                "barcode": ean13,
+                "name": medications_db[ean13],
+                "source": "titck_database"
+            }
+    
+    return {
+        "found": False,
+        "barcode": barcode,
+        "name": None,
+        "source": "titck_database",
+        "message": "Barkod veritabanında bulunamadı. Manuel isim girişi yapabilirsiniz."
+    }
+
+
+@router.post("/lookup-barcode")
+async def lookup_medication_by_barcode_post(request: Request):
+    """
+    Barkod ile ilaç adını TİTCK veritabanından sorgula (POST)
+    Datamatrix karekodları için tam veriyi parse eder
+    """
+    await get_current_user(request)
+    
+    body = await request.json()
+    barcode = body.get("barcode", "").strip()
+    
+    if not barcode:
+        raise HTTPException(status_code=400, detail="Barkod verisi gerekli")
+    
+    # Datamatrix ise parse et
+    parsed = parse_datamatrix(barcode)
+    
+    # GTIN'i bul
+    gtin = parsed.get("gtin", "")
+    
+    medications_db = get_medications_barcode_db()
+    
+    # GTIN ile ara
+    name = None
+    if gtin and gtin in medications_db:
+        name = medications_db[gtin]
+    
+    # Bulunamazsa ham barkodu dene
+    if not name:
+        clean_barcode = barcode.strip().replace("-", "").replace(" ", "")
+        
+        # EAN-13 formatı (13 haneli barkod içinde arama)
+        for potential_barcode in [clean_barcode, clean_barcode[-13:] if len(clean_barcode) > 13 else None]:
+            if potential_barcode and potential_barcode in medications_db:
+                name = medications_db[potential_barcode]
+                gtin = potential_barcode
+                break
+    
+    return {
+        "found": name is not None,
+        "barcode": barcode,
+        "gtin": gtin,
+        "name": name,
+        "parsed": parsed,
+        "source": "titck_database",
+        "message": "Manuel isim girişi yapabilirsiniz." if not name else None
+    }
+
+
+@router.get("/search-medications")
+async def search_medications(request: Request, q: str = ""):
+    """
+    İlaç adı ile arama (autocomplete için)
+    """
+    await get_current_user(request)
+    
+    if len(q) < 2:
+        return {"results": [], "count": 0}
+    
+    medications_db = get_medications_barcode_db()
+    q_lower = q.lower()
+    
+    results = []
+    for barcode, name in medications_db.items():
+        if q_lower in name.lower():
+            results.append({"barcode": barcode, "name": name})
+            if len(results) >= 20:  # Limit sonuç sayısı
+                break
+    
+    return {"results": results, "count": len(results)}
