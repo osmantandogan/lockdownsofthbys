@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Body, Depends
 from typing import List, Optional
-from database import shifts_collection, vehicles_collection, shift_assignments_collection, users_collection
+from database import shifts_collection, vehicles_collection, shift_assignments_collection, users_collection, db
 from models import Shift, ShiftStart, ShiftEnd, ShiftAssignment
 from auth_utils import get_current_user, require_roles
 from datetime import datetime, timedelta
@@ -415,6 +415,24 @@ async def admin_start_shift(assignment_id: str, request: Request):
 async def start_shift(data: ShiftStart, request: Request):
     """Start shift by scanning vehicle QR code"""
     user = await get_current_user(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Log: Form açılma zamanı (eğer gönderilmişse)
+    if hasattr(data, 'form_opened_at') and data.form_opened_at:
+        shift_logs_collection = db["shift_logs"]
+        log_entry = {
+            "_id": str(uuid.uuid4()),
+            "user_id": user.id,
+            "user_name": user.name,
+            "user_role": user.role,
+            "action": "form_opened",
+            "action_type": "shift_start",
+            "form_opened_at": datetime.fromisoformat(data.form_opened_at.replace('Z', '+00:00')),
+            "logged_at": turkey_now,
+            "vehicle_qr": data.vehicle_qr
+        }
+        await shift_logs_collection.insert_one(log_entry)
+        logger.info(f"Vardiya başlatma formu açıldı: {user.name} - {data.form_opened_at}")
     
     # Find vehicle by QR code
     vehicle = await vehicles_collection.find_one({"qr_code": data.vehicle_qr})
@@ -567,12 +585,46 @@ async def start_shift(data: ShiftStart, request: Request):
         await shift_photos_collection.insert_one(photos_doc)
         logger.info(f"Vardiya fotoğrafları kaydedildi: {photos_doc['_id']}")
     
+    # Log: Vardiya başlatma işlemi
+    shift_logs_collection = db["shift_logs"]
+    action_taken_at = turkey_now
+    if hasattr(data, 'action_taken_at') and data.action_taken_at:
+        try:
+            action_taken_at = datetime.fromisoformat(data.action_taken_at.replace('Z', '+00:00'))
+        except:
+            action_taken_at = turkey_now
+    
+    form_opened_at_val = None
+    if hasattr(data, 'form_opened_at') and data.form_opened_at:
+        try:
+            form_opened_at_val = datetime.fromisoformat(data.form_opened_at.replace('Z', '+00:00'))
+        except:
+            pass
+    
+    action_log = {
+        "_id": str(uuid.uuid4()),
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_role": user.role,
+        "action": "shift_started",
+        "action_type": "shift_start",
+        "shift_id": new_shift.id,
+        "vehicle_id": vehicle["_id"],
+        "vehicle_plate": vehicle.get("plate"),
+        "action_taken_at": action_taken_at,
+        "logged_at": turkey_now,
+        "form_opened_at": form_opened_at_val
+    }
+    await shift_logs_collection.insert_one(action_log)
+    logger.info(f"Vardiya başlatıldı: {user.name} - {vehicle.get('plate')} - {action_taken_at}")
+    
     return new_shift
 
 @router.post("/end", response_model=Shift)
 async def end_shift(data: ShiftEnd, request: Request):
     """End shift"""
     user = await get_current_user(request)
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
     
     # Find active shift
     shift_doc = await shifts_collection.find_one({
@@ -583,6 +635,25 @@ async def end_shift(data: ShiftEnd, request: Request):
     
     if not shift_doc:
         raise HTTPException(status_code=404, detail="Active shift not found")
+    
+    # Log: Form açılma zamanı (eğer gönderilmişse)
+    form_opened_at = None
+    if hasattr(data, 'handover_form') and data.handover_form and data.handover_form.get('form_opened_at'):
+        shift_logs_collection = db["shift_logs"]
+        form_opened_at = datetime.fromisoformat(data.handover_form['form_opened_at'].replace('Z', '+00:00'))
+        log_entry = {
+            "_id": str(uuid.uuid4()),
+            "user_id": user.id,
+            "user_name": user.name,
+            "user_role": user.role,
+            "action": "form_opened",
+            "action_type": "shift_end",
+            "shift_id": data.shift_id,
+            "form_opened_at": form_opened_at,
+            "logged_at": turkey_now
+        }
+        await shift_logs_collection.insert_one(log_entry)
+        logger.info(f"Vardiya bitirme formu açıldı: {user.name} - {form_opened_at}")
     
     # Calculate duration
     end_time = datetime.utcnow()
@@ -609,6 +680,29 @@ async def end_shift(data: ShiftEnd, request: Request):
             {"$set": {"status": "completed"}}
         )
         logger.info(f"Assignment {shift_doc['assignment_id']} marked as completed")
+    
+    # Log: Vardiya bitirme işlemi
+    shift_logs_collection = db["shift_logs"]
+    action_taken_at = turkey_now
+    if hasattr(data, 'handover_form') and data.handover_form and data.handover_form.get('action_taken_at'):
+        action_taken_at = datetime.fromisoformat(data.handover_form['action_taken_at'].replace('Z', '+00:00'))
+    
+    action_log = {
+        "_id": str(uuid.uuid4()),
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_role": user.role,
+        "action": "shift_ended",
+        "action_type": "shift_end",
+        "shift_id": data.shift_id,
+        "vehicle_id": shift_doc.get("vehicle_id"),
+        "vehicle_plate": shift_doc.get("vehicle_plate"),
+        "action_taken_at": action_taken_at,
+        "logged_at": turkey_now,
+        "form_opened_at": form_opened_at
+    }
+    await shift_logs_collection.insert_one(action_log)
+    logger.info(f"Vardiya bitirildi: {user.name} - {shift_doc.get('vehicle_plate', 'N/A')} - {action_taken_at}")
     
     result["id"] = result.pop("_id")
     return Shift(**result)
@@ -1974,3 +2068,47 @@ async def get_shift_approval_logs(
     all_logs.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
     
     return all_logs[:limit]
+
+
+@router.get("/shift-logs")
+async def get_shift_logs(
+    request: Request,
+    date: str = None,
+    action_type: str = None,
+    limit: int = 100
+):
+    """
+    Vardiya işlem loglarını getir (form açılma, başlatma, bitirme)
+    """
+    await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
+    
+    shift_logs_collection = db["shift_logs"]
+    
+    query = {}
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d")
+            query["logged_at"] = {
+                "$gte": target_date,
+                "$lt": target_date + timedelta(days=1)
+            }
+        except ValueError:
+            pass
+    
+    if action_type:
+        query["action_type"] = action_type
+    
+    logs = await shift_logs_collection.find(query).sort("logged_at", -1).limit(limit).to_list(limit)
+    
+    # ID'leri düzelt ve formatla
+    for log in logs:
+        log["id"] = str(log.pop("_id"))
+        # Tarih formatla
+        if log.get("logged_at"):
+            log["logged_at_formatted"] = log["logged_at"].strftime("%d.%m.%Y %H:%M:%S") if isinstance(log["logged_at"], datetime) else str(log["logged_at"])
+        if log.get("form_opened_at"):
+            log["form_opened_at_formatted"] = log["form_opened_at"].strftime("%d.%m.%Y %H:%M:%S") if isinstance(log["form_opened_at"], datetime) else str(log["form_opened_at"])
+        if log.get("action_taken_at"):
+            log["action_taken_at_formatted"] = log["action_taken_at"].strftime("%d.%m.%Y %H:%M:%S") if isinstance(log["action_taken_at"], datetime) else str(log["action_taken_at"])
+    
+    return logs

@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box } from 'lucide-react';
+import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box, Scissors, ArrowRightLeft, History, Send } from 'lucide-react';
 import StockLocationSummary from '../components/StockLocationSummary';
 
 const StockManagement = () => {
@@ -177,6 +177,84 @@ const StockManagement = () => {
     return { status: 'ok', label: formatDate(expiryDate), color: 'bg-green-500' };
   };
 
+  // Stok Lokasyonlarını Yükle
+  const loadStockLocations = async () => {
+    try {
+      const response = await stockAPI.getStockLocations();
+      setStockLocations(response.data.locations || []);
+    } catch (error) {
+      console.error('Lokasyonlar yüklenemedi:', error);
+    }
+  };
+
+  // Araç Lokasyonlarını Otomatik Senkronize Et
+  const syncVehicleLocations = async () => {
+    setSyncingLocations(true);
+    try {
+      const response = await stockAPI.syncVehicleLocations();
+      toast.success(response.data.message);
+      loadStockLocations();
+    } catch (error) {
+      console.error('Senkronizasyon hatası:', error);
+      toast.error('Lokasyonlar senkronize edilemedi');
+    } finally {
+      setSyncingLocations(false);
+    }
+  };
+
+  // Stok Parçalama İşlemi
+  const openSplitDialog = (item) => {
+    setSelectedItemForSplit(item);
+    setSplitQuantity(1);
+    setSplitTargetLocation('');
+    setSplitDialogOpen(true);
+  };
+
+  const handleSplitStock = async () => {
+    if (!selectedItemForSplit || !splitTargetLocation || splitQuantity < 1) {
+      toast.error('Lütfen tüm alanları doldurun');
+      return;
+    }
+
+    setSplitLoading(true);
+    try {
+      const response = await stockAPI.splitStock({
+        barcode_stock_id: selectedItemForSplit.id,
+        target_location: splitTargetLocation,
+        quantity_in_package: splitQuantity,
+        notes: `Stok parçalama: ${splitQuantity} adet`
+      });
+      
+      toast.success(response.data.message);
+      setSplitDialogOpen(false);
+      setMedicationDetailsOpen(false);
+      loadBarcodeGroups();
+    } catch (error) {
+      console.error('Parçalama hatası:', error);
+      toast.error(error.response?.data?.detail || 'Stok parçalanamadı');
+    } finally {
+      setSplitLoading(false);
+    }
+  };
+
+  // Stok Hareketlerini Yükle
+  const loadStockMovements = async () => {
+    setMovementsLoading(true);
+    try {
+      const response = await stockAPI.getStockMovements({ limit: 50 });
+      setStockMovements(response.data.movements || []);
+    } catch (error) {
+      console.error('Hareketler yüklenemedi:', error);
+    } finally {
+      setMovementsLoading(false);
+    }
+  };
+
+  const openMovementsDialog = () => {
+    setMovementsDialogOpen(true);
+    loadStockMovements();
+  };
+
   const handleCreate = async () => {
     try {
       await stockAPI.create(formData);
@@ -331,6 +409,24 @@ const StockManagement = () => {
         <div>
           <h1 className="text-3xl font-bold">Stok Yönetimi</h1>
           <p className="text-gray-500">Tıbbi malzeme ve ilaç stok takibi</p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={syncVehicleLocations}
+            disabled={syncingLocations}
+          >
+            {syncingLocations ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Lokasyonları Senkronize Et
+          </Button>
+          <Button variant="outline" onClick={openMovementsDialog}>
+            <History className="h-4 w-4 mr-2" />
+            Stok Hareketleri
+          </Button>
         </div>
       </div>
 
@@ -559,23 +655,38 @@ const StockManagement = () => {
                                   </div>
                                 </div>
                                 
-                                <div className="text-right flex-shrink-0 ml-3">
-                                  {itemExpiry && (
-                                    <Badge 
-                                      className={`text-xs ${
-                                        itemExpiry.status === 'expired' ? 'bg-red-500' :
-                                        itemExpiry.status === 'expiring' ? 'bg-orange-500' :
-                                        itemExpiry.status === 'warning' ? 'bg-yellow-500' :
-                                        'bg-green-500'
-                                      }`}
+                                <div className="flex flex-col items-end gap-2 flex-shrink-0 ml-3">
+                                  <div className="flex items-center gap-2">
+                                    {itemExpiry && (
+                                      <Badge 
+                                        className={`text-xs ${
+                                          itemExpiry.status === 'expired' ? 'bg-red-500' :
+                                          itemExpiry.status === 'expiring' ? 'bg-orange-500' :
+                                          itemExpiry.status === 'warning' ? 'bg-yellow-500' :
+                                          'bg-green-500'
+                                        }`}
+                                      >
+                                        <Calendar className="h-3 w-3 mr-1" />
+                                        {formatDate(item.expiry_date)}
+                                      </Badge>
+                                    )}
+                                    
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openSplitDialog(item);
+                                      }}
                                     >
-                                      <Calendar className="h-3 w-3 mr-1" />
-                                      {formatDate(item.expiry_date)}
-                                    </Badge>
-                                  )}
+                                      <Scissors className="h-3 w-3 mr-1" />
+                                      Parçala
+                                    </Button>
+                                  </div>
                                   
                                   {item.days_until_expiry !== undefined && (
-                                    <p className={`text-xs mt-1 ${
+                                    <p className={`text-xs ${
                                       item.days_until_expiry < 0 ? 'text-red-600' :
                                       item.days_until_expiry <= 30 ? 'text-orange-600' :
                                       'text-gray-500'
@@ -952,6 +1063,184 @@ const StockManagement = () => {
       </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Stok Parçalama Dialog */}
+      <Dialog open={splitDialogOpen} onOpenChange={setSplitDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Scissors className="h-5 w-5 text-orange-600" />
+              <span>Stok Parçala</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedItemForSplit && (
+            <div className="space-y-4">
+              {/* Ürün Bilgisi */}
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="font-medium text-blue-900">{selectedMedication?.name}</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  SN: {selectedItemForSplit.serial_number || 'N/A'}
+                </p>
+                {selectedItemForSplit.lot_number && (
+                  <p className="text-xs text-blue-700">
+                    LOT: {selectedItemForSplit.lot_number}
+                  </p>
+                )}
+                {selectedItemForSplit.expiry_date && (
+                  <p className="text-xs text-blue-700">
+                    SKT: {formatDate(selectedItemForSplit.expiry_date)}
+                  </p>
+                )}
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>Dikkat:</strong> Bu işlem karekodu sistemden düşürecek ve adet bazlı stoğa dönüştürecektir.
+                </p>
+              </div>
+
+              {/* Kutu İçi Adet */}
+              <div className="space-y-2">
+                <Label>Kutu İçindeki Adet Sayısı *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={splitQuantity}
+                  onChange={(e) => setSplitQuantity(parseInt(e.target.value) || 1)}
+                  placeholder="Örn: 10, 20, 30..."
+                />
+                <p className="text-xs text-gray-500">
+                  Kutunun/ambalajın içinde kaç adet ürün var?
+                </p>
+              </div>
+
+              {/* Hedef Lokasyon */}
+              <div className="space-y-2">
+                <Label>Hedef Lokasyon *</Label>
+                <Select value={splitTargetLocation} onValueChange={setSplitTargetLocation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Lokasyon seçin..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Merkez Depo">Merkez Depo</SelectItem>
+                    <SelectItem value="Acil Çanta">Acil Çanta</SelectItem>
+                    {stockLocations.filter(l => l.type === 'vehicle').map(loc => (
+                      <SelectItem key={loc.id} value={loc.name}>
+                        🚑 {loc.name}
+                      </SelectItem>
+                    ))}
+                    {stockLocations.filter(l => l.type === 'waiting_point').map(loc => (
+                      <SelectItem key={loc.id} value={loc.name}>
+                        📍 {loc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* İşlem Butonu */}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setSplitDialogOpen(false)}>
+                  İptal
+                </Button>
+                <Button 
+                  onClick={handleSplitStock}
+                  disabled={splitLoading || !splitTargetLocation || splitQuantity < 1}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {splitLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Scissors className="h-4 w-4 mr-2" />
+                  )}
+                  Parçala ({splitQuantity} adet)
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Stok Hareketleri Dialog */}
+      <Dialog open={movementsDialogOpen} onOpenChange={setMovementsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <History className="h-5 w-5 text-purple-600" />
+              <span>Stok Hareketleri</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden">
+            {movementsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : stockMovements.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <History className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>Henüz stok hareketi yok</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[400px] pr-2">
+                <div className="space-y-2">
+                  {stockMovements.map((movement) => (
+                    <div 
+                      key={movement.id}
+                      className={`p-3 rounded-lg border ${
+                        movement.type === 'split' ? 'bg-orange-50 border-orange-200' :
+                        movement.type === 'transfer' ? 'bg-blue-50 border-blue-200' :
+                        'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-lg ${
+                            movement.type === 'split' ? 'bg-orange-100' :
+                            movement.type === 'transfer' ? 'bg-blue-100' :
+                            'bg-gray-100'
+                          }`}>
+                            {movement.type === 'split' ? (
+                              <Scissors className="h-4 w-4 text-orange-600" />
+                            ) : (
+                              <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{movement.item_name}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {movement.type === 'split' ? 'Parçalama' : 'Transfer'}: {movement.quantity} {movement.unit || 'adet'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {movement.from_location} → {movement.to_location}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right text-xs text-gray-500">
+                          <p>{new Date(movement.created_at).toLocaleDateString('tr-TR')}</p>
+                          <p>{new Date(movement.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</p>
+                          <p className="mt-1 text-gray-400">{movement.performed_by_name}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t">
+            <Button variant="outline" onClick={loadStockMovements} disabled={movementsLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${movementsLoading ? 'animate-spin' : ''}`} />
+              Yenile
+            </Button>
+            <Button variant="outline" onClick={() => setMovementsDialogOpen(false)}>
+              Kapat
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -68,6 +68,161 @@ PAGE_SIZES = {
 
 # Kutucuk tipinden veri çekme eşleştirmesi
 BLOCK_DATA_MAPPING = {
+    # === YENİ FORMAT BLOCK TYPES ===
+    "hasta_bilgileri": {
+        "tc_no": lambda c, m: c.get("patient", {}).get("tc_no", "") or m.get("tcNo", ""),
+        "ad": lambda c, m: c.get("patient", {}).get("name", "") or m.get("patientName", ""),
+        "soyad": lambda c, m: c.get("patient", {}).get("surname", "") or m.get("patientSurname", ""),
+        "yas": lambda c, m: str(c.get("patient", {}).get("age", "") or m.get("age", "") or ""),
+        "dogum_tarihi": lambda c, m: c.get("patient", {}).get("birth_date", "") or m.get("birthDate", ""),
+        "cinsiyet": lambda c, m: c.get("patient", {}).get("gender", "") or m.get("gender", ""),
+    },
+    "cagri_bilgileri": {
+        "cagri_zamani": lambda c, m: c.get("created_at", "").strftime("%d.%m.%Y %H:%M") if hasattr(c.get("created_at", ""), "strftime") else "",
+        "cagri_tipi": lambda c, m: c.get("call_type", "") or m.get("callType", ""),
+        "cagri_nedeni": lambda c, m: c.get("call_reason", "") or m.get("callReason", "") or c.get("patient", {}).get("complaint", ""),
+        "vakayi_veren": lambda c, m: c.get("caller", {}).get("company_name", "") or "",
+    },
+    "zaman_bilgileri": {
+        "cagri_saati": lambda c, m: m.get("callTime", "") or m.get("timestamps", {}).get("call", ""),
+        "olay_yerine_varis": lambda c, m: m.get("arrivalScene", "") or m.get("timestamps", {}).get("scene", ""),
+        "hastaya_varis": lambda c, m: m.get("arrivalPatient", "") or m.get("timestamps", {}).get("patient", ""),
+        "ayrilis": lambda c, m: m.get("departureScene", "") or m.get("timestamps", {}).get("departure", ""),
+        "hastaneye_varis": lambda c, m: m.get("arrivalHospital", "") or m.get("timestamps", {}).get("hospital", ""),
+        "istasyona_donus": lambda c, m: m.get("returnStation", "") or m.get("timestamps", {}).get("return", ""),
+    },
+    "vital_bulgular_1": {
+        "saat": lambda c, m: m.get("vitalSigns", [{}])[0].get("time", "") if m.get("vitalSigns") else "",
+        "tansiyon": lambda c, m: m.get("vitalSigns", [{}])[0].get("bp", "") if m.get("vitalSigns") else "",
+        "nabiz": lambda c, m: str(m.get("vitalSigns", [{}])[0].get("pulse", "")) if m.get("vitalSigns") else "",
+        "spo2": lambda c, m: str(m.get("vitalSigns", [{}])[0].get("spo2", "")) if m.get("vitalSigns") else "",
+        "solunum": lambda c, m: str(m.get("vitalSigns", [{}])[0].get("respiration", "")) if m.get("vitalSigns") else "",
+        "ates": lambda c, m: str(m.get("vitalSigns", [{}])[0].get("temp", "")) if m.get("vitalSigns") else "",
+    },
+    "vital_bulgular_2": {
+        "saat": lambda c, m: m.get("vitalSigns", [{}, {}])[1].get("time", "") if len(m.get("vitalSigns", [])) > 1 else "",
+        "tansiyon": lambda c, m: m.get("vitalSigns", [{}, {}])[1].get("bp", "") if len(m.get("vitalSigns", [])) > 1 else "",
+        "nabiz": lambda c, m: str(m.get("vitalSigns", [{}, {}])[1].get("pulse", "")) if len(m.get("vitalSigns", [])) > 1 else "",
+        "spo2": lambda c, m: str(m.get("vitalSigns", [{}, {}])[1].get("spo2", "")) if len(m.get("vitalSigns", [])) > 1 else "",
+        "solunum": lambda c, m: str(m.get("vitalSigns", [{}, {}])[1].get("respiration", "")) if len(m.get("vitalSigns", [])) > 1 else "",
+        "ates": lambda c, m: str(m.get("vitalSigns", [{}, {}])[1].get("temp", "")) if len(m.get("vitalSigns", [])) > 1 else "",
+    },
+    "vital_bulgular_3": {
+        "saat": lambda c, m: m.get("vitalSigns", [{}, {}, {}])[2].get("time", "") if len(m.get("vitalSigns", [])) > 2 else "",
+        "tansiyon": lambda c, m: m.get("vitalSigns", [{}, {}, {}])[2].get("bp", "") if len(m.get("vitalSigns", [])) > 2 else "",
+        "nabiz": lambda c, m: str(m.get("vitalSigns", [{}, {}, {}])[2].get("pulse", "")) if len(m.get("vitalSigns", [])) > 2 else "",
+        "spo2": lambda c, m: str(m.get("vitalSigns", [{}, {}, {}])[2].get("spo2", "")) if len(m.get("vitalSigns", [])) > 2 else "",
+        "solunum": lambda c, m: str(m.get("vitalSigns", [{}, {}, {}])[2].get("respiration", "")) if len(m.get("vitalSigns", [])) > 2 else "",
+        "ates": lambda c, m: str(m.get("vitalSigns", [{}, {}, {}])[2].get("temp", "")) if len(m.get("vitalSigns", [])) > 2 else "",
+    },
+    "klinik_gozlemler": {
+        "bilinc": lambda c, m: m.get("clinical_observations", {}).get("consciousness", ""),
+        "duygu": lambda c, m: m.get("clinical_observations", {}).get("mood", ""),
+        "pupil": lambda c, m: m.get("clinical_observations", {}).get("pupil_response", ""),
+        "cilt": lambda c, m: m.get("clinical_observations", {}).get("skin_status", ""),
+        "solunum_tipi": lambda c, m: m.get("clinical_observations", {}).get("breathing_type", ""),
+        "nabiz_tipi": lambda c, m: m.get("clinical_observations", {}).get("pulse_type", ""),
+    },
+    "gks_skorlari": {
+        "motor": lambda c, m: str(m.get("clinical_observations", {}).get("motorResponse", "")),
+        "verbal": lambda c, m: str(m.get("clinical_observations", {}).get("verbalResponse", "")),
+        "goz": lambda c, m: str(m.get("clinical_observations", {}).get("eyeOpening", "")),
+        "toplam": lambda c, m: str(m.get("clinical_observations", {}).get("gcs_total", "")),
+    },
+    "anamnez": {
+        "sikayet": lambda c, m: c.get("patient", {}).get("complaint", "") or m.get("complaint", ""),
+        "oyku": lambda c, m: m.get("anamnesis", "") or m.get("history", ""),
+        "kronik": lambda c, m: m.get("chronicDiseases", "") or m.get("chronic_diseases", ""),
+    },
+    "fizik_muayene": {
+        "muayene": lambda c, m: m.get("physical_exam", {}).get("general_status", "") or m.get("physicalExam", ""),
+    },
+    "uygulanan_islemler": {
+        "maske": lambda c, m: "Evet" if m.get("procedures", {}).get("mask", False) else "",
+        "airway": lambda c, m: "Evet" if m.get("procedures", {}).get("airway", False) else "",
+        "entubasyon": lambda c, m: "Evet" if m.get("procedures", {}).get("intubation", False) else "",
+        "lma": lambda c, m: "Evet" if m.get("procedures", {}).get("lma", False) else "",
+        "cpr": lambda c, m: "Evet" if m.get("cpr_performed", False) else "",
+        "defib": lambda c, m: "Evet" if m.get("procedures", {}).get("defibrillation", False) else "",
+        "diger": lambda c, m: m.get("other_procedures", ""),
+    },
+    "cpr_bilgileri": {
+        "uygulayan": lambda c, m: m.get("cpr_info", {}).get("performer", ""),
+        "baslangic": lambda c, m: m.get("cpr_info", {}).get("start_time", ""),
+        "bitis": lambda c, m: m.get("cpr_info", {}).get("end_time", ""),
+        "neden": lambda c, m: m.get("cpr_info", {}).get("reason", ""),
+    },
+    "nakil_durumu": {
+        "nakil_tipi": lambda c, m: m.get("transfer_type", "") or m.get("transferType", ""),
+        "transfer_tipi": lambda c, m: m.get("extended_form", {}).get("outcome", ""),
+    },
+    "nakil_hastanesi": {
+        "hastane": lambda c, m: m.get("transfer_hospital", {}).get("name", "") or m.get("transfer1", "") or m.get("transfer2", ""),
+        "protokol": lambda c, m: m.get("hospital_protocol", "") or m.get("hospitalProtocol", ""),
+    },
+    "healmedy_lokasyonu": {
+        "lokasyon": lambda c, m: c.get("healmedy_location", {}).get("name", "") or "",
+    },
+    "arac_bilgileri": {
+        "plaka": lambda c, m: c.get("vehicle_info", {}).get("plate", "") or c.get("vehicle", {}).get("plate", ""),
+        "baslangic_km": lambda c, m: str(c.get("vehicle_info", {}).get("start_km", "")),
+        "bitis_km": lambda c, m: str(c.get("vehicle_info", {}).get("end_km", "")),
+        "protokol_112": lambda c, m: c.get("protocol_112", "") or m.get("protocol112", ""),
+    },
+    "ekip_bilgileri": {
+        "sofor": lambda c, m: c.get("team", {}).get("driver", {}).get("name", ""),
+        "paramedik": lambda c, m: c.get("team", {}).get("paramedic", {}).get("name", ""),
+        "att": lambda c, m: c.get("team", {}).get("att", {}).get("name", ""),
+        "hemsire": lambda c, m: c.get("team", {}).get("nurse", {}).get("name", ""),
+    },
+    "kullanilan_ilaclar": {
+        "ilac_adi": lambda c, m: format_medications(m.get("medications_used", [])),
+        "doz": lambda c, m: "",
+        "yol": lambda c, m: "",
+        "saat": lambda c, m: "",
+    },
+    "kullanilan_malzemeler": {
+        "malzeme": lambda c, m: format_materials(m.get("materials_used", [])),
+    },
+    "tani_icd10": {
+        "icd_kod": lambda c, m: m.get("diagnosis", {}).get("icd_code", ""),
+        "tani": lambda c, m: m.get("diagnosis", {}).get("description", ""),
+    },
+    "imza_hasta": {
+        "ad_soyad": lambda c, m: m.get("inline_consents", {}).get("patient", {}).get("name", ""),
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "imza_doktor": {
+        "ad_soyad": lambda c, m: m.get("inline_consents", {}).get("doctor", {}).get("name", ""),
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "imza_saglik_personeli": {
+        "ad_soyad": lambda c, m: m.get("inline_consents", {}).get("health_personnel", {}).get("name", ""),
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "imza_sofor": {
+        "ad_soyad": lambda c, m: m.get("inline_consents", {}).get("driver", {}).get("name", ""),
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "imza_teslim_alan": {
+        "ad_soyad": lambda c, m: m.get("inline_consents", {}).get("receiver", {}).get("name", ""),
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "adli_vaka": {
+        "adli": lambda c, m: "Evet" if m.get("is_forensic", False) or c.get("is_forensic", False) else "Hayir",
+    },
+    "vaka_sonucu": {
+        "sonuc": lambda c, m: m.get("extended_form", {}).get("outcome", "") or m.get("outcome", ""),
+    },
+    "genel_notlar": {
+        "notlar": lambda c, m: m.get("notes", "") or m.get("generalNotes", ""),
+    },
+    "logo_baslik": {
+        "logo": lambda c, m: "",
+        "baslik": lambda c, m: "AMBULANS VAKA FORMU",
+        "alt_baslik": lambda c, m: "Healmedy Saglik Hizmetleri",
+    },
+    # === ESKİ FORMAT BLOCK TYPES (geriye uyumluluk) ===
     "hasta_zaman": {
         "case_number": lambda c, m: c.get("case_number", "") or m.get("healmedyProtocol", "") or c.get("_id", "")[:8],
         "case_date": lambda c, m: (
@@ -484,8 +639,74 @@ class TemplatePdfGenerator:
                 self.canvas.drawString(x + 5, content_y, custom_text[:50])
 
 
+def generate_table_pdf(template, case_data, medical_form=None):
+    """Tablo şablonundan PDF oluştur"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30)
+    
+    cells = template.get("cells", [])
+    rows = template.get("rows", 10)
+    cols = template.get("columns", 6)
+    
+    # Tablo verisi oluştur
+    table_data = [['' for _ in range(cols)] for _ in range(rows)]
+    
+    # Her hücreyi doldur
+    for cell in cells:
+        row = cell.get("row", 0)
+        col = cell.get("col", 0)
+        content_block = cell.get("content_block", {})
+        
+        if row < rows and col < cols and content_block:
+            block_id = content_block.get("id", "")
+            block_name = content_block.get("name", "")
+            
+            # Block verilerini al
+            mapping = BLOCK_DATA_MAPPING.get(block_id, {})
+            values = []
+            for field_id, getter in mapping.items():
+                try:
+                    val = getter(case_data, medical_form or {})
+                    if val:
+                        values.append(str(val))
+                except:
+                    pass
+            
+            if values:
+                table_data[row][col] = normalize_turkish("\n".join(values[:3]))
+            else:
+                table_data[row][col] = normalize_turkish(block_name)
+    
+    # Tablo oluştur
+    col_width = 500 / cols
+    table = Table(table_data, colWidths=[col_width] * cols)
+    table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    
+    doc.build([table])
+    buffer.seek(0)
+    return buffer
+
+
 def generate_pdf_from_template(template, case_data, medical_form=None):
-    """Şablondan PDF oluştur"""
+    """Şablondan PDF oluştur - hem PDF hem Tablo şablonlarını destekler"""
+    
+    # Tablo şablonu mı?
+    template_type = template.get("template_type", "pdf")
+    if template_type == "table" or template.get("cells"):
+        return generate_table_pdf(template, case_data, medical_form)
+    
     # Template içindeki tüm metinleri normalize et
     def deep_normalize(obj):
         """Nested dict/list içindeki tüm stringleri normalize et"""

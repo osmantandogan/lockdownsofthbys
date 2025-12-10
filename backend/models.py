@@ -895,7 +895,8 @@ HEALMEDY_LOCATIONS = [
     {"id": "green_zone_ronesans", "name": "Green Zone/Rönesans"},
     {"id": "bati_kuzey_isg", "name": "Batı-Kuzey/İSG BİNA"},
     {"id": "red_zone_kara", "name": "Red Zone/Kara Tesisleri"},
-    {"id": "dogu_rihtimi", "name": "Doğu Rıhtımı"}
+    {"id": "dogu_rihtimi", "name": "Doğu Rıhtımı"},
+    {"id": "filyos_saglik_merkezi", "name": "Filyos Sağlık Merkezi"}
 ]
 
 # Lokasyon tipi

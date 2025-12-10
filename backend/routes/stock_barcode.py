@@ -891,38 +891,35 @@ stock_locations_collection = db["stock_locations"]
 @router.post("/sync-vehicle-locations")
 async def sync_vehicle_stock_locations(request: Request):
     """
-    Tüm araçlar ve bekleme noktaları için otomatik stok lokasyonu oluştur
-    - Her araç için bir lokasyon
-    - Her araç için bir bekleme noktası lokasyonu
-    - Merkez Depo lokasyonu (yoksa oluştur)
+    Tüm araçlar ve HEALMEDY lokasyonları için otomatik stok lokasyonu oluştur
+    - Her araç için bir lokasyon (plaka bazlı)
+    - Her HEALMEDY lokasyonu için bir bekleme noktası (Osman Gazi/FPU, Green Zone/Rönesans vb.)
+    - Merkez Depo lokasyonu
     """
+    from models import HEALMEDY_LOCATIONS
+    
     user = await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi"])(request)
     
     created_count = 0
     existing_count = 0
     
-    # Tüm araçları al
-    vehicles = await vehicles_collection.find({"status": {"$ne": "pasif"}}).to_list(100)
-    
-    for vehicle in vehicles:
-        plate = vehicle.get("plate")
-        vehicle_id = vehicle.get("_id")
+    # 1. HEALMEDY Lokasyonları (bekleme noktaları)
+    for loc in HEALMEDY_LOCATIONS:
+        loc_id = loc["id"]
+        loc_name = loc["name"]
         
-        # 1. Araç lokasyonu
-        vehicle_loc_name = f"{plate}"
-        existing_vehicle_loc = await stock_locations_collection.find_one({
-            "name": vehicle_loc_name,
-            "type": "vehicle"
+        existing_loc = await stock_locations_collection.find_one({
+            "healmedy_location_id": loc_id,
+            "type": "waiting_point"
         })
         
-        if not existing_vehicle_loc:
+        if not existing_loc:
             new_loc = {
                 "_id": str(uuid.uuid4()),
-                "name": vehicle_loc_name,
-                "type": "vehicle",
-                "vehicle_id": vehicle_id,
-                "vehicle_plate": plate,
-                "description": f"{plate} plakalı araç stoğu",
+                "name": loc_name,
+                "type": "waiting_point",
+                "healmedy_location_id": loc_id,
+                "description": f"{loc_name} bekleme noktası stoğu",
                 "is_active": True,
                 "created_at": datetime.utcnow(),
                 "created_by": user.id,
@@ -931,24 +928,35 @@ async def sync_vehicle_stock_locations(request: Request):
             await stock_locations_collection.insert_one(new_loc)
             created_count += 1
         else:
+            # Eğer varsa ismi güncelle
+            if existing_loc.get("name") != loc_name:
+                await stock_locations_collection.update_one(
+                    {"_id": existing_loc["_id"]},
+                    {"$set": {"name": loc_name}}
+                )
             existing_count += 1
+    
+    # 2. Araç lokasyonları
+    vehicles = await vehicles_collection.find({"status": {"$ne": "pasif"}}).to_list(100)
+    
+    for vehicle in vehicles:
+        plate = vehicle.get("plate")
+        vehicle_id = vehicle.get("_id")
         
-        # 2. Bekleme Noktası lokasyonu
-        waiting_loc_name = f"{plate} Bekleme Noktası"
-        existing_waiting_loc = await stock_locations_collection.find_one({
-            "name": waiting_loc_name,
-            "type": "waiting_point"
+        # Araç lokasyonu
+        existing_vehicle_loc = await stock_locations_collection.find_one({
+            "vehicle_id": vehicle_id,
+            "type": "vehicle"
         })
         
-        if not existing_waiting_loc:
+        if not existing_vehicle_loc:
             new_loc = {
                 "_id": str(uuid.uuid4()),
-                "name": waiting_loc_name,
-                "type": "waiting_point",
+                "name": plate,
+                "type": "vehicle",
                 "vehicle_id": vehicle_id,
                 "vehicle_plate": plate,
-                "parent_vehicle_plate": plate,
-                "description": f"{plate} bekleme noktası stoğu",
+                "description": f"{plate} plakalı araç stoğu",
                 "is_active": True,
                 "created_at": datetime.utcnow(),
                 "created_by": user.id,
@@ -1010,7 +1018,8 @@ async def sync_vehicle_stock_locations(request: Request):
         "message": f"{created_count} yeni lokasyon oluşturuldu, {existing_count} lokasyon zaten mevcut",
         "created": created_count,
         "existing": existing_count,
-        "total_vehicles": len(vehicles)
+        "total_vehicles": len(vehicles),
+        "healmedy_locations": [loc["name"] for loc in HEALMEDY_LOCATIONS]
     }
 
 
@@ -1029,6 +1038,61 @@ async def get_stock_locations(request: Request, type: Optional[str] = None):
         loc["id"] = loc.pop("_id")
     
     return {"locations": locations, "count": len(locations)}
+
+
+@router.delete("/stock-locations/cleanup-old")
+async def cleanup_old_stock_locations(request: Request):
+    """
+    Eski 'PLAKA Bekleme Noktası' formatındaki lokasyonları temizle
+    Sadece içinde stok olmayan lokasyonları siler
+    """
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    import logging
+    
+    # Eski format lokasyonları bul (Bekleme Noktası içeren)
+    old_locations = await stock_locations_collection.find({
+        "name": {"$regex": "Bekleme Noktası", "$options": "i"}
+    }).to_list(500)
+    
+    deleted_count = 0
+    skipped_count = 0
+    
+    for loc in old_locations:
+        loc_id = loc["_id"]
+        loc_name = loc["name"]
+        
+        # Bu lokasyonda stok var mı kontrol et
+        stock_in_location = await stock_collection.find_one({
+            "$or": [
+                {"location": loc_name},
+                {"location": loc_id}
+            ]
+        })
+        
+        barcode_stock_in_location = await barcode_stock_collection.find_one({
+            "$or": [
+                {"location": loc_name},
+                {"location": loc_id}
+            ],
+            "status": "available"
+        })
+        
+        if stock_in_location or barcode_stock_in_location:
+            # Stok var, silme
+            skipped_count += 1
+            logging.info(f"Skipped location {loc_name} - has stock")
+        else:
+            # Stok yok, sil
+            await stock_locations_collection.delete_one({"_id": loc_id})
+            deleted_count += 1
+            logging.info(f"Deleted old location: {loc_name}")
+    
+    return {
+        "message": f"{deleted_count} eski lokasyon silindi, {skipped_count} lokasyon stok içerdiği için atlandı",
+        "deleted": deleted_count,
+        "skipped": skipped_count
+    }
 
 
 # ============================================================================

@@ -228,15 +228,19 @@ const ShiftEnd = () => {
       return;
     }
     
-    if (!managerApproved) {
-      toast.error('Yönetici onayı gerekli. Lütfen önce onay isteyin.');
-      return;
-    }
+    // Onay kontrolü kaldırıldı - direkt bitirebilir
+    // if (!managerApproved) {
+    //   toast.error('Yönetici onayı gerekli. Lütfen önce onay isteyin.');
+    //   return;
+    // }
 
     if (!confirm('Vardiyayı bitirmek istediğinizden emin misiniz?')) return;
 
     setSubmitting(true);
     try {
+      // Form açılma ve işlem zamanlarını logla
+      const actionTakenAt = new Date().toISOString();
+      
       await shiftsAPI.end({
         shift_id: activeShift.id,
         handover_form: {
@@ -246,7 +250,9 @@ const ShiftEnd = () => {
           kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
           teslimEden: user?.name,
           teslimAlan: formData.devralanAdi || nextShiftUser?.name || 'Bilinmiyor',
-          managerApproved
+          managerApproved,
+          form_opened_at: formOpenedAt, // Form açılma zamanı
+          action_taken_at: actionTakenAt // İşlem zamanı
         },
         notes: formData.teslimEdenNotlar,
         // Form zamanları (log için)

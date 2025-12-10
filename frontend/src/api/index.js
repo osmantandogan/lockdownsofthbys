@@ -162,6 +162,7 @@ export const stockAPI = {
   // Otomatik Lokasyon Senkronizasyonu
   syncVehicleLocations: () => api.post('/stock-barcode/sync-vehicle-locations'),
   getStockLocations: (type) => api.get('/stock-barcode/stock-locations', { params: { type } }),
+  cleanupOldLocations: () => api.delete('/stock-barcode/stock-locations/cleanup-old'),
   
   // Stok Parçalama (QR -> Adet)
   getSplitInfo: (barcodeStockId) => api.get(`/stock-barcode/split-info/${barcodeStockId}`),
@@ -236,7 +237,8 @@ export const shiftsAPI = {
   getPendingShiftApprovals: () => api.get('/shifts/shift-approvals/pending'),
   approveShiftApproval: (id) => api.post(`/shifts/shift-approvals/${id}/approve`),
   rejectShiftApproval: (id, reason) => api.post(`/shifts/shift-approvals/${id}/reject`, null, { params: { reason } }),
-  getShiftApprovalLogs: (params) => api.get('/shifts/shift-approvals/logs', { params })
+  getShiftApprovalLogs: (params) => api.get('/shifts/shift-approvals/logs', { params }),
+  getShiftLogs: (params) => api.get('/shifts/shift-logs', { params })
 };
 
 // Locations API (YENİ)

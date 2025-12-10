@@ -90,6 +90,9 @@ const ShiftStartNew = () => {
   const [sendingApproval, setSendingApproval] = useState(false);
   const [checkingApproval, setCheckingApproval] = useState(false);
   
+  // Form açılma zamanı (log için)
+  const [formOpenedAt] = useState(new Date().toISOString());
+  
   // Türkiye saati (UTC+3)
   const [turkeyNow, setTurkeyNow] = useState(getTurkeyTime());
 
@@ -557,18 +560,24 @@ const ShiftStartNew = () => {
       return;
     }
     
-    if (approvalStatus !== 'approved') {
-      toast.error('Yönetici onayı gerekli');
-      return;
-    }
+    // Onay kontrolü kaldırıldı - direkt başlatabilir
+    // if (approvalStatus !== 'approved') {
+    //   toast.error('Yönetici onayı gerekli');
+    //   return;
+    // }
 
     setLoading(true);
     try {
+      // Form açılma zamanını logla
+      const formOpenedAt = new Date().toISOString();
+      
       await shiftsAPI.start({
         vehicle_qr: qrCode,
         photos: photos,
         daily_control: controlForm,
-        approval_id: approvalId // Onay ID'sini gönder
+        approval_id: approvalId, // Onay ID'sini gönder (varsa)
+        form_opened_at: formOpenedAt, // Form açılma zamanı
+        action_taken_at: new Date().toISOString() // İşlem zamanı
       });
       toast.success('🎉 Vardiya başarıyla başlatıldı!');
       navigate('/dashboard/shifts');
