@@ -100,6 +100,117 @@ BLOCK_DATA_MAPPING = {
     "hasta_sikayeti": {
         "sikayet": lambda c, m: c.get("patient", {}).get("complaint", "") or m.get("complaint", "") or m.get("chief_complaint", "") or "",
     },
+    # === 🆕 YENİ PDF BLOKLARI ===
+    "yeni_hasta_bilgileri": {
+        "ad_soyad": lambda c, m: f"{c.get('patient', {}).get('name', '')} {c.get('patient', {}).get('surname', '')}".strip() or m.get("patientName", "") or "",
+        "adres": lambda c, m: c.get("patient", {}).get("address", "") or c.get("location", {}).get("address", "") or m.get("address", "") or "",
+        "telefon": lambda c, m: c.get("patient", {}).get("phone", "") or c.get("caller", {}).get("phone", "") or m.get("phone", "") or "",
+        "tc_no": lambda c, m: c.get("patient", {}).get("tc_no", "") or m.get("tcNo", "") or "",
+        "yas": lambda c, m: str(c.get("patient", {}).get("age", "") or m.get("age", "") or ""),
+        "cinsiyet": lambda c, m: c.get("patient", {}).get("gender", "") or m.get("gender", "") or "",
+        "durum_kodu": lambda c, m: c.get("patient", {}).get("status", "") or m.get("patientStatus", "") or m.get("status_code", "") or "",
+    },
+    "yeni_alinan_adres": {
+        "alinan_adres": lambda c, m: c.get("location", {}).get("address", "") or m.get("pickupAddress", "") or c.get("patient", {}).get("address", "") or "",
+    },
+    "yeni_cagri_tipi": {
+        "cagri_tipi": lambda c, m: c.get("call_type", "") or m.get("callType", "") or "",
+    },
+    "yeni_cagri_nedeni": {
+        "cagri_nedeni": lambda c, m: c.get("call_reason", "") or m.get("callReason", "") or c.get("patient", {}).get("complaint", "") or "",
+    },
+    "yeni_olay_yeri": {
+        "olay_yeri_tipi": lambda c, m: m.get("scene_type", "") or m.get("sceneType", "") or c.get("location", {}).get("type", "") or "",
+    },
+    "yeni_ilk_muayene": {
+        "pupiller": lambda c, m: m.get("clinical_observations", {}).get("pupil_response", "") or m.get("pupils", "") or "",
+        "deri": lambda c, m: m.get("clinical_observations", {}).get("skin_status", "") or m.get("skin", "") or "",
+        "sistolik": lambda c, m: str(m.get("vitals", {}).get("systolic", "") or (m.get("vitalSigns", [{}])[0].get("bp", "").split("/")[0] if m.get("vitalSigns") and "/" in str(m.get("vitalSigns", [{}])[0].get("bp", "")) else "") or ""),
+        "diyastolik": lambda c, m: str(m.get("vitals", {}).get("diastolic", "") or (m.get("vitalSigns", [{}])[0].get("bp", "").split("/")[1] if m.get("vitalSigns") and "/" in str(m.get("vitalSigns", [{}])[0].get("bp", "")) else "") or ""),
+        "spo2": lambda c, m: str(m.get("vitals", {}).get("spo2", "") or (m.get("vitalSigns", [{}])[0].get("spo2", "") if m.get("vitalSigns") else "") or ""),
+        "nabiz": lambda c, m: str(m.get("vitals", {}).get("pulse", "") or (m.get("vitalSigns", [{}])[0].get("pulse", "") if m.get("vitalSigns") else "") or ""),
+        "nabiz_ritim": lambda c, m: m.get("clinical_observations", {}).get("pulse_rhythm", "") or m.get("pulseRhythm", "") or "",
+        "solunum": lambda c, m: str(m.get("vitals", {}).get("respiratory_rate", "") or (m.get("vitalSigns", [{}])[0].get("respiration", "") if m.get("vitalSigns") else "") or ""),
+        "solunum_tipi": lambda c, m: m.get("clinical_observations", {}).get("breathing_type", "") or m.get("breathingType", "") or "",
+    },
+    "yeni_glasgow": {
+        "motor": lambda c, m: str(m.get("clinical_observations", {}).get("motorResponse", "") or m.get("gcs", {}).get("motor", "") or ""),
+        "verbal": lambda c, m: str(m.get("clinical_observations", {}).get("verbalResponse", "") or m.get("gcs", {}).get("verbal", "") or ""),
+        "goz": lambda c, m: str(m.get("clinical_observations", {}).get("eyeOpening", "") or m.get("gcs", {}).get("eye", "") or ""),
+        "toplam": lambda c, m: str(m.get("clinical_observations", {}).get("gcs_total", "") or m.get("gcs", {}).get("total", "") or ""),
+    },
+    "yeni_kan_sekeri": {
+        "kan_sekeri_1": lambda c, m: str(m.get("vitals", {}).get("blood_sugar", "") or (m.get("bloodSugar", [{}])[0] if isinstance(m.get("bloodSugar"), list) and len(m.get("bloodSugar", [])) > 0 else m.get("bloodSugar", "")) or ""),
+        "kan_sekeri_2": lambda c, m: str((m.get("bloodSugar", [{}])[1] if isinstance(m.get("bloodSugar"), list) and len(m.get("bloodSugar", [])) > 1 else "") or ""),
+        "kan_sekeri_3": lambda c, m: str((m.get("bloodSugar", [{}])[2] if isinstance(m.get("bloodSugar"), list) and len(m.get("bloodSugar", [])) > 2 else "") or ""),
+    },
+    "yeni_on_tani": {
+        "on_tani": lambda c, m: m.get("diagnosis", {}).get("preliminary", "") or m.get("preliminaryDiagnosis", "") or m.get("preDiagnosis", "") or "",
+    },
+    "yeni_aciklamalar": {
+        "aciklamalar": lambda c, m: m.get("notes", "") or m.get("generalNotes", "") or m.get("explanations", "") or "",
+    },
+    "yeni_vakayi_veren": {
+        "vakayi_veren": lambda c, m: c.get("caller", {}).get("company_name", "") or m.get("referringInstitution", "") or m.get("callerInstitution", "") or "",
+    },
+    "yeni_sonuc": {
+        "sonuc": lambda c, m: m.get("extended_form", {}).get("outcome", "") or m.get("outcome", "") or m.get("result", "") or "",
+    },
+    "yeni_nakledilen_hastane": {
+        "hastane_1": lambda c, m: m.get("transfer_hospital", {}).get("name", "") or m.get("transfer1", "") or "",
+        "hastane_2": lambda c, m: m.get("transfer2", "") or "",
+        "hastane_3": lambda c, m: m.get("transfer3", "") or "",
+        "hastane_4": lambda c, m: m.get("transfer4", "") or "",
+    },
+    "yeni_kaza_plakalari": {
+        "plaka_1": lambda c, m: (m.get("accidentVehicles", [{}])[0].get("plate", "") if m.get("accidentVehicles") and len(m.get("accidentVehicles", [])) > 0 else "") or "",
+        "plaka_2": lambda c, m: (m.get("accidentVehicles", [{}])[1].get("plate", "") if m.get("accidentVehicles") and len(m.get("accidentVehicles", [])) > 1 else "") or "",
+        "plaka_3": lambda c, m: (m.get("accidentVehicles", [{}])[2].get("plate", "") if m.get("accidentVehicles") and len(m.get("accidentVehicles", [])) > 2 else "") or "",
+        "plaka_4": lambda c, m: (m.get("accidentVehicles", [{}])[3].get("plate", "") if m.get("accidentVehicles") and len(m.get("accidentVehicles", [])) > 3 else "") or "",
+    },
+    "yeni_cpr": {
+        "cpr_baslama": lambda c, m: m.get("cpr_info", {}).get("start_time", "") or m.get("cprStartTime", "") or "",
+        "cpr_birakma": lambda c, m: m.get("cpr_info", {}).get("end_time", "") or m.get("cprEndTime", "") or "",
+        "cpr_neden": lambda c, m: m.get("cpr_info", {}).get("stop_reason", "") or m.get("cprStopReason", "") or "",
+    },
+    "yeni_km_bilgileri": {
+        "atn_no": lambda c, m: c.get("protocol_112", "") or m.get("atnNo", "") or "",
+        "baslangic_km": lambda c, m: str(c.get("vehicle_info", {}).get("start_km", "") or m.get("startKm", "") or ""),
+        "bitis_km": lambda c, m: str(c.get("vehicle_info", {}).get("end_km", "") or m.get("endKm", "") or ""),
+    },
+    "yeni_islemler": {
+        "genel_mudahale": lambda c, m: ", ".join(m.get("procedures", {}).get("general", [])) if isinstance(m.get("procedures", {}).get("general"), list) else m.get("procedures", {}).get("general", "") or "",
+        "hava_yolu": lambda c, m: ", ".join(m.get("procedures", {}).get("airway", [])) if isinstance(m.get("procedures", {}).get("airway"), list) else m.get("procedures", {}).get("airway", "") or "",
+        "diger_islemler": lambda c, m: ", ".join(m.get("procedures", {}).get("other", [])) if isinstance(m.get("procedures", {}).get("other"), list) else m.get("procedures", {}).get("other", "") or "",
+        "yenidogan": lambda c, m: ", ".join(m.get("procedures", {}).get("newborn", [])) if isinstance(m.get("procedures", {}).get("newborn"), list) else m.get("procedures", {}).get("newborn", "") or "",
+        "sivi_tedavisi": lambda c, m: ", ".join(m.get("procedures", {}).get("fluid", [])) if isinstance(m.get("procedures", {}).get("fluid"), list) else m.get("procedures", {}).get("fluid", "") or "",
+    },
+    "yeni_kullanilan_ilaclar": {
+        "ilaclar": lambda c, m: format_medications(m.get("medications_used", [])),
+    },
+    "yeni_kullanilan_malzemeler": {
+        "malzemeler": lambda c, m: format_materials(m.get("materials_used", [])),
+    },
+    "yeni_hastane_reddi": {
+        "red_nedeni": lambda c, m: m.get("inline_consents", {}).get("hospital_rejection", {}).get("reason", "") or "",
+        "hastane_adi": lambda c, m: m.get("inline_consents", {}).get("hospital_rejection", {}).get("hospital_name", "") or "",
+        "kase": lambda c, m: "[KASE]",
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "yeni_hasta_hizmet_reddi": {
+        "hasta_adi": lambda c, m: m.get("inline_consents", {}).get("patient_rejection", {}).get("patient_name", "") or f"{c.get('patient', {}).get('name', '')} {c.get('patient', {}).get('surname', '')}".strip() or "",
+        "hasta_yakini": lambda c, m: m.get("inline_consents", {}).get("patient_rejection", {}).get("relative_name", "") or "",
+        "imza": lambda c, m: "[IMZA]",
+    },
+    "yeni_teslim_imzalar": {
+        "teslim_alan_ad": lambda c, m: m.get("inline_consents", {}).get("handover", {}).get("receiver_name", "") or "",
+        "teslim_alan_unvan": lambda c, m: m.get("inline_consents", {}).get("handover", {}).get("receiver_title", "") or "",
+        "teslim_alan_imza": lambda c, m: "[IMZA]",
+        "teslim_alan_kase": lambda c, m: "[KASE]",
+        "hekim_imza": lambda c, m: "[IMZA]",
+        "saglik_per_imza": lambda c, m: "[IMZA]",
+        "sofor_imza": lambda c, m: "[IMZA]",
+    },
     # === YENİ FORMAT BLOCK TYPES ===
     "hasta_bilgileri": {
         "tc_no": lambda c, m: c.get("patient", {}).get("tc_no", "") or m.get("tcNo", ""),

@@ -106,6 +106,293 @@ const BLOCK_DEFINITIONS = [
     defaultWidth: 280,
     defaultHeight: 80
   },
+  // ===== 🆕 YENİ PDF BLOKLARI =====
+  {
+    id: 'yeni_hasta_bilgileri',
+    name: '🆕 3. HASTA BİLGİLERİ',
+    icon: User,
+    color: 'bg-emerald-200 text-emerald-800 border-emerald-400',
+    fields: [
+      { field_id: 'ad_soyad', label: 'Adı Soyadı' },
+      { field_id: 'adres', label: 'Adresi' },
+      { field_id: 'telefon', label: 'Telefon' },
+      { field_id: 'tc_no', label: 'T.C. Kimlik No' },
+      { field_id: 'yas', label: 'Yaş' },
+      { field_id: 'cinsiyet', label: 'Cinsiyet' },
+      { field_id: 'durum_kodu', label: 'Durumu (Kırmızı/Sarı/Yeşil/Siyah Kod)' }
+    ],
+    defaultWidth: 320,
+    defaultHeight: 140
+  },
+  {
+    id: 'yeni_alinan_adres',
+    name: '🆕 4. HASTANIN ALINDIĞI ADRES',
+    icon: MapPin,
+    color: 'bg-orange-200 text-orange-800 border-orange-400',
+    fields: [
+      { field_id: 'alinan_adres', label: 'Alındığı Adres' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 60
+  },
+  {
+    id: 'yeni_cagri_tipi',
+    name: '🆕 5. ÇAĞRI TİPİ',
+    icon: Phone,
+    color: 'bg-purple-200 text-purple-800 border-purple-400',
+    fields: [
+      { field_id: 'cagri_tipi', label: 'Çağrı Tipi (Telsiz/Telefon/Diğer)' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 50
+  },
+  {
+    id: 'yeni_cagri_nedeni',
+    name: '🆕 6. ÇAĞRI NEDENİ',
+    icon: AlertCircle,
+    color: 'bg-red-200 text-red-800 border-red-400',
+    fields: [
+      { field_id: 'cagri_nedeni', label: 'Çağrı Nedeni' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 60
+  },
+  {
+    id: 'yeni_olay_yeri',
+    name: '🆕 7. OLAY YERİ',
+    icon: MapPin,
+    color: 'bg-cyan-200 text-cyan-800 border-cyan-400',
+    fields: [
+      { field_id: 'olay_yeri_tipi', label: 'Olay Yeri Tipi' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 50
+  },
+  {
+    id: 'yeni_ilk_muayene',
+    name: '🆕 8. İLK MUAYENE BULGULARI',
+    icon: Stethoscope,
+    color: 'bg-violet-200 text-violet-800 border-violet-400',
+    fields: [
+      { field_id: 'pupiller', label: 'Pupiller' },
+      { field_id: 'deri', label: 'Deri' },
+      { field_id: 'sistolik', label: 'Sistolik (mmHg)' },
+      { field_id: 'diyastolik', label: 'Diyastolik (mmHg)' },
+      { field_id: 'spo2', label: 'SPO2 (%)' },
+      { field_id: 'nabiz', label: 'Nabız (dk)' },
+      { field_id: 'nabiz_ritim', label: 'Nabız Ritmi' },
+      { field_id: 'solunum', label: 'Solunum (dk)' },
+      { field_id: 'solunum_tipi', label: 'Solunum Tipi' }
+    ],
+    defaultWidth: 350,
+    defaultHeight: 160
+  },
+  {
+    id: 'yeni_glasgow',
+    name: '🆕 9. GLASGOW SKALASI (GKS)',
+    icon: AlertCircle,
+    color: 'bg-orange-200 text-orange-800 border-orange-400',
+    fields: [
+      { field_id: 'motor', label: 'Motor (1-6)' },
+      { field_id: 'verbal', label: 'Verbal (1-5)' },
+      { field_id: 'goz', label: 'Göz Açma (1-4)' },
+      { field_id: 'toplam', label: 'G.K.S. PUANI' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 100
+  },
+  {
+    id: 'yeni_kan_sekeri',
+    name: '🆕 10. KAN ŞEKERİ',
+    icon: Heart,
+    color: 'bg-pink-200 text-pink-800 border-pink-400',
+    fields: [
+      { field_id: 'kan_sekeri_1', label: 'Kan Şekeri 1 (Mg/dL)' },
+      { field_id: 'kan_sekeri_2', label: 'Kan Şekeri 2 (Mg/dL)' },
+      { field_id: 'kan_sekeri_3', label: 'Kan Şekeri 3 (Mg/dL)' }
+    ],
+    defaultWidth: 200,
+    defaultHeight: 80
+  },
+  {
+    id: 'yeni_on_tani',
+    name: '🆕 11. ÖN TANI',
+    icon: FileText,
+    color: 'bg-teal-200 text-teal-800 border-teal-400',
+    fields: [
+      { field_id: 'on_tani', label: 'Ön Tanı' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 80
+  },
+  {
+    id: 'yeni_aciklamalar',
+    name: '🆕 12. AÇIKLAMALAR',
+    icon: FileText,
+    color: 'bg-gray-200 text-gray-800 border-gray-400',
+    fields: [
+      { field_id: 'aciklamalar', label: 'Açıklamalar' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 100
+  },
+  {
+    id: 'yeni_vakayi_veren',
+    name: '🆕 13. VAKAYI VEREN KURUM',
+    icon: Users,
+    color: 'bg-indigo-200 text-indigo-800 border-indigo-400',
+    fields: [
+      { field_id: 'vakayi_veren', label: 'Vakayı Veren Kurum' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 60
+  },
+  {
+    id: 'yeni_sonuc',
+    name: '🆕 14. SONUÇ',
+    icon: FileText,
+    color: 'bg-green-200 text-green-800 border-green-400',
+    fields: [
+      { field_id: 'sonuc', label: 'Sonuç' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 60
+  },
+  {
+    id: 'yeni_nakledilen_hastane',
+    name: '🆕 15. NAKLEDİLEN HASTANE',
+    icon: MapPin,
+    color: 'bg-lime-200 text-lime-800 border-lime-400',
+    fields: [
+      { field_id: 'hastane_1', label: 'Hastane 1' },
+      { field_id: 'hastane_2', label: 'Hastane 2' },
+      { field_id: 'hastane_3', label: 'Hastane 3' },
+      { field_id: 'hastane_4', label: 'Hastane 4' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 100
+  },
+  {
+    id: 'yeni_kaza_plakalari',
+    name: '🆕 16. KAZAYA KARIŞAN ARAÇ PLAKA',
+    icon: Truck,
+    color: 'bg-slate-200 text-slate-800 border-slate-400',
+    fields: [
+      { field_id: 'plaka_1', label: 'Plaka 1' },
+      { field_id: 'plaka_2', label: 'Plaka 2' },
+      { field_id: 'plaka_3', label: 'Plaka 3' },
+      { field_id: 'plaka_4', label: 'Plaka 4' }
+    ],
+    defaultWidth: 250,
+    defaultHeight: 100
+  },
+  {
+    id: 'yeni_cpr',
+    name: '🆕 17. CPR YAPILDI İSE',
+    icon: Heart,
+    color: 'bg-red-200 text-red-800 border-red-400',
+    fields: [
+      { field_id: 'cpr_baslama', label: 'Başlama Zamanı' },
+      { field_id: 'cpr_birakma', label: 'Bırakma Zamanı' },
+      { field_id: 'cpr_neden', label: 'Bırakma Nedeni' }
+    ],
+    defaultWidth: 220,
+    defaultHeight: 80
+  },
+  {
+    id: 'yeni_km_bilgileri',
+    name: '🆕 18. BAŞLANGIÇ KM – BİTİŞ KM',
+    icon: Truck,
+    color: 'bg-gray-200 text-gray-800 border-gray-400',
+    fields: [
+      { field_id: 'atn_no', label: 'ATN No' },
+      { field_id: 'baslangic_km', label: 'Başlangıç KM' },
+      { field_id: 'bitis_km', label: 'Bitiş KM' }
+    ],
+    defaultWidth: 220,
+    defaultHeight: 80
+  },
+  {
+    id: 'yeni_islemler',
+    name: '🆕 21. İŞLEMLER (Tümü)',
+    icon: Settings,
+    color: 'bg-violet-200 text-violet-800 border-violet-400',
+    fields: [
+      { field_id: 'genel_mudahale', label: 'Genel Müdahale' },
+      { field_id: 'hava_yolu', label: 'Hava Yolu' },
+      { field_id: 'diger_islemler', label: 'Diğer İşlemler' },
+      { field_id: 'yenidogan', label: 'Yenidoğan İşlemleri' },
+      { field_id: 'sivi_tedavisi', label: 'Sıvı Tedavisi' }
+    ],
+    defaultWidth: 350,
+    defaultHeight: 140
+  },
+  {
+    id: 'yeni_kullanilan_ilaclar',
+    name: '🆕 22. KULLANILAN İLAÇLAR',
+    icon: Pill,
+    color: 'bg-green-200 text-green-800 border-green-400',
+    fields: [
+      { field_id: 'ilaclar', label: 'Kullanılan İlaçlar Listesi' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'yeni_kullanilan_malzemeler',
+    name: '🆕 23. KULLANILAN MALZEMELER',
+    icon: Package,
+    color: 'bg-yellow-200 text-yellow-800 border-yellow-400',
+    fields: [
+      { field_id: 'malzemeler', label: 'Kullanılan Malzemeler Listesi' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 120
+  },
+  {
+    id: 'yeni_hastane_reddi',
+    name: '🆕 24. HASTANENİN HASTA REDDİ',
+    icon: AlertCircle,
+    color: 'bg-red-200 text-red-800 border-red-400',
+    fields: [
+      { field_id: 'red_nedeni', label: 'Red Nedeni' },
+      { field_id: 'hastane_adi', label: 'Hastane/Kurum Adı' },
+      { field_id: 'kase', label: 'Kaşe' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 300,
+    defaultHeight: 100
+  },
+  {
+    id: 'yeni_hasta_hizmet_reddi',
+    name: '🆕 25. HASTANIN HİZMET REDDİ',
+    icon: AlertCircle,
+    color: 'bg-orange-200 text-orange-800 border-orange-400',
+    fields: [
+      { field_id: 'hasta_adi', label: 'Hasta Adı' },
+      { field_id: 'hasta_yakini', label: 'Hasta Yakını Adı' },
+      { field_id: 'imza', label: 'İmza' }
+    ],
+    defaultWidth: 280,
+    defaultHeight: 90
+  },
+  {
+    id: 'yeni_teslim_imzalar',
+    name: '🆕 26. TESLİM ALAN – TESLİM EDEN',
+    icon: PenTool,
+    color: 'bg-slate-200 text-slate-800 border-slate-400',
+    fields: [
+      { field_id: 'teslim_alan_ad', label: 'Teslim Alanın Adı Soyadı' },
+      { field_id: 'teslim_alan_unvan', label: 'Unvanı' },
+      { field_id: 'teslim_alan_imza', label: 'Teslim Alan İmza' },
+      { field_id: 'teslim_alan_kase', label: 'Kaşe' },
+      { field_id: 'hekim_imza', label: 'Hekim/PRM İmza' },
+      { field_id: 'saglik_per_imza', label: 'Sağlık Per./ATT İmza' },
+      { field_id: 'sofor_imza', label: 'Sür./Teknisyen İmza' }
+    ],
+    defaultWidth: 400,
+    defaultHeight: 140
+  },
   // ===== DİĞER BLOKLAR =====
   {
     id: 'hasta_bilgileri',
