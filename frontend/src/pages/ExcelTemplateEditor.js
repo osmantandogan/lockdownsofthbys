@@ -797,6 +797,26 @@ const ExcelTemplateEditor = () => {
           
           <div className="h-6 border-r mx-1" />
           
+          {/* Font Size */}
+          <div className="flex items-center gap-1">
+            <Label className="text-xs whitespace-nowrap">Font:</Label>
+            <Input
+              type="number"
+              min="8"
+              max="72"
+              value={cells[selectedCell?.address]?.font?.size || 10}
+              onChange={(e) => {
+                if (selectedCell) {
+                  applyStyle('fontSize', parseInt(e.target.value) || 10);
+                }
+              }}
+              className="w-16 h-7 text-xs"
+              disabled={!selectedCell}
+            />
+          </div>
+          
+          <div className="h-6 border-r mx-1" />
+          
           <Button variant="ghost" size="sm" onClick={() => applyStyle('align', 'left')}>
             <AlignLeft className="h-4 w-4" />
           </Button>
@@ -1116,8 +1136,27 @@ const ExcelTemplateEditor = () => {
                               }}
                             />
                           ) : (
-                            <div className="px-1 py-0.5 min-h-[20px] whitespace-pre-wrap">
-                              {cell?.value || ''}
+                            <div className="px-1 py-0.5 min-h-[20px] whitespace-pre-wrap relative">
+                              {cell?.image ? (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <img 
+                                    src={cell.image} 
+                                    alt="Cell image"
+                                    style={{
+                                      maxWidth: cell.imageWidth || 200,
+                                      maxHeight: cell.imageHeight || 200,
+                                      objectFit: 'contain'
+                                    }}
+                                    className="cursor-pointer"
+                                    onClick={() => {
+                                      setSelectedCell({ row, col, address });
+                                      setShowImageDialog(true);
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                cell?.value || ''
+                              )}
                             </div>
                           )}
                         </td>
@@ -1339,6 +1378,99 @@ const ExcelTemplateEditor = () => {
           )}
           <DialogFooter>
             <Button onClick={() => setShowStyleDialog(false)}>Kapat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Upload Input (Hidden) */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
+      {/* Image Dialog */}
+      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Görsel Yönetimi</DialogTitle>
+            <p className="text-sm text-gray-500">
+              {selectedCell && `Seçili hücre: ${selectedCell.address}`}
+            </p>
+          </DialogHeader>
+          {selectedCell && (
+            <div className="space-y-4">
+              {cells[selectedCell.address]?.image ? (
+                <div className="space-y-2">
+                  <Label>Mevcut Görsel</Label>
+                  <div className="border rounded p-2 flex items-center justify-center">
+                    <img 
+                      src={cells[selectedCell.address].image} 
+                      alt="Current"
+                      className="max-w-full max-h-64"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Genişlik (px)</Label>
+                      <Input
+                        type="number"
+                        min="50"
+                        max="1000"
+                        value={cells[selectedCell.address].imageWidth || 200}
+                        onChange={(e) => {
+                          const address = selectedCell.address;
+                          updateCell(address, {
+                            ...cells[address],
+                            imageWidth: parseInt(e.target.value) || 200
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Yükseklik (px)</Label>
+                      <Input
+                        type="number"
+                        min="50"
+                        max="1000"
+                        value={cells[selectedCell.address].imageHeight || 200}
+                        onChange={(e) => {
+                          const address = selectedCell.address;
+                          updateCell(address, {
+                            ...cells[address],
+                            imageHeight: parseInt(e.target.value) || 200
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleRemoveImage}
+                    className="w-full"
+                  >
+                    Görseli Kaldır
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Yeni Görsel Yükle</Label>
+                  <Button
+                    variant="outline"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="w-full"
+                    disabled={imageUploading}
+                  >
+                    {imageUploading ? 'Yükleniyor...' : 'Görsel Seç'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowImageDialog(false)}>Kapat</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
