@@ -632,10 +632,20 @@ const ExcelTemplateEditor = () => {
         updates = { fill: { color: value } };
         break;
       case 'fontSize':
-        updates = { font: { ...current.font, size: value } };
+        updates = { 
+          font: { 
+            ...(current.font || {}), 
+            size: value 
+          } 
+        };
         break;
       case 'fontColor':
-        updates = { font: { ...current.font, color: value } };
+        updates = { 
+          font: { 
+            ...(current.font || {}), 
+            color: value 
+          } 
+        };
         break;
       default:
         break;
