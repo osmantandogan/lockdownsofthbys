@@ -19,7 +19,7 @@ from openpyxl.styles import Font, Fill, PatternFill, Alignment, Border, Side
 from database import db
 from auth_utils import get_current_user
 
-router = APIRouter(prefix="/api/excel-templates", tags=["excel-templates"])
+router = APIRouter(tags=["excel-templates"])
 logger = logging.getLogger(__name__)
 
 excel_templates_collection = db["excel_templates"]
