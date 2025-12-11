@@ -42,7 +42,12 @@ allowed_origins.extend([
     "http://localhost:3000", 
     "http://127.0.0.1:3001",
     "https://frontend-production-cd55.up.railway.app",
-    "https://abro.ldserp.com"
+    "https://abro.ldserp.com",
+    # Capacitor Android/iOS origins
+    "https://localhost",
+    "capacitor://localhost",
+    "http://localhost",
+    "ionic://localhost"
 ])
 # Remove empty strings
 allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
