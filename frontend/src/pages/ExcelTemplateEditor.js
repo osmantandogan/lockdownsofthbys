@@ -1304,24 +1304,21 @@ const ExcelTemplateEditor = () => {
       {/* Data Mapping Dialog - Draggable */}
       {showMappingDialog && (
         <div 
-          className="fixed inset-0 z-50 bg-black/50"
-          onClick={(e) => {
-            // Overlay'e tıklanınca dialog'u kapatma (sadece X butonundan kapatılabilir)
-            if (e.target === e.currentTarget) {
-              // Overlay'e tıklama işlemini engelle
-            }
-          }}
+          className="fixed inset-0 z-40 bg-black/30 pointer-events-none"
         >
           <div
             ref={mappingDialogRef}
-            className="absolute bg-white rounded-lg shadow-lg max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="absolute bg-white rounded-lg shadow-lg max-w-2xl max-h-[80vh] overflow-hidden flex flex-col pointer-events-auto"
             style={{
-              left: mappingDialogPosition.x || '50%',
-              top: mappingDialogPosition.y || '50%',
-              transform: mappingDialogPosition.x ? 'translate(-50%, -50%)' : 'translate(-50%, -50%)',
+              left: mappingDialogPosition.x ? `${mappingDialogPosition.x}px` : '50%',
+              top: mappingDialogPosition.y ? `${mappingDialogPosition.y}px` : '50%',
+              transform: mappingDialogPosition.x && mappingDialogPosition.y 
+                ? 'none' 
+                : 'translate(-50%, -50%)',
               width: '90%',
               maxWidth: '42rem'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Draggable Header */}
             <div 
@@ -1330,15 +1327,22 @@ const ExcelTemplateEditor = () => {
                 if (e.target.closest('button')) return; // Butonlara tıklamayı engelleme
                 setIsDraggingMappingDialog(true);
                 const rect = mappingDialogRef.current.getBoundingClientRect();
-                const startX = e.clientX - rect.left;
-                const startY = e.clientY - rect.top;
+                // Mouse'un dialog içindeki offset'ini al
+                const offsetX = e.clientX - rect.left;
+                const offsetY = e.clientY - rect.top;
                 
                 const handleMouseMove = (moveEvent) => {
-                  const newX = moveEvent.clientX - startX;
-                  const newY = moveEvent.clientY - startY;
+                  // Yeni pozisyonu hesapla (mouse pozisyonu - offset)
+                  const newX = moveEvent.clientX - offsetX;
+                  const newY = moveEvent.clientY - offsetY;
+                  
+                  // Sınırları kontrol et
+                  const maxX = window.innerWidth - rect.width;
+                  const maxY = window.innerHeight - rect.height;
+                  
                   setMappingDialogPosition({ 
-                    x: Math.max(0, Math.min(newX, window.innerWidth - rect.width)),
-                    y: Math.max(0, Math.min(newY, window.innerHeight - rect.height))
+                    x: Math.max(0, Math.min(newX, maxX)),
+                    y: Math.max(0, Math.min(newY, maxY))
                   });
                 };
                 
