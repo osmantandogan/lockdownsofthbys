@@ -13,7 +13,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Merge, 
   Paintbrush, Type, Undo, Redo, ZoomIn, ZoomOut,
   FileSpreadsheet, Download, Eye, Trash2, Settings,
-  Copy, Scissors, GripVertical
+  Copy, Scissors, GripVertical, X
 } from 'lucide-react';
 import {
   DropdownMenu,
