@@ -1321,11 +1321,15 @@ const CaseDetail = () => {
                   try {
                     toast.info('PDF oluşturuluyor...');
                     const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const token = localStorage.getItem('token');
                     const response = await fetch(
                       `${apiUrl}/api/pdf/case/${id}/with-form-data`, 
                       {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify(medicalForm),
                         credentials: 'include',
                       }
