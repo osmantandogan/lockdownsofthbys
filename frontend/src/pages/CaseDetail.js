@@ -250,9 +250,12 @@ const CaseDetail = () => {
     cprReason: ''
   });
   
-  // Procedures and transfers
+  // Procedures and transfers - {procName: {checked: bool, adet: number}}
   const [procedures, setProcedures] = useState({});
   const [transfers, setTransfers] = useState({});
+  
+  // Materials used - {materialName: {checked: bool, adet: number}}
+  const [materials, setMaterials] = useState({});
   
   // Vehicle and protocol info
   const [vehicleInfo, setVehicleInfo] = useState({
@@ -863,6 +866,7 @@ const CaseDetail = () => {
       if (formData.cpr_data) setCprData(formData.cpr_data);
       if (formData.procedures) setProcedures(formData.procedures);
       if (formData.transfers) setTransfers(formData.transfers);
+      if (formData.materials) setMaterials(formData.materials);
       if (formData.vehicle_info) setVehicleInfo(formData.vehicle_info);
       if (formData.time_info) setTimeInfo(formData.time_info);
       if (formData.isolation) setIsolation(formData.isolation);
@@ -947,11 +951,95 @@ const CaseDetail = () => {
     updateFormField('time_info', newInfo);
   };
   
-  // Toggle procedure
+  // Toggle procedure with adet support
   const toggleProcedure = (proc) => {
-    const newProcs = { ...procedures, [proc]: !procedures[proc] };
+    const current = procedures[proc];
+    let newValue;
+    
+    if (typeof current === 'object') {
+      // Already in new format
+      newValue = { ...current, checked: !current.checked };
+    } else if (current) {
+      // Old format (boolean true) -> toggle off
+      newValue = { checked: false, adet: 1 };
+    } else {
+      // Not set or false -> toggle on
+      newValue = { checked: true, adet: 1 };
+    }
+    
+    const newProcs = { ...procedures, [proc]: newValue };
     setProcedures(newProcs);
     updateFormField('procedures', newProcs);
+  };
+  
+  // Update procedure adet
+  const updateProcedureAdet = (proc, adet) => {
+    const current = procedures[proc] || { checked: true, adet: 1 };
+    const newValue = typeof current === 'object' 
+      ? { ...current, adet: parseInt(adet) || 1 }
+      : { checked: true, adet: parseInt(adet) || 1 };
+    
+    const newProcs = { ...procedures, [proc]: newValue };
+    setProcedures(newProcs);
+    updateFormField('procedures', newProcs);
+  };
+  
+  // Check if procedure is checked (supports both old and new format)
+  const isProcedureChecked = (proc) => {
+    const val = procedures[proc];
+    if (typeof val === 'object') return val.checked;
+    return !!val;
+  };
+  
+  // Get procedure adet
+  const getProcedureAdet = (proc) => {
+    const val = procedures[proc];
+    if (typeof val === 'object') return val.adet || 1;
+    return 1;
+  };
+  
+  // Toggle material with adet support
+  const toggleMaterial = (mat) => {
+    const current = materials[mat];
+    let newValue;
+    
+    if (typeof current === 'object') {
+      newValue = { ...current, checked: !current.checked };
+    } else if (current) {
+      newValue = { checked: false, adet: 1 };
+    } else {
+      newValue = { checked: true, adet: 1 };
+    }
+    
+    const newMats = { ...materials, [mat]: newValue };
+    setMaterials(newMats);
+    updateFormField('materials', newMats);
+  };
+  
+  // Update material adet
+  const updateMaterialAdet = (mat, adet) => {
+    const current = materials[mat] || { checked: true, adet: 1 };
+    const newValue = typeof current === 'object' 
+      ? { ...current, adet: parseInt(adet) || 1 }
+      : { checked: true, adet: parseInt(adet) || 1 };
+    
+    const newMats = { ...materials, [mat]: newValue };
+    setMaterials(newMats);
+    updateFormField('materials', newMats);
+  };
+  
+  // Check if material is checked
+  const isMaterialChecked = (mat) => {
+    const val = materials[mat];
+    if (typeof val === 'object') return val.checked;
+    return !!val;
+  };
+  
+  // Get material adet
+  const getMaterialAdet = (mat) => {
+    const val = materials[mat];
+    if (typeof val === 'object') return val.adet || 1;
+    return 1;
   };
   
   // Toggle transfer
@@ -1975,7 +2063,7 @@ const CaseDetail = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label>Olay Yeri</Label>
+                  <Label>Olay Yeri (Tek Seçim)</Label>
                   <Select 
                     value={extendedForm.sceneType} 
                     onValueChange={(v) => updateExtendedForm('sceneType', v)}
@@ -2004,6 +2092,91 @@ const CaseDetail = () => {
                       <SelectItem value="liman_santiye">Liman/Şantiye</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Çağrı Nedeni Detay - Çoklu Seçim */}
+              <div className="bg-amber-50 p-3 rounded-lg">
+                <Label className="font-semibold mb-2 block">Çağrı Nedeni Detay (Çoklu Seçim)</Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    {value: 'yangin', label: 'Yangın'},
+                    {value: 'intihar', label: 'İntihar'},
+                    {value: 'kimyasal', label: 'Kimyasal'},
+                    {value: 'allerji', label: 'Allerji'},
+                    {value: 'elektrik_carp', label: 'Elektrik Çarpması'},
+                    {value: 'atesli_silah', label: 'Ateşli Silah'},
+                    {value: 'bogulma', label: 'Boğulma'},
+                    {value: 'kesici_delici', label: 'Kesici-Delici'},
+                    {value: 'dusme', label: 'Düşme'},
+                    {value: 'alkol_ilac', label: 'Alkol/İlaç'},
+                    {value: 'kunt_trav', label: 'Künt Travma'},
+                    {value: 'yanik', label: 'Yanık'},
+                    {value: 'lpg', label: 'LPG'},
+                    {value: 'tedbir', label: 'Tedbir'},
+                    {value: 'protokol', label: 'Protokol'}
+                  ].map(item => (
+                    <div key={item.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`callDetail-${item.value}`}
+                        checked={(extendedForm.callReasonDetail || []).includes(item.value)}
+                        onCheckedChange={(checked) => {
+                          const current = extendedForm.callReasonDetail || [];
+                          const updated = checked 
+                            ? [...current, item.value]
+                            : current.filter(v => v !== item.value);
+                          updateExtendedForm('callReasonDetail', updated);
+                        }}
+                        disabled={!canEditForm}
+                      />
+                      <Label htmlFor={`callDetail-${item.value}`} className="text-xs font-normal cursor-pointer">
+                        {item.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Olay Yeri Detay - Çoklu Seçim */}
+              <div className="bg-cyan-50 p-3 rounded-lg">
+                <Label className="font-semibold mb-2 block">Olay Yeri Detay (Çoklu Seçim)</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    {value: 'ev', label: 'Ev'},
+                    {value: 'yaya', label: 'Yaya'},
+                    {value: 'suda', label: 'Suda'},
+                    {value: 'arazi', label: 'Arazi'},
+                    {value: 'aracta', label: 'Araçta'},
+                    {value: 'buro', label: 'Büro'},
+                    {value: 'fabrika', label: 'Fabrika'},
+                    {value: 'sokak', label: 'Sokak'},
+                    {value: 'stadyum', label: 'Stadyum'},
+                    {value: 'huzurevi', label: 'Huzurevi'},
+                    {value: 'cami', label: 'Cami'},
+                    {value: 'yurt', label: 'Yurt'},
+                    {value: 'saglik_kurumu', label: 'Sağlık Kurumu'},
+                    {value: 'resmi_daire', label: 'Resmi Daire'},
+                    {value: 'egitim_kurumu', label: 'Eğitim Kurumu'},
+                    {value: 'spor_salonu', label: 'Spor Salonu'}
+                  ].map(item => (
+                    <div key={item.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`location-${item.value}`}
+                        checked={(extendedForm.incidentLocation || []).includes(item.value)}
+                        onCheckedChange={(checked) => {
+                          const current = extendedForm.incidentLocation || [];
+                          const updated = checked 
+                            ? [...current, item.value]
+                            : current.filter(v => v !== item.value);
+                          updateExtendedForm('incidentLocation', updated);
+                        }}
+                        disabled={!canEditForm}
+                      />
+                      <Label htmlFor={`location-${item.value}`} className="text-xs font-normal cursor-pointer">
+                        {item.label}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
               </div>
               
@@ -2579,7 +2752,7 @@ const CaseDetail = () => {
                       disabled={!canEditForm}
                     >
                       <div className="grid grid-cols-3 gap-2 mt-2">
-                        {['Normal', 'Soluk', 'Siyatonik', 'Hiperemik', 'İkterik', 'Terli'].map(opt => (
+                        {['Normal', 'Soluk', 'Siyanotik', 'Hiperemik', 'İkterik', 'Terli'].map(opt => (
                           <div key={opt} className="flex items-center space-x-2">
                             <RadioGroupItem value={opt.toLowerCase()} id={`skin-${opt}`} />
                             <Label htmlFor={`skin-${opt}`} className="font-normal text-xs">{opt}</Label>
@@ -2792,14 +2965,73 @@ const CaseDetail = () => {
             <CardContent className="pt-4">
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {proceduresList.map((proc, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
                     <Checkbox 
                       id={`proc-${index}`}
-                      checked={procedures[proc] || false}
+                      checked={isProcedureChecked(proc)}
                       onCheckedChange={() => toggleProcedure(proc)}
                       disabled={!canEditForm}
                     />
-                    <Label htmlFor={`proc-${index}`} className="text-xs font-normal cursor-pointer">{proc}</Label>
+                    <Label htmlFor={`proc-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                    {isProcedureChecked(proc) && (
+                      <Input
+                        type="number"
+                        min="1"
+                        max="99"
+                        className="w-14 h-7 text-xs text-center"
+                        value={getProcedureAdet(proc)}
+                        onChange={(e) => updateProcedureAdet(proc, e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Kullanılan Malzemeler */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-t-lg">
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <Package className="h-5 w-5" />
+                <span>Kullanılan Malzemeler</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {[
+                  'Enjektör 1-2 cc', 'Enjektör 5 cc', 'Enjektör 10-20 cc',
+                  'Monitör pedi (EKG elektrodu)', 'I.V. katater (No: 14-22)', 'I.V. katater (No: 24)',
+                  'Serum seti', 'Steril eldiven', 'Cerrahi eldiven',
+                  'Sponç', 'Sargı bezi', 'İdrar torbası',
+                  'Bistüri ucu', 'Entübasyon tüpü (Balonlu)', 'Entübasyon tüpü (Balonsuz)',
+                  'Airway', 'Foley sonda', 'Nazo gastrik sonda',
+                  'Atravmatik ipek (3/0)', 'Atravmatik kat-küt (3/0)', 'Doğum seti',
+                  'Yanık battaniyesi', 'O2 Maskesi hazneli erişkin', 'O2 Maskesi hazneli pediatrik',
+                  'O2 Kanülü nazal erişkin', 'O2 Kanülü nazal pediatrik', 'Flaster',
+                  'Servikal collar', 'Elastik bandaj', 'Etil Chloride Sprey',
+                  'O2 Maskesi haznesiz erişkin', 'O2 Maskesi haznesiz pediatrik'
+                ].map((mat, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
+                    <Checkbox 
+                      id={`mat-${index}`}
+                      checked={isMaterialChecked(mat)}
+                      onCheckedChange={() => toggleMaterial(mat)}
+                      disabled={!canEditForm}
+                    />
+                    <Label htmlFor={`mat-${index}`} className="text-xs font-normal cursor-pointer flex-1">{mat}</Label>
+                    {isMaterialChecked(mat) && (
+                      <Input
+                        type="number"
+                        min="1"
+                        max="99"
+                        className="w-14 h-7 text-xs text-center"
+                        value={getMaterialAdet(mat)}
+                        onChange={(e) => updateMaterialAdet(mat, e.target.value)}
+                        disabled={!canEditForm}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
