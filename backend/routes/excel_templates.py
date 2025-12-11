@@ -245,74 +245,6 @@ async def upload_excel_template(
         raise HTTPException(status_code=400, detail=f"Excel dosyası işlenemedi: {str(e)}")
 
 
-@router.put("/{template_id}")
-async def update_excel_template(template_id: str, request: Request):
-    """Excel şablonunu güncelle"""
-    user = await get_current_user(request)
-    data = await request.json()
-    
-    template = await excel_templates_collection.find_one({"_id": template_id})
-    if not template:
-        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
-    
-    update_data = {
-        "updated_at": datetime.utcnow()
-    }
-    
-    # Güncellenebilir alanlar
-    updatable_fields = [
-        "name", "description", "usage_types", "is_default",
-        "max_row", "max_column", "cells", "merged_cells",
-        "row_heights", "column_widths", "data_mappings"
-    ]
-    
-    for field in updatable_fields:
-        if field in data:
-            update_data[field] = data[field]
-    
-    await excel_templates_collection.update_one(
-        {"_id": template_id},
-        {"$set": update_data}
-    )
-    
-    return {"message": "Şablon güncellendi", "id": template_id}
-
-
-@router.delete("/{template_id}")
-async def delete_excel_template(template_id: str, request: Request):
-    """Excel şablonunu sil"""
-    await get_current_user(request)
-    
-    result = await excel_templates_collection.delete_one({"_id": template_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
-    
-    return {"message": "Şablon silindi"}
-
-
-@router.post("/{template_id}/set-default")
-async def set_default_excel_template(template_id: str, request: Request):
-    """Şablonu varsayılan olarak ayarla"""
-    await get_current_user(request)
-    
-    # Önce tüm şablonların default'ını kaldır
-    await excel_templates_collection.update_many(
-        {},
-        {"$set": {"is_default": False}}
-    )
-    
-    # Bu şablonu default yap
-    result = await excel_templates_collection.update_one(
-        {"_id": template_id},
-        {"$set": {"is_default": True}}
-    )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
-    
-    return {"message": "Varsayılan şablon ayarlandı"}
-
-
 @router.post("/import-from-file")
 async def import_vaka_formu(request: Request):
     """Mevcut VAKA FORMU.xlsx dosyasını içe aktar"""
@@ -405,4 +337,72 @@ async def import_vaka_formu(request: Request):
 async def import_vaka_formu_alt(request: Request):
     """Mevcut VAKA FORMU.xlsx dosyasını içe aktar (alternatif endpoint)"""
     return await import_vaka_formu(request)
+
+
+@router.put("/{template_id}")
+async def update_excel_template(template_id: str, request: Request):
+    """Excel şablonunu güncelle"""
+    user = await get_current_user(request)
+    data = await request.json()
+    
+    template = await excel_templates_collection.find_one({"_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
+    
+    update_data = {
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Güncellenebilir alanlar
+    updatable_fields = [
+        "name", "description", "usage_types", "is_default",
+        "max_row", "max_column", "cells", "merged_cells",
+        "row_heights", "column_widths", "data_mappings"
+    ]
+    
+    for field in updatable_fields:
+        if field in data:
+            update_data[field] = data[field]
+    
+    await excel_templates_collection.update_one(
+        {"_id": template_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Şablon güncellendi", "id": template_id}
+
+
+@router.delete("/{template_id}")
+async def delete_excel_template(template_id: str, request: Request):
+    """Excel şablonunu sil"""
+    await get_current_user(request)
+    
+    result = await excel_templates_collection.delete_one({"_id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
+    
+    return {"message": "Şablon silindi"}
+
+
+@router.post("/{template_id}/set-default")
+async def set_default_excel_template(template_id: str, request: Request):
+    """Şablonu varsayılan olarak ayarla"""
+    await get_current_user(request)
+    
+    # Önce tüm şablonların default'ını kaldır
+    await excel_templates_collection.update_many(
+        {},
+        {"$set": {"is_default": False}}
+    )
+    
+    # Bu şablonu default yap
+    result = await excel_templates_collection.update_one(
+        {"_id": template_id},
+        {"$set": {"is_default": True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
+    
+    return {"message": "Varsayılan şablon ayarlandı"}
 
