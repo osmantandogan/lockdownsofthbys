@@ -134,64 +134,81 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
     respiration = vitals.get('respiration', '') or form_data.get('respiration', '')
     gcs = vitals.get('gcs', '') or form_data.get('gcs', '')
     
-    # Hücre eşlemesi - Excel template yapısına göre düzenlenecek
-    # Bu eşleme VAKA_FORMU_TEMPLATE.xlsx yapısına göre ayarlanmalı
+    # Hücre eşlemesi - Vaka formu v2.xlsx yapısına göre
     cell_mapping = {
-        # Üst bölüm
-        'T5': case_data.get('case_number', ''),  # ATN NO
-        'W5': form_data.get('startKm', ''),  # BAŞLANGIÇ KM
-        'Z5': form_data.get('endKm', ''),  # BİTİŞ KM
+        # ÜST BÖLÜM (Row 1)
+        'V1': case_data.get('case_number', ''),  # ATN NO (U1'in yanı)
+        'X1': form_data.get('startKm', ''),  # BAŞLANGIÇ KM (W1'in yanı)
+        'Z1': form_data.get('endKm', ''),  # BİTİŞ KM (Y1'in yanı)
         
-        # İSTASYON bölümü
-        'E9': form_data.get('healmedyProtocol') or case_data.get('case_number', ''),  # PROTOKOL NO
-        'E11': date_str,  # TARİH
-        'E13': vehicle_plate,  # PLAKA
+        # İSTASYON BÖLÜMÜ (Row 4-9)
+        'B4': form_data.get('healmedyProtocol') or case_data.get('case_number', ''),  # PROTOKOL NO
+        'B5': date_str,  # TARİH
+        'B6': form_data.get('stationCode', ''),  # KODU
+        'B7': vehicle_plate,  # PLAKA
+        'B8': address,  # HASTANIN ALINDIĞI ADRES
+        'B9': form_data.get('callerOrganization', ''),  # VAKAYI VEREN KURUM
         
-        # SAATLER bölümü
-        'J9': call_time,  # ÇAĞRI SAATİ
-        'J10': form_data.get('arrivalTime', ''),  # OLAY YERİNE VARIŞ
-        'J11': form_data.get('patientArrivalTime', ''),  # HASTAYA VARIŞ
-        'J12': form_data.get('departureTime', ''),  # OLAY YERİNDEN AYRILIŞ
-        'J13': form_data.get('hospitalArrivalTime', ''),  # HASTANEYE VARIŞ
+        # SAATLER BÖLÜMÜ (Row 4-9, F sütunu)
+        'F4': call_time,  # ÇAĞRI SAATİ
+        'F5': form_data.get('arrivalTime', ''),  # OLAY YERİNE VARIŞ
+        'F6': form_data.get('patientArrivalTime', ''),  # HASTAYA VARIŞ
+        'F7': form_data.get('departureTime', ''),  # OLAY YERİNDEN AYRILIŞ
+        'F8': form_data.get('hospitalArrivalTime', ''),  # HASTANEYE VARIŞ
+        'F9': form_data.get('returnTime', ''),  # İSTASYONA DÖNÜŞ
         
-        # HASTA BİLGİLERİ bölümü
-        'N9': patient_name,  # ADI SOYADI
-        'N10': address,  # ADRESİ
-        'N14': phone,  # TELEFON
+        # HASTA BİLGİLERİ BÖLÜMÜ (Row 4-9, K sütunu)
+        'L4': patient_name,  # ADI SOYADI
+        'L5': address,  # ADRESİ
+        'L8': tc_no,  # T.C. KİMLİK NO
+        'L9': phone,  # TELEFON
         
-        # CİNSİYET / YAŞ bölümü
-        'U13': age,  # YAŞ
+        # CİNSİYET / YAŞ / DURUMU (S-U sütunları)
+        'T9': age,  # YAŞ
+        'T8': form_data.get('birthDate', ''),  # Doğum Tarihi
         
-        # T.C. KİMLİK NO
-        'V15': tc_no,  # T.C. KİMLİK NO
+        # KRONİK HASTALIKLAR (X sütunu)
+        'Y3': chronic_diseases,  # KRONİK HASTALIKLAR
         
-        # KRONİK HASTALIKLAR
-        'Y9': chronic_diseases,  # KRONİK HASTALIKLAR
+        # HASTANIN ŞİKAYETİ (X6)
+        'Y6': complaint,  # HASTANIN ŞİKAYETİ
         
-        # ALERJİLER
-        'Y10': allergies,  # ALERJİLER
+        # VİTAL BULGULAR (Row 17-22)
+        # Kan basıncı/Tansiyon - H17 hücresine sistolik, I17'ye diastolik
+        'H17': form_data.get('bloodPressureSystolic', '') or blood_pressure.split('/')[0] if '/' in str(blood_pressure) else blood_pressure,
+        'J17': form_data.get('bloodPressureDiastolic', '') or (blood_pressure.split('/')[1] if '/' in str(blood_pressure) else ''),
+        'L17': pulse,  # NABIZ
+        'N17': respiration,  # SOLUNUM
+        'I19': spo2,  # SPO2 (%)
+        'Y19': temperature,  # ATEŞ (°C)
         
-        # HASTANIN ŞİKAYETİ
-        'Y12': complaint,  # ŞİKAYET
+        # GKS (Glasgow Koma Skalası) - ayrı ayrı
+        'P17': form_data.get('gcsMotor', ''),  # Motor
+        'S17': form_data.get('gcsVerbal', ''),  # Verbal
+        'V17': form_data.get('gcsEye', ''),  # Göz açma
         
-        # MUAYENE BULGULARI / VİTAL BULGULAR
-        'E18': blood_pressure,  # Tansiyon
-        'H18': pulse,  # Nabız
-        'K18': spo2,  # SpO2
-        'N18': temperature,  # Ateş
-        'Q18': respiration,  # Solunum
-        'T18': gcs,  # GKS
+        # KAN ŞEKERİ
+        'AA17': form_data.get('bloodSugar', ''),  # Kan şekeri Mg/dL
         
-        # Sevk edilen hastane
-        'N21': form_data.get('hospitalName', ''),  # Hastane adı
+        # ÖN TANI (A23)
+        'B23': form_data.get('diagnosis', ''),  # ÖN TANI
         
-        # Tanı
-        'E25': form_data.get('diagnosis', ''),  # Tanı
+        # AÇIKLAMALAR (H23)
+        'I23': form_data.get('notes', ''),  # AÇIKLAMALAR
         
-        # Ekip bilgileri
-        'E30': form_data.get('teamDoctor', ''),  # Doktor
-        'E31': form_data.get('teamNurse', '') or form_data.get('teamParamedic', ''),  # Hemşire/Paramedik
-        'E32': form_data.get('teamDriver', ''),  # Şoför
+        # NAKLEDİLEN HASTANE (K24)
+        'L24': form_data.get('hospitalName', ''),  # NAKLEDİLEN HASTANE
+        
+        # KAZAYA KARIŞAN ARAÇ PLAKA (O24)
+        'P25': form_data.get('accidentVehiclePlate1', ''),
+        'P26': form_data.get('accidentVehiclePlate2', ''),
+        'P27': form_data.get('accidentVehiclePlate3', ''),
+        'P28': form_data.get('accidentVehiclePlate4', ''),
+        
+        # CPR bilgileri (T24-T27)
+        'U25': form_data.get('cprStartTime', ''),  # CPR BAŞLAMA ZAMANI
+        'U26': form_data.get('cprEndTime', ''),  # CPR BIRAKMA ZAMANI
+        'U27': form_data.get('cprStopReason', ''),  # CPR BIRAKMA NEDENİ
     }
     
     # Birleşik hücre haritası oluştur
@@ -212,37 +229,200 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             except Exception as e:
                 logger.warning(f"Hücreye yazılamadı {cell_ref}: {e}")
     
-    # Checkboxları işle (İSG vaka türü, cinsiyet vb.)
-    # Bu kısım template yapısına göre özelleştirilebilir
-    case_type = form_data.get('caseType', '') or case_data.get('case_type', '')
-    if case_type:
-        # İSG vaka türüne göre X işareti koy
-        case_type_cells = {
-            'trafik_kazasi': 'B17',
-            'is_kazasi': 'D17',
-            'ev_kazasi': 'F17',
-            'darp': 'H17',
-            'yanik': 'J17',
-            'zehirlenme': 'L17',
-            'diger': 'N17',
+    # Checkboxları işle - Vaka formu v2.xlsx yapısına göre
+    
+    # CİNSİYET (S4: ERKEK, S6: KADIN)
+    if gender:
+        if gender.lower() in ['erkek', 'male', 'e', 'm']:
+            try:
+                ws['T4'] = 'X'  # ERKEK
+            except:
+                pass
+        elif gender.lower() in ['kadın', 'kadin', 'female', 'k', 'f']:
+            try:
+                ws['T6'] = 'X'  # KADIN
+            except:
+                pass
+    
+    # DURUMU / TRİYAJ KODU (U4-U8)
+    triage_code = form_data.get('triageCode', '') or form_data.get('durumu', '')
+    if triage_code:
+        triage_cells = {
+            'kirmizi': 'V4',  # KIRMIZI KOD
+            'sari': 'V5',  # SARI KOD
+            'yesil': 'V6',  # YEŞİL KOD
+            'siyah': 'V7',  # SİYAH KOD
+            'sosyal': 'V8',  # SOSYAL ENDİKASYON
         }
-        target_cell = case_type_cells.get(case_type.lower().replace(' ', '_'))
+        target_cell = triage_cells.get(triage_code.lower().replace(' ', '_').replace('ı', 'i'))
         if target_cell:
             try:
                 ws[target_cell] = 'X'
             except:
                 pass
     
-    # Cinsiyet işareti
-    if gender:
-        if gender.lower() in ['erkek', 'male', 'e', 'm']:
+    # ÇAĞRI TİPİ (A11-A13)
+    call_type = form_data.get('callType', '')
+    if call_type:
+        call_type_cells = {
+            'telsiz': 'B11',
+            'telefon': 'B12',
+            'diger': 'B13',
+        }
+        target_cell = call_type_cells.get(call_type.lower())
+        if target_cell:
             try:
-                ws['R13'] = 'X'  # Erkek
+                ws[target_cell] = 'X'
             except:
                 pass
-        elif gender.lower() in ['kadın', 'kadin', 'female', 'k', 'f']:
+    
+    # ÇAĞRI NEDENİ (E11-E14, H11-H14, vb.)
+    call_reason = form_data.get('callReason', '') or case_data.get('case_type', '')
+    if call_reason:
+        reason_cells = {
+            'medikal': 'F11',
+            'trafik_kazasi': 'F12',
+            'is_kazasi': 'F14',
+            'yangin': 'I11',
+            'intihar': 'I12',
+            'kimyasal': 'I13',
+            'allerji': 'I14',
+            'elektrik_carpmasi': 'K11',
+            'atesli_silah': 'K12',
+            'bogulma': 'K13',
+            'kesici_delici': 'K14',
+            'dusme': 'M11',
+            'alkol_ilac': 'M12',
+            'kunt_travma': 'M13',
+            'yanik': 'M14',
+            'lpg': 'O11',
+            'tedbir': 'O12',
+            'protokol': 'O13',
+        }
+        target_cell = reason_cells.get(call_reason.lower().replace(' ', '_').replace('ı', 'i'))
+        if target_cell:
             try:
-                ws['S13'] = 'X'  # Kadın
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # OLAY YERİ (P11-V14)
+    scene_location = form_data.get('sceneLocation', '')
+    if scene_location:
+        location_cells = {
+            'ev': 'Q11',
+            'aracta': 'S11',
+            'stadyum': 'U11',
+            'saglik_kurumu': 'W11',
+            'yaya': 'Q12',
+            'buro': 'S12',
+            'huzurevi': 'U12',
+            'resmi_daire': 'W12',
+            'suda': 'Q13',
+            'fabrika': 'S13',
+            'cami': 'U13',
+            'egitim_kurumu': 'W13',
+            'arazi': 'Q14',
+            'sokak': 'S14',
+            'yurt': 'U14',
+            'spor_salonu': 'W14',
+        }
+        target_cell = location_cells.get(scene_location.lower().replace(' ', '_').replace('ı', 'i'))
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # PUPİLLER (B17-B22)
+    pupils = form_data.get('pupils', '')
+    if pupils:
+        pupil_cells = {
+            'normal': 'C17',
+            'miyotik': 'C18',
+            'midriatik': 'C19',
+            'anizokorik': 'C20',
+            'reaksiyon_yok': 'C21',
+            'fiks_dilate': 'C22',
+        }
+        target_cell = pupil_cells.get(pupils.lower().replace(' ', '_'))
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # DERİ (D17-D22)
+    skin = form_data.get('skin', '')
+    if skin:
+        skin_cells = {
+            'normal': 'E17',
+            'soluk': 'E18',
+            'siyanotik': 'E19',
+            'hiperemik': 'E20',
+            'ikterik': 'E21',
+            'terli': 'E22',
+        }
+        target_cell = skin_cells.get(skin.lower())
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # SONUÇ (B25-D29)
+    result = form_data.get('result', '')
+    if result:
+        result_cells = {
+            'yerinde_mudahale': 'C25',
+            'hastaneye_nakil': 'C26',
+            'hastaneler_arasi_nakil': 'C27',
+            'tibbi_tetkik_icin_nakil': 'C28',
+            'eve_nakil': 'C29',
+            'ex_terinde_birakildi': 'E25',
+            'ex_morga_nakil': 'E26',
+            'nakil_reddi': 'E27',
+            'diger_ulasilan': 'E28',
+            'gorev_iptali': 'E29',
+            'baska_aracla_nakil': 'G25',
+            'tlfla_bsk_aracla_nakil': 'G26',
+            'asilsiz_ihbar': 'G27',
+            'yaralanan_yok': 'G28',
+            'olay_yerinde_bekleme': 'G29',
+        }
+        target_cell = result_cells.get(result.lower().replace(' ', '_').replace('ı', 'i'))
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # ADLİ VAKA (Q29: EVET, S29: HAYIR)
+    is_judicial = form_data.get('isJudicialCase', '')
+    if is_judicial:
+        if str(is_judicial).lower() in ['true', 'evet', '1', 'yes']:
+            try:
+                ws['R29'] = 'X'  # EVET
+            except:
+                pass
+        elif str(is_judicial).lower() in ['false', 'hayir', '0', 'no']:
+            try:
+                ws['T29'] = 'X'  # HAYIR
+            except:
+                pass
+    
+    # NAKIL TÜRÜ - İLÇE İÇİ/DIŞI/İL DIŞI (K27-K29)
+    transfer_type = form_data.get('transferType', '')
+    if transfer_type:
+        transfer_cells = {
+            'ilce_ici': 'L27',
+            'ilce_disi': 'L28',
+            'il_disi': 'L29',
+        }
+        target_cell = transfer_cells.get(transfer_type.lower().replace(' ', '_'))
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
             except:
                 pass
     
