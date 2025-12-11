@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+// Local development API URL
+const API_URL = 'http://192.168.1.155:8001/api';
 
 // Create axios instance
 const api = axios.create({

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#dc2626</color>
+    <color name="colorPrimaryDark">#b91c1c</color>
+    <color name="colorAccent">#ef4444</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray">#6b7280</color>
+    <color name="success">#22c55e</color>
+    <color name="warning">#f59e0b</color>
+    <color name="error">#ef4444</color>
+    <color name="ic_launcher_background">#dc2626</color>
+</resources>

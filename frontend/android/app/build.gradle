@@ -1,48 +1,88 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.healmedy.hbys"
+    namespace "com.healmedy.ambulans"
     compileSdk rootProject.ext.compileSdkVersion
+    
     defaultConfig {
-        applicationId "com.healmedy.hbys"
+        applicationId "com.healmedy.ambulans"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Multi-dex desteği
+        multiDexEnabled true
+        
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+            // Files and dirs to omit from the packaged assets dir
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    
     buildTypes {
-        release {
+        debug {
+            debuggable true
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    
+    // APK imzalama (release için)
+    signingConfigs {
+        release {
+            // Bu değerler CI/CD veya local.properties'den alınacak
+            // storeFile file("healmedy-release.keystore")
+            // storePassword "..."
+            // keyAlias "healmedy"
+            // keyPassword "..."
         }
     }
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    
+    // AndroidX
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation "androidx.multidex:multidex:2.0.1"
+    
+    // Capacitor
     implementation project(':capacitor-android')
+    implementation project(':capacitor-cordova-android-plugins')
+    
+    // Play Services - Konum
+    implementation "com.google.android.gms:play-services-location:21.0.1"
+    
+    // Firebase - Push Notifications (opsiyonel)
+    // implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    // implementation 'com.google.firebase:firebase-messaging'
+    
+    // OSMDroid - Offline haritalar
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    
+    // Test
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation project(':capacitor-cordova-android-plugins')
-    
-    // OneSignal SDK
-    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
 }
 
 apply from: 'capacitor.build.gradle'
@@ -53,5 +93,5 @@ try {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    logger.info("google-services.json not found, google-services plugin not applied.")
 }

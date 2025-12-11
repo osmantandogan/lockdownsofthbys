@@ -1,29 +1,50 @@
 {
-  "appId": "com.healmedy.hbys",
-  "appName": "HealMedy HBYS",
+  "appId": "com.healmedy.ambulans",
+  "appName": "Healmedy Ambulans",
   "webDir": "build",
   "server": {
-    "url": "https://abro.ldserp.com",
-    "cleartext": true
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "hostname": "app.healmedy.com"
   },
   "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "CapacitorCookies": {
+      "enabled": true
+    },
     "SplashScreen": {
       "launchShowDuration": 2000,
-      "backgroundColor": "#2563eb",
+      "launchAutoHide": true,
+      "backgroundColor": "#dc2626",
       "showSpinner": true,
-      "spinnerColor": "#ffffff"
+      "spinnerStyle": "large",
+      "spinnerColor": "#ffffff",
+      "splashFullScreen": false,
+      "splashImmersive": false
     },
     "StatusBar": {
       "style": "LIGHT",
-      "backgroundColor": "#2563eb"
+      "backgroundColor": "#dc2626",
+      "overlaysWebView": false
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_notification",
+      "iconColor": "#dc2626"
+    },
+    "Geolocation": {
+      "timeout": 30000,
+      "enableHighAccuracy": true
     }
   },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,
-    "webContentsDebuggingEnabled": false
+    "webContentsDebuggingEnabled": true,
+    "backgroundColor": "#FFFFFF"
   }
 }
