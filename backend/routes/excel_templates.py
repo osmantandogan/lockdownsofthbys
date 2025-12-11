@@ -251,20 +251,33 @@ async def import_vaka_formu(
     file: UploadFile = File(...)
 ):
     """Kullanıcının yüklediği Excel dosyasını içe aktar"""
-    logger.info("import-from-file endpoint çağrıldı")
-    user = await get_current_user(request)
-    logger.info(f"Kullanıcı doğrulandı: {user.id}")
-    
-    # Dosya formatı kontrolü
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(status_code=400, detail="Sadece Excel dosyaları (.xlsx, .xls) yüklenebilir")
-    
-    # Yüklenen dosyayı oku
-    content = await file.read()
-    logger.info(f"Dosya yüklendi: {file.filename}, boyut: {len(content)} bytes")
-    
     try:
-        structure = parse_excel_file(content)
+        logger.info("import-from-file endpoint çağrıldı")
+        user = await get_current_user(request)
+        logger.info(f"Kullanıcı doğrulandı: {user.id}")
+        
+        # Dosya adı kontrolü
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Dosya adı bulunamadı")
+        
+        # Dosya formatı kontrolü
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Sadece Excel dosyaları (.xlsx, .xls) yüklenebilir")
+        
+        # Yüklenen dosyayı oku
+        content = await file.read()
+        logger.info(f"Dosya yüklendi: {file.filename}, boyut: {len(content)} bytes")
+        
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail="Dosya boş")
+        
+        # Excel'i parse et
+        try:
+            structure = parse_excel_file(content)
+            logger.info(f"Excel parse edildi: {len(structure.get('cells', []))} hücre bulundu")
+        except Exception as parse_error:
+            logger.error(f"Excel parse hatası: {str(parse_error)}", exc_info=True)
+            raise HTTPException(status_code=400, detail=f"Excel dosyası işlenemedi: {str(parse_error)}")
         
         # Dosya adından template adını oluştur
         template_name = file.filename.replace('.xlsx', '').replace('.xls', '').strip()
@@ -289,6 +302,7 @@ async def import_vaka_formu(
                     "original_filename": file.filename
                 }}
             )
+            logger.info(f"Şablon güncellendi: {template_name}")
             return {"message": f"{template_name} şablonu güncellendi", "id": str(existing["_id"])}
         
         # Yeni oluştur
@@ -315,11 +329,14 @@ async def import_vaka_formu(
         }
         
         await excel_templates_collection.insert_one(template)
+        logger.info(f"Yeni şablon oluşturuldu: {template_name} (ID: {template_id})")
         
         return {"message": f"{template_name} şablonu oluşturuldu", "id": template_id, "template": {"id": template_id, "name": template_name}}
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Import hatası: {str(e)}")
+        logger.error(f"Import hatası: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"İçe aktarma hatası: {str(e)}")
 
 
