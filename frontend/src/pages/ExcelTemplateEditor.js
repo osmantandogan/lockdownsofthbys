@@ -49,10 +49,13 @@ const ExcelTemplateEditor = () => {
   const [draggingCell, setDraggingCell] = useState(null); // {row, col, address}
   const [dragOverCell, setDragOverCell] = useState(null); // {row, col}
   const [copiedCell, setCopiedCell] = useState(null); // {cell data}
+  const [showImageDialog, setShowImageDialog] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [rowHeights, setRowHeights] = useState({});
   const [columnWidths, setColumnWidths] = useState({});
   const editingInputRef = useRef(null);
   const previousEditingCellRef = useRef(null);
+  const imageInputRef = useRef(null);
   
   // Editor settings
   const [zoom, setZoom] = useState(100);
@@ -495,6 +498,62 @@ const ExcelTemplateEditor = () => {
     toast.success('Sütun silindi');
   };
 
+  // Görsel ekle
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCell) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Sadece görsel dosyaları yüklenebilir');
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      // Görseli base64'e çevir
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        const address = selectedCell.address;
+        
+        // Hücreye görsel ekle
+        updateCell(address, {
+          ...cells[address],
+          image: base64,
+          imageWidth: 200, // Varsayılan genişlik
+          imageHeight: 200, // Varsayılan yükseklik
+          value: cells[address]?.value || '' // Mevcut değeri koru
+        });
+        
+        toast.success('Görsel eklendi');
+        setShowImageDialog(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Görsel yükleme hatası:', error);
+      toast.error('Görsel yüklenemedi');
+    } finally {
+      setImageUploading(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Görsel sil
+  const handleRemoveImage = () => {
+    if (!selectedCell) return;
+    const address = selectedCell.address;
+    const cell = cells[address];
+    if (cell) {
+      const { image, imageWidth, imageHeight, ...rest } = cell;
+      updateCell(address, rest);
+      toast.success('Görsel kaldırıldı');
+    }
+  };
+
   // Hücre değeri değiştir
   const handleCellChange = (row, col, value) => {
     const address = getCellAddress(row, col);
@@ -615,27 +674,75 @@ const ExcelTemplateEditor = () => {
 
   // Veri eşleştirme alanları
   const dataFields = [
+    // Temel Bilgiler
     { key: 'healmedyProtocol', label: 'Protokol No' },
     { key: 'date', label: 'Tarih' },
     { key: 'caseCode', label: 'Vaka Kodu' },
+    { key: 'caseNumber', label: 'Vaka Numarası' },
     { key: 'vehiclePlate', label: 'Plaka' },
+    { key: 'vehicleType', label: 'Araç Tipi' },
+    
+    // Hasta Bilgileri
     { key: 'patientName', label: 'Hasta Adı' },
+    { key: 'patientSurname', label: 'Hasta Soyadı' },
+    { key: 'patientFullName', label: 'Hasta Ad Soyad' },
     { key: 'patientAge', label: 'Yaş' },
     { key: 'patientGender', label: 'Cinsiyet' },
+    { key: 'patientTC', label: 'T.C. Kimlik No' },
     { key: 'patientAddress', label: 'Adres' },
     { key: 'patientPhone', label: 'Telefon' },
-    { key: 'complaint', label: 'Şikayet' },
-    { key: 'diagnosis', label: 'Ön Tanı' },
+    { key: 'patientComplaint', label: 'Şikayet' },
+    { key: 'patientDiagnosis', label: 'Ön Tanı' },
+    { key: 'chronicDiseases', label: 'Kronik Hastalıklar' },
+    { key: 'allergies', label: 'Alerjiler' },
+    
+    // Zaman Bilgileri
     { key: 'callTime', label: 'Çağrı Saati' },
     { key: 'arrivalSceneTime', label: 'Olay Yerine Varış' },
     { key: 'arrivalPatientTime', label: 'Hastaya Varış' },
     { key: 'departureTime', label: 'Ayrılış Saati' },
     { key: 'hospitalArrivalTime', label: 'Hastaneye Varış' },
     { key: 'returnStationTime', label: 'İstasyona Dönüş' },
+    
+    // Vital Bulgular
     { key: 'vitalBP1', label: '1. Tansiyon' },
+    { key: 'vitalBP2', label: '2. Tansiyon' },
     { key: 'vitalPulse1', label: '1. Nabız' },
+    { key: 'vitalPulse2', label: '2. Nabız' },
     { key: 'vitalSpO2_1', label: '1. SpO2' },
-    { key: 'vitalTemp1', label: '1. Ateş' }
+    { key: 'vitalSpO2_2', label: '2. SpO2' },
+    { key: 'vitalTemp1', label: '1. Ateş' },
+    { key: 'vitalTemp2', label: '2. Ateş' },
+    { key: 'vitalGlucose', label: 'Kan Şekeri' },
+    { key: 'vitalGCS', label: 'Glasgow Koma Skalası' },
+    
+    // Hastane Bilgileri
+    { key: 'hospitalName', label: 'Hastane Adı' },
+    { key: 'hospitalType', label: 'Hastane Tipi' },
+    { key: 'transferHospital', label: 'Transfer Hastanesi' },
+    
+    // Personel Bilgileri
+    { key: 'driverName', label: 'Şoför Adı' },
+    { key: 'paramedic1Name', label: '1. Paramedik Adı' },
+    { key: 'paramedic2Name', label: '2. Paramedik Adı' },
+    { key: 'doctorName', label: 'Doktor Adı' },
+    { key: 'nurseName', label: 'Hemşire Adı' },
+    { key: 'createdByName', label: 'Oluşturan Kişi' },
+    { key: 'registeredByName', label: 'Kaydeden Kişi' },
+    
+    // İmzalar
+    { key: 'staffSignature', label: 'Personel İmzası' },
+    { key: 'doctorSignature', label: 'Doktor İmzası' },
+    { key: 'patientSignature', label: 'Hasta İmzası' },
+    { key: 'relativeSignature', label: 'Yakın İmzası' },
+    
+    // Diğer
+    { key: 'startKm', label: 'Başlangıç KM' },
+    { key: 'endKm', label: 'Bitiş KM' },
+    { key: 'protocol112', label: '112 Protokol No' },
+    { key: 'locationAddress', label: 'Olay Yeri Adresi' },
+    { key: 'locationDistrict', label: 'İlçe' },
+    { key: 'locationCoordinates', label: 'Koordinatlar' }
   ];
 
   if (loading) {
@@ -748,6 +855,36 @@ const ExcelTemplateEditor = () => {
           >
             <Download className="h-4 w-4" />
           </Button>
+          
+          <div className="h-6 border-r mx-1" />
+          
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              if (selectedCell) {
+                imageInputRef.current?.click();
+              } else {
+                toast.error('Önce bir hücre seçin');
+              }
+            }}
+            disabled={!selectedCell}
+            title="Görsel Ekle"
+          >
+            <Type className="h-4 w-4 mr-1" />
+            Görsel
+          </Button>
+          {selectedCell && cells[selectedCell.address]?.image && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleRemoveImage}
+              title="Görseli Kaldır"
+              className="text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
           
           <div className="h-6 border-r mx-1" />
           
