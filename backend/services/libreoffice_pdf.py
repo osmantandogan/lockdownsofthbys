@@ -331,28 +331,15 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             except:
                 pass
     
-    # ÇAĞRI NEDENİ (E11-E14, H11-H14, vb.)
-    call_reason = form_data.get('callReason', '') or case_data.get('case_type', '')
+    # ÇAĞRI NEDENİ - Ana kategori
+    call_reason = extended_form.get('callReason', '') or form_data.get('callReason', '') or case_data.get('case_type', '')
     if call_reason:
         reason_cells = {
             'medikal': 'F11',
             'trafik_kazasi': 'F12',
+            'trafik_kaza': 'F12',
+            'diger_kaza': 'F13',
             'is_kazasi': 'F14',
-            'yangin': 'I11',
-            'intihar': 'I12',
-            'kimyasal': 'I13',
-            'allerji': 'I14',
-            'elektrik_carpmasi': 'K11',
-            'atesli_silah': 'K12',
-            'bogulma': 'K13',
-            'kesici_delici': 'K14',
-            'dusme': 'M11',
-            'alkol_ilac': 'M12',
-            'kunt_travma': 'M13',
-            'yanik': 'M14',
-            'lpg': 'O11',
-            'tedbir': 'O12',
-            'protokol': 'O13',
         }
         target_cell = reason_cells.get(call_reason.lower().replace(' ', '_').replace('ı', 'i'))
         if target_cell:
@@ -361,36 +348,77 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             except:
                 pass
     
-    # OLAY YERİ (P11-V14)
-    scene_location = form_data.get('sceneLocation', '')
-    if scene_location:
-        location_cells = {
-            'ev': 'Q11',
-            'aracta': 'S11',
-            'stadyum': 'U11',
-            'saglik_kurumu': 'W11',
-            'yaya': 'Q12',
-            'buro': 'S12',
-            'huzurevi': 'U12',
-            'resmi_daire': 'W12',
-            'suda': 'Q13',
-            'fabrika': 'S13',
-            'cami': 'U13',
-            'egitim_kurumu': 'W13',
-            'arazi': 'Q14',
-            'sokak': 'S14',
-            'yurt': 'U14',
-            'spor_salonu': 'W14',
+    # ÇAĞRI NEDENİ DETAY - Çoklu seçim (extended_form'dan)
+    call_reason_detail = extended_form.get('callReasonDetail', []) or form_data.get('callReasonDetail', [])
+    if call_reason_detail and isinstance(call_reason_detail, list):
+        detail_cells = {
+            'yangin': 'I11',
+            'intihar': 'I12',
+            'kimyasal': 'I13',
+            'allerji': 'I14',
+            'elektrik_carp': 'K11',
+            'elektrik_carpmasi': 'K11',
+            'atesli_silah': 'K12',
+            'bogulma': 'K13',
+            'kesici_delici': 'K14',
+            'dusme': 'M11',
+            'alkol_ilac': 'M12',
+            'kunt_trav': 'M13',
+            'kunt_travma': 'M13',
+            'yanik': 'M14',
+            'lpg': 'O11',
+            'tedbir': 'O12',
+            'protokol': 'O13',
         }
-        target_cell = location_cells.get(scene_location.lower().replace(' ', '_').replace('ı', 'i'))
+        for detail in call_reason_detail:
+            target_cell = detail_cells.get(detail.lower().replace(' ', '_').replace('ı', 'i'))
+            if target_cell:
+                try:
+                    ws[target_cell] = 'X'
+                except:
+                    pass
+    
+    # OLAY YERİ - Tek seçim (sceneType)
+    scene_type = extended_form.get('sceneType', '') or form_data.get('sceneLocation', '')
+    location_cells = {
+        'ev': 'Q11',
+        'aracta': 'S11',
+        'stadyum': 'U11',
+        'saglik_kurumu': 'W11',
+        'yaya': 'Q12',
+        'buro': 'S12',
+        'huzurevi': 'U12',
+        'resmi_daire': 'W12',
+        'suda': 'Q13',
+        'fabrika': 'S13',
+        'cami': 'U13',
+        'egitim_kurumu': 'W13',
+        'arazi': 'Q14',
+        'sokak': 'S14',
+        'yurt': 'U14',
+        'spor_salonu': 'W14',
+    }
+    if scene_type:
+        target_cell = location_cells.get(scene_type.lower().replace(' ', '_').replace('ı', 'i'))
         if target_cell:
             try:
                 ws[target_cell] = 'X'
             except:
                 pass
     
-    # PUPİLLER (B17-B22)
-    pupils = form_data.get('pupils', '')
+    # OLAY YERİ DETAY - Çoklu seçim (incidentLocation)
+    incident_locations = extended_form.get('incidentLocation', []) or form_data.get('incidentLocation', [])
+    if incident_locations and isinstance(incident_locations, list):
+        for loc in incident_locations:
+            target_cell = location_cells.get(loc.lower().replace(' ', '_').replace('ı', 'i'))
+            if target_cell:
+                try:
+                    ws[target_cell] = 'X'
+                except:
+                    pass
+    
+    # PUPİLLER (B17-B22) - clinical_obs'dan al
+    pupils = clinical_obs.get('pupils', '') or form_data.get('pupils', '')
     if pupils:
         pupil_cells = {
             'normal': 'C17',
@@ -398,6 +426,7 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             'midriatik': 'C19',
             'anizokorik': 'C20',
             'reaksiyon_yok': 'C21',
+            'reak_yok': 'C21',
             'fiks_dilate': 'C22',
         }
         target_cell = pupil_cells.get(pupils.lower().replace(' ', '_'))
@@ -407,18 +436,55 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             except:
                 pass
     
-    # DERİ (D17-D22)
-    skin = form_data.get('skin', '')
+    # DERİ (D17-D22) - clinical_obs'dan al
+    skin = clinical_obs.get('skin', '') or form_data.get('skin', '')
     if skin:
         skin_cells = {
             'normal': 'E17',
             'soluk': 'E18',
             'siyanotik': 'E19',
+            'siyatonik': 'E19',  # typo desteği
             'hiperemik': 'E20',
             'ikterik': 'E21',
             'terli': 'E22',
         }
         target_cell = skin_cells.get(skin.lower())
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # NABIZ TİPİ - clinical_obs'dan al
+    pulse_type = clinical_obs.get('pulseType', '') or form_data.get('pulseType', '')
+    if pulse_type:
+        pulse_type_cells = {
+            'duzenli': 'K19',
+            'düzenli': 'K19',
+            'ritmik': 'K20',
+            'filiform': 'K21',
+            'alinmiyor': 'K22',
+            'alınmıyor': 'K22',
+        }
+        target_cell = pulse_type_cells.get(pulse_type.lower())
+        if target_cell:
+            try:
+                ws[target_cell] = 'X'
+            except:
+                pass
+    
+    # SOLUNUM TİPİ - clinical_obs'dan al
+    respiration_type = clinical_obs.get('respirationType', '') or form_data.get('respirationType', '')
+    if respiration_type:
+        respiration_cells = {
+            'duzenli': 'M19',
+            'düzenli': 'M19',
+            'duzensiz': 'M20',
+            'düzensiz': 'M20',
+            'dispne': 'M21',
+            'yok': 'M22',
+        }
+        target_cell = respiration_cells.get(respiration_type.lower())
         if target_cell:
             try:
                 ws[target_cell] = 'X'
@@ -480,6 +546,113 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
                 ws[target_cell] = 'X'
             except:
                 pass
+    
+    # İŞLEMLER - Checkbox ve Adet (procedures)
+    procedures_data = form_data.get('procedures', {})
+    if procedures_data and isinstance(procedures_data, dict):
+        # İşlem-hücre eşlemesi (checkbox, adet)
+        procedure_cells = {
+            'Muayene (Acil)': ('A31', 'G31'),
+            'Enjeksiyon IM': ('A34', 'G34'),
+            'Enjeksiyon IV': ('A35', 'G35'),
+            'Damar yolu açılması': ('A38', 'G38'),
+            'Pansuman (küçük)': ('A42', 'G42'),
+            'Servikal collar uygulama': ('A52', 'G52'),
+            'Sırt tahtası uygulaması': ('A55', 'G55'),
+            'CPR uygulaması': ('A57', 'G57'),
+            'EKG Uygulaması': ('A58', 'G58'),
+            'Defibrilasyon': ('A59', 'G59'),
+            'Monitörizasyon': ('A61', 'G61'),
+            'Kanama kontrolü': ('A62', 'G62'),
+            'Balon valf maske uygulaması': ('H32', 'M32'),
+            'Aspirasyon uygulaması': ('H33', 'M33'),
+            'Entübasyon uygulaması': ('H35', 'M35'),
+            'Mekanik ventilasyon': ('H36', 'M36'),
+            'Oksijen inhalasyon tedavisi 1 Saat': ('H37', 'M37'),
+            'Nebulizatör ile ilaç uygulama': ('H38', 'M38'),
+            'Kan şekeri ölçümü': ('H40', 'M40'),
+        }
+        
+        for proc_name, proc_value in procedures_data.items():
+            if proc_name in procedure_cells:
+                checkbox_cell, adet_cell = procedure_cells[proc_name]
+                
+                # Yeni format: {checked: bool, adet: int}
+                if isinstance(proc_value, dict):
+                    if proc_value.get('checked'):
+                        try:
+                            ws[checkbox_cell] = 'X'
+                            adet = proc_value.get('adet', 1)
+                            if adet > 1:
+                                ws[adet_cell] = str(adet)
+                        except:
+                            pass
+                # Eski format: boolean
+                elif proc_value:
+                    try:
+                        ws[checkbox_cell] = 'X'
+                    except:
+                        pass
+    
+    # MALZEMELER - Checkbox ve Adet (materials)
+    materials_data = form_data.get('materials', {})
+    if materials_data and isinstance(materials_data, dict):
+        # Malzeme-hücre eşlemesi (checkbox, adet)
+        material_cells = {
+            'Enjektör 1-2 cc': ('U32', 'Z32'),
+            'Enjektör 5 cc': ('U33', 'Z33'),
+            'Enjektör 10-20 cc': ('U34', 'Z34'),
+            'Monitör pedi (EKG elektrodu)': ('U35', 'Z35'),
+            'I.V. katater (No: 14-22)': ('U36', 'Z36'),
+            'I.V. katater (No: 24)': ('U37', 'Z37'),
+            'Serum seti': ('U38', 'Z38'),
+            'Steril eldiven': ('U39', 'Z39'),
+            'Cerrahi eldiven': ('U40', 'Z40'),
+            'Sponç': ('U41', 'Z41'),
+            'Sargı bezi': ('U42', 'Z42'),
+            'İdrar torbası': ('U43', 'Z43'),
+            'Bistüri ucu': ('U44', 'Z44'),
+            'Entübasyon tüpü (Balonlu)': ('U45', 'Z45'),
+            'Entübasyon tüpü (Balonsuz)': ('U46', 'Z46'),
+            'Airway': ('U47', 'Z47'),
+            'Foley sonda': ('U48', 'Z48'),
+            'Nazo gastrik sonda': ('U49', 'Z49'),
+            'Atravmatik ipek (3/0)': ('U50', 'Z50'),
+            'Atravmatik kat-küt (3/0)': ('U51', 'Z51'),
+            'Doğum seti': ('U52', 'Z52'),
+            'Yanık battaniyesi': ('U53', 'Z53'),
+            'O2 Maskesi hazneli erişkin': ('U54', 'Z54'),
+            'O2 Maskesi hazneli pediatrik': ('U55', 'Z55'),
+            'O2 Kanülü nazal erişkin': ('U56', 'Z56'),
+            'O2 Kanülü nazal pediatrik': ('U57', 'Z57'),
+            'Flaster': ('U58', 'Z58'),
+            'Servikal collar': ('U59', 'Z59'),
+            'Elastik bandaj': ('U60', 'Z60'),
+            'Etil Chloride Sprey': ('U61', 'Z61'),
+            'O2 Maskesi haznesiz erişkin': ('U62', 'Z62'),
+            'O2 Maskesi haznesiz pediatrik': ('U63', 'Z63'),
+        }
+        
+        for mat_name, mat_value in materials_data.items():
+            if mat_name in material_cells:
+                checkbox_cell, adet_cell = material_cells[mat_name]
+                
+                # Yeni format: {checked: bool, adet: int}
+                if isinstance(mat_value, dict):
+                    if mat_value.get('checked'):
+                        try:
+                            ws[checkbox_cell] = 'X'
+                            adet = mat_value.get('adet', 1)
+                            if adet > 1:
+                                ws[adet_cell] = str(adet)
+                        except:
+                            pass
+                # Eski format: boolean
+                elif mat_value:
+                    try:
+                        ws[checkbox_cell] = 'X'
+                    except:
+                        pass
     
     # Sayfa düzenini portrait (dikey) ve fit-to-page yap
     try:
