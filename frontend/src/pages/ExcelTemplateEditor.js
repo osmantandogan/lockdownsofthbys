@@ -604,7 +604,10 @@ const ExcelTemplateEditor = () => {
 
   // Stil uygula
   const applyStyle = (styleType, value) => {
-    if (!selectedCell) return;
+    if (!selectedCell) {
+      toast.error('Önce bir hücre seçin');
+      return;
+    }
 
     const address = selectedCell.address;
     const current = cells[address] || {};
@@ -623,6 +626,12 @@ const ExcelTemplateEditor = () => {
         break;
       case 'fill':
         updates = { fill: { color: value } };
+        break;
+      case 'fontSize':
+        updates = { font: { ...current.font, size: value } };
+        break;
+      case 'fontColor':
+        updates = { font: { ...current.font, color: value } };
         break;
       default:
         break;
