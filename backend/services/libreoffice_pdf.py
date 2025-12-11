@@ -135,77 +135,78 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
     gcs = vitals.get('gcs', '') or form_data.get('gcs', '')
     
     # Hücre eşlemesi - Vaka formu v2.xlsx yapısına göre
+    # NOT: Değerler label'ın yanındaki DEĞER hücrelerine yazılmalı, label'a değil!
+    # Birleşik hücrelerin sol-üst köşesine yazılır
     cell_mapping = {
-        # ÜST BÖLÜM (Row 1)
-        'V1': case_data.get('case_number', ''),  # ATN NO (U1'in yanı)
-        'X1': form_data.get('startKm', ''),  # BAŞLANGIÇ KM (W1'in yanı)
-        'Z1': form_data.get('endKm', ''),  # BİTİŞ KM (Y1'in yanı)
+        # ÜST BÖLÜM - ATN NO, KM bilgileri (Row 2 - değer satırı)
+        'U2': case_data.get('case_number', ''),  # ATN NO değeri (U1 label, U2 değer)
+        'W2': form_data.get('startKm', ''),  # BAŞLANGIÇ KM değeri
+        'Y2': form_data.get('endKm', ''),  # BİTİŞ KM değeri
         
-        # İSTASYON BÖLÜMÜ (Row 4-9)
-        'B4': form_data.get('healmedyProtocol') or case_data.get('case_number', ''),  # PROTOKOL NO
-        'B5': date_str,  # TARİH
-        'B6': form_data.get('stationCode', ''),  # KODU
-        'B7': vehicle_plate,  # PLAKA
-        'B8': address,  # HASTANIN ALINDIĞI ADRES
-        'B9': form_data.get('callerOrganization', ''),  # VAKAYI VEREN KURUM
+        # İSTASYON BÖLÜMÜ - Değer hücreleri C sütununda
+        'C4': form_data.get('healmedyProtocol') or case_data.get('case_number', ''),  # PROTOKOL NO değeri
+        'C5': date_str,  # TARİH değeri (A5 label, C5 değer - eğer ayrıysa)
+        'C6': form_data.get('stationCode', ''),  # KODU değeri
+        'C7': vehicle_plate,  # PLAKA değeri
+        'C8': address,  # HASTANIN ALINDIĞI ADRES değeri
+        'C9': form_data.get('callerOrganization', ''),  # VAKAYI VEREN KURUM değeri
         
-        # SAATLER BÖLÜMÜ (Row 4-9, F sütunu)
-        'F4': call_time,  # ÇAĞRI SAATİ
-        'F5': form_data.get('arrivalTime', ''),  # OLAY YERİNE VARIŞ
-        'F6': form_data.get('patientArrivalTime', ''),  # HASTAYA VARIŞ
-        'F7': form_data.get('departureTime', ''),  # OLAY YERİNDEN AYRILIŞ
-        'F8': form_data.get('hospitalArrivalTime', ''),  # HASTANEYE VARIŞ
-        'F9': form_data.get('returnTime', ''),  # İSTASYONA DÖNÜŞ
+        # SAATLER BÖLÜMÜ - Değer hücreleri I sütununda
+        'I4': call_time,  # ÇAĞRI SAATİ değeri
+        'I5': form_data.get('arrivalTime', ''),  # OLAY YERİNE VARIŞ değeri
+        'I6': form_data.get('patientArrivalTime', ''),  # HASTAYA VARIŞ değeri
+        'I7': form_data.get('departureTime', ''),  # OLAY YERİNDEN AYRILIŞ değeri
+        'I8': form_data.get('hospitalArrivalTime', ''),  # HASTANEYE VARIŞ değeri
+        'I9': form_data.get('returnTime', ''),  # İSTASYONA DÖNÜŞ değeri
         
-        # HASTA BİLGİLERİ BÖLÜMÜ (Row 4-9, K sütunu)
-        'L4': patient_name,  # ADI SOYADI
-        'L5': address,  # ADRESİ
-        'L8': tc_no,  # T.C. KİMLİK NO
-        'L9': phone,  # TELEFON
+        # HASTA BİLGİLERİ BÖLÜMÜ - Değer hücreleri M sütununda
+        'M4': patient_name,  # ADI SOYADI değeri (K4 label, M4 değer)
+        'M5': address,  # ADRESİ değeri (aslında K5:L7 birleşik, M5 değer)
+        'M8': tc_no,  # T.C. KİMLİK NO değeri
+        'M9': phone,  # TELEFON değeri
         
-        # CİNSİYET / YAŞ / DURUMU (S-U sütunları)
-        'T9': age,  # YAŞ
-        'T8': form_data.get('birthDate', ''),  # Doğum Tarihi
+        # CİNSİYET / YAŞ / DURUMU - T sütunu değerler için
+        'T9': age,  # YAŞ değeri (S9 label, T9 değer)
+        'T8': form_data.get('birthDate', ''),  # Doğum Tarihi değeri
         
-        # KRONİK HASTALIKLAR (X sütunu)
-        'Y3': chronic_diseases,  # KRONİK HASTALIKLAR
+        # KRONİK HASTALIKLAR - X4 değer hücresi
+        'X4': chronic_diseases,  # KRONİK HASTALIKLAR değeri
         
-        # HASTANIN ŞİKAYETİ (X6)
-        'Y6': complaint,  # HASTANIN ŞİKAYETİ
+        # HASTANIN ŞİKAYETİ - X7 değer hücresi
+        'X7': complaint,  # HASTANIN ŞİKAYETİ değeri
         
         # VİTAL BULGULAR (Row 17-22)
-        # Kan basıncı/Tansiyon - H17 hücresine sistolik, I17'ye diastolik
-        'H17': form_data.get('bloodPressureSystolic', '') or blood_pressure.split('/')[0] if '/' in str(blood_pressure) else blood_pressure,
-        'J17': form_data.get('bloodPressureDiastolic', '') or (blood_pressure.split('/')[1] if '/' in str(blood_pressure) else ''),
-        'L17': pulse,  # NABIZ
-        'N17': respiration,  # SOLUNUM
-        'I19': spo2,  # SPO2 (%)
-        'Y19': temperature,  # ATEŞ (°C)
+        # Tansiyon değerleri - H17 birleşik hücrede sistol/diastol
+        'H17': blood_pressure,  # Tansiyon (ör: 120/80)
+        'K17': pulse,  # NABIZ değeri
+        'M17': respiration,  # SOLUNUM değeri
+        'I19': spo2,  # SPO2 (%) değeri
+        'Y19': temperature,  # ATEŞ (°C) değeri
         
-        # GKS (Glasgow Koma Skalası) - ayrı ayrı
-        'P17': form_data.get('gcsMotor', ''),  # Motor
-        'S17': form_data.get('gcsVerbal', ''),  # Verbal
-        'V17': form_data.get('gcsEye', ''),  # Göz açma
+        # GKS (Glasgow Koma Skalası)
+        'O17': form_data.get('gcsMotor', ''),  # Motor değeri
+        'R17': form_data.get('gcsVerbal', ''),  # Verbal değeri
+        'U17': form_data.get('gcsEye', ''),  # Göz açma değeri
         
         # KAN ŞEKERİ
-        'AA17': form_data.get('bloodSugar', ''),  # Kan şekeri Mg/dL
+        'Z17': form_data.get('bloodSugar', ''),  # Kan şekeri Mg/dL
         
-        # ÖN TANI (A23)
-        'B23': form_data.get('diagnosis', ''),  # ÖN TANI
+        # ÖN TANI (Row 23)
+        'B23': form_data.get('diagnosis', ''),  # ÖN TANI değeri
         
-        # AÇIKLAMALAR (H23)
-        'I23': form_data.get('notes', ''),  # AÇIKLAMALAR
+        # AÇIKLAMALAR
+        'I23': form_data.get('notes', ''),  # AÇIKLAMALAR değeri
         
-        # NAKLEDİLEN HASTANE (K24)
-        'L24': form_data.get('hospitalName', ''),  # NAKLEDİLEN HASTANE
+        # NAKLEDİLEN HASTANE
+        'L24': form_data.get('hospitalName', ''),  # NAKLEDİLEN HASTANE değeri
         
-        # KAZAYA KARIŞAN ARAÇ PLAKA (O24)
+        # KAZAYA KARIŞAN ARAÇ PLAKA
         'P25': form_data.get('accidentVehiclePlate1', ''),
         'P26': form_data.get('accidentVehiclePlate2', ''),
         'P27': form_data.get('accidentVehiclePlate3', ''),
         'P28': form_data.get('accidentVehiclePlate4', ''),
         
-        # CPR bilgileri (T24-T27)
+        # CPR bilgileri
         'U25': form_data.get('cprStartTime', ''),  # CPR BAŞLAMA ZAMANI
         'U26': form_data.get('cprEndTime', ''),  # CPR BIRAKMA ZAMANI
         'U27': form_data.get('cprStopReason', ''),  # CPR BIRAKMA NEDENİ
@@ -231,20 +232,20 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
     
     # Checkboxları işle - Vaka formu v2.xlsx yapısına göre
     
-    # CİNSİYET (S4: ERKEK, S6: KADIN)
+    # CİNSİYET - T4 ve T6 checkbox hücreleri
     if gender:
         if gender.lower() in ['erkek', 'male', 'e', 'm']:
             try:
-                ws['T4'] = 'X'  # ERKEK
+                ws['T4'] = 'X'  # ERKEK checkbox
             except:
                 pass
         elif gender.lower() in ['kadın', 'kadin', 'female', 'k', 'f']:
             try:
-                ws['T6'] = 'X'  # KADIN
+                ws['T6'] = 'X'  # KADIN checkbox
             except:
                 pass
     
-    # DURUMU / TRİYAJ KODU (U4-U8)
+    # DURUMU / TRİYAJ KODU - V4-V8 checkbox hücreleri
     triage_code = form_data.get('triageCode', '') or form_data.get('durumu', '')
     if triage_code:
         triage_cells = {
