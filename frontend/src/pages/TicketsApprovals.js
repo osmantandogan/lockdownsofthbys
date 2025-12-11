@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '../components/ui/dialog';
 import { toast } from 'sonner';
@@ -384,6 +385,9 @@ const TicketsApprovals = () => {
               {selectedTicket && getTypeIcon(selectedTicket.type)}
               {selectedTicket && getTypeLabel(selectedTicket.type)}
             </DialogTitle>
+            <DialogDescription>
+              Bildirim veya talep detaylarını görüntüleyin ve işlem yapın
+            </DialogDescription>
           </DialogHeader>
           
           {selectedTicket && (

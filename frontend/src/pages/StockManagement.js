@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -677,6 +677,9 @@ const StockManagement = () => {
                        dialogStep === 2 ? '2. Adım: Kategori Seç' :
                        '3. Adım: Stok Bilgilerini Gir'}
                     </DialogTitle>
+                    <DialogDescription>
+                      {editMode ? 'Stok bilgilerini güncelleyin' : 'Yeni stok eklemek için adımları takip edin'}
+                    </DialogDescription>
                   </DialogHeader>
                   
                   {/* ADIM 1: LOKASYON SEÇİMİ */}
@@ -1308,6 +1311,7 @@ const StockManagement = () => {
                   <QrCode className="h-5 w-5 text-blue-600" />
                   <span className="truncate">{selectedMedication?.name}</span>
                 </DialogTitle>
+                <DialogDescription>İlaç stok detayları ve geçmiş işlemler</DialogDescription>
               </DialogHeader>
               
               {loadingDetails ? (
@@ -1554,6 +1558,7 @@ const StockManagement = () => {
               <Scissors className="h-5 w-5 text-orange-600" />
               <span>Stok Parçala</span>
             </DialogTitle>
+            <DialogDescription>Mevcut stok paketini parçalayın</DialogDescription>
           </DialogHeader>
           
           {selectedItemForSplit && (
@@ -1652,6 +1657,7 @@ const StockManagement = () => {
               <History className="h-5 w-5 text-purple-600" />
               <span>Stok Hareketleri</span>
             </DialogTitle>
+            <DialogDescription>Tüm stok hareketlerini görüntüleyin</DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-hidden">
@@ -1746,6 +1752,9 @@ const StockManagement = () => {
                  'Adım 3: Lokasyon ve Detaylar'}
               </span>
             </DialogTitle>
+            <DialogDescription>
+              Stok hareketi eklemek için adımları takip edin
+            </DialogDescription>
           </DialogHeader>
           
           {/* Adım 1: Kategori Seçimi */}

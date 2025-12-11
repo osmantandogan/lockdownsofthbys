@@ -65,7 +65,7 @@ const Cases = () => {
       // Advanced filters
       if (advancedFilters.user_id) params.user_id = advancedFilters.user_id;
       if (advancedFilters.medication_name) params.medication_name = advancedFilters.medication_name;
-      if (advancedFilters.has_hospital_transfer !== '') {
+      if (advancedFilters.has_hospital_transfer && advancedFilters.has_hospital_transfer !== 'all') {
         params.has_hospital_transfer = advancedFilters.has_hospital_transfer === 'true';
       }
 
@@ -220,7 +220,7 @@ const Cases = () => {
                             <SelectValue placeholder="Seçiniz" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Tümü</SelectItem>
+                            <SelectItem value="all">Tümü</SelectItem>
                             <SelectItem value="true">Evet</SelectItem>
                             <SelectItem value="false">Hayır</SelectItem>
                           </SelectContent>
