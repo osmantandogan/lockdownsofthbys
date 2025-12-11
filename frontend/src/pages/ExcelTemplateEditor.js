@@ -68,6 +68,9 @@ const ExcelTemplateEditor = () => {
   const [showMappingDialog, setShowMappingDialog] = useState(false);
   const [showStyleDialog, setShowStyleDialog] = useState(false);
   const [dataMappings, setDataMappings] = useState({});
+  const [mappingDialogPosition, setMappingDialogPosition] = useState({ x: 0, y: 0 });
+  const [isDraggingMappingDialog, setIsDraggingMappingDialog] = useState(false);
+  const mappingDialogRef = useRef(null);
   
   // Undo/Redo
   const [history, setHistory] = useState([]);
@@ -1160,10 +1163,20 @@ const ExcelTemplateEditor = () => {
                             verticalAlign: cell?.alignment?.vertical || 'middle',
                             fontSize: cell?.font?.size ? `${cell.font.size}px` : undefined
                           }}
-                          onClick={(e) => handleCellClick(row, col, e)}
+                          onClick={(e) => {
+                            // Dialog açıkken hücre tıklaması sadece seçim yapsın
+                            if (showMappingDialog) {
+                              e.stopPropagation();
+                              handleCellClick(row, col, e);
+                            } else {
+                              handleCellClick(row, col, e);
+                            }
+                          }}
                           onDoubleClick={(e) => {
-                            const cell2 = cells[address];
-                            setEditingCell({ row, col, address, value: cell2?.value || '' });
+                            if (!showMappingDialog) {
+                              const cell2 = cells[address];
+                              setEditingCell({ row, col, address, value: cell2?.value || '' });
+                            }
                           }}
                           draggable={!!cell?.value}
                           onDragStart={(e) => {
@@ -1288,53 +1301,127 @@ const ExcelTemplateEditor = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Data Mapping Dialog */}
-      <Dialog open={showMappingDialog} onOpenChange={setShowMappingDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Veri Eşleştirme</DialogTitle>
-            <p className="text-sm text-gray-500">
-              Her veri alanının Excel'de hangi hücreye yazılacağını belirleyin.
-              {selectedCell && (
-                <span className="ml-2 text-blue-600">
-                  Seçili hücre: <strong>{selectedCell.address}</strong>
-                </span>
-              )}
-            </p>
-          </DialogHeader>
-          <div className="space-y-3">
-            {dataFields.map(field => (
-              <div key={field.key} className="flex items-center gap-3">
-                <Label className="w-40">{field.label}</Label>
-                <Input 
-                  value={dataMappings[field.key] || ''}
-                  onChange={(e) => setDataMappings(prev => ({ ...prev, [field.key]: e.target.value.toUpperCase() }))}
-                  placeholder="Örn: C5"
-                  className="w-24 font-mono"
-                />
-                {selectedCell && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setDataMappings(prev => ({ ...prev, [field.key]: selectedCell.address }))}
-                  >
-                    {selectedCell.address} Ata
-                  </Button>
-                )}
+      {/* Data Mapping Dialog - Draggable */}
+      {showMappingDialog && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/50"
+          onClick={(e) => {
+            // Overlay'e tıklanınca dialog'u kapatma (sadece X butonundan kapatılabilir)
+            if (e.target === e.currentTarget) {
+              // Overlay'e tıklama işlemini engelle
+            }
+          }}
+        >
+          <div
+            ref={mappingDialogRef}
+            className="absolute bg-white rounded-lg shadow-lg max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            style={{
+              left: mappingDialogPosition.x || '50%',
+              top: mappingDialogPosition.y || '50%',
+              transform: mappingDialogPosition.x ? 'translate(-50%, -50%)' : 'translate(-50%, -50%)',
+              width: '90%',
+              maxWidth: '42rem'
+            }}
+          >
+            {/* Draggable Header */}
+            <div 
+              className="flex items-center justify-between p-4 border-b cursor-move bg-gray-50"
+              onMouseDown={(e) => {
+                if (e.target.closest('button')) return; // Butonlara tıklamayı engelleme
+                setIsDraggingMappingDialog(true);
+                const rect = mappingDialogRef.current.getBoundingClientRect();
+                const startX = e.clientX - rect.left;
+                const startY = e.clientY - rect.top;
+                
+                const handleMouseMove = (moveEvent) => {
+                  const newX = moveEvent.clientX - startX;
+                  const newY = moveEvent.clientY - startY;
+                  setMappingDialogPosition({ 
+                    x: Math.max(0, Math.min(newX, window.innerWidth - rect.width)),
+                    y: Math.max(0, Math.min(newY, window.innerHeight - rect.height))
+                  });
+                };
+                
+                const handleMouseUp = () => {
+                  setIsDraggingMappingDialog(false);
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+            >
+              <div>
+                <h2 className="text-lg font-semibold">Veri Eşleştirme</h2>
+                <p className="text-sm text-gray-500">
+                  Her veri alanının Excel'de hangi hücreye yazılacağını belirleyin.
+                  {selectedCell && (
+                    <span className="ml-2 text-blue-600">
+                      Seçili hücre: <strong>{selectedCell.address}</strong>
+                    </span>
+                  )}
+                </p>
               </div>
-            ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowMappingDialog(false);
+                  setMappingDialogPosition({ x: 0, y: 0 });
+                }}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto p-4 flex-1">
+              <div className="space-y-3">
+                {dataFields.map(field => (
+                  <div key={field.key} className="flex items-center gap-3">
+                    <Label className="w-40">{field.label}</Label>
+                    <Input 
+                      value={dataMappings[field.key] || ''}
+                      onChange={(e) => setDataMappings(prev => ({ ...prev, [field.key]: e.target.value.toUpperCase() }))}
+                      placeholder="Örn: C5"
+                      className="w-24 font-mono"
+                    />
+                    {selectedCell && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setDataMappings(prev => ({ ...prev, [field.key]: selectedCell.address }));
+                          toast.success(`${field.label} → ${selectedCell.address} eşlendi`);
+                        }}
+                      >
+                        {selectedCell.address} Ata
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 p-4 border-t">
+              <Button variant="outline" onClick={() => {
+                setShowMappingDialog(false);
+                setMappingDialogPosition({ x: 0, y: 0 });
+              }}>İptal</Button>
+              <Button onClick={() => {
+                setShowMappingDialog(false);
+                setMappingDialogPosition({ x: 0, y: 0 });
+                toast.success('Veri eşleştirmeleri kaydedildi');
+              }}>
+                Kaydet
+              </Button>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMappingDialog(false)}>İptal</Button>
-            <Button onClick={() => {
-              toast.success('Veri eşleştirmesi kaydedildi');
-              setShowMappingDialog(false);
-            }}>
-              Kaydet
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* Style Dialog */}
       <Dialog open={showStyleDialog} onOpenChange={setShowStyleDialog}>
