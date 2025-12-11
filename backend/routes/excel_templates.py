@@ -392,3 +392,9 @@ async def import_vaka_formu(request: Request):
         logger.error(f"Import hatası: {str(e)}")
         raise HTTPException(status_code=500, detail=f"İçe aktarma hatası: {str(e)}")
 
+
+@router.post("/import-vaka-formu")
+async def import_vaka_formu_alt(request: Request):
+    """Mevcut VAKA FORMU.xlsx dosyasını içe aktar (alternatif endpoint)"""
+    return await import_vaka_formu(request)
+
