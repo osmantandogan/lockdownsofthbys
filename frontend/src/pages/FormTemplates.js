@@ -53,15 +53,28 @@ const FormTemplates = () => {
 
   // VAKA FORMU.xlsx dosyasını içe aktar
   const handleImportVakaFormu = async () => {
-    try {
-      toast.info('VAKA FORMU içe aktarılıyor...');
-      await excelTemplatesAPI.importVakaFormu();
-      toast.success('VAKA FORMU başarıyla içe aktarıldı!');
-      loadTemplates();
-    } catch (error) {
-      console.error('İçe aktarma hatası:', error);
-      toast.error('İçe aktarma başarısız');
-    }
+    // Dosya seçimi için input oluştur
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        toast.info('VAKA FORMU içe aktarılıyor...');
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        await excelTemplatesAPI.importVakaFormu(formData);
+        toast.success('VAKA FORMU başarıyla içe aktarıldı!');
+        loadTemplates();
+      } catch (error) {
+        console.error('İçe aktarma hatası:', error);
+        toast.error(error.response?.data?.detail || 'İçe aktarma başarısız');
+      }
+    };
+    input.click();
   };
 
   const handleDelete = async (id) => {

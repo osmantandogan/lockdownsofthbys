@@ -246,26 +246,33 @@ async def upload_excel_template(
 
 
 @router.post("/import-from-file")
-async def import_vaka_formu(request: Request):
-    """Mevcut VAKA FORMU.xlsx dosyasını içe aktar"""
+async def import_vaka_formu(
+    request: Request,
+    file: UploadFile = File(...)
+):
+    """Kullanıcının yüklediği Excel dosyasını içe aktar"""
     logger.info("import-from-file endpoint çağrıldı")
     user = await get_current_user(request)
     logger.info(f"Kullanıcı doğrulandı: {user.id}")
     
-    # Proje kök dizinindeki VAKA FORMU.xlsx dosyasını bul
-    xlsx_path = os.path.join(os.path.dirname(__file__), "..", "..", "VAKA FORMU.xlsx")
+    # Dosya formatı kontrolü
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Sadece Excel dosyaları (.xlsx, .xls) yüklenebilir")
     
-    if not os.path.exists(xlsx_path):
-        raise HTTPException(status_code=404, detail="VAKA FORMU.xlsx dosyası bulunamadı")
-    
-    with open(xlsx_path, 'rb') as f:
-        content = f.read()
+    # Yüklenen dosyayı oku
+    content = await file.read()
+    logger.info(f"Dosya yüklendi: {file.filename}, boyut: {len(content)} bytes")
     
     try:
         structure = parse_excel_file(content)
         
-        # Mevcut VAKA FORMU şablonu var mı kontrol et
-        existing = await excel_templates_collection.find_one({"name": "VAKA FORMU"})
+        # Dosya adından template adını oluştur
+        template_name = file.filename.replace('.xlsx', '').replace('.xls', '').strip()
+        if not template_name:
+            template_name = "Yüklenen Excel Şablonu"
+        
+        # Mevcut şablon var mı kontrol et (aynı isimle)
+        existing = await excel_templates_collection.find_one({"name": template_name})
         
         if existing:
             # Güncelle
@@ -278,47 +285,30 @@ async def import_vaka_formu(request: Request):
                     "merged_cells": structure["merged_cells"],
                     "row_heights": structure["row_heights"],
                     "column_widths": structure["column_widths"],
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.utcnow(),
+                    "original_filename": file.filename
                 }}
             )
-            return {"message": "VAKA FORMU şablonu güncellendi", "id": existing["_id"]}
+            return {"message": f"{template_name} şablonu güncellendi", "id": str(existing["_id"])}
         
         # Yeni oluştur
         template_id = str(uuid.uuid4())
         
         template = {
             "_id": template_id,
-            "name": "VAKA FORMU",
-            "description": "HEALMEDY Ambulans Vaka Formu - Resmi Şablon",
+            "name": template_name,
+            "description": f"Yüklenen Excel dosyası: {file.filename}",
             "template_type": "excel",
-            "usage_types": ["vaka_formu"],
-            "is_default": True,
+            "usage_types": ["vaka_formu"] if "vaka" in template_name.lower() or "formu" in template_name.lower() else [],
+            "is_default": False,  # Kullanıcı isterse varsayılan yapabilir
             "max_row": structure["max_row"],
             "max_column": structure["max_column"],
             "cells": structure["cells"],
             "merged_cells": structure["merged_cells"],
             "row_heights": structure["row_heights"],
             "column_widths": structure["column_widths"],
-            "data_mappings": {
-                # Veri alanı -> hücre adresi eşleştirmesi
-                "healmedyProtocol": "D9",
-                "date": "D11",
-                "caseCode": "D12",
-                "vehiclePlate": "D13",
-                "callTime": "H9",
-                "arrivalSceneTime": "H10",
-                "arrivalPatientTime": "H11",
-                "departureTime": "H12",
-                "hospitalArrivalTime": "H13",
-                "returnStationTime": "H14",
-                "patientName": "M9",
-                "patientAddress": "M10",
-                "patientAge": "U13",
-                "gender_erkek": "U9",
-                "gender_kadin": "U11",
-                "complaint": "Z11"
-            },
-            "original_filename": "VAKA FORMU.xlsx",
+            "data_mappings": {},  # Kullanıcı daha sonra düzenleyebilir
+            "original_filename": file.filename,
             "created_by": user.id,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
@@ -326,17 +316,11 @@ async def import_vaka_formu(request: Request):
         
         await excel_templates_collection.insert_one(template)
         
-        return {"message": "VAKA FORMU şablonu oluşturuldu", "id": template_id}
+        return {"message": f"{template_name} şablonu oluşturuldu", "id": template_id, "template": {"id": template_id, "name": template_name}}
         
     except Exception as e:
         logger.error(f"Import hatası: {str(e)}")
         raise HTTPException(status_code=500, detail=f"İçe aktarma hatası: {str(e)}")
-
-
-@router.post("/import-vaka-formu")
-async def import_vaka_formu_alt(request: Request):
-    """Mevcut VAKA FORMU.xlsx dosyasını içe aktar (alternatif endpoint)"""
-    return await import_vaka_formu(request)
 
 
 @router.put("/{template_id}")
