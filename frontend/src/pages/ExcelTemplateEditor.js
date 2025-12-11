@@ -12,7 +12,8 @@ import {
   Save, ArrowLeft, Plus, Minus, Bold, Italic, 
   AlignLeft, AlignCenter, AlignRight, Merge, 
   Paintbrush, Type, Undo, Redo, ZoomIn, ZoomOut,
-  FileSpreadsheet, Download, Eye, Trash2, Settings
+  FileSpreadsheet, Download, Eye, Trash2, Settings,
+  Copy, Scissors, GripVertical
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -45,6 +46,9 @@ const ExcelTemplateEditor = () => {
   const [selectedCell, setSelectedCell] = useState(null);
   const [selectedRange, setSelectedRange] = useState(null);
   const [editingCell, setEditingCell] = useState(null); // {row, col, value}
+  const [draggingCell, setDraggingCell] = useState(null); // {row, col, address}
+  const [dragOverCell, setDragOverCell] = useState(null); // {row, col}
+  const [copiedCell, setCopiedCell] = useState(null); // {cell data}
   const [rowHeights, setRowHeights] = useState({});
   const [columnWidths, setColumnWidths] = useState({});
   const editingInputRef = useRef(null);
@@ -249,7 +253,7 @@ const ExcelTemplateEditor = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCell, editingCell, cells, maxRow, maxCol]);
+  }, [selectedCell, editingCell, cells, maxRow, maxCol, copiedCell, handleCopyCell, handleCutCell, handlePasteCell, handleDeleteCell]);
 
   // Düzenleme input focus - sadece yeni hücreye geçildiğinde select yap
   useEffect(() => {
@@ -288,6 +292,207 @@ const ExcelTemplateEditor = () => {
   // Hücre düzenleme değişikliği
   const handleCellEditChange = (value) => {
     setEditingCell(prev => prev ? { ...prev, value } : null);
+  };
+
+  // Hücre sil
+  const handleDeleteCell = () => {
+    if (!selectedCell) {
+      toast.error('Önce bir hücre seçin');
+      return;
+    }
+    updateCell(selectedCell.address, { value: '' });
+    toast.success('Hücre içeriği silindi');
+  };
+
+  // Hücre kopyala
+  const handleCopyCell = () => {
+    if (!selectedCell) {
+      toast.error('Önce bir hücre seçin');
+      return;
+    }
+    const cell = cells[selectedCell.address];
+    if (cell) {
+      setCopiedCell(cell);
+      toast.success('Hücre kopyalandı');
+    }
+  };
+
+  // Hücre yapıştır
+  const handlePasteCell = () => {
+    if (!selectedCell || !copiedCell) {
+      toast.error('Önce bir hücre kopyalayın');
+      return;
+    }
+    updateCell(selectedCell.address, {
+      ...copiedCell,
+      address: selectedCell.address,
+      row: selectedCell.row,
+      col: selectedCell.col,
+      col_letter: getColumnLetter(selectedCell.col)
+    });
+    toast.success('Hücre yapıştırıldı');
+  };
+
+  // Hücre kes
+  const handleCutCell = () => {
+    if (!selectedCell) {
+      toast.error('Önce bir hücre seçin');
+      return;
+    }
+    const cell = cells[selectedCell.address];
+    if (cell) {
+      setCopiedCell(cell);
+      updateCell(selectedCell.address, { value: '' });
+      toast.success('Hücre kesildi');
+    }
+  };
+
+  // Drag & Drop - Başlat
+  const handleDragStart = (row, col, e) => {
+    const address = getCellAddress(row, col);
+    const cell = cells[address];
+    if (cell && cell.value) {
+      setDraggingCell({ row, col, address, cell });
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', address);
+    }
+  };
+
+  // Drag & Drop - Üzerine gel
+  const handleDragOver = (row, col, e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverCell({ row, col });
+  };
+
+  // Drag & Drop - Bırak
+  const handleDrop = (row, col, e) => {
+    e.preventDefault();
+    if (draggingCell) {
+      const targetAddress = getCellAddress(row, col);
+      const sourceCell = cells[draggingCell.address];
+      
+      if (sourceCell) {
+        // Hedef hücreye taşı
+        updateCell(targetAddress, {
+          ...sourceCell,
+          address: targetAddress,
+          row: row,
+          col: col,
+          col_letter: getColumnLetter(col)
+        });
+        
+        // Kaynak hücreyi temizle (kesme işlemi)
+        updateCell(draggingCell.address, { value: '' });
+        
+        toast.success(`Hücre ${draggingCell.address} → ${targetAddress} taşındı`);
+      }
+    }
+    setDraggingCell(null);
+    setDragOverCell(null);
+  };
+
+  // Drag & Drop - Bırakma iptal
+  const handleDragEnd = () => {
+    setDraggingCell(null);
+    setDragOverCell(null);
+  };
+
+  // Satır ekle
+  const handleInsertRow = (afterRow) => {
+    // Tüm hücreleri bir satır aşağı kaydır
+    const newCells = {};
+    Object.keys(cells).forEach(address => {
+      const cell = cells[address];
+      if (cell.row > afterRow) {
+        const newRow = cell.row + 1;
+        const newAddress = getCellAddress(newRow, cell.col);
+        newCells[newAddress] = {
+          ...cell,
+          row: newRow,
+          address: newAddress
+        };
+      } else {
+        newCells[address] = cell;
+      }
+    });
+    setCells(newCells);
+    setMaxRow(prev => prev + 1);
+    toast.success('Satır eklendi');
+  };
+
+  // Satır sil
+  const handleDeleteRow = (rowToDelete) => {
+    // Silinecek satırdaki hücreleri kaldır
+    const newCells = {};
+    Object.keys(cells).forEach(address => {
+      const cell = cells[address];
+      if (cell.row !== rowToDelete) {
+        if (cell.row > rowToDelete) {
+          // Aşağıdaki satırları yukarı kaydır
+          const newRow = cell.row - 1;
+          const newAddress = getCellAddress(newRow, cell.col);
+          newCells[newAddress] = {
+            ...cell,
+            row: newRow,
+            address: newAddress
+          };
+        } else {
+          newCells[address] = cell;
+        }
+      }
+    });
+    setCells(newCells);
+    setMaxRow(prev => Math.max(1, prev - 1));
+    toast.success('Satır silindi');
+  };
+
+  // Sütun ekle
+  const handleInsertColumn = (afterCol) => {
+    const newCells = {};
+    Object.keys(cells).forEach(address => {
+      const cell = cells[address];
+      if (cell.col > afterCol) {
+        const newCol = cell.col + 1;
+        const newAddress = getCellAddress(cell.row, newCol);
+        newCells[newAddress] = {
+          ...cell,
+          col: newCol,
+          col_letter: getColumnLetter(newCol),
+          address: newAddress
+        };
+      } else {
+        newCells[address] = cell;
+      }
+    });
+    setCells(newCells);
+    setMaxCol(prev => prev + 1);
+    toast.success('Sütun eklendi');
+  };
+
+  // Sütun sil
+  const handleDeleteColumn = (colToDelete) => {
+    const newCells = {};
+    Object.keys(cells).forEach(address => {
+      const cell = cells[address];
+      if (cell.col !== colToDelete) {
+        if (cell.col > colToDelete) {
+          const newCol = cell.col - 1;
+          const newAddress = getCellAddress(cell.row, newCol);
+          newCells[newAddress] = {
+            ...cell,
+            col: newCol,
+            col_letter: getColumnLetter(newCol),
+            address: newAddress
+          };
+        } else {
+          newCells[address] = cell;
+        }
+      }
+    });
+    setCells(newCells);
+    setMaxCol(prev => Math.max(1, prev - 1));
+    toast.success('Sütun silindi');
   };
 
   // Hücre değeri değiştir
@@ -516,6 +721,36 @@ const ExcelTemplateEditor = () => {
           
           <div className="h-6 border-r mx-1" />
           
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleCopyCell}
+            disabled={!selectedCell}
+            title="Kopyala (Ctrl+C)"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleCutCell}
+            disabled={!selectedCell}
+            title="Kes (Ctrl+X)"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handlePasteCell}
+            disabled={!copiedCell}
+            title="Yapıştır (Ctrl+V)"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          
+          <div className="h-6 border-r mx-1" />
+          
           <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.max(50, z - 10))}>
             <ZoomOut className="h-4 w-4" />
           </Button>
@@ -574,10 +809,30 @@ const ExcelTemplateEditor = () => {
                 {Array.from({ length: maxCol }, (_, i) => (
                   <th 
                     key={i} 
-                    className="sticky top-0 z-10 bg-gray-200 border text-xs font-normal px-1"
+                    className="sticky top-0 z-10 bg-gray-200 border text-xs font-normal px-1 relative group"
                     style={{ minWidth: columnWidths[getColumnLetter(i + 1)] || 80 }}
                   >
                     {getColumnLetter(i + 1)}
+                    <div className="absolute bottom-0 left-0 right-0 h-3 opacity-0 group-hover:opacity-100 flex gap-1 items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-3 w-3 p-0"
+                        onClick={() => handleInsertColumn(i + 1)}
+                        title="Sütun ekle"
+                      >
+                        <Plus className="h-2 w-2" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-3 w-3 p-0 text-red-600"
+                        onClick={() => handleDeleteColumn(i + 1)}
+                        title="Sütun sil"
+                      >
+                        <Minus className="h-2 w-2" />
+                      </Button>
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -587,8 +842,28 @@ const ExcelTemplateEditor = () => {
                 const row = rowIdx + 1;
                 return (
                   <tr key={row} style={{ height: rowHeights[row] || 24 }}>
-                    <td className="sticky left-0 z-10 bg-gray-200 border text-xs text-center font-normal">
+                    <td className="sticky left-0 z-10 bg-gray-200 border text-xs text-center font-normal relative group">
                       {row}
+                      <div className="absolute right-0 top-0 bottom-0 w-4 opacity-0 group-hover:opacity-100 flex flex-col gap-1 items-center justify-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-3 w-3 p-0"
+                          onClick={() => handleInsertRow(row)}
+                          title="Satır ekle"
+                        >
+                          <Plus className="h-2 w-2" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-3 w-3 p-0 text-red-600"
+                          onClick={() => handleDeleteRow(row)}
+                          title="Satır sil"
+                        >
+                          <Minus className="h-2 w-2" />
+                        </Button>
+                      </div>
                     </td>
                     {Array.from({ length: maxCol }, (_, colIdx) => {
                       const col = colIdx + 1;
@@ -660,6 +935,21 @@ const ExcelTemplateEditor = () => {
                           onDoubleClick={(e) => {
                             const cell2 = cells[address];
                             setEditingCell({ row, col, address, value: cell2?.value || '' });
+                          }}
+                          draggable={!!cell?.value}
+                          onDragStart={(e) => {
+                            if (cell?.value) {
+                              handleDragStart(row, col, e);
+                            }
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            handleDragOver(row, col, e);
+                          }}
+                          onDrop={(e) => handleDrop(row, col, e)}
+                          onDragEnd={handleDragEnd}
+                          style={{
+                            ...(dragOverCell?.row === row && dragOverCell?.col === col ? { backgroundColor: '#fef3c7' } : {})
                           }}
                         >
                           {editingCell?.row === row && editingCell?.col === col ? (
