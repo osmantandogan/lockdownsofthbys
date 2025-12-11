@@ -307,21 +307,21 @@ async def get_vehicle_km_report(
                 end_km = int(float(str(end_km_val).replace(",", ".")))
                 km_diff = abs(end_km - start_km)
                 
-                if km_diff > 0 and km_diff < 1000:  # Reasonable check
-            submitted_by = form.get("submitted_by")
+                if km_diff > 0 and km_diff < 1000:
+                    submitted_by = form.get("submitted_by")
                     user = await users_collection.find_one({"_id": submitted_by}) if submitted_by else None
-            
-            case_km_data.append({
-                "case_id": form.get("case_id"),
+                    
+                    case_km_data.append({
+                        "case_id": form.get("case_id"),
                         "case_number": form_data.get("healmedyProtocol") or form_data.get("protocol_number") or "N/A",
                         "driver_name": user.get("name") if user else "Bilinmiyor",
-                "driver_id": submitted_by,
-                "start_km": start_km,
-                "end_km": end_km,
-                "km_used": km_diff,
-                "date": form.get("created_at").isoformat() if form.get("created_at") else None
-            })
-            total_case_km += km_diff
+                        "driver_id": submitted_by,
+                        "start_km": start_km,
+                        "end_km": end_km,
+                        "km_used": km_diff,
+                        "date": form.get("created_at").isoformat() if form.get("created_at") else None
+                    })
+                    total_case_km += km_diff
             except (ValueError, TypeError) as e:
                 logger.warning(f"KM parse error for case: {e}")
                 continue
