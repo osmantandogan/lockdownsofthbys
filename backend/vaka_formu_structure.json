@@ -1,0 +1,4420 @@
+{
+  "max_row": 80,
+  "max_column": 27,
+  "cells": {
+    "1": [
+      {
+        "cell": "A1",
+        "value": "#VALUE!",
+        "merged": {
+          "range": "A1:D2",
+          "rows": 2,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "E1",
+        "value": "HEALMEDY AMBULANS VAKA FORMU",
+        "merged": {
+          "range": "E1:T1",
+          "rows": 1,
+          "cols": 16
+        }
+      },
+      {
+        "cell": "U1",
+        "value": "ATN NO",
+        "merged": {
+          "range": "U1:V1",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "W1",
+        "value": "BAŞLANGIÇ KM",
+        "merged": {
+          "range": "W1:X1",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "Y1",
+        "value": "BİTİŞ KM",
+        "merged": {
+          "range": "Y1:Z1",
+          "rows": 1,
+          "cols": 2
+        }
+      }
+    ],
+    "2": [
+      {
+        "cell": "E2",
+        "value": "(MhaCare Sağlık Tur. İnş. Tic. A.Ş.)",
+        "merged": {
+          "range": "E2:T2",
+          "rows": 1,
+          "cols": 16
+        }
+      }
+    ],
+    "3": [
+      {
+        "cell": "A3",
+        "value": "İSTASYON",
+        "merged": {
+          "range": "A3:D3",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "F3",
+        "value": "SAATLER",
+        "merged": {
+          "range": "F3:J3",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "K3",
+        "value": "HASTA BİLGİLERİ",
+        "merged": {
+          "range": "K3:R3",
+          "rows": 1,
+          "cols": 8
+        }
+      },
+      {
+        "cell": "S3",
+        "value": "CİNSİYET",
+        "merged": {
+          "range": "S3:T3",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "U3",
+        "value": "DURUMU",
+        "merged": {
+          "range": "U3:W3",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "X3",
+        "value": "KRONİK HASTALIKLAR",
+        "merged": {
+          "range": "X3:Z3",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "4": [
+      {
+        "cell": "A4",
+        "value": "PROTOKOL NO",
+        "merged": {
+          "range": "A4:B4",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E4",
+        "value": "ÇAĞRI SAATİ",
+        "merged": {
+          "range": "E4:H4",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "K4",
+        "value": "ADI SOYADI",
+        "merged": {
+          "range": "K4:L4",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "S4",
+        "value": "ERKEK",
+        "merged": {
+          "range": "S4:S5",
+          "rows": 2,
+          "cols": 1
+        }
+      },
+      {
+        "cell": "U4",
+        "value": "KIRMIZI KOD",
+        "merged": {
+          "range": "U4:V4",
+          "rows": 1,
+          "cols": 2
+        }
+      }
+    ],
+    "5": [
+      {
+        "cell": "A5",
+        "value": "TARİH",
+        "merged": {
+          "range": "A5:B5",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E5",
+        "value": "OLAY YERİNE VARIŞ",
+        "merged": {
+          "range": "E5:H5",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "K5",
+        "value": "ADRESİ",
+        "merged": {
+          "range": "K5:L7",
+          "rows": 3,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "U5",
+        "value": "SARI KOD",
+        "merged": {
+          "range": "U5:V5",
+          "rows": 1,
+          "cols": 2
+        }
+      }
+    ],
+    "6": [
+      {
+        "cell": "A6",
+        "value": "KODU",
+        "merged": {
+          "range": "A6:B6",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E6",
+        "value": "HASTAYA VARIŞ",
+        "merged": {
+          "range": "E6:H6",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "S6",
+        "value": "KADIN",
+        "merged": {
+          "range": "S6:S7",
+          "rows": 2,
+          "cols": 1
+        }
+      },
+      {
+        "cell": "U6",
+        "value": "YEŞİL KOD",
+        "merged": {
+          "range": "U6:V6",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "X6",
+        "value": "HASTANIN ŞİKAYETİ",
+        "merged": {
+          "range": "X6:Z6",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "7": [
+      {
+        "cell": "A7",
+        "value": "PLAKA",
+        "merged": {
+          "range": "A7:B7",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E7",
+        "value": "OLAY YERİNDEN AYRILIŞ",
+        "merged": {
+          "range": "E7:H7",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "U7",
+        "value": "SİYAH KOD",
+        "merged": {
+          "range": "U7:V7",
+          "rows": 1,
+          "cols": 2
+        }
+      }
+    ],
+    "8": [
+      {
+        "cell": "A8",
+        "value": "HASTANIN ALINDIĞI ADRES",
+        "merged": {
+          "range": "A8:B8",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E8",
+        "value": "HASTANEYE VARIŞ",
+        "merged": {
+          "range": "E8:H8",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "K8",
+        "value": "T.C. KİMLİK NO",
+        "merged": {
+          "range": "K8:L8",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "S8",
+        "value": "Doğum Tarihi",
+        "merged": null
+      },
+      {
+        "cell": "U8",
+        "value": "SOSYAL ENDİKASYON",
+        "merged": {
+          "range": "U8:V8",
+          "rows": 1,
+          "cols": 2
+        }
+      }
+    ],
+    "9": [
+      {
+        "cell": "A9",
+        "value": "VAKAYI VEREN KURUM",
+        "merged": {
+          "range": "A9:B9",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E9",
+        "value": "İSTASYONA DÖNÜŞ",
+        "merged": {
+          "range": "E9:H9",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "K9",
+        "value": "TELEFON",
+        "merged": {
+          "range": "K9:L9",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "S9",
+        "value": "YAŞ",
+        "merged": null
+      }
+    ],
+    "10": [
+      {
+        "cell": "A10",
+        "value": "ÇAĞRI TİPİ",
+        "merged": {
+          "range": "A10:D10",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "F10",
+        "value": "ÇAĞRI NEDENİ",
+        "merged": {
+          "range": "F10:O10",
+          "rows": 1,
+          "cols": 10
+        }
+      },
+      {
+        "cell": "P10",
+        "value": "OLAY YERİ",
+        "merged": {
+          "range": "P10:Z10",
+          "rows": 1,
+          "cols": 11
+        }
+      }
+    ],
+    "11": [
+      {
+        "cell": "A11",
+        "value": "TELSİZ",
+        "merged": {
+          "range": "A11:C11",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "E11",
+        "value": "MEDİKAL",
+        "merged": {
+          "range": "E11:F11",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "H11",
+        "value": "YANGIN",
+        "merged": null
+      },
+      {
+        "cell": "J11",
+        "value": "ELEKTRİK ÇARP.",
+        "merged": null
+      },
+      {
+        "cell": "L11",
+        "value": "DÜŞME",
+        "merged": null
+      },
+      {
+        "cell": "N11",
+        "value": "LPG",
+        "merged": null
+      },
+      {
+        "cell": "P11",
+        "value": "EV",
+        "merged": null
+      },
+      {
+        "cell": "R11",
+        "value": "ARAÇTA",
+        "merged": null
+      },
+      {
+        "cell": "T11",
+        "value": "STADYUM",
+        "merged": null
+      },
+      {
+        "cell": "V11",
+        "value": "SAĞLIK KURUMU",
+        "merged": null
+      },
+      {
+        "cell": "X11",
+        "value": "TPOC FİLYOS MERKEZİ LOKASYONU",
+        "merged": {
+          "range": "X11:Z11",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "12": [
+      {
+        "cell": "A12",
+        "value": "TELEFON",
+        "merged": {
+          "range": "A12:C12",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "E12",
+        "value": "TRAFİK KAZ",
+        "merged": {
+          "range": "E12:F12",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "H12",
+        "value": "İNTİHAR",
+        "merged": null
+      },
+      {
+        "cell": "J12",
+        "value": "ATEŞLİ SİLAH",
+        "merged": null
+      },
+      {
+        "cell": "L12",
+        "value": "ALKOL İLAÇ",
+        "merged": null
+      },
+      {
+        "cell": "N12",
+        "value": "TEDBİR",
+        "merged": null
+      },
+      {
+        "cell": "P12",
+        "value": "YAYA",
+        "merged": null
+      },
+      {
+        "cell": "R12",
+        "value": "BÜRO",
+        "merged": null
+      },
+      {
+        "cell": "T12",
+        "value": "HUZUREVİ",
+        "merged": null
+      },
+      {
+        "cell": "V12",
+        "value": "RESMİ DAİRE",
+        "merged": null
+      }
+    ],
+    "13": [
+      {
+        "cell": "A13",
+        "value": "DİĞER",
+        "merged": {
+          "range": "A13:D13",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "E13",
+        "value": "DİĞER KAZA",
+        "merged": {
+          "range": "E13:F13",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "H13",
+        "value": "KİMYASAL",
+        "merged": null
+      },
+      {
+        "cell": "J13",
+        "value": "BOĞULMA",
+        "merged": null
+      },
+      {
+        "cell": "L13",
+        "value": "KÜNT TRAV",
+        "merged": null
+      },
+      {
+        "cell": "N13",
+        "value": "PROTOKOL",
+        "merged": null
+      },
+      {
+        "cell": "P13",
+        "value": "SUDA",
+        "merged": null
+      },
+      {
+        "cell": "R13",
+        "value": "FABRİKA",
+        "merged": null
+      },
+      {
+        "cell": "T13",
+        "value": "CAMİ",
+        "merged": null
+      },
+      {
+        "cell": "V13",
+        "value": "EĞİTİM KURUMU",
+        "merged": null
+      }
+    ],
+    "14": [
+      {
+        "cell": "E14",
+        "value": "İŞ KAZASI",
+        "merged": {
+          "range": "E14:F14",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "H14",
+        "value": "ALLERJİ",
+        "merged": null
+      },
+      {
+        "cell": "J14",
+        "value": "Kesici - Delici",
+        "merged": null
+      },
+      {
+        "cell": "L14",
+        "value": "YANIK",
+        "merged": null
+      },
+      {
+        "cell": "P14",
+        "value": "ARAZİ",
+        "merged": null
+      },
+      {
+        "cell": "R14",
+        "value": "SOKAK",
+        "merged": null
+      },
+      {
+        "cell": "T14",
+        "value": "YURT",
+        "merged": null
+      },
+      {
+        "cell": "V14",
+        "value": "SPOR SALONU",
+        "merged": null
+      }
+    ],
+    "15": [
+      {
+        "cell": "A15",
+        "value": "İLK MUAYENE BULGULARI",
+        "merged": {
+          "range": "A15:N15",
+          "rows": 1,
+          "cols": 14
+        }
+      },
+      {
+        "cell": "O15",
+        "value": "GLASGOW SKALASI",
+        "merged": {
+          "range": "O15:W15",
+          "rows": 1,
+          "cols": 9
+        }
+      },
+      {
+        "cell": "X15",
+        "value": "KAN ŞEKERİ",
+        "merged": {
+          "range": "X15:Z15",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "16": [
+      {
+        "cell": "A16",
+        "value": "PUPİLLER",
+        "merged": {
+          "range": "A16:B16",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "C16",
+        "value": "DERİ",
+        "merged": {
+          "range": "C16:D16",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "E16",
+        "value": "SAATLER",
+        "merged": {
+          "range": "E16:G16",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "H16",
+        "value": "KAN BASINCI/TANSİYON",
+        "merged": {
+          "range": "H16:J16",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "K16",
+        "value": "NABIZ",
+        "merged": {
+          "range": "K16:L16",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "M16",
+        "value": "SOLUNUM",
+        "merged": {
+          "range": "M16:N16",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "O16",
+        "value": "MOTOR",
+        "merged": {
+          "range": "O16:Q16",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "R16",
+        "value": "VERBAL",
+        "merged": {
+          "range": "R16:T16",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "U16",
+        "value": "GÖZ AÇMA",
+        "merged": {
+          "range": "U16:W16",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "Z16",
+        "value": "Mg/dL",
+        "merged": null
+      }
+    ],
+    "17": [
+      {
+        "cell": "B17",
+        "value": "NORMAL",
+        "merged": null
+      },
+      {
+        "cell": "D17",
+        "value": "NORMAL",
+        "merged": null
+      },
+      {
+        "cell": "I17",
+        "value": "/",
+        "merged": null
+      },
+      {
+        "cell": "K17",
+        "value": "dk",
+        "merged": null
+      },
+      {
+        "cell": "N17",
+        "value": "dk",
+        "merged": null
+      },
+      {
+        "cell": "O17",
+        "value": "6",
+        "merged": null
+      },
+      {
+        "cell": "P17",
+        "value": "EMRE İTAAT",
+        "merged": null
+      },
+      {
+        "cell": "R17",
+        "value": "5",
+        "merged": null
+      },
+      {
+        "cell": "S17",
+        "value": "ORİENTE",
+        "merged": null
+      },
+      {
+        "cell": "U17",
+        "value": "4",
+        "merged": null
+      },
+      {
+        "cell": "V17",
+        "value": "SPONTAN",
+        "merged": null
+      },
+      {
+        "cell": "Z17",
+        "value": "Mg/dL",
+        "merged": null
+      }
+    ],
+    "18": [
+      {
+        "cell": "B18",
+        "value": "MİYOTİK",
+        "merged": null
+      },
+      {
+        "cell": "D18",
+        "value": "SOLUK",
+        "merged": null
+      },
+      {
+        "cell": "I18",
+        "value": "/",
+        "merged": null
+      },
+      {
+        "cell": "K18",
+        "value": "dk",
+        "merged": null
+      },
+      {
+        "cell": "N18",
+        "value": "dk",
+        "merged": null
+      },
+      {
+        "cell": "O18",
+        "value": "5",
+        "merged": null
+      },
+      {
+        "cell": "P18",
+        "value": "AĞRIYI LOKALİZE ETME",
+        "merged": null
+      },
+      {
+        "cell": "R18",
+        "value": "4",
+        "merged": null
+      },
+      {
+        "cell": "S18",
+        "value": "KONFÜZE",
+        "merged": null
+      },
+      {
+        "cell": "U18",
+        "value": "3",
+        "merged": null
+      },
+      {
+        "cell": "V18",
+        "value": "SESLE",
+        "merged": null
+      },
+      {
+        "cell": "Z18",
+        "value": "Mg/dL",
+        "merged": null
+      }
+    ],
+    "19": [
+      {
+        "cell": "B19",
+        "value": "MİDRİATİK",
+        "merged": null
+      },
+      {
+        "cell": "D19",
+        "value": "SİYANOTİK",
+        "merged": null
+      },
+      {
+        "cell": "E19",
+        "value": "SAATLER",
+        "merged": {
+          "range": "E19:G19",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "H19",
+        "value": "SPO2",
+        "merged": {
+          "range": "H19:J19",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "L19",
+        "value": "düzenli",
+        "merged": null
+      },
+      {
+        "cell": "N19",
+        "value": "DÜZENLİ",
+        "merged": null
+      },
+      {
+        "cell": "O19",
+        "value": "4",
+        "merged": null
+      },
+      {
+        "cell": "P19",
+        "value": "Ağrıdan kaçınma",
+        "merged": null
+      },
+      {
+        "cell": "R19",
+        "value": "3",
+        "merged": null
+      },
+      {
+        "cell": "S19",
+        "value": "UYGUNSUZ SÖZLER",
+        "merged": null
+      },
+      {
+        "cell": "U19",
+        "value": "2",
+        "merged": null
+      },
+      {
+        "cell": "V19",
+        "value": "AĞRIYLA",
+        "merged": null
+      },
+      {
+        "cell": "X19",
+        "value": "ATEŞ",
+        "merged": {
+          "range": "X19:Z19",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "20": [
+      {
+        "cell": "B20",
+        "value": "ANİZOKORİK",
+        "merged": null
+      },
+      {
+        "cell": "D20",
+        "value": "HİPEREMİK",
+        "merged": null
+      },
+      {
+        "cell": "I20",
+        "value": "%",
+        "merged": null
+      },
+      {
+        "cell": "L20",
+        "value": "ritmik",
+        "merged": null
+      },
+      {
+        "cell": "N20",
+        "value": "DÜZ.SİZ",
+        "merged": null
+      },
+      {
+        "cell": "O20",
+        "value": "3",
+        "merged": null
+      },
+      {
+        "cell": "P20",
+        "value": "FLEKSÖR YANITI",
+        "merged": null
+      },
+      {
+        "cell": "R20",
+        "value": "2",
+        "merged": null
+      },
+      {
+        "cell": "S20",
+        "value": "ANLAMSIZ BAĞIRMA",
+        "merged": null
+      },
+      {
+        "cell": "U20",
+        "value": "1",
+        "merged": null
+      },
+      {
+        "cell": "V20",
+        "value": "YANIT YOK",
+        "merged": null
+      },
+      {
+        "cell": "Z20",
+        "value": "°C",
+        "merged": null
+      }
+    ],
+    "21": [
+      {
+        "cell": "B21",
+        "value": "REAK. YOK",
+        "merged": null
+      },
+      {
+        "cell": "D21",
+        "value": "İKTERİK",
+        "merged": null
+      },
+      {
+        "cell": "I21",
+        "value": "%",
+        "merged": null
+      },
+      {
+        "cell": "L21",
+        "value": "filiform",
+        "merged": null
+      },
+      {
+        "cell": "N21",
+        "value": "DİSPNE",
+        "merged": null
+      },
+      {
+        "cell": "O21",
+        "value": "2",
+        "merged": null
+      },
+      {
+        "cell": "P21",
+        "value": "EXTENSÖR YANIT",
+        "merged": null
+      },
+      {
+        "cell": "R21",
+        "value": "1",
+        "merged": null
+      },
+      {
+        "cell": "S21",
+        "value": "YANIT YOK",
+        "merged": null
+      },
+      {
+        "cell": "Z21",
+        "value": "°C",
+        "merged": null
+      }
+    ],
+    "22": [
+      {
+        "cell": "B22",
+        "value": "FİKS DİLATE",
+        "merged": null
+      },
+      {
+        "cell": "D22",
+        "value": "TERLİ",
+        "merged": null
+      },
+      {
+        "cell": "I22",
+        "value": "%",
+        "merged": null
+      },
+      {
+        "cell": "L22",
+        "value": "alınmıyor",
+        "merged": null
+      },
+      {
+        "cell": "N22",
+        "value": "YOK",
+        "merged": null
+      },
+      {
+        "cell": "O22",
+        "value": "1",
+        "merged": null
+      },
+      {
+        "cell": "P22",
+        "value": "YANIT YOK",
+        "merged": null
+      },
+      {
+        "cell": "R22",
+        "value": "G.K.S. PUANI",
+        "merged": {
+          "range": "R22:T22",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "Z22",
+        "value": "°C",
+        "merged": null
+      }
+    ],
+    "23": [
+      {
+        "cell": "A23",
+        "value": "ÖN TANI",
+        "merged": {
+          "range": "A23:B23",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "H23",
+        "value": "AÇIKLAMALAR",
+        "merged": {
+          "range": "H23:J23",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "24": [
+      {
+        "cell": "A24",
+        "value": "SONUÇ",
+        "merged": {
+          "range": "A24:J24",
+          "rows": 1,
+          "cols": 10
+        }
+      },
+      {
+        "cell": "K24",
+        "value": "NAKLEDİLEN HASTANE",
+        "merged": {
+          "range": "K24:N24",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O24",
+        "value": "KAZAYA KARIŞAN ARAÇ PLAKA NO",
+        "merged": {
+          "range": "O24:S24",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "T24",
+        "value": "CPR YAPILDI İSE",
+        "merged": {
+          "range": "T24:Z24",
+          "rows": 1,
+          "cols": 7
+        }
+      }
+    ],
+    "25": [
+      {
+        "cell": "B25",
+        "value": "YERİNDE MÜDAHELE",
+        "merged": null
+      },
+      {
+        "cell": "D25",
+        "value": "EX TERİNDE BIRAKILDI",
+        "merged": null
+      },
+      {
+        "cell": "F25",
+        "value": "BAŞKA ARAÇLA NAKİL",
+        "merged": {
+          "range": "F25:G25",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "I25",
+        "value": "BAŞKA ARAÇLA NAKİL",
+        "merged": {
+          "range": "I25:J25",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "O25",
+        "value": "1",
+        "merged": null
+      },
+      {
+        "cell": "T25",
+        "value": "BAŞLAMA ZAMANI",
+        "merged": {
+          "range": "T25:V25",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "Y25",
+        "value": ":",
+        "merged": null
+      }
+    ],
+    "26": [
+      {
+        "cell": "B26",
+        "value": "HASTANEYE NAKİL",
+        "merged": null
+      },
+      {
+        "cell": "D26",
+        "value": "EX MORGA NAKİL",
+        "merged": null
+      },
+      {
+        "cell": "F26",
+        "value": "TLF.LA BŞK ARAÇLA N.",
+        "merged": {
+          "range": "F26:G26",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "I26",
+        "value": "TLF.LA BŞK ARAÇLA N.",
+        "merged": {
+          "range": "I26:J26",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "O26",
+        "value": "2",
+        "merged": null
+      },
+      {
+        "cell": "T26",
+        "value": "BIRAKMA ZAMANI",
+        "merged": {
+          "range": "T26:V26",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "Y26",
+        "value": ":",
+        "merged": null
+      }
+    ],
+    "27": [
+      {
+        "cell": "B27",
+        "value": "HASTANELER ARASI NAKİL",
+        "merged": null
+      },
+      {
+        "cell": "D27",
+        "value": "NAKİL REDDİ",
+        "merged": null
+      },
+      {
+        "cell": "F27",
+        "value": "ASILSIZ İHBAR",
+        "merged": {
+          "range": "F27:G27",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "I27",
+        "value": "ASILSIZ İHBAR",
+        "merged": {
+          "range": "I27:J27",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "K27",
+        "value": "İLÇE İÇİ",
+        "merged": {
+          "range": "K27:L27",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "O27",
+        "value": "3",
+        "merged": null
+      },
+      {
+        "cell": "T27",
+        "value": "BIRAKMA NEDENİ",
+        "merged": {
+          "range": "T27:Z27",
+          "rows": 1,
+          "cols": 7
+        }
+      }
+    ],
+    "28": [
+      {
+        "cell": "B28",
+        "value": "TIBBİ TETKİK İÇİN NAKİL",
+        "merged": null
+      },
+      {
+        "cell": "D28",
+        "value": "DİĞER ULAŞILAN",
+        "merged": null
+      },
+      {
+        "cell": "F28",
+        "value": "YARALANAN YOK",
+        "merged": {
+          "range": "F28:G28",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "I28",
+        "value": "YARALANAN YOK",
+        "merged": {
+          "range": "I28:J28",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "K28",
+        "value": "İLÇE DIŞI",
+        "merged": {
+          "range": "K28:L28",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "O28",
+        "value": "4",
+        "merged": null
+      }
+    ],
+    "29": [
+      {
+        "cell": "B29",
+        "value": "EVE NAKİL",
+        "merged": null
+      },
+      {
+        "cell": "D29",
+        "value": "GÖREV İPTALİ",
+        "merged": null
+      },
+      {
+        "cell": "F29",
+        "value": "OLAY YERİNDE BEKLEME",
+        "merged": {
+          "range": "F29:G29",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "I29",
+        "value": "OLAY YERİNDE BEKLEME",
+        "merged": {
+          "range": "I29:J29",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "K29",
+        "value": "İL DIŞI",
+        "merged": {
+          "range": "K29:L29",
+          "rows": 1,
+          "cols": 2
+        }
+      },
+      {
+        "cell": "O29",
+        "value": "ADLİ VAKA",
+        "merged": null
+      },
+      {
+        "cell": "Q29",
+        "value": "EVET",
+        "merged": null
+      },
+      {
+        "cell": "S29",
+        "value": "HAYIR",
+        "merged": null
+      }
+    ],
+    "30": [
+      {
+        "cell": "A30",
+        "value": "İŞLEM",
+        "merged": {
+          "range": "A30:F30",
+          "rows": 1,
+          "cols": 6
+        }
+      },
+      {
+        "cell": "G30",
+        "value": "ADET",
+        "merged": null
+      },
+      {
+        "cell": "H30",
+        "value": "İŞLEM",
+        "merged": {
+          "range": "H30:L30",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "M30",
+        "value": "ADET",
+        "merged": null
+      },
+      {
+        "cell": "N30",
+        "value": "İŞLEM",
+        "merged": {
+          "range": "N30:R30",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "S30",
+        "value": "UYGULANMA TÜRÜ",
+        "merged": null
+      },
+      {
+        "cell": "T30",
+        "value": "ADET",
+        "merged": null
+      },
+      {
+        "cell": "U30",
+        "value": "İŞLEM",
+        "merged": {
+          "range": "U30:Y30",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "Z30",
+        "value": "ADET",
+        "merged": null
+      }
+    ],
+    "31": [
+      {
+        "cell": "B31",
+        "value": "Muayene (Acil)",
+        "merged": {
+          "range": "B31:F31",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "H31",
+        "value": "HAVA YOLU",
+        "merged": {
+          "range": "H31:L31",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "N31",
+        "value": "KULLANILAN İLAÇLAR",
+        "merged": {
+          "range": "N31:R31",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "U31",
+        "value": "KULLANILAN İLAÇLAR",
+        "merged": {
+          "range": "U31:Y31",
+          "rows": 1,
+          "cols": 5
+        }
+      }
+    ],
+    "32": [
+      {
+        "cell": "B32",
+        "value": "Ş.I. Ambulans Ücreti",
+        "merged": {
+          "range": "B32:F32",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I32",
+        "value": "Balon Valf Maske",
+        "merged": {
+          "range": "I32:L32",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O32",
+        "value": "Arveles amp.",
+        "merged": {
+          "range": "O32:R32",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V32",
+        "value": "Enjektör 1–2 cc",
+        "merged": {
+          "range": "V32:Y32",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "33": [
+      {
+        "cell": "A33",
+        "value": "GENEL MÜDAHALE",
+        "merged": {
+          "range": "A33:F33",
+          "rows": 1,
+          "cols": 6
+        }
+      },
+      {
+        "cell": "I33",
+        "value": "Aspirasyon uygulaması",
+        "merged": {
+          "range": "I33:L33",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O33",
+        "value": "Dikloron amp.",
+        "merged": {
+          "range": "O33:R33",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V33",
+        "value": "Enjektör 5 cc",
+        "merged": {
+          "range": "V33:Y33",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "34": [
+      {
+        "cell": "B34",
+        "value": "Enjeksiyon IM",
+        "merged": {
+          "range": "B34:F34",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I34",
+        "value": "Orofaringeal tüp uygulaması",
+        "merged": {
+          "range": "I34:L34",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O34",
+        "value": "Spazmolitik amp.",
+        "merged": {
+          "range": "O34:R34",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V34",
+        "value": "Enjektör 10–20 cc",
+        "merged": {
+          "range": "V34:Y34",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "35": [
+      {
+        "cell": "B35",
+        "value": "Enjeksiyon IV",
+        "merged": {
+          "range": "B35:F35",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I35",
+        "value": "Endotrakeal entübasyon",
+        "merged": {
+          "range": "I35:L35",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O35",
+        "value": "Adrenalin 0,5 mg amp.",
+        "merged": {
+          "range": "O35:R35",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V35",
+        "value": "Monitör pedi (EKG elektrodu)",
+        "merged": {
+          "range": "V35:Y35",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "36": [
+      {
+        "cell": "B36",
+        "value": "Enjeksiyon SC",
+        "merged": {
+          "range": "B36:F36",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I36",
+        "value": "Mekanik ventilasyon (CPAP–BIPAP dahil)",
+        "merged": {
+          "range": "I36:L36",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O36",
+        "value": "Adrenalin 1 mg amp.",
+        "merged": {
+          "range": "O36:R36",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V36",
+        "value": "I.V. katater (No: 14–22)",
+        "merged": {
+          "range": "V36:Y36",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "37": [
+      {
+        "cell": "B37",
+        "value": "I.V. İlaç uygulaması",
+        "merged": {
+          "range": "B37:F37",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I37",
+        "value": "Oksijen inhalasyon tedavisi",
+        "merged": {
+          "range": "I37:L37",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O37",
+        "value": "Atropin 0,5 mg amp.",
+        "merged": {
+          "range": "O37:R37",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V37",
+        "value": "I.V. katater (No: 24)",
+        "merged": {
+          "range": "V37:Y37",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "38": [
+      {
+        "cell": "B38",
+        "value": "Damar yolu açılması",
+        "merged": {
+          "range": "B38:F38",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "H38",
+        "value": "DİĞER İŞLEMLER",
+        "merged": {
+          "range": "H38:L38",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "O38",
+        "value": "Flumazenil amp.",
+        "merged": {
+          "range": "O38:R38",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V38",
+        "value": "Serum seti",
+        "merged": {
+          "range": "V38:Y38",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "39": [
+      {
+        "cell": "B39",
+        "value": "Sütür (küçük)",
+        "merged": {
+          "range": "B39:F39",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I39",
+        "value": "Normal doğum",
+        "merged": {
+          "range": "I39:L39",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O39",
+        "value": "Dopamin amp.",
+        "merged": {
+          "range": "O39:R39",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V39",
+        "value": "Steril eldiven",
+        "merged": {
+          "range": "V39:Y39",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "40": [
+      {
+        "cell": "B40",
+        "value": "Mesane sondası takılması",
+        "merged": {
+          "range": "B40:F40",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I40",
+        "value": "Kan şekeri ölçümü",
+        "merged": {
+          "range": "I40:L40",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O40",
+        "value": "Citanest flk. (Priloc)",
+        "merged": {
+          "range": "O40:R40",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V40",
+        "value": "Cerrahi eldiven",
+        "merged": {
+          "range": "V40:Y40",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "41": [
+      {
+        "cell": "B41",
+        "value": "Mide yıkanması",
+        "merged": {
+          "range": "B41:F41",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I41",
+        "value": "Lokal anestezi",
+        "merged": {
+          "range": "I41:L41",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O41",
+        "value": "NaHCO3 amp.",
+        "merged": {
+          "range": "O41:R41",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V41",
+        "value": "Sponç",
+        "merged": {
+          "range": "V41:Y41",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "42": [
+      {
+        "cell": "B42",
+        "value": "Pansuman (küçük)",
+        "merged": {
+          "range": "B42:F42",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I42",
+        "value": "Tırnak avülizyonu",
+        "merged": {
+          "range": "I42:L42",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O42",
+        "value": "Dizem amp.",
+        "merged": {
+          "range": "O42:R42",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V42",
+        "value": "Sargı bezi",
+        "merged": {
+          "range": "V42:Y42",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "43": [
+      {
+        "cell": "B43",
+        "value": "Apse açmak",
+        "merged": {
+          "range": "B43:F43",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I43",
+        "value": "Transkutan PaO2 ölçümü",
+        "merged": {
+          "range": "I43:L43",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O43",
+        "value": "Aminocordial amp.",
+        "merged": {
+          "range": "O43:R43",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V43",
+        "value": "İdrar torbası",
+        "merged": {
+          "range": "V43:Y43",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "44": [
+      {
+        "cell": "B44",
+        "value": "Yabancı cisim çıkartılması",
+        "merged": {
+          "range": "B44:F44",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I44",
+        "value": "Debritman alınması",
+        "merged": {
+          "range": "I44:L44",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O44",
+        "value": "Furosemid amp.",
+        "merged": {
+          "range": "O44:R44",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V44",
+        "value": "Bistüri ucu (No: )",
+        "merged": {
+          "range": "V44:Y44",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "45": [
+      {
+        "cell": "B45",
+        "value": "Yanık pansum. (küçük)",
+        "merged": {
+          "range": "B45:F45",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I45",
+        "value": "Sütür alınması",
+        "merged": {
+          "range": "I45:L45",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O45",
+        "value": "Ca Glukonat %10 amp.",
+        "merged": {
+          "range": "O45:R45",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V45",
+        "value": "Entübasyon tüpü (Balonlu)",
+        "merged": {
+          "range": "V45:Y45",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "46": [
+      {
+        "cell": "B46",
+        "value": "Yanık pansum (orta)",
+        "merged": {
+          "range": "B46:F46",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "H46",
+        "value": "YENİDOĞAN İŞLEMLERİ",
+        "merged": {
+          "range": "H46:L46",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "O46",
+        "value": "Diltizem Ampul 25 mg",
+        "merged": {
+          "range": "O46:R46",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V46",
+        "value": "Entübasyon tüpü (Balonsuz)",
+        "merged": {
+          "range": "V46:Y46",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "47": [
+      {
+        "cell": "B47",
+        "value": "NG sonda takma",
+        "merged": {
+          "range": "B47:F47",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I47",
+        "value": "Transport küvözi ile nakil",
+        "merged": {
+          "range": "I47:L47",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O47",
+        "value": "Avil amp.",
+        "merged": {
+          "range": "O47:R47",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V47",
+        "value": "Airway (No: )",
+        "merged": {
+          "range": "V47:Y47",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "48": [
+      {
+        "cell": "B48",
+        "value": "Kulaktan buşon temizliği",
+        "merged": {
+          "range": "B48:F48",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I48",
+        "value": "Yenidoğan canlandırma",
+        "merged": {
+          "range": "I48:L48",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O48",
+        "value": "Dekort amp.",
+        "merged": {
+          "range": "O48:R48",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V48",
+        "value": "Foley sonda (No: )",
+        "merged": {
+          "range": "V48:Y48",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "49": [
+      {
+        "cell": "B49",
+        "value": "Kol atel (kısa)",
+        "merged": {
+          "range": "B49:F49",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I49",
+        "value": "Yenidoğan I.M. enjeksiyon",
+        "merged": {
+          "range": "I49:L49",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O49",
+        "value": "Antiepileptik amp.",
+        "merged": {
+          "range": "O49:R49",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V49",
+        "value": "Nazo gastrik son. (No: )",
+        "merged": {
+          "range": "V49:Y49",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "50": [
+      {
+        "cell": "B50",
+        "value": "Bacak atel (kısa)",
+        "merged": {
+          "range": "B50:F50",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I50",
+        "value": "Yenidoğan I.V. enjeksiyon",
+        "merged": {
+          "range": "I50:L50",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O50",
+        "value": "Prednol 40 mg amp.",
+        "merged": {
+          "range": "O50:R50",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V50",
+        "value": "Atravmatik ipek (No: 3/0)",
+        "merged": {
+          "range": "V50:Y50",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "51": [
+      {
+        "cell": "B51",
+        "value": "Cilt traksiyonu uygulaması",
+        "merged": {
+          "range": "B51:F51",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I51",
+        "value": "Yenidoğan I.V. mayi takılması",
+        "merged": {
+          "range": "I51:L51",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O51",
+        "value": "Aktif kömür tüp",
+        "merged": {
+          "range": "O51:R51",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V51",
+        "value": "Atravmatik kat-küt (No: 3/0)",
+        "merged": {
+          "range": "V51:Y51",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "52": [
+      {
+        "cell": "B52",
+        "value": "Servikal collar uygulaması",
+        "merged": {
+          "range": "B52:F52",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I52",
+        "value": "Yenidoğan entübasyonu",
+        "merged": {
+          "range": "I52:L52",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O52",
+        "value": "Beloc amp.",
+        "merged": {
+          "range": "O52:R52",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V52",
+        "value": "Doğum seti",
+        "merged": {
+          "range": "V52:Y52",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "53": [
+      {
+        "cell": "B53",
+        "value": "Travma yeleği",
+        "merged": {
+          "range": "B53:F53",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "H53",
+        "value": "SIVI TEDAVİSİ",
+        "merged": {
+          "range": "H53:L53",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "O53",
+        "value": "Salbutamol (İnhaler/Nebül)",
+        "merged": {
+          "range": "O53:R53",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V53",
+        "value": "Yanık battaniyesi",
+        "merged": {
+          "range": "V53:Y53",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "54": [
+      {
+        "cell": "B54",
+        "value": "Vakum sedye uygulaması",
+        "merged": {
+          "range": "B54:F54",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I54",
+        "value": "%0.9 NaCl 250 cc",
+        "merged": {
+          "range": "I54:L54",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O54",
+        "value": "Aritmal amp. %2",
+        "merged": {
+          "range": "O54:R54",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V54",
+        "value": "O2 Maskesi hazneli erişkin",
+        "merged": {
+          "range": "V54:Y54",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "55": [
+      {
+        "cell": "B55",
+        "value": "Sırt tahtası uygulaması",
+        "merged": {
+          "range": "B55:F55",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I55",
+        "value": "%0.9 NaCl 500 cc",
+        "merged": {
+          "range": "I55:L55",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O55",
+        "value": "Isoptin amp.",
+        "merged": {
+          "range": "O55:R55",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V55",
+        "value": "O2 Maskesi hazneli pediatrik",
+        "merged": {
+          "range": "V55:Y55",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "56": [
+      {
+        "cell": "A56",
+        "value": "DOLAŞIM DESTEĞİ",
+        "merged": {
+          "range": "A56:F56",
+          "rows": 1,
+          "cols": 6
+        }
+      },
+      {
+        "cell": "I56",
+        "value": "%0.9 NaCl 100 cc",
+        "merged": {
+          "range": "I56:L56",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O56",
+        "value": "Kapril 25 mg tab.",
+        "merged": {
+          "range": "O56:R56",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V56",
+        "value": "O2 Kanülü nazal erişkin",
+        "merged": {
+          "range": "V56:Y56",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "57": [
+      {
+        "cell": "B57",
+        "value": "CPR (Resüsitasyon)",
+        "merged": {
+          "range": "B57:F57",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I57",
+        "value": "%5 Dextroz 500 cc",
+        "merged": {
+          "range": "I57:L57",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O57",
+        "value": "Magnezyum Sülfat amp.",
+        "merged": {
+          "range": "O57:R57",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V57",
+        "value": "O2 Kanülü nazal pediatrik",
+        "merged": {
+          "range": "V57:Y57",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "58": [
+      {
+        "cell": "B58",
+        "value": "EKG Uygulaması",
+        "merged": {
+          "range": "B58:F58",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I58",
+        "value": "%5 Dextroz 500 cc",
+        "merged": {
+          "range": "I58:L58",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O58",
+        "value": "Isorid 5 mg tab.",
+        "merged": {
+          "range": "O58:R58",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V58",
+        "value": "Flaster",
+        "merged": {
+          "range": "V58:Y58",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "59": [
+      {
+        "cell": "B59",
+        "value": "Defibrilasyon (CPR)",
+        "merged": {
+          "range": "B59:F59",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I59",
+        "value": "%20 Mannitol 500 cc",
+        "merged": {
+          "range": "I59:L59",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O59",
+        "value": "Coraspin 300 mg tab.",
+        "merged": {
+          "range": "O59:R59",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V59",
+        "value": "Servikal collar (Boy: )",
+        "merged": {
+          "range": "V59:Y59",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "60": [
+      {
+        "cell": "B60",
+        "value": "Kardiyoversiyon",
+        "merged": {
+          "range": "B60:F60",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I60",
+        "value": "İsolyte P 500 cc",
+        "merged": {
+          "range": "I60:L60",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O60",
+        "value": "Paracetamol Tablet",
+        "merged": {
+          "range": "O60:R60",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V60",
+        "value": "Elastik bandaj",
+        "merged": {
+          "range": "V60:Y60",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "61": [
+      {
+        "cell": "B61",
+        "value": "Monitörizasyon",
+        "merged": {
+          "range": "B61:F61",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I61",
+        "value": "İsolyte S 500 cc",
+        "merged": {
+          "range": "I61:L61",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O61",
+        "value": "Midazolam Ampul",
+        "merged": {
+          "range": "O61:R61",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V61",
+        "value": "Etil Chloride Sprey",
+        "merged": {
+          "range": "V61:Y61",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "62": [
+      {
+        "cell": "B62",
+        "value": "Kanama kontrolü",
+        "merged": {
+          "range": "B62:F62",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I62",
+        "value": "%10 Dengeleyici Elektrolit 500 cc",
+        "merged": {
+          "range": "I62:L62",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O62",
+        "value": "Dramamine ampul",
+        "merged": {
+          "range": "O62:R62",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V62",
+        "value": "O2 MASKESİ HAZNESİZ ERİŞKİN",
+        "merged": {
+          "range": "V62:Y62",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "63": [
+      {
+        "cell": "B63",
+        "value": "Cut down",
+        "merged": {
+          "range": "B63:F63",
+          "rows": 1,
+          "cols": 5
+        }
+      },
+      {
+        "cell": "I63",
+        "value": "Laktatlı Ringer 500 cc",
+        "merged": {
+          "range": "I63:L63",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "O63",
+        "value": "Rotapamid amp.",
+        "merged": {
+          "range": "O63:R63",
+          "rows": 1,
+          "cols": 4
+        }
+      },
+      {
+        "cell": "V63",
+        "value": "O2 MASKESİ HAZNESİZ PEDİATRİK",
+        "merged": {
+          "range": "V63:Y63",
+          "rows": 1,
+          "cols": 4
+        }
+      }
+    ],
+    "64": [
+      {
+        "cell": "A64",
+        "value": "HASTANENİN HASTA REDDİ",
+        "merged": {
+          "range": "A64:O64",
+          "rows": 1,
+          "cols": 15
+        }
+      },
+      {
+        "cell": "P64",
+        "value": "HASTANIN HİZMET REDDİ",
+        "merged": {
+          "range": "P64:Z64",
+          "rows": 1,
+          "cols": 11
+        }
+      }
+    ],
+    "65": [
+      {
+        "cell": "A65",
+        "value": "............................ .....................",
+        "merged": {
+          "range": "A65:O71",
+          "rows": 7,
+          "cols": 15
+        }
+      },
+      {
+        "cell": "P65",
+        "value": "Ambulansla gelen görevli hekim bana hastanın hemen",
+        "merged": {
+          "range": "P65:Z68",
+          "rows": 4,
+          "cols": 11
+        }
+      }
+    ],
+    "69": [
+      {
+        "cell": "P69",
+        "value": "Hastanın / Hasta yakınının",
+        "merged": {
+          "range": "P69:V69",
+          "rows": 1,
+          "cols": 7
+        }
+      }
+    ],
+    "70": [
+      {
+        "cell": "P70",
+        "value": "ADI SOYADI İMZASI",
+        "merged": {
+          "range": "P70:V71",
+          "rows": 2,
+          "cols": 7
+        }
+      }
+    ],
+    "72": [
+      {
+        "cell": "A72",
+        "value": "HASTAYI TESLİM ALANIN",
+        "merged": {
+          "range": "A72:C73",
+          "rows": 2,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "D72",
+        "value": "UNVANI",
+        "merged": {
+          "range": "D72:F72",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "G72",
+        "value": "AMBULANS PERSONELİNİN ADI SOYADI",
+        "merged": {
+          "range": "G72:L73",
+          "rows": 2,
+          "cols": 6
+        }
+      },
+      {
+        "cell": "M72",
+        "value": "İMZA",
+        "merged": {
+          "range": "M72:O73",
+          "rows": 2,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "P72",
+        "value": "Aşağıda belirtilen bilgilendirme ve onayı okudum.K",
+        "merged": {
+          "range": "P72:Z79",
+          "rows": 8,
+          "cols": 11
+        }
+      }
+    ],
+    "74": [
+      {
+        "cell": "A74",
+        "value": "ADI SOYADI",
+        "merged": {
+          "range": "A74:F74",
+          "rows": 1,
+          "cols": 6
+        }
+      },
+      {
+        "cell": "G74",
+        "value": "HEKİM/PRM",
+        "merged": {
+          "range": "G74:H75",
+          "rows": 2,
+          "cols": 2
+        }
+      }
+    ],
+    "76": [
+      {
+        "cell": "G76",
+        "value": "SAĞLIK PER./ATT",
+        "merged": {
+          "range": "G76:H77",
+          "rows": 2,
+          "cols": 2
+        }
+      }
+    ],
+    "77": [
+      {
+        "cell": "A77",
+        "value": "İMZA",
+        "merged": {
+          "range": "A77:C77",
+          "rows": 1,
+          "cols": 3
+        }
+      },
+      {
+        "cell": "D77",
+        "value": "KAŞE",
+        "merged": {
+          "range": "D77:F77",
+          "rows": 1,
+          "cols": 3
+        }
+      }
+    ],
+    "78": [
+      {
+        "cell": "G78",
+        "value": "SÜR./TEKN.",
+        "merged": {
+          "range": "G78:H79",
+          "rows": 2,
+          "cols": 2
+        }
+      }
+    ],
+    "80": [
+      {
+        "cell": "A80",
+        "value": "Hastamın nakli sırasında ambulansta bulunmamın amb",
+        "merged": {
+          "range": "A80:Z80",
+          "rows": 1,
+          "cols": 26
+        }
+      }
+    ]
+  },
+  "merged_ranges": {
+    "V32": {
+      "range": "V32:Y32",
+      "rows": 1,
+      "cols": 4
+    },
+    "M72": {
+      "range": "M72:O73",
+      "rows": 2,
+      "cols": 3
+    },
+    "V41": {
+      "range": "V41:Y41",
+      "rows": 1,
+      "cols": 4
+    },
+    "E2": {
+      "range": "E2:T2",
+      "rows": 1,
+      "cols": 16
+    },
+    "I48": {
+      "range": "I48:L48",
+      "rows": 1,
+      "cols": 4
+    },
+    "F29": {
+      "range": "F29:G29",
+      "rows": 1,
+      "cols": 2
+    },
+    "C6": {
+      "range": "C6:D6",
+      "rows": 1,
+      "cols": 2
+    },
+    "O52": {
+      "range": "O52:R52",
+      "rows": 1,
+      "cols": 4
+    },
+    "K3": {
+      "range": "K3:R3",
+      "rows": 1,
+      "cols": 8
+    },
+    "F25": {
+      "range": "F25:G25",
+      "rows": 1,
+      "cols": 2
+    },
+    "P72": {
+      "range": "P72:Z79",
+      "rows": 8,
+      "cols": 11
+    },
+    "X3": {
+      "range": "X3:Z3",
+      "rows": 1,
+      "cols": 3
+    },
+    "I26": {
+      "range": "I26:J26",
+      "rows": 1,
+      "cols": 2
+    },
+    "B58": {
+      "range": "B58:F58",
+      "rows": 1,
+      "cols": 5
+    },
+    "V57": {
+      "range": "V57:Y57",
+      "rows": 1,
+      "cols": 4
+    },
+    "A13": {
+      "range": "A13:D13",
+      "rows": 1,
+      "cols": 4
+    },
+    "B52": {
+      "range": "B52:F52",
+      "rows": 1,
+      "cols": 5
+    },
+    "O37": {
+      "range": "O37:R37",
+      "rows": 1,
+      "cols": 4
+    },
+    "I40": {
+      "range": "I40:L40",
+      "rows": 1,
+      "cols": 4
+    },
+    "A7": {
+      "range": "A7:B7",
+      "rows": 1,
+      "cols": 2
+    },
+    "T27": {
+      "range": "T27:Z27",
+      "rows": 1,
+      "cols": 7
+    },
+    "W26": {
+      "range": "W26:X26",
+      "rows": 1,
+      "cols": 2
+    },
+    "B42": {
+      "range": "B42:F42",
+      "rows": 1,
+      "cols": 5
+    },
+    "I25": {
+      "range": "I25:J25",
+      "rows": 1,
+      "cols": 2
+    },
+    "H19": {
+      "range": "H19:J19",
+      "rows": 1,
+      "cols": 3
+    },
+    "W1": {
+      "range": "W1:X1",
+      "rows": 1,
+      "cols": 2
+    },
+    "B60": {
+      "range": "B60:F60",
+      "rows": 1,
+      "cols": 5
+    },
+    "R22": {
+      "range": "R22:T22",
+      "rows": 1,
+      "cols": 3
+    },
+    "Y1": {
+      "range": "Y1:Z1",
+      "rows": 1,
+      "cols": 2
+    },
+    "K24": {
+      "range": "K24:N24",
+      "rows": 1,
+      "cols": 4
+    },
+    "T24": {
+      "range": "T24:Z24",
+      "rows": 1,
+      "cols": 7
+    },
+    "V58": {
+      "range": "V58:Y58",
+      "rows": 1,
+      "cols": 4
+    },
+    "E16": {
+      "range": "E16:G16",
+      "rows": 1,
+      "cols": 3
+    },
+    "V52": {
+      "range": "V52:Y52",
+      "rows": 1,
+      "cols": 4
+    },
+    "B53": {
+      "range": "B53:F53",
+      "rows": 1,
+      "cols": 5
+    },
+    "B44": {
+      "range": "B44:F44",
+      "rows": 1,
+      "cols": 5
+    },
+    "M16": {
+      "range": "M16:N16",
+      "rows": 1,
+      "cols": 2
+    },
+    "E8": {
+      "range": "E8:H8",
+      "rows": 1,
+      "cols": 4
+    },
+    "A80": {
+      "range": "A80:Z80",
+      "rows": 1,
+      "cols": 26
+    },
+    "B34": {
+      "range": "B34:F34",
+      "rows": 1,
+      "cols": 5
+    },
+    "X20": {
+      "range": "X20:Y20",
+      "rows": 1,
+      "cols": 2
+    },
+    "B32": {
+      "range": "B32:F32",
+      "rows": 1,
+      "cols": 5
+    },
+    "B37": {
+      "range": "B37:F37",
+      "rows": 1,
+      "cols": 5
+    },
+    "M4": {
+      "range": "M4:R4",
+      "rows": 1,
+      "cols": 6
+    },
+    "E18": {
+      "range": "E18:G18",
+      "rows": 1,
+      "cols": 3
+    },
+    "A77": {
+      "range": "A77:C77",
+      "rows": 1,
+      "cols": 3
+    },
+    "C23": {
+      "range": "C23:G23",
+      "rows": 1,
+      "cols": 5
+    },
+    "O54": {
+      "range": "O54:R54",
+      "rows": 1,
+      "cols": 4
+    },
+    "D78": {
+      "range": "D78:F79",
+      "rows": 2,
+      "cols": 3
+    },
+    "O32": {
+      "range": "O32:R32",
+      "rows": 1,
+      "cols": 4
+    },
+    "O63": {
+      "range": "O63:R63",
+      "rows": 1,
+      "cols": 4
+    },
+    "V44": {
+      "range": "V44:Y44",
+      "rows": 1,
+      "cols": 4
+    },
+    "O41": {
+      "range": "O41:R41",
+      "rows": 1,
+      "cols": 4
+    },
+    "O35": {
+      "range": "O35:R35",
+      "rows": 1,
+      "cols": 4
+    },
+    "I58": {
+      "range": "I58:L58",
+      "rows": 1,
+      "cols": 4
+    },
+    "N30": {
+      "range": "N30:R30",
+      "rows": 1,
+      "cols": 5
+    },
+    "I74": {
+      "range": "I74:L75",
+      "rows": 2,
+      "cols": 4
+    },
+    "U5": {
+      "range": "U5:V5",
+      "rows": 1,
+      "cols": 2
+    },
+    "K28": {
+      "range": "K28:L28",
+      "rows": 1,
+      "cols": 2
+    },
+    "O43": {
+      "range": "O43:R43",
+      "rows": 1,
+      "cols": 4
+    },
+    "O55": {
+      "range": "O55:R55",
+      "rows": 1,
+      "cols": 4
+    },
+    "A9": {
+      "range": "A9:B9",
+      "rows": 1,
+      "cols": 2
+    },
+    "V51": {
+      "range": "V51:Y51",
+      "rows": 1,
+      "cols": 4
+    },
+    "O40": {
+      "range": "O40:R40",
+      "rows": 1,
+      "cols": 4
+    },
+    "E20": {
+      "range": "E20:G20",
+      "rows": 1,
+      "cols": 3
+    },
+    "U4": {
+      "range": "U4:V4",
+      "rows": 1,
+      "cols": 2
+    },
+    "I76": {
+      "range": "I76:L77",
+      "rows": 2,
+      "cols": 4
+    },
+    "A72": {
+      "range": "A72:C73",
+      "rows": 2,
+      "cols": 3
+    },
+    "I52": {
+      "range": "I52:L52",
+      "rows": 1,
+      "cols": 4
+    },
+    "P65": {
+      "range": "P65:Z68",
+      "rows": 4,
+      "cols": 11
+    },
+    "E12": {
+      "range": "E12:F12",
+      "rows": 1,
+      "cols": 2
+    },
+    "I6": {
+      "range": "I6:J6",
+      "rows": 1,
+      "cols": 2
+    },
+    "B54": {
+      "range": "B54:F54",
+      "rows": 1,
+      "cols": 5
+    },
+    "I39": {
+      "range": "I39:L39",
+      "rows": 1,
+      "cols": 4
+    },
+    "I44": {
+      "range": "I44:L44",
+      "rows": 1,
+      "cols": 4
+    },
+    "H38": {
+      "range": "H38:L38",
+      "rows": 1,
+      "cols": 5
+    },
+    "O60": {
+      "range": "O60:R60",
+      "rows": 1,
+      "cols": 4
+    },
+    "U6": {
+      "range": "U6:V6",
+      "rows": 1,
+      "cols": 2
+    },
+    "P10": {
+      "range": "P10:Z10",
+      "rows": 1,
+      "cols": 11
+    },
+    "E14": {
+      "range": "E14:F14",
+      "rows": 1,
+      "cols": 2
+    },
+    "T26": {
+      "range": "T26:V26",
+      "rows": 1,
+      "cols": 3
+    },
+    "A12": {
+      "range": "A12:C12",
+      "rows": 1,
+      "cols": 3
+    },
+    "U3": {
+      "range": "U3:W3",
+      "rows": 1,
+      "cols": 3
+    },
+    "H31": {
+      "range": "H31:L31",
+      "rows": 1,
+      "cols": 5
+    },
+    "X17": {
+      "range": "X17:Y17",
+      "rows": 1,
+      "cols": 2
+    },
+    "U30": {
+      "range": "U30:Y30",
+      "rows": 1,
+      "cols": 5
+    },
+    "A33": {
+      "range": "A33:F33",
+      "rows": 1,
+      "cols": 6
+    },
+    "V62": {
+      "range": "V62:Y62",
+      "rows": 1,
+      "cols": 4
+    },
+    "B43": {
+      "range": "B43:F43",
+      "rows": 1,
+      "cols": 5
+    },
+    "A65": {
+      "range": "A65:O71",
+      "rows": 7,
+      "cols": 15
+    },
+    "V56": {
+      "range": "V56:Y56",
+      "rows": 1,
+      "cols": 4
+    },
+    "H16": {
+      "range": "H16:J16",
+      "rows": 1,
+      "cols": 3
+    },
+    "V43": {
+      "range": "V43:Y43",
+      "rows": 1,
+      "cols": 4
+    },
+    "I7": {
+      "range": "I7:J7",
+      "rows": 1,
+      "cols": 2
+    },
+    "W69": {
+      "range": "W69:Z69",
+      "rows": 1,
+      "cols": 4
+    },
+    "P26": {
+      "range": "P26:S26",
+      "rows": 1,
+      "cols": 4
+    },
+    "A24": {
+      "range": "A24:J24",
+      "rows": 1,
+      "cols": 10
+    },
+    "V33": {
+      "range": "V33:Y33",
+      "rows": 1,
+      "cols": 4
+    },
+    "V42": {
+      "range": "V42:Y42",
+      "rows": 1,
+      "cols": 4
+    },
+    "B57": {
+      "range": "B57:F57",
+      "rows": 1,
+      "cols": 5
+    },
+    "O53": {
+      "range": "O53:R53",
+      "rows": 1,
+      "cols": 4
+    },
+    "P25": {
+      "range": "P25:S25",
+      "rows": 1,
+      "cols": 4
+    },
+    "U7": {
+      "range": "U7:V7",
+      "rows": 1,
+      "cols": 2
+    },
+    "E5": {
+      "range": "E5:H5",
+      "rows": 1,
+      "cols": 4
+    },
+    "V48": {
+      "range": "V48:Y48",
+      "rows": 1,
+      "cols": 4
+    },
+    "I61": {
+      "range": "I61:L61",
+      "rows": 1,
+      "cols": 4
+    },
+    "O45": {
+      "range": "O45:R45",
+      "rows": 1,
+      "cols": 4
+    },
+    "V35": {
+      "range": "V35:Y35",
+      "rows": 1,
+      "cols": 4
+    },
+    "I57": {
+      "range": "I57:L57",
+      "rows": 1,
+      "cols": 4
+    },
+    "E4": {
+      "range": "E4:H4",
+      "rows": 1,
+      "cols": 4
+    },
+    "K27": {
+      "range": "K27:L27",
+      "rows": 1,
+      "cols": 2
+    },
+    "I54": {
+      "range": "I54:L54",
+      "rows": 1,
+      "cols": 4
+    },
+    "F28": {
+      "range": "F28:G28",
+      "rows": 1,
+      "cols": 2
+    },
+    "I32": {
+      "range": "I32:L32",
+      "rows": 1,
+      "cols": 4
+    },
+    "M27": {
+      "range": "M27:N27",
+      "rows": 1,
+      "cols": 2
+    },
+    "I8": {
+      "range": "I8:J8",
+      "rows": 1,
+      "cols": 2
+    },
+    "V34": {
+      "range": "V34:Y34",
+      "rows": 1,
+      "cols": 4
+    },
+    "A8": {
+      "range": "A8:B8",
+      "rows": 1,
+      "cols": 2
+    },
+    "M74": {
+      "range": "M74:O75",
+      "rows": 2,
+      "cols": 3
+    },
+    "I41": {
+      "range": "I41:L41",
+      "rows": 1,
+      "cols": 4
+    },
+    "C8": {
+      "range": "C8:D8",
+      "rows": 1,
+      "cols": 2
+    },
+    "A30": {
+      "range": "A30:F30",
+      "rows": 1,
+      "cols": 6
+    },
+    "X11": {
+      "range": "X11:Z11",
+      "rows": 1,
+      "cols": 3
+    },
+    "U8": {
+      "range": "U8:V8",
+      "rows": 1,
+      "cols": 2
+    },
+    "W2": {
+      "range": "W2:X2",
+      "rows": 1,
+      "cols": 2
+    },
+    "I56": {
+      "range": "I56:L56",
+      "rows": 1,
+      "cols": 4
+    },
+    "A64": {
+      "range": "A64:O64",
+      "rows": 1,
+      "cols": 15
+    },
+    "V39": {
+      "range": "V39:Y39",
+      "rows": 1,
+      "cols": 4
+    },
+    "I43": {
+      "range": "I43:L43",
+      "rows": 1,
+      "cols": 4
+    },
+    "M76": {
+      "range": "M76:O77",
+      "rows": 2,
+      "cols": 3
+    },
+    "U1": {
+      "range": "U1:V1",
+      "rows": 1,
+      "cols": 2
+    },
+    "E17": {
+      "range": "E17:G17",
+      "rows": 1,
+      "cols": 3
+    },
+    "B45": {
+      "range": "B45:F45",
+      "rows": 1,
+      "cols": 5
+    },
+    "X4": {
+      "range": "X4:Z5",
+      "rows": 2,
+      "cols": 3
+    },
+    "I33": {
+      "range": "I33:L33",
+      "rows": 1,
+      "cols": 4
+    },
+    "I9": {
+      "range": "I9:J9",
+      "rows": 1,
+      "cols": 2
+    },
+    "O62": {
+      "range": "O62:R62",
+      "rows": 1,
+      "cols": 4
+    },
+    "I42": {
+      "range": "I42:L42",
+      "rows": 1,
+      "cols": 4
+    },
+    "K16": {
+      "range": "K16:L16",
+      "rows": 1,
+      "cols": 2
+    },
+    "O56": {
+      "range": "O56:R56",
+      "rows": 1,
+      "cols": 4
+    },
+    "G74": {
+      "range": "G74:H75",
+      "rows": 2,
+      "cols": 2
+    },
+    "U16": {
+      "range": "U16:W16",
+      "rows": 1,
+      "cols": 3
+    },
+    "H30": {
+      "range": "H30:L30",
+      "rows": 1,
+      "cols": 5
+    },
+    "X21": {
+      "range": "X21:Y21",
+      "rows": 1,
+      "cols": 2
+    },
+    "U9": {
+      "range": "U9:V9",
+      "rows": 1,
+      "cols": 2
+    },
+    "E19": {
+      "range": "E19:G19",
+      "rows": 1,
+      "cols": 3
+    },
+    "G72": {
+      "range": "G72:L73",
+      "rows": 2,
+      "cols": 6
+    },
+    "O58": {
+      "range": "O58:R58",
+      "rows": 1,
+      "cols": 4
+    },
+    "P64": {
+      "range": "P64:Z64",
+      "rows": 1,
+      "cols": 11
+    },
+    "B62": {
+      "range": "B62:F62",
+      "rows": 1,
+      "cols": 5
+    },
+    "B47": {
+      "range": "B47:F47",
+      "rows": 1,
+      "cols": 5
+    },
+    "K23": {
+      "range": "K23:Z23",
+      "rows": 1,
+      "cols": 16
+    },
+    "V53": {
+      "range": "V53:Y53",
+      "rows": 1,
+      "cols": 4
+    },
+    "B59": {
+      "range": "B59:F59",
+      "rows": 1,
+      "cols": 5
+    },
+    "I35": {
+      "range": "I35:L35",
+      "rows": 1,
+      "cols": 4
+    },
+    "W25": {
+      "range": "W25:X25",
+      "rows": 1,
+      "cols": 2
+    },
+    "K9": {
+      "range": "K9:L9",
+      "rows": 1,
+      "cols": 2
+    },
+    "A74": {
+      "range": "A74:F74",
+      "rows": 1,
+      "cols": 6
+    },
+    "B46": {
+      "range": "B46:F46",
+      "rows": 1,
+      "cols": 5
+    },
+    "G76": {
+      "range": "G76:H77",
+      "rows": 2,
+      "cols": 2
+    },
+    "A56": {
+      "range": "A56:F56",
+      "rows": 1,
+      "cols": 6
+    },
+    "B31": {
+      "range": "B31:F31",
+      "rows": 1,
+      "cols": 5
+    },
+    "O24": {
+      "range": "O24:S24",
+      "rows": 1,
+      "cols": 5
+    },
+    "A10": {
+      "range": "A10:D10",
+      "rows": 1,
+      "cols": 4
+    },
+    "S3": {
+      "range": "S3:T3",
+      "rows": 1,
+      "cols": 2
+    },
+    "O42": {
+      "range": "O42:R42",
+      "rows": 1,
+      "cols": 4
+    },
+    "V46": {
+      "range": "V46:Y46",
+      "rows": 1,
+      "cols": 4
+    },
+    "V37": {
+      "range": "V37:Y37",
+      "rows": 1,
+      "cols": 4
+    },
+    "X15": {
+      "range": "X15:Z15",
+      "rows": 1,
+      "cols": 3
+    },
+    "I59": {
+      "range": "I59:L59",
+      "rows": 1,
+      "cols": 4
+    },
+    "O57": {
+      "range": "O57:R57",
+      "rows": 1,
+      "cols": 4
+    },
+    "K29": {
+      "range": "K29:L29",
+      "rows": 1,
+      "cols": 2
+    },
+    "B39": {
+      "range": "B39:F39",
+      "rows": 1,
+      "cols": 5
+    },
+    "I60": {
+      "range": "I60:L60",
+      "rows": 1,
+      "cols": 4
+    },
+    "X16": {
+      "range": "X16:Y16",
+      "rows": 1,
+      "cols": 2
+    },
+    "F3": {
+      "range": "F3:J3",
+      "rows": 1,
+      "cols": 5
+    },
+    "V47": {
+      "range": "V47:Y47",
+      "rows": 1,
+      "cols": 4
+    },
+    "K5": {
+      "range": "K5:L7",
+      "rows": 3,
+      "cols": 2
+    },
+    "B48": {
+      "range": "B48:F48",
+      "rows": 1,
+      "cols": 5
+    },
+    "V61": {
+      "range": "V61:Y61",
+      "rows": 1,
+      "cols": 4
+    },
+    "Y2": {
+      "range": "Y2:Z2",
+      "rows": 1,
+      "cols": 2
+    },
+    "H46": {
+      "range": "H46:L46",
+      "rows": 1,
+      "cols": 5
+    },
+    "P70": {
+      "range": "P70:V71",
+      "rows": 2,
+      "cols": 7
+    },
+    "E13": {
+      "range": "E13:F13",
+      "rows": 1,
+      "cols": 2
+    },
+    "O34": {
+      "range": "O34:R34",
+      "rows": 1,
+      "cols": 4
+    },
+    "A78": {
+      "range": "A78:C79",
+      "rows": 2,
+      "cols": 3
+    },
+    "M8": {
+      "range": "M8:R8",
+      "rows": 1,
+      "cols": 6
+    },
+    "X18": {
+      "range": "X18:Y18",
+      "rows": 1,
+      "cols": 2
+    },
+    "S6": {
+      "range": "S6:S7",
+      "rows": 2,
+      "cols": 1
+    },
+    "V38": {
+      "range": "V38:Y38",
+      "rows": 1,
+      "cols": 4
+    },
+    "D73": {
+      "range": "D73:F73",
+      "rows": 1,
+      "cols": 3
+    },
+    "M78": {
+      "range": "M78:O79",
+      "rows": 2,
+      "cols": 3
+    },
+    "I45": {
+      "range": "I45:L45",
+      "rows": 1,
+      "cols": 4
+    },
+    "O39": {
+      "range": "O39:R39",
+      "rows": 1,
+      "cols": 4
+    },
+    "E22": {
+      "range": "E22:G22",
+      "rows": 1,
+      "cols": 3
+    },
+    "O36": {
+      "range": "O36:R36",
+      "rows": 1,
+      "cols": 4
+    },
+    "K8": {
+      "range": "K8:L8",
+      "rows": 1,
+      "cols": 2
+    },
+    "A5": {
+      "range": "A5:B5",
+      "rows": 1,
+      "cols": 2
+    },
+    "A75": {
+      "range": "A75:F76",
+      "rows": 2,
+      "cols": 6
+    },
+    "W70": {
+      "range": "W70:Z71",
+      "rows": 2,
+      "cols": 4
+    },
+    "I47": {
+      "range": "I47:L47",
+      "rows": 1,
+      "cols": 4
+    },
+    "T6": {
+      "range": "T6:T7",
+      "rows": 2,
+      "cols": 1
+    },
+    "E21": {
+      "range": "E21:G21",
+      "rows": 1,
+      "cols": 3
+    },
+    "I78": {
+      "range": "I78:L79",
+      "rows": 2,
+      "cols": 4
+    },
+    "V63": {
+      "range": "V63:Y63",
+      "rows": 1,
+      "cols": 4
+    },
+    "A23": {
+      "range": "A23:B23",
+      "rows": 1,
+      "cols": 2
+    },
+    "I37": {
+      "range": "I37:L37",
+      "rows": 1,
+      "cols": 4
+    },
+    "A4": {
+      "range": "A4:B4",
+      "rows": 1,
+      "cols": 2
+    },
+    "P27": {
+      "range": "P27:S27",
+      "rows": 1,
+      "cols": 4
+    },
+    "C7": {
+      "range": "C7:D7",
+      "rows": 1,
+      "cols": 2
+    },
+    "O44": {
+      "range": "O44:R44",
+      "rows": 1,
+      "cols": 4
+    },
+    "M29": {
+      "range": "M29:N29",
+      "rows": 1,
+      "cols": 2
+    },
+    "M9": {
+      "range": "M9:R9",
+      "rows": 1,
+      "cols": 6
+    },
+    "E6": {
+      "range": "E6:H6",
+      "rows": 1,
+      "cols": 4
+    },
+    "K25": {
+      "range": "K25:N26",
+      "rows": 2,
+      "cols": 4
+    },
+    "O59": {
+      "range": "O59:R59",
+      "rows": 1,
+      "cols": 4
+    },
+    "B63": {
+      "range": "B63:F63",
+      "rows": 1,
+      "cols": 5
+    },
+    "I62": {
+      "range": "I62:L62",
+      "rows": 1,
+      "cols": 4
+    },
+    "B36": {
+      "range": "B36:F36",
+      "rows": 1,
+      "cols": 5
+    },
+    "U21": {
+      "range": "U21:W22",
+      "rows": 2,
+      "cols": 3
+    },
+    "V49": {
+      "range": "V49:Y49",
+      "rows": 1,
+      "cols": 4
+    },
+    "B50": {
+      "range": "B50:F50",
+      "rows": 1,
+      "cols": 5
+    },
+    "O46": {
+      "range": "O46:R46",
+      "rows": 1,
+      "cols": 4
+    },
+    "D77": {
+      "range": "D77:F77",
+      "rows": 1,
+      "cols": 3
+    },
+    "T25": {
+      "range": "T25:V25",
+      "rows": 1,
+      "cols": 3
+    },
+    "X22": {
+      "range": "X22:Y22",
+      "rows": 1,
+      "cols": 2
+    },
+    "V36": {
+      "range": "V36:Y36",
+      "rows": 1,
+      "cols": 4
+    },
+    "O51": {
+      "range": "O51:R51",
+      "rows": 1,
+      "cols": 4
+    },
+    "A14": {
+      "range": "A14:D14",
+      "rows": 1,
+      "cols": 4
+    },
+    "X19": {
+      "range": "X19:Z19",
+      "rows": 1,
+      "cols": 3
+    },
+    "A1": {
+      "range": "A1:D2",
+      "rows": 2,
+      "cols": 4
+    },
+    "O47": {
+      "range": "O47:R47",
+      "rows": 1,
+      "cols": 4
+    },
+    "H53": {
+      "range": "H53:L53",
+      "rows": 1,
+      "cols": 5
+    },
+    "U31": {
+      "range": "U31:Y31",
+      "rows": 1,
+      "cols": 5
+    },
+    "O61": {
+      "range": "O61:R61",
+      "rows": 1,
+      "cols": 4
+    },
+    "P28": {
+      "range": "P28:S28",
+      "rows": 1,
+      "cols": 4
+    },
+    "T4": {
+      "range": "T4:T5",
+      "rows": 2,
+      "cols": 1
+    },
+    "O48": {
+      "range": "O48:R48",
+      "rows": 1,
+      "cols": 4
+    },
+    "A15": {
+      "range": "A15:N15",
+      "rows": 1,
+      "cols": 14
+    },
+    "I51": {
+      "range": "I51:L51",
+      "rows": 1,
+      "cols": 4
+    },
+    "I27": {
+      "range": "I27:J27",
+      "rows": 1,
+      "cols": 2
+    },
+    "E7": {
+      "range": "E7:H7",
+      "rows": 1,
+      "cols": 4
+    },
+    "V50": {
+      "range": "V50:Y50",
+      "rows": 1,
+      "cols": 4
+    },
+    "O38": {
+      "range": "O38:R38",
+      "rows": 1,
+      "cols": 4
+    },
+    "I63": {
+      "range": "I63:L63",
+      "rows": 1,
+      "cols": 4
+    },
+    "O16": {
+      "range": "O16:Q16",
+      "rows": 1,
+      "cols": 3
+    },
+    "A6": {
+      "range": "A6:B6",
+      "rows": 1,
+      "cols": 2
+    },
+    "D72": {
+      "range": "D72:F72",
+      "rows": 1,
+      "cols": 3
+    },
+    "I50": {
+      "range": "I50:L50",
+      "rows": 1,
+      "cols": 4
+    },
+    "X6": {
+      "range": "X6:Z6",
+      "rows": 1,
+      "cols": 3
+    },
+    "A16": {
+      "range": "A16:B16",
+      "rows": 1,
+      "cols": 2
+    },
+    "U2": {
+      "range": "U2:V2",
+      "rows": 1,
+      "cols": 2
+    },
+    "C16": {
+      "range": "C16:D16",
+      "rows": 1,
+      "cols": 2
+    },
+    "V55": {
+      "range": "V55:Y55",
+      "rows": 1,
+      "cols": 4
+    },
+    "I34": {
+      "range": "I34:L34",
+      "rows": 1,
+      "cols": 4
+    },
+    "B61": {
+      "range": "B61:F61",
+      "rows": 1,
+      "cols": 5
+    },
+    "C9": {
+      "range": "C9:D9",
+      "rows": 1,
+      "cols": 2
+    },
+    "I28": {
+      "range": "I28:J28",
+      "rows": 1,
+      "cols": 2
+    },
+    "F26": {
+      "range": "F26:G26",
+      "rows": 1,
+      "cols": 2
+    },
+    "I49": {
+      "range": "I49:L49",
+      "rows": 1,
+      "cols": 4
+    },
+    "F10": {
+      "range": "F10:O10",
+      "rows": 1,
+      "cols": 10
+    },
+    "O33": {
+      "range": "O33:R33",
+      "rows": 1,
+      "cols": 4
+    },
+    "I36": {
+      "range": "I36:L36",
+      "rows": 1,
+      "cols": 4
+    },
+    "B38": {
+      "range": "B38:F38",
+      "rows": 1,
+      "cols": 5
+    },
+    "P69": {
+      "range": "P69:V69",
+      "rows": 1,
+      "cols": 7
+    },
+    "V54": {
+      "range": "V54:Y54",
+      "rows": 1,
+      "cols": 4
+    },
+    "B35": {
+      "range": "B35:F35",
+      "rows": 1,
+      "cols": 5
+    },
+    "H23": {
+      "range": "H23:J23",
+      "rows": 1,
+      "cols": 3
+    },
+    "M28": {
+      "range": "M28:N28",
+      "rows": 1,
+      "cols": 2
+    },
+    "E11": {
+      "range": "E11:F11",
+      "rows": 1,
+      "cols": 2
+    },
+    "I5": {
+      "range": "I5:J5",
+      "rows": 1,
+      "cols": 2
+    },
+    "S4": {
+      "range": "S4:S5",
+      "rows": 2,
+      "cols": 1
+    },
+    "O49": {
+      "range": "O49:R49",
+      "rows": 1,
+      "cols": 4
+    },
+    "F27": {
+      "range": "F27:G27",
+      "rows": 1,
+      "cols": 2
+    },
+    "V59": {
+      "range": "V59:Y59",
+      "rows": 1,
+      "cols": 4
+    },
+    "X12": {
+      "range": "X12:Z14",
+      "rows": 3,
+      "cols": 3
+    },
+    "B40": {
+      "range": "B40:F40",
+      "rows": 1,
+      "cols": 5
+    },
+    "B49": {
+      "range": "B49:F49",
+      "rows": 1,
+      "cols": 5
+    },
+    "E1": {
+      "range": "E1:T1",
+      "rows": 1,
+      "cols": 16
+    },
+    "N31": {
+      "range": "N31:R31",
+      "rows": 1,
+      "cols": 5
+    },
+    "C4": {
+      "range": "C4:D5",
+      "rows": 2,
+      "cols": 2
+    },
+    "I29": {
+      "range": "I29:J29",
+      "rows": 1,
+      "cols": 2
+    },
+    "V40": {
+      "range": "V40:Y40",
+      "rows": 1,
+      "cols": 4
+    },
+    "E9": {
+      "range": "E9:H9",
+      "rows": 1,
+      "cols": 4
+    },
+    "B55": {
+      "range": "B55:F55",
+      "rows": 1,
+      "cols": 5
+    },
+    "A11": {
+      "range": "A11:C11",
+      "rows": 1,
+      "cols": 3
+    },
+    "I4": {
+      "range": "I4:J4",
+      "rows": 1,
+      "cols": 2
+    },
+    "O15": {
+      "range": "O15:W15",
+      "rows": 1,
+      "cols": 9
+    },
+    "G78": {
+      "range": "G78:H79",
+      "rows": 2,
+      "cols": 2
+    },
+    "A3": {
+      "range": "A3:D3",
+      "rows": 1,
+      "cols": 4
+    },
+    "B51": {
+      "range": "B51:F51",
+      "rows": 1,
+      "cols": 5
+    },
+    "M5": {
+      "range": "M5:R7",
+      "rows": 3,
+      "cols": 6
+    },
+    "I55": {
+      "range": "I55:L55",
+      "rows": 1,
+      "cols": 4
+    },
+    "V60": {
+      "range": "V60:Y60",
+      "rows": 1,
+      "cols": 4
+    },
+    "O50": {
+      "range": "O50:R50",
+      "rows": 1,
+      "cols": 4
+    },
+    "K4": {
+      "range": "K4:L4",
+      "rows": 1,
+      "cols": 2
+    },
+    "T28": {
+      "range": "T28:Z29",
+      "rows": 2,
+      "cols": 7
+    },
+    "V45": {
+      "range": "V45:Y45",
+      "rows": 1,
+      "cols": 4
+    },
+    "B41": {
+      "range": "B41:F41",
+      "rows": 1,
+      "cols": 5
+    },
+    "R16": {
+      "range": "R16:T16",
+      "rows": 1,
+      "cols": 3
+    },
+    "X7": {
+      "range": "X7:Z9",
+      "rows": 3,
+      "cols": 3
+    }
+  }
+}
