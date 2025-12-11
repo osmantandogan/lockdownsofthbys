@@ -112,6 +112,12 @@ def parse_excel_file(file_content: bytes) -> dict:
     return result
 
 
+@router.get("/test")
+async def test_endpoint(request: Request):
+    """Test endpoint - router'ın çalışıp çalışmadığını kontrol eder"""
+    return {"message": "Excel templates router çalışıyor!", "status": "ok"}
+
+
 @router.get("")
 async def get_all_excel_templates(request: Request):
     """Tüm Excel şablonlarını listele"""
@@ -310,7 +316,9 @@ async def set_default_excel_template(template_id: str, request: Request):
 @router.post("/import-from-file")
 async def import_vaka_formu(request: Request):
     """Mevcut VAKA FORMU.xlsx dosyasını içe aktar"""
+    logger.info("import-from-file endpoint çağrıldı")
     user = await get_current_user(request)
+    logger.info(f"Kullanıcı doğrulandı: {user.id}")
     
     # Proje kök dizinindeki VAKA FORMU.xlsx dosyasını bul
     xlsx_path = os.path.join(os.path.dirname(__file__), "..", "..", "VAKA FORMU.xlsx")
