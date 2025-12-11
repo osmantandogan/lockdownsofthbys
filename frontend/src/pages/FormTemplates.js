@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formTemplatesAPI, excelTemplatesAPI } from '../api';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import api from '../api';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { 
   FileText, Plus, Edit, Trash2, Copy, Star, 
-  RefreshCw, MoreVertical, Table, FileSpreadsheet, Layout, Upload
+  RefreshCw, MoreVertical, Table, FileSpreadsheet, Layout, Upload,
+  Grid3X3, Save, RotateCcw, ChevronDown, ChevronRight
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -17,16 +22,83 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '../components/ui/collapsible';
 
 const FormTemplates = () => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  
+  // Vaka Form Mapping state'leri
+  const [cellMapping, setCellMapping] = useState(null);
+  const [mappingLoading, setMappingLoading] = useState(false);
+  const [editingCell, setEditingCell] = useState(null);
+  const [editForm, setEditForm] = useState({ cell: '', field: '', label: '' });
+  const [expandedSections, setExpandedSections] = useState({});
 
   useEffect(() => {
     loadTemplates();
   }, []);
+
+  // Vaka Form Mapping yükle
+  const loadCellMapping = async () => {
+    setMappingLoading(true);
+    try {
+      const response = await api.get('/pdf/vaka-form-mapping');
+      setCellMapping(response.data);
+      // Tüm bölümleri varsayılan olarak aç
+      const sections = {};
+      Object.keys(response.data.cell_mappings || {}).forEach(s => sections[s] = true);
+      setExpandedSections(sections);
+    } catch (error) {
+      console.error('Cell mapping yüklenemedi:', error);
+      toast.error('Hücre eşlemeleri yüklenemedi');
+    } finally {
+      setMappingLoading(false);
+    }
+  };
+
+  // Cell mapping güncelle
+  const handleUpdateCellMapping = async () => {
+    try {
+      await api.put(`/pdf/vaka-form-mapping/${editingCell}`, {
+        field: editForm.field,
+        label: editForm.label
+      });
+      toast.success('Hücre eşlemesi güncellendi');
+      setEditingCell(null);
+      loadCellMapping();
+    } catch (error) {
+      console.error('Güncelleme hatası:', error);
+      toast.error('Güncelleme başarısız');
+    }
+  };
+
+  // Mapping'i sıfırla
+  const handleResetMapping = async () => {
+    if (!window.confirm('Tüm hücre eşlemelerini varsayılana sıfırlamak istediğinize emin misiniz?')) return;
+    
+    try {
+      await api.post('/pdf/vaka-form-mapping/reset');
+      toast.success('Eşlemeler sıfırlandı');
+      loadCellMapping();
+    } catch (error) {
+      console.error('Sıfırlama hatası:', error);
+      toast.error('Sıfırlama başarısız');
+    }
+  };
+
+  // Tab değiştiğinde mapping'i yükle
+  useEffect(() => {
+    if (activeTab === 'mapping' && !cellMapping) {
+      loadCellMapping();
+    }
+  }, [activeTab]);
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -325,7 +397,212 @@ const FormTemplates = () => {
             <FileSpreadsheet className="h-4 w-4" />
             Excel ({templates.filter(t => t.template_type === 'excel').length})
           </TabsTrigger>
+          <TabsTrigger value="mapping" className="flex items-center gap-2 bg-amber-50">
+            <Grid3X3 className="h-4 w-4 text-amber-600" />
+            Vaka Formu Mapping
+          </TabsTrigger>
         </TabsList>
+
+        {/* Vaka Formu Mapping İçeriği */}
+        <TabsContent value="mapping" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Grid3X3 className="h-5 w-5 text-amber-600" />
+                    Vaka Formu Excel Hücre Eşlemeleri
+                  </CardTitle>
+                  <CardDescription>
+                    PDF oluşturulurken hangi verinin hangi Excel hücresine yazılacağını belirleyin
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={loadCellMapping} disabled={mappingLoading}>
+                    <RefreshCw className={`h-4 w-4 mr-1 ${mappingLoading ? 'animate-spin' : ''}`} />
+                    Yenile
+                  </Button>
+                  <Button variant="destructive" onClick={handleResetMapping}>
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Varsayılana Sıfırla
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {mappingLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <RefreshCw className="h-8 w-8 animate-spin text-amber-500" />
+                </div>
+              ) : cellMapping ? (
+                <div className="space-y-4">
+                  {/* Özet bilgi */}
+                  <div className="flex gap-4 p-4 bg-amber-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-amber-600">{cellMapping.total_cells}</div>
+                      <div className="text-sm text-gray-600">Toplam Hücre</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-amber-600">{cellMapping.total_checkboxes}</div>
+                      <div className="text-sm text-gray-600">Checkbox</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-amber-600">
+                        {Object.keys(cellMapping.cell_mappings || {}).length}
+                      </div>
+                      <div className="text-sm text-gray-600">Bölüm</div>
+                    </div>
+                    {cellMapping.is_custom && (
+                      <Badge className="bg-green-100 text-green-700 self-center">Özelleştirilmiş</Badge>
+                    )}
+                  </div>
+
+                  {/* Bölümler */}
+                  {Object.entries(cellMapping.cell_mappings || {}).map(([section, cells]) => (
+                    <Collapsible
+                      key={section}
+                      open={expandedSections[section]}
+                      onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, [section]: open }))}
+                    >
+                      <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        <div className="flex items-center gap-2 font-medium">
+                          {expandedSections[section] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          {section}
+                          <Badge variant="outline">{cells.length} hücre</Badge>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left font-medium">Hücre</th>
+                                <th className="px-4 py-2 text-left font-medium">Alan (field)</th>
+                                <th className="px-4 py-2 text-left font-medium">Görünen Ad</th>
+                                <th className="px-4 py-2 text-left font-medium">Kaynak</th>
+                                <th className="px-4 py-2 text-center font-medium">İşlem</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {cells.map((cell, index) => (
+                                <tr key={cell.cell} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                  <td className="px-4 py-2 font-mono font-bold text-blue-600">{cell.cell}</td>
+                                  <td className="px-4 py-2 font-mono text-purple-600">{cell.field}</td>
+                                  <td className="px-4 py-2">{cell.label}</td>
+                                  <td className="px-4 py-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {cell.source}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-2 text-center">
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setEditingCell(cell.cell);
+                                        setEditForm({
+                                          cell: cell.cell,
+                                          field: cell.field,
+                                          label: cell.label
+                                        });
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+
+                  {/* Checkbox Mappings */}
+                  {cellMapping.checkbox_mappings && Object.keys(cellMapping.checkbox_mappings).length > 0 && (
+                    <Collapsible
+                      open={expandedSections['checkboxes']}
+                      onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, checkboxes: open }))}
+                    >
+                      <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors">
+                        <div className="flex items-center gap-2 font-medium text-orange-700">
+                          {expandedSections['checkboxes'] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          Checkbox Eşlemeleri
+                          <Badge className="bg-orange-200 text-orange-700">
+                            {Object.keys(cellMapping.checkbox_mappings).length} grup
+                          </Badge>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2 space-y-2">
+                        {Object.entries(cellMapping.checkbox_mappings).map(([group, config]) => (
+                          <div key={group} className="p-3 border rounded-lg bg-orange-50">
+                            <div className="font-medium text-orange-700 mb-2">{group} ({config.field})</div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              {Object.entries(config.options).map(([value, cell]) => (
+                                <div key={value} className="flex items-center gap-2 text-sm">
+                                  <span className="font-mono text-blue-600">{cell}</span>
+                                  <span className="text-gray-600">→ {value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Grid3X3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Hücre eşlemeleri yüklenmedi</p>
+                  <Button className="mt-4" onClick={loadCellMapping}>Yükle</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Düzenleme Dialog'u */}
+          <Dialog open={!!editingCell} onOpenChange={() => setEditingCell(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Hücre Eşlemesini Düzenle</DialogTitle>
+                <DialogDescription>
+                  Excel hücresi {editForm.cell} için eşlemeyi düzenleyin
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Hücre</Label>
+                  <Input value={editForm.cell} disabled className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Alan Adı (field)</Label>
+                  <Input 
+                    value={editForm.field}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, field: e.target.value }))}
+                    placeholder="patientName, age, bloodPressure vb."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Görünen Ad</Label>
+                  <Input 
+                    value={editForm.label}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, label: e.target.value }))}
+                    placeholder="Hasta Adı Soyadı"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingCell(null)}>İptal</Button>
+                <Button onClick={handleUpdateCellMapping}>
+                  <Save className="h-4 w-4 mr-1" />
+                  Kaydet
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
       </Tabs>
 
       {/* Şablon Listesi */}

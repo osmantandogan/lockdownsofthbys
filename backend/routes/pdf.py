@@ -8,7 +8,7 @@ from services.template_pdf_generator import generate_pdf_from_template
 from services.libreoffice_pdf import generate_case_pdf_with_libreoffice, check_libreoffice_installed
 from services.vaka_form_mapping import get_cell_mapping_for_display, VAKA_FORM_CELL_MAPPING, CHECKBOX_MAPPINGS
 from auth_utils import get_current_user
-from database import cases_collection, pdf_templates_collection
+from database import cases_collection, pdf_templates_collection, db
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
 logger = logging.getLogger(__name__)
@@ -83,28 +83,6 @@ async def generate_case_pdf(case_id: str, request: Request):
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
-@router.get("/vaka-form-mapping")
-async def get_vaka_form_cell_mapping(request: Request):
-    """Vaka formu Excel hücre eşlemelerini döndürür - FormTemplates sayfası için"""
-    user = await get_current_user(request)
-    
-    return get_cell_mapping_for_display()
-
-
-@router.put("/vaka-form-mapping/{cell}")
-async def update_vaka_form_cell_mapping(cell: str, data: dict, request: Request):
-    """Belirli bir hücrenin eşlemesini günceller"""
-    user = await get_current_user(request)
-    
-    if cell not in VAKA_FORM_CELL_MAPPING:
-        raise HTTPException(status_code=404, detail=f"Hücre bulunamadı: {cell}")
-    
-    return {
-        "message": "Hücre eşlemesi güncelleme özelliği yakında eklenecek",
-        "current_mapping": VAKA_FORM_CELL_MAPPING.get(cell)
-    }
-
-
 @router.post("/case/{case_id}/with-form-data")
 async def generate_case_pdf_with_form_data(
     case_id: str, 
@@ -171,12 +149,29 @@ async def generate_case_pdf_with_form_data(
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
+# ============== VAKA FORM MAPPING ENDPOINTS ==============
+
 @router.get("/vaka-form-mapping")
 async def get_vaka_form_cell_mapping(request: Request):
     """Vaka formu Excel hücre eşlemelerini döndürür - FormTemplates sayfası için"""
     user = await get_current_user(request)
     
-    return get_cell_mapping_for_display()
+    # Önce veritabanından özelleştirilmiş mapping'i kontrol et
+    custom_mapping = await db.vaka_form_mappings.find_one({"_id": "default"})
+    
+    if custom_mapping:
+        return {
+            "cell_mappings": custom_mapping.get("cell_mappings", {}),
+            "checkbox_mappings": custom_mapping.get("checkbox_mappings", {}),
+            "total_cells": custom_mapping.get("total_cells", 0),
+            "total_checkboxes": custom_mapping.get("total_checkboxes", 0),
+            "is_custom": True
+        }
+    
+    # Varsayılan mapping'i döndür
+    result = get_cell_mapping_for_display()
+    result["is_custom"] = False
+    return result
 
 
 @router.put("/vaka-form-mapping/{cell}")
@@ -184,10 +179,49 @@ async def update_vaka_form_cell_mapping(cell: str, data: dict, request: Request)
     """Belirli bir hücrenin eşlemesini günceller"""
     user = await get_current_user(request)
     
-    if cell not in VAKA_FORM_CELL_MAPPING:
+    # Mevcut mapping'i al veya oluştur
+    existing = await db.vaka_form_mappings.find_one({"_id": "default"})
+    
+    if not existing:
+        # Varsayılan mapping'i kopyala
+        default_mapping = get_cell_mapping_for_display()
+        existing = {
+            "_id": "default",
+            "cell_mappings": default_mapping["cell_mappings"],
+            "checkbox_mappings": default_mapping["checkbox_mappings"],
+            "total_cells": default_mapping["total_cells"],
+            "total_checkboxes": default_mapping["total_checkboxes"]
+        }
+    
+    # Hücreyi bul ve güncelle
+    updated = False
+    for section, cells in existing["cell_mappings"].items():
+        for i, cell_info in enumerate(cells):
+            if cell_info["cell"] == cell:
+                existing["cell_mappings"][section][i].update(data)
+                updated = True
+                break
+        if updated:
+            break
+    
+    if not updated:
         raise HTTPException(status_code=404, detail=f"Hücre bulunamadı: {cell}")
     
-    return {
-        "message": "Hücre eşlemesi güncelleme özelliği yakında eklenecek",
-        "current_mapping": VAKA_FORM_CELL_MAPPING.get(cell)
-    }
+    # Veritabanına kaydet
+    await db.vaka_form_mappings.replace_one(
+        {"_id": "default"},
+        existing,
+        upsert=True
+    )
+    
+    return {"message": "Hücre eşlemesi güncellendi", "cell": cell}
+
+
+@router.post("/vaka-form-mapping/reset")
+async def reset_vaka_form_mapping(request: Request):
+    """Vaka form mapping'ini varsayılana sıfırla"""
+    user = await get_current_user(request)
+    
+    await db.vaka_form_mappings.delete_one({"_id": "default"})
+    
+    return {"message": "Eşlemeler varsayılana sıfırlandı"}
