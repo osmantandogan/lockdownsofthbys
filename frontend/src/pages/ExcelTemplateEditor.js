@@ -44,8 +44,10 @@ const ExcelTemplateEditor = () => {
   const [mergedCells, setMergedCells] = useState([]);
   const [selectedCell, setSelectedCell] = useState(null);
   const [selectedRange, setSelectedRange] = useState(null);
+  const [editingCell, setEditingCell] = useState(null); // {row, col, value}
   const [rowHeights, setRowHeights] = useState({});
   const [columnWidths, setColumnWidths] = useState({});
+  const editingInputRef = useRef(null);
   
   // Editor settings
   const [zoom, setZoom] = useState(100);
@@ -56,6 +58,7 @@ const ExcelTemplateEditor = () => {
   // Dialogs
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [showStyleDialog, setShowStyleDialog] = useState(false);
   const [dataMappings, setDataMappings] = useState({});
   
   // Undo/Redo
@@ -146,10 +149,131 @@ const ExcelTemplateEditor = () => {
       const endCol = Math.max(selectedCell.col, col);
       
       setSelectedRange({ startRow, endRow, startCol, endCol });
+      setEditingCell(null);
     } else {
       setSelectedCell({ row, col, address });
       setSelectedRange(null);
+      // Double click veya F2 ile düzenleme moduna geç
+      if (event.detail === 2 || editingCell?.row === row && editingCell?.col === col) {
+        const cell = cells[address];
+        setEditingCell({ row, col, address, value: cell?.value || '' });
+      } else {
+        setEditingCell(null);
+      }
     }
+  };
+
+  // Klavye navigasyonu
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedCell) return;
+
+      // Düzenleme modunda değilse
+      if (!editingCell) {
+        switch (e.key) {
+          case 'ArrowUp':
+            e.preventDefault();
+            if (selectedCell.row > 1) {
+              setSelectedCell({ ...selectedCell, row: selectedCell.row - 1, address: getCellAddress(selectedCell.row - 1, selectedCell.col) });
+            }
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            if (selectedCell.row < maxRow) {
+              setSelectedCell({ ...selectedCell, row: selectedCell.row + 1, address: getCellAddress(selectedCell.row + 1, selectedCell.col) });
+            }
+            break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            if (selectedCell.col > 1) {
+              setSelectedCell({ ...selectedCell, col: selectedCell.col - 1, address: getCellAddress(selectedCell.row, selectedCell.col - 1) });
+            }
+            break;
+          case 'ArrowRight':
+            e.preventDefault();
+            if (selectedCell.col < maxCol) {
+              setSelectedCell({ ...selectedCell, col: selectedCell.col + 1, address: getCellAddress(selectedCell.row, selectedCell.col + 1) });
+            }
+            break;
+          case 'Enter':
+            e.preventDefault();
+            const cell = cells[selectedCell.address];
+            setEditingCell({ row: selectedCell.row, col: selectedCell.col, address: selectedCell.address, value: cell?.value || '' });
+            break;
+          case 'F2':
+            e.preventDefault();
+            const cell2 = cells[selectedCell.address];
+            setEditingCell({ row: selectedCell.row, col: selectedCell.col, address: selectedCell.address, value: cell2?.value || '' });
+            break;
+          case 'Delete':
+          case 'Backspace':
+            e.preventDefault();
+            updateCell(selectedCell.address, { value: '' });
+            break;
+          default:
+            // Normal karakter girme - düzenleme moduna geç
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              setEditingCell({ row: selectedCell.row, col: selectedCell.col, address: selectedCell.address, value: e.key });
+            }
+            break;
+        }
+      } else {
+        // Düzenleme modunda
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleCellEditFinish();
+          // Aşağı hücreye geç
+          if (selectedCell.row < maxRow) {
+            setSelectedCell({ ...selectedCell, row: selectedCell.row + 1, address: getCellAddress(selectedCell.row + 1, selectedCell.col) });
+          }
+        } else if (e.key === 'Tab') {
+          e.preventDefault();
+          handleCellEditFinish();
+          // Sağ hücreye geç
+          if (e.shiftKey) {
+            if (selectedCell.col > 1) {
+              setSelectedCell({ ...selectedCell, col: selectedCell.col - 1, address: getCellAddress(selectedCell.row, selectedCell.col - 1) });
+            }
+          } else {
+            if (selectedCell.col < maxCol) {
+              setSelectedCell({ ...selectedCell, col: selectedCell.col + 1, address: getCellAddress(selectedCell.row, selectedCell.col + 1) });
+            }
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          setEditingCell(null);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCell, editingCell, cells, maxRow, maxCol]);
+
+  // Düzenleme input focus
+  useEffect(() => {
+    if (editingCell && editingInputRef.current) {
+      editingInputRef.current.focus();
+      editingInputRef.current.select();
+    }
+  }, [editingCell]);
+
+  // Hücre düzenleme bitir
+  const handleCellEditFinish = () => {
+    if (editingCell) {
+      updateCell(editingCell.address, { 
+        value: editingCell.value,
+        row: editingCell.row,
+        col: editingCell.col,
+        col_letter: getColumnLetter(editingCell.col)
+      });
+      setEditingCell(null);
+    }
+  };
+
+  // Hücre düzenleme değişikliği
+  const handleCellEditChange = (value) => {
+    setEditingCell(prev => prev ? { ...prev, value } : null);
   };
 
   // Hücre değeri değiştir
@@ -365,6 +489,19 @@ const ExcelTemplateEditor = () => {
           
           <div className="h-6 border-r mx-1" />
           
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setShowStyleDialog(true)}
+            className={selectedCell ? '' : 'opacity-50'}
+            disabled={!selectedCell}
+          >
+            <Paintbrush className="h-4 w-4 mr-1" />
+            Stil
+          </Button>
+          
+          <div className="h-6 border-r mx-1" />
+          
           <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.max(50, z - 10))}>
             <ZoomOut className="h-4 w-4" />
           </Button>
@@ -506,13 +643,42 @@ const ExcelTemplateEditor = () => {
                             fontSize: cell?.font?.size ? `${cell.font.size}px` : undefined
                           }}
                           onClick={(e) => handleCellClick(row, col, e)}
-                          onDoubleClick={() => {
-                            // Double click ile düzenleme moduna geç
+                          onDoubleClick={(e) => {
+                            const cell2 = cells[address];
+                            setEditingCell({ row, col, address, value: cell2?.value || '' });
                           }}
                         >
-                          <div className="px-1 py-0.5 min-h-[20px] whitespace-pre-wrap">
-                            {cell?.value || ''}
-                          </div>
+                          {editingCell?.row === row && editingCell?.col === col ? (
+                            <input
+                              ref={editingInputRef}
+                              type="text"
+                              value={editingCell.value}
+                              onChange={(e) => handleCellEditChange(e.target.value)}
+                              onBlur={handleCellEditFinish}
+                              className="w-full h-full px-1 py-0.5 border-none outline-none bg-transparent"
+                              style={{
+                                fontWeight: cell?.font?.bold ? 'bold' : 'normal',
+                                fontStyle: cell?.font?.italic ? 'italic' : 'normal',
+                                textAlign: cell?.alignment?.horizontal || 'left',
+                                fontSize: cell?.font?.size ? `${cell.font.size}px` : undefined,
+                                color: (() => {
+                                  if (!cell?.font?.color) return '#000000';
+                                  const fontColor = cell.font.color;
+                                  if (fontColor.length === 8) {
+                                    const rgb = fontColor.slice(2);
+                                    return `#${rgb}`;
+                                  } else if (fontColor.length === 6) {
+                                    return `#${fontColor}`;
+                                  }
+                                  return '#000000';
+                                })()
+                              }}
+                            />
+                          ) : (
+                            <div className="px-1 py-0.5 min-h-[20px] whitespace-pre-wrap">
+                              {cell?.value || ''}
+                            </div>
+                          )}
                         </td>
                       );
                     })}
@@ -614,6 +780,124 @@ const ExcelTemplateEditor = () => {
             }}>
               Kaydet
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Style Dialog */}
+      <Dialog open={showStyleDialog} onOpenChange={setShowStyleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hücre Stili</DialogTitle>
+            <p className="text-sm text-gray-500">
+              {selectedCell && `Seçili hücre: ${selectedCell.address}`}
+            </p>
+          </DialogHeader>
+          {selectedCell && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Arka Plan Rengi</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={(() => {
+                        const cell = cells[selectedCell.address];
+                        if (!cell?.fill?.color) return '#ffffff';
+                        const color = cell.fill.color;
+                        if (color.length === 8) {
+                          return `#${color.slice(2)}`;
+                        } else if (color.length === 6) {
+                          return `#${color}`;
+                        }
+                        return '#ffffff';
+                      })()}
+                      onChange={(e) => handleFillColorChange(e.target.value)}
+                      className="w-full h-10 border rounded cursor-pointer"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => applyStyle('fill', 'ffffff')}
+                    >
+                      Temizle
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Metin Rengi</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={(() => {
+                        const cell = cells[selectedCell.address];
+                        if (!cell?.font?.color) return '#000000';
+                        const fontColor = cell.font.color;
+                        if (fontColor.length === 8) {
+                          return `#${fontColor.slice(2)}`;
+                        } else if (fontColor.length === 6) {
+                          return `#${fontColor}`;
+                        }
+                        return '#000000';
+                      })()}
+                      onChange={(e) => handleFontColorChange(e.target.value)}
+                      className="w-full h-10 border rounded cursor-pointer"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => applyStyle('fontColor', '000000')}
+                    >
+                      Sıfırla
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Font Boyutu</Label>
+                <Input
+                  type="number"
+                  min="8"
+                  max="72"
+                  value={cells[selectedCell.address]?.font?.size || 10}
+                  onChange={(e) => applyStyle('fontSize', parseInt(e.target.value) || 10)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hizalama</Label>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={cells[selectedCell.address]?.alignment?.horizontal === 'left' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => applyStyle('align', 'left')}
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant={cells[selectedCell.address]?.alignment?.horizontal === 'center' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => applyStyle('align', 'center')}
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant={cells[selectedCell.address]?.alignment?.horizontal === 'right' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => applyStyle('align', 'right')}
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          {!selectedCell && (
+            <p className="text-sm text-gray-500 text-center py-4">
+              Stil düzenlemek için önce bir hücre seçin
+            </p>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowStyleDialog(false)}>Kapat</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
