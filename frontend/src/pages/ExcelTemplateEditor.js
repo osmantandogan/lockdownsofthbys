@@ -156,6 +156,14 @@ const ExcelTemplateEditor = () => {
   const handleCellClick = (row, col, event) => {
     const address = getCellAddress(row, col);
     
+    // Veri eşleştirme dialog'u açıksa, sadece hücre seç (düzenleme moduna geçme)
+    if (showMappingDialog) {
+      setSelectedCell({ row, col, address });
+      setSelectedRange(null);
+      setEditingCell(null);
+      return;
+    }
+    
     if (event.shiftKey && selectedCell) {
       // Range seçimi
       const startRow = Math.min(selectedCell.row, row);
@@ -1164,13 +1172,7 @@ const ExcelTemplateEditor = () => {
                             fontSize: cell?.font?.size ? `${cell.font.size}px` : undefined
                           }}
                           onClick={(e) => {
-                            // Dialog açıkken hücre tıklaması sadece seçim yapsın
-                            if (showMappingDialog) {
-                              e.stopPropagation();
-                              handleCellClick(row, col, e);
-                            } else {
-                              handleCellClick(row, col, e);
-                            }
+                            handleCellClick(row, col, e);
                           }}
                           onDoubleClick={(e) => {
                             if (!showMappingDialog) {
