@@ -70,7 +70,9 @@ const CallCenter = () => {
   const loadVehicles = async () => {
     try {
       const response = await vehiclesAPI.getAll({});
-      setVehicles(response.data || []);
+      // Sadece ambulans tipindeki araçları göster
+      const ambulances = (response.data || []).filter(v => v.type === 'ambulans');
+      setVehicles(ambulances);
     } catch (error) {
       console.error('Araçlar yüklenemedi:', error);
       toast.error('Araçlar yüklenemedi');
@@ -150,7 +152,7 @@ const CallCenter = () => {
       
       if (caseId) {
         setCreatedCaseId(caseId);
-        toast.success('Vaka oluşturuldu!');
+        toast.success('Vaka oluşturuldu! Bildirimler otomatik olarak gönderildi.');
       } else {
         toast.error('Vaka ID alınamadı');
       }
@@ -262,13 +264,19 @@ const CallCenter = () => {
                     className="h-8 text-sm"
                   />
                   {filteredCompanies.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg">
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg">
                       {filteredCompanies.map((c, i) => (
                         <button
                           key={i}
                           type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                          onClick={() => {
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleChange('companyName', c.name);
+                            setCompanySearch(c.name);
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
                             handleChange('companyName', c.name);
                             setCompanySearch(c.name);
                           }}
@@ -485,11 +493,11 @@ const CallCenter = () => {
           <CardContent className="p-0 h-[calc(100%-52px)]">
             <MapContainer
               center={[position.lat, position.lng]}
-              zoom={12}
+              zoom={15}
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer
-                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
                 attribution='&copy; Google Maps'
                 maxZoom={20}
               />

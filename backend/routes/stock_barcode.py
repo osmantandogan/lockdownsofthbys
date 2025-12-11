@@ -1043,55 +1043,68 @@ async def get_stock_locations(request: Request, type: Optional[str] = None):
 @router.delete("/stock-locations/cleanup-old")
 async def cleanup_old_stock_locations(request: Request):
     """
-    Eski 'PLAKA Bekleme Noktası' formatındaki lokasyonları temizle
-    Sadece içinde stok olmayan lokasyonları siler
+    Bekleme noktası lokasyonlarını temizle
+    İçlerinde stok varsa merkez depoya taşı ve lokasyonu sil
     """
     user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
     
     import logging
     
-    # Eski format lokasyonları bul (Bekleme Noktası içeren)
-    old_locations = await stock_locations_collection.find({
+    # Bekleme noktası lokasyonlarını bul
+    waiting_point_locations = await stock_locations_collection.find({
+        "type": "waiting_point",
         "name": {"$regex": "Bekleme Noktası", "$options": "i"}
     }).to_list(500)
     
+    moved_count = 0
     deleted_count = 0
-    skipped_count = 0
     
-    for loc in old_locations:
+    for loc in waiting_point_locations:
         loc_id = loc["_id"]
         loc_name = loc["name"]
         
-        # Bu lokasyonda stok var mı kontrol et
-        stock_in_location = await stock_collection.find_one({
+        # Bu lokasyondaki tüm stokları bul
+        stock_items = await stock_collection.find({
             "$or": [
                 {"location": loc_name},
                 {"location": loc_id}
             ]
-        })
+        }).to_list(1000)
         
-        barcode_stock_in_location = await barcode_stock_collection.find_one({
+        barcode_stock_items = await barcode_stock_collection.find({
             "$or": [
                 {"location": loc_name},
                 {"location": loc_id}
             ],
             "status": "available"
-        })
+        }).to_list(1000)
         
-        if stock_in_location or barcode_stock_in_location:
-            # Stok var, silme
-            skipped_count += 1
-            logging.info(f"Skipped location {loc_name} - has stock")
-        else:
-            # Stok yok, sil
-            await stock_locations_collection.delete_one({"_id": loc_id})
-            deleted_count += 1
-            logging.info(f"Deleted old location: {loc_name}")
+        # Stokları merkez depoya taşı
+        if stock_items:
+            await stock_collection.update_many(
+                {"$or": [{"location": loc_name}, {"location": loc_id}]},
+                {"$set": {"location": "merkez_depo", "updated_at": datetime.utcnow()}}
+            )
+            moved_count += len(stock_items)
+            logging.info(f"Moved {len(stock_items)} stock items from {loc_name} to merkez_depo")
+        
+        if barcode_stock_items:
+            await barcode_stock_collection.update_many(
+                {"$or": [{"location": loc_name}, {"location": loc_id}], "status": "available"},
+                {"$set": {"location": "merkez_depo", "updated_at": datetime.utcnow()}}
+            )
+            moved_count += len(barcode_stock_items)
+            logging.info(f"Moved {len(barcode_stock_items)} barcode stock items from {loc_name} to merkez_depo")
+        
+        # Lokasyonu sil
+        await stock_locations_collection.delete_one({"_id": loc_id})
+        deleted_count += 1
+        logging.info(f"Deleted waiting point location: {loc_name}")
     
     return {
-        "message": f"{deleted_count} eski lokasyon silindi, {skipped_count} lokasyon stok içerdiği için atlandı",
+        "message": f"{deleted_count} bekleme noktası silindi, {moved_count} stok merkez depoya taşındı",
         "deleted": deleted_count,
-        "skipped": skipped_count
+        "moved": moved_count
     }
 
 
@@ -1498,6 +1511,248 @@ async def send_stock_to_location(request: Request):
     
     return {
         "message": f"{success_count} ürün {to_location} lokasyonuna gönderildi",
+        "results": results,
+        "success_count": success_count,
+        "failed_count": len(items) - success_count
+    }
+
+
+@router.post("/movements/create")
+async def create_stock_movement(request: Request):
+    """
+    Yeni stok hareketi oluştur
+    - Kategori seçimi (ilaç/itriyat/diğer)
+    - Ürün seçimi
+    - Kaynak ve hedef lokasyon
+    - Raf kodu
+    """
+    user = await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi", "bas_sofor"])(request)
+    
+    body = await request.json()
+    from_location = body.get("from_location")
+    to_location = body.get("to_location")
+    items = body.get("items", [])  # [{"name": "...", "quantity": 5, "category": "ilac"}, ...]
+    shelf_code = body.get("shelf_code")
+    notes = body.get("notes", "")
+    
+    if not from_location or not to_location:
+        raise HTTPException(status_code=400, detail="Kaynak ve hedef lokasyon gerekli")
+    
+    if not items:
+        raise HTTPException(status_code=400, detail="En az bir ürün seçilmeli")
+    
+    if not shelf_code:
+        raise HTTPException(status_code=400, detail="Raf kodu gerekli")
+    
+    import logging
+    turkey_now = datetime.utcnow()
+    
+    results = []
+    
+    for item_data in items:
+        item_name = item_data.get("name")
+        quantity = item_data.get("quantity", 1)
+        category = item_data.get("category", "diger")
+        
+        # Kaynak lokasyondan ürünü bul
+        stock_item = await stock_collection.find_one({
+            "name": item_name,
+            "location": from_location
+        })
+        
+        if not stock_item:
+            # Karekod stoktan dene
+            barcode_item = await barcode_stock_collection.find_one({
+                "name": item_name,
+                "location": from_location,
+                "status": "available"
+            })
+            
+            if barcode_item:
+                # Karekod stok transferi
+                if quantity > 1:
+                    # Birden fazla karekod stok bul
+                    barcode_items = await barcode_stock_collection.find({
+                        "name": item_name,
+                        "location": from_location,
+                        "status": "available"
+                    }).limit(quantity).to_list(quantity)
+                    
+                    if len(barcode_items) < quantity:
+                        results.append({
+                            "item_name": item_name,
+                            "success": False,
+                            "error": f"Yetersiz stok. Mevcut: {len(barcode_items)}, İstenen: {quantity}"
+                        })
+                        continue
+                    
+                    # Her birini transfer et
+                    for barcode_item in barcode_items:
+                        await barcode_stock_collection.update_one(
+                            {"_id": barcode_item["_id"]},
+                            {"$set": {
+                                "location": to_location,
+                                "location_detail": shelf_code,
+                                "transferred_at": turkey_now,
+                                "transferred_by": user.id
+                            }}
+                        )
+                        
+                        movement = {
+                            "_id": str(uuid.uuid4()),
+                            "type": "transfer",
+                            "is_barcode": True,
+                            "barcode_stock_id": barcode_item["_id"],
+                            "from_location": from_location,
+                            "to_location": to_location,
+                            "item_name": item_name,
+                            "gtin": barcode_item.get("gtin"),
+                            "serial_number": barcode_item.get("serial_number"),
+                            "quantity": 1,
+                            "unit": "adet",
+                            "shelf_code": shelf_code,
+                            "performed_by": user.id,
+                            "performed_by_name": user.name,
+                            "notes": notes,
+                            "created_at": turkey_now
+                        }
+                        await stock_movements_collection.insert_one(movement)
+                    
+                    results.append({
+                        "item_name": item_name,
+                        "success": True,
+                        "quantity": quantity
+                    })
+                else:
+                    # Tek karekod stok transferi
+                    await barcode_stock_collection.update_one(
+                        {"_id": barcode_item["_id"]},
+                        {"$set": {
+                            "location": to_location,
+                            "location_detail": shelf_code,
+                            "transferred_at": turkey_now,
+                            "transferred_by": user.id
+                        }}
+                    )
+                    
+                    movement = {
+                        "_id": str(uuid.uuid4()),
+                        "type": "transfer",
+                        "is_barcode": True,
+                        "barcode_stock_id": barcode_item["_id"],
+                        "from_location": from_location,
+                        "to_location": to_location,
+                        "item_name": item_name,
+                        "gtin": barcode_item.get("gtin"),
+                        "serial_number": barcode_item.get("serial_number"),
+                        "quantity": 1,
+                        "unit": "adet",
+                        "shelf_code": shelf_code,
+                        "performed_by": user.id,
+                        "performed_by_name": user.name,
+                        "notes": notes,
+                        "created_at": turkey_now
+                    }
+                    await stock_movements_collection.insert_one(movement)
+                    
+                    results.append({
+                        "item_name": item_name,
+                        "success": True,
+                        "quantity": 1
+                    })
+            else:
+                results.append({
+                    "item_name": item_name,
+                    "success": False,
+                    "error": "Ürün kaynak lokasyonda bulunamadı"
+                })
+                continue
+        else:
+            # Adet bazlı stok transferi
+            current_qty = stock_item.get("quantity", 0)
+            if current_qty < quantity:
+                results.append({
+                    "item_name": item_name,
+                    "success": False,
+                    "error": f"Yetersiz stok. Mevcut: {current_qty}, İstenen: {quantity}"
+                })
+                continue
+            
+            # Kaynaktan düş
+            await stock_collection.update_one(
+                {"_id": stock_item["_id"]},
+                {
+                    "$inc": {"quantity": -quantity},
+                    "$set": {"updated_at": turkey_now}
+                }
+            )
+            
+            # Hedefte var mı kontrol et
+            existing_target = await stock_collection.find_one({
+                "location": to_location,
+                "name": item_name,
+                "location_detail": shelf_code
+            })
+            
+            if existing_target:
+                await stock_collection.update_one(
+                    {"_id": existing_target["_id"]},
+                    {
+                        "$inc": {"quantity": quantity},
+                        "$set": {"updated_at": turkey_now}
+                    }
+                )
+            else:
+                # Yeni kayıt oluştur
+                new_stock = {
+                    "_id": str(uuid.uuid4()),
+                    "name": item_name,
+                    "code": stock_item.get("code"),
+                    "gtin": stock_item.get("gtin"),
+                    "quantity": quantity,
+                    "min_quantity": stock_item.get("min_quantity", 1),
+                    "location": to_location,
+                    "location_detail": shelf_code,
+                    "lot_number": stock_item.get("lot_number"),
+                    "expiry_date": stock_item.get("expiry_date"),
+                    "unit": stock_item.get("unit", "adet"),
+                    "created_at": turkey_now,
+                    "updated_at": turkey_now
+                }
+                await stock_collection.insert_one(new_stock)
+            
+            # Hareket kaydı
+            movement = {
+                "_id": str(uuid.uuid4()),
+                "type": "transfer",
+                "is_barcode": False,
+                "stock_id": stock_item["_id"],
+                "from_location": from_location,
+                "to_location": to_location,
+                "item_name": item_name,
+                "gtin": stock_item.get("gtin"),
+                "quantity": quantity,
+                "unit": stock_item.get("unit", "adet"),
+                "shelf_code": shelf_code,
+                "performed_by": user.id,
+                "performed_by_name": user.name,
+                "notes": notes,
+                "created_at": turkey_now
+            }
+            await stock_movements_collection.insert_one(movement)
+            
+            results.append({
+                "item_name": item_name,
+                "success": True,
+                "quantity": quantity
+            })
+    
+    success_count = sum(1 for r in results if r.get("success"))
+    
+    logging.info(f"Stock movement created: {success_count}/{len(items)} items from {from_location} to {to_location} by {user.name}")
+    
+    return {
+        "message": f"{success_count} ürün {from_location} → {to_location} lokasyonuna taşındı",
         "results": results,
         "success_count": success_count,
         "failed_count": len(items) - success_count

@@ -5,6 +5,7 @@ from models import Shift, ShiftStart, ShiftEnd, ShiftAssignment
 from auth_utils import get_current_user, require_roles
 from datetime import datetime, timedelta
 from pydantic import BaseModel, validator
+from utils.timezone import get_turkey_time
 import base64
 import uuid
 import logging
@@ -63,7 +64,7 @@ async def get_today_assignments(request: Request):
     from datetime import timedelta
     
     # Türkiye saati (UTC+3) kullan
-    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    turkey_now = get_turkey_time()
     today = turkey_now.date()
     today_str = today.isoformat()
     logger.info(f"Bugünkü atamalar sorgusu - Bugün (TR): {today}")
@@ -370,7 +371,7 @@ async def admin_start_shift(assignment_id: str, request: Request):
             # Update vehicle status to "gorevde"
             await vehicles_collection.update_one(
                 {"_id": vehicle_id},
-                {"$set": {"status": "gorevde", "updated_at": datetime.utcnow()}}
+                {"$set": {"status": "gorevde", "updated_at": get_turkey_time()}}
             )
     
     # Create shift
@@ -396,7 +397,7 @@ async def admin_start_shift(assignment_id: str, request: Request):
         {
             "$set": {
                 "status": "started",
-                "started_at": datetime.utcnow(),
+                "started_at": get_turkey_time(),
                 "started_by_admin": True,
                 "admin_id": admin_user.id
             }
@@ -536,7 +537,7 @@ async def start_shift(data: ShiftStart, request: Request):
         user_id=user.id,
         vehicle_id=vehicle["_id"],
         vehicle_plate=vehicle.get("plate"),  # Plaka bilgisini ekle
-        start_time=datetime.utcnow(),
+        start_time=get_turkey_time(),
         photos=data.photos,
         daily_control=data.daily_control
     )
@@ -553,17 +554,21 @@ async def start_shift(data: ShiftStart, request: Request):
     # Günlük kontrol formunu form geçmişine kaydet
     if data.daily_control:
         from database import forms_collection
+        from utils.sanitize import sanitize_form_data
         import uuid
+        
+        # Form verilerini temizle
+        sanitized_daily_control = sanitize_form_data(data.daily_control) if data.daily_control else {}
         
         daily_control_form = {
             "_id": str(uuid.uuid4()),
             "form_type": "daily_control",
             "submitted_by": user.id,
-            "form_data": data.daily_control,
+            "form_data": sanitized_daily_control,
             "vehicle_plate": vehicle.get("plate"),
             "vehicle_id": vehicle["_id"],
             "shift_id": new_shift.id,
-            "created_at": datetime.utcnow()
+            "created_at": get_turkey_time()
         }
         await forms_collection.insert_one(daily_control_form)
         logger.info(f"Günlük kontrol formu kaydedildi: {daily_control_form['_id']}")
@@ -580,7 +585,7 @@ async def start_shift(data: ShiftStart, request: Request):
             "vehicle_id": vehicle["_id"],
             "vehicle_plate": vehicle.get("plate"),
             "photos": data.photos,
-            "created_at": datetime.utcnow()
+            "created_at": get_turkey_time()
         }
         await shift_photos_collection.insert_one(photos_doc)
         logger.info(f"Vardiya fotoğrafları kaydedildi: {photos_doc['_id']}")
@@ -616,7 +621,45 @@ async def start_shift(data: ShiftStart, request: Request):
         "form_opened_at": form_opened_at_val
     }
     await shift_logs_collection.insert_one(action_log)
-    logger.info(f"Vardiya başlatıldı: {user.name} - {vehicle.get('plate')} - {action_taken_at}")
+    
+    # Otomatik onay kaydı oluştur (pending olarak - yönetici onayı beklenmeden vardiya başlatıldı)
+    role_type = "medical" if user.role.lower() in ['att', 'paramedik', 'hemsire'] else "driver"
+    approval_id = str(uuid.uuid4())
+    approval = {
+        "_id": approval_id,
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_role": user.role,
+        "vehicle_id": vehicle["_id"],
+        "vehicle_plate": vehicle.get("plate"),
+        "role_type": role_type,
+        "daily_control_data": data.daily_control if hasattr(data, 'daily_control') else None,
+        "photos": data.photos if hasattr(data, 'photos') else None,
+        "status": "pending",  # Otomatik oluşturuldu, yönetici onayı bekliyor
+        "created_at": turkey_now,
+        "shift_started_at": action_taken_at,  # Vardiya başlatılma zamanı
+        "auto_created": True,  # Otomatik oluşturuldu işareti
+        "approved_by": None,
+        "approved_by_name": None,
+        "approved_at": None,
+        "rejection_reason": None
+    }
+    
+    # Eğer approval_id gönderilmişse (manuel onay isteği varsa), onu kullan
+    if hasattr(data, 'approval_id') and data.approval_id:
+        # Mevcut onay kaydını güncelle
+        await shift_start_approvals_collection.update_one(
+            {"_id": data.approval_id},
+            {"$set": {
+                "shift_started_at": action_taken_at,
+                "auto_created": False
+            }}
+        )
+    else:
+        # Yeni onay kaydı oluştur
+        await shift_start_approvals_collection.insert_one(approval)
+    
+    logger.info(f"Vardiya başlatıldı: {user.name} - {vehicle.get('plate')} - {action_taken_at} (Onay kaydı: {approval_id})")
     
     return new_shift
 
@@ -702,7 +745,56 @@ async def end_shift(data: ShiftEnd, request: Request):
         "form_opened_at": form_opened_at
     }
     await shift_logs_collection.insert_one(action_log)
-    logger.info(f"Vardiya bitirildi: {user.name} - {shift_doc.get('vehicle_plate', 'N/A')} - {action_taken_at}")
+    
+    # Otomatik onay kaydı oluştur (pending olarak - yönetici onayı beklenmeden vardiya bitirildi)
+    role_type = "driver" if user.role.lower() == "sofor" else "medical"
+    approval_id = str(uuid.uuid4())
+    
+    # Devir teslim bilgilerini al
+    devralan_adi = None
+    end_km = None
+    if hasattr(data, 'handover_form') and data.handover_form:
+        devralan_adi = data.handover_form.get('devralan_adi')
+        end_km = data.handover_form.get('teslimEttigimKm')
+    
+    approval_doc = {
+        "_id": approval_id,
+        "type": "end",
+        "shift_id": data.shift_id,
+        "vehicle_id": shift_doc.get("vehicle_id"),
+        "vehicle_plate": shift_doc.get("vehicle_plate"),
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_role": user.role,
+        "role_type": role_type,
+        "end_km": end_km,
+        "devralan_adi": devralan_adi,
+        "form_opened_at": form_opened_at.isoformat() if form_opened_at else None,
+        "request_sent_at": turkey_now.isoformat(),
+        "shift_ended_at": action_taken_at,  # Vardiya bitirilme zamanı
+        "status": "pending",  # Otomatik oluşturuldu, yönetici onayı bekliyor
+        "auto_created": True,  # Otomatik oluşturuldu işareti
+        "created_at": turkey_now,
+        "approved_by": None,
+        "approved_by_name": None,
+        "approved_at": None
+    }
+    
+    # Eğer approval_id gönderilmişse (manuel onay isteği varsa), onu kullan
+    if hasattr(data, 'handover_form') and data.handover_form and data.handover_form.get('approval_request_id'):
+        # Mevcut onay kaydını güncelle
+        await shift_end_approvals_collection.update_one(
+            {"_id": data.handover_form['approval_request_id']},
+            {"$set": {
+                "shift_ended_at": action_taken_at,
+                "auto_created": False
+            }}
+        )
+    else:
+        # Yeni onay kaydı oluştur
+        await shift_end_approvals_collection.insert_one(approval_doc)
+    
+    logger.info(f"Vardiya bitirildi: {user.name} - {shift_doc.get('vehicle_plate', 'N/A')} - {action_taken_at} (Onay kaydı: {approval_id})")
     
     result["id"] = result.pop("_id")
     return Shift(**result)
@@ -2031,10 +2123,13 @@ async def reject_shift_approval(approval_id: str, request: Request, reason: str 
 async def get_shift_approval_logs(
     request: Request,
     date: str = None,
-    limit: int = 50
+    user_id: str = None,
+    vehicle_id: str = None,
+    limit: int = 100
 ):
     """
     Vardiya onay loglarını getir (başlatma + bitirme)
+    Kişi ve araç bazında filtreleme yapılabilir
     """
     await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
     
@@ -2049,12 +2144,20 @@ async def get_shift_approval_logs(
         except ValueError:
             pass
     
+    if user_id:
+        query["user_id"] = user_id
+    
+    if vehicle_id:
+        query["vehicle_id"] = vehicle_id
+    
     # Başlatma logları
     start_logs = await shift_start_approvals_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
     for log in start_logs:
         log["id"] = log.pop("_id")
         log["type"] = "start"
         log["type_label"] = "Vardiya Başlatma"
+        # Vardiya başlatılma zamanı (shift_started_at varsa onu kullan, yoksa created_at)
+        log["action_time"] = log.get("shift_started_at") or log.get("created_at")
     
     # Bitirme logları
     end_logs = await shift_end_approvals_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
@@ -2062,10 +2165,12 @@ async def get_shift_approval_logs(
         log["id"] = log.pop("_id")
         log["type"] = "end"
         log["type_label"] = "Vardiya Bitirme"
+        # Vardiya bitirilme zamanı (shift_ended_at varsa onu kullan, yoksa created_at)
+        log["action_time"] = log.get("shift_ended_at") or log.get("created_at")
     
-    # Birleştir ve sırala
+    # Birleştir ve sırala (action_time'e göre)
     all_logs = start_logs + end_logs
-    all_logs.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+    all_logs.sort(key=lambda x: x.get("action_time", x.get("created_at", datetime.min)), reverse=True)
     
     return all_logs[:limit]
 

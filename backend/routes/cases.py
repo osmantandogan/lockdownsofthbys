@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from typing import List, Optional, Any
-from database import cases_collection, vehicles_collection, users_collection, shift_assignments_collection
+from database import cases_collection, vehicles_collection, users_collection, shift_assignments_collection, medication_usage_collection
 from models import Case, CaseCreate, CaseAssignTeam, CaseUpdateStatus, CaseStatusUpdate, MedicalFormData, DoctorApproval, CaseParticipant
 from auth_utils import get_current_user, require_roles
 from datetime import datetime, timedelta
+from utils.timezone import get_turkey_time
 from email_service import send_case_notifications
 from pydantic import BaseModel
 import uuid
@@ -31,7 +32,7 @@ counters_collection = db["counters"]
 async def peek_next_case_sequence() -> int:
     """Günlük sıralı vaka numarasını ÖNİZLE - Counter'ı ARTIRMAZ"""
     # Türkiye saati (UTC+3)
-    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    turkey_now = get_turkey_time()
     today = turkey_now.strftime("%Y%m%d")
     counter_id = f"case_number_{today}"
     
@@ -50,7 +51,7 @@ async def get_next_case_sequence() -> int:
     from pymongo import ReturnDocument
     
     # Türkiye saati (UTC+3)
-    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    turkey_now = get_turkey_time()
     today = turkey_now.strftime("%Y%m%d")
     counter_id = f"case_number_{today}"
     
@@ -70,7 +71,7 @@ async def get_next_case_sequence() -> int:
 async def generate_case_number() -> str:
     """Generate case number in format YYYYMMDD-XXXXXX (starting from 000001)"""
     # Türkiye saati (UTC+3)
-    now = datetime.utcnow() + timedelta(hours=3)
+    now = get_turkey_time()
     date_str = now.strftime("%Y%m%d")
     seq = await get_next_case_sequence()
     # Tam 6 haneli format: 000001, 000002, ...
@@ -83,7 +84,7 @@ async def get_next_case_number(request: Request):
     user = await get_current_user(request)
     
     # Türkiye saati (UTC+3)
-    now = datetime.utcnow() + timedelta(hours=3)
+    now = get_turkey_time()
     date_str = now.strftime("%Y%m%d")
     
     # PEEK kullan - counter'ı artırmaz!
@@ -171,7 +172,16 @@ async def get_cases(
     request: Request,
     status: Optional[str] = None,
     priority: Optional[str] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    source: Optional[str] = None,  # 'call_center' or 'registration'
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    last_24h: Optional[bool] = False,
+    user_id: Optional[str] = None,  # Hangi kullanıcı işlem yapmış
+    medication_name: Optional[str] = None,  # Hangi ilaç kullanılmış
+    has_hospital_transfer: Optional[bool] = None,  # Hastaneye sevk var mı
+    page: Optional[int] = 1,
+    limit: Optional[int] = 30
 ):
     """Get all cases with filters"""
     user = await get_current_user(request)
@@ -210,14 +220,119 @@ async def get_cases(
             ]
         })
     
+    # Source filter (kaynak filtresi)
+    if source:
+        if source == "call_center":
+            # Çağrı merkezi - case_details.type yoksa veya 'ayaktan_basvuru' değilse
+            filters.append({
+                "$or": [
+                    {"case_details.type": {"$exists": False}},
+                    {"case_details.type": {"$ne": "ayaktan_basvuru"}}
+                ]
+            })
+        elif source == "registration":
+            # Kayıt ekranı - case_details.type == 'ayaktan_basvuru'
+            filters.append({"case_details.type": "ayaktan_basvuru"})
+    
+    # Date filters
+    if last_24h:
+        last_24h_time = get_turkey_time() - timedelta(hours=24)
+        filters.append({"created_at": {"$gte": last_24h_time}})
+    else:
+        if start_date:
+            try:
+                start = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+                start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+                filters.append({"created_at": {"$gte": start}})
+            except:
+                pass
+        if end_date:
+            try:
+                end = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
+                filters.append({"created_at": {"$lte": end}})
+            except:
+                pass
+    
     # Combine all filters with $and
     if filters:
         query = {"$and": filters} if len(filters) > 1 else filters[0]
     
-    cases = await cases_collection.find(query).sort("created_at", -1).to_list(1000)
+    # Pagination
+    skip = (page - 1) * limit if page > 0 else 0
+    
+    # Get cases
+    cases_cursor = cases_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    cases = await cases_cursor.to_list(limit)
+    
+    # Advanced filters (user_id, medication_name, has_hospital_transfer)
+    # These require additional lookups
+    if user_id or medication_name is not None or has_hospital_transfer is not None:
+        # Get case IDs that match advanced filters
+        advanced_query = {}
+        if user_id:
+            # Kullanıcının işlem yaptığı vakalar
+            # Status history'de veya medication usage'da veya participants'da
+            advanced_query["$or"] = [
+                {"status_history.updated_by": user_id},
+                {"participants.user_id": user_id},
+                {"assigned_team.driver_id": user_id},
+                {"assigned_team.paramedic_id": user_id},
+                {"assigned_team.att_id": user_id},
+                {"assigned_team.nurse_id": user_id}
+            ]
+        
+        if medication_name:
+            # Medication usage'dan ilaç adına göre vakaları bul
+            med_cases = await medication_usage_collection.find({
+                "name": {"$regex": medication_name, "$options": "i"}
+            }).to_list(1000)
+            med_case_ids = [m.get("case_id") for m in med_cases if m.get("case_id")]
+            if med_case_ids:
+                if "$or" in advanced_query:
+                    advanced_query["$or"].append({"_id": {"$in": med_case_ids}})
+                else:
+                    advanced_query["_id"] = {"$in": med_case_ids}
+            else:
+                # Eğer ilaç bulunamazsa boş liste döndür
+                return []
+        
+        if has_hospital_transfer is not None:
+            # Transfer sekmesinde "Hastaneye Nakil" veya "Hastaneler Arası Nakil" var mı?
+            if has_hospital_transfer:
+                # Medical form'da transfer bilgisi var mı kontrol et
+                # Bu durumda medical_form.transfers array'inde "Hastaneye Nakil" veya "Hastaneler Arası Nakil" olmalı
+                pass  # Bu filtreyi case query'ye ekleyemeyiz çünkü medical_form nested, sonra filtreleyeceğiz
+        
+        # Apply advanced filters to cases
+        if advanced_query:
+            advanced_cases = await cases_collection.find(advanced_query).to_list(1000)
+            advanced_case_ids = [c["_id"] for c in advanced_cases]
+            cases = [c for c in cases if c["_id"] in advanced_case_ids]
+        
+        # Hospital transfer filter
+        if has_hospital_transfer is not None:
+            filtered_cases = []
+            for case in cases:
+                medical_form = case.get("medical_form", {})
+                transfers = medical_form.get("transfers", {})
+                has_transfer = (
+                    transfers.get("Hastaneye Nakil") or 
+                    transfers.get("Hastaneler Arası Nakil")
+                )
+                if has_hospital_transfer == has_transfer:
+                    filtered_cases.append(case)
+            cases = filtered_cases
     
     for case in cases:
         case["id"] = case.pop("_id")
+        
+        # Add source info for frontend
+        case_details = case.get("case_details", {})
+        if case_details.get("type") == "ayaktan_basvuru":
+            case["source"] = "registration"
+        else:
+            case["source"] = "call_center"
     
     return cases
 
@@ -265,7 +380,7 @@ async def check_case_access(case_doc: dict, user) -> dict:
     
     # 36 saat kontrolü
     hours_36 = timedelta(hours=36)
-    now = datetime.utcnow()
+    now = get_turkey_time()
     
     # Eğer created_at string ise parse et
     if isinstance(created_at, str):
@@ -329,8 +444,8 @@ async def request_case_access(case_id: str, data: CaseAccessApprovalRequest, req
     access_grant = {
         "user_id": user.id,
         "granted_by": data.approver_id,
-        "granted_at": datetime.utcnow(),
-        "expires_at": datetime.utcnow() + timedelta(hours=4),  # 4 saatlik erişim
+        "granted_at": get_turkey_time(),
+        "expires_at": get_turkey_time() + timedelta(hours=4),  # 4 saatlik erişim
         "otp_verified": True
     }
     
@@ -403,7 +518,7 @@ async def update_patient_info(case_id: str, data: PatientInfoUpdate, request: Re
     if not update_fields:
         return {"message": "Güncellenecek alan yok"}
     
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = get_turkey_time()
     
     await cases_collection.update_one(
         {"_id": case_id},
@@ -432,6 +547,10 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     vehicle = await vehicles_collection.find_one({"_id": data.vehicle_id})
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    # Sadece ambulans tipindeki araçlara vaka ataması yapılabilir
+    if vehicle.get("type") != "ambulans":
+        raise HTTPException(status_code=400, detail="Sadece ambulans tipindeki araçlara vaka ataması yapılabilir")
     
     if vehicle["status"] != "musait":
         raise HTTPException(status_code=400, detail="Vehicle is not available")
@@ -476,7 +595,7 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
                         logger.info(f"Set nurse_id to {user_id}")
     
     logger.info(f"Final assigned_team: {assigned_team}")
-    assigned_team["assigned_at"] = datetime.utcnow()
+    assigned_team["assigned_at"] = get_turkey_time()
     
     status_update = CaseStatusUpdate(
         status="ekip_bilgilendirildi",
@@ -492,7 +611,7 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             "$set": {
                 "assigned_team": assigned_team,
                 "status": "ekip_bilgilendirildi",
-                "updated_at": datetime.utcnow()
+                "updated_at": get_turkey_time()
             },
             "$push": {"status_history": status_update.model_dump()}
         }
@@ -505,7 +624,7 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             "$set": {
                 "status": "gorevde",
                 "current_case_id": case_id,
-                "updated_at": datetime.utcnow()
+                "updated_at": get_turkey_time()
             }
         }
     )
@@ -605,6 +724,11 @@ async def assign_multiple_teams(case_id: str, request: Request):
             logger.warning(f"Vehicle {vehicle_id} not found, skipping")
             continue
         
+        # Sadece ambulans tipindeki araçlara vaka ataması yapılabilir
+        if vehicle.get("type") != "ambulans":
+            logger.warning(f"Vehicle {vehicle_id} is not an ambulance, skipping")
+            continue
+        
         # Araç müsait değilse uyarı ver ama engelleme (çoklu atama olabilir)
         if vehicle["status"] != "musait":
             logger.warning(f"Vehicle {vehicle_id} is not available (status: {vehicle['status']})")
@@ -618,7 +742,7 @@ async def assign_multiple_teams(case_id: str, request: Request):
         team_data = {
             "vehicle_id": vehicle_id,
             "vehicle_plate": vehicle.get("plate"),
-            "assigned_at": datetime.utcnow()
+            "assigned_at": get_turkey_time()
         }
         
         for assignment in vehicle_assignments:
@@ -649,7 +773,7 @@ async def assign_multiple_teams(case_id: str, request: Request):
                 "$set": {
                     "status": "gorevde",
                     "current_case_id": case_id,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": get_turkey_time()
                 }
             }
         )
@@ -671,7 +795,7 @@ async def assign_multiple_teams(case_id: str, request: Request):
         "assigned_team": assigned_teams[0],  # Geriye uyumluluk için ilk ekip
         "assigned_teams": assigned_teams,     # Tüm ekipler
         "status": "ekip_bilgilendirildi",
-        "updated_at": datetime.utcnow()
+        "updated_at": get_turkey_time()
     }
     
     await cases_collection.update_one(
@@ -725,7 +849,7 @@ async def update_case_status(case_id: str, data: CaseUpdateStatus, request: Requ
     
     update_data = {
         "status": data.status,
-        "updated_at": datetime.utcnow()
+        "updated_at": get_turkey_time()
     }
     
     # If case is completed or cancelled, free the vehicle
@@ -738,7 +862,7 @@ async def update_case_status(case_id: str, data: CaseUpdateStatus, request: Requ
                     "$set": {
                         "status": "musait",
                         "current_case_id": None,
-                        "updated_at": datetime.utcnow()
+                        "updated_at": get_turkey_time()
                     }
                 }
             )
@@ -856,8 +980,8 @@ async def join_case(case_id: str, request: Request):
         user_id=user.id,
         user_name=user.name,
         user_role=user.role,
-        joined_at=datetime.utcnow(),
-        last_activity=datetime.utcnow()
+        joined_at=get_turkey_time(),
+        last_activity=get_turkey_time()
     )
     
     # Remove old entry if exists, then add new
@@ -894,7 +1018,7 @@ async def get_participants(case_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Vaka bulunamadı")
     
     # Filter out inactive participants (last activity > 5 minutes ago)
-    cutoff = datetime.utcnow() - timedelta(minutes=5)
+    cutoff = get_turkey_time() - timedelta(minutes=5)
     participants = case_doc.get("participants", [])
     
     active_participants = []
@@ -939,9 +1063,9 @@ async def update_medical_form(case_id: str, request: Request):
         {
             "$set": {
                 "medical_form": current_form,
-                "last_form_update": datetime.utcnow(),
+                "last_form_update": get_turkey_time(),
                 "last_form_updater": user.id,
-                "updated_at": datetime.utcnow()
+                "updated_at": get_turkey_time()
             }
         }
     )
@@ -949,13 +1073,13 @@ async def update_medical_form(case_id: str, request: Request):
     # Update participant's last activity
     await cases_collection.update_one(
         {"_id": case_id, "participants.user_id": user.id},
-        {"$set": {"participants.$.last_activity": datetime.utcnow()}}
+        {"$set": {"participants.$.last_activity": get_turkey_time()}}
     )
     
     return {
         "message": "Form güncellendi",
         "updated_by": user.name,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": get_turkey_time().isoformat()
     }
 
 @router.get("/{case_id}/medical-form")
@@ -1001,7 +1125,7 @@ async def doctor_approval(case_id: str, data: DoctorApprovalRequest, request: Re
         status=data.status,
         doctor_id=user.id,
         doctor_name=user.name,
-        approved_at=datetime.utcnow(),
+        approved_at=get_turkey_time(),
         rejection_reason=data.rejection_reason if data.status == "rejected" else None,
         notes=data.notes
     )
@@ -1012,7 +1136,7 @@ async def doctor_approval(case_id: str, data: DoctorApprovalRequest, request: Re
         {
             "$set": {
                 "doctor_approval": approval.model_dump(),
-                "updated_at": datetime.utcnow()
+                "updated_at": get_turkey_time()
             }
         }
     )
@@ -1170,7 +1294,7 @@ async def export_case_excel(case_id: str, request: Request):
         
         # Dosya adı
         case_number = case_doc.get("case_number", case_id[:8])
-        date_str = datetime.utcnow().strftime("%Y-%m-%d")
+        date_str = get_turkey_time().strftime("%Y-%m-%d")
         filename = f"VAKA_FORMU_{case_number}_{date_str}.xlsx"
         
         return StreamingResponse(

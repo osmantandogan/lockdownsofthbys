@@ -33,8 +33,8 @@ class User(BaseModel):
     is_active: bool = True
     signature: Optional[str] = None  # Base64 signature data
     signature_updated_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class UserSession(BaseModel):
     user_id: str
@@ -188,8 +188,8 @@ class Case(BaseModel):
     healmedy_location_name: Optional[str] = None
     
     created_by: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class CaseCreate(BaseModel):
     caller: CallerInfo
@@ -238,8 +238,8 @@ class Vehicle(BaseModel):
     last_inspection_date: Optional[datetime] = None
     next_maintenance_km: Optional[int] = None  # Next 20000 block
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class VehicleCreate(BaseModel):
     plate: str
@@ -289,8 +289,8 @@ class StockItem(BaseModel):
     field_location_id: Optional[str] = None  # FieldLocation ID referansı
     source_transfer_id: Optional[str] = None  # Hangi transferle geldi
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class StockItemCreate(BaseModel):
     name: str
@@ -542,8 +542,8 @@ class HandoverSession(BaseModel):
     # Geçerlilik
     expires_at: Optional[datetime] = None  # Oturum geçerlilik süresi
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class ShiftStart(BaseModel):
     vehicle_qr: str
@@ -608,8 +608,8 @@ class DocumentMetadata(BaseModel):
     page_no: str  # Sayfa no (örn: "1-5")
     revision_no: int  # Revizyon numarası
     created_by: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class DocumentMetadataCreate(BaseModel):
     form_type: str
@@ -645,8 +645,8 @@ class FormSubmission(BaseModel):
     vehicle_plate: Optional[str] = None
     case_id: Optional[str] = None
     status: Literal["draft", "submitted", "approved", "rejected"] = "submitted"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class FormSubmissionCreate(BaseModel):
     form_type: FormType
@@ -702,8 +702,8 @@ class DoctorNote(BaseModel):
     content: str  # Not içeriği
     priority: Literal["dusuk", "normal", "yuksek", "kritik"] = "normal"
     is_alert: bool = False  # Uyarı olarak gösterilsin mi?
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class MedicalHistory(BaseModel):
     """Tıbbi geçmiş kaydı (vaka bazlı)"""
@@ -766,8 +766,8 @@ class PatientCard(BaseModel):
     
     # Meta
     created_by: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
     last_accessed_at: Optional[datetime] = None
     last_accessed_by: Optional[str] = None
 
@@ -874,8 +874,8 @@ class MaterialRequest(BaseModel):
     completed_by: Optional[str] = None
     completed_at: Optional[datetime] = None
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class MaterialRequestCreate(BaseModel):
     """Malzeme talebi oluşturma"""
@@ -927,8 +927,8 @@ class FieldLocation(BaseModel):
     
     # Meta
     created_by: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
 
 
 class FieldLocationCreate(BaseModel):
@@ -1189,8 +1189,8 @@ class PdfTemplate(BaseModel):
     # Oluşturan
     created_by: str
     created_by_name: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
     
     # Aktif mi?
     is_active: bool = True

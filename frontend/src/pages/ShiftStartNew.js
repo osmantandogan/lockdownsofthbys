@@ -994,122 +994,29 @@ const ShiftStartNew = () => {
               </div>
             </div>
 
-            {/* Yönetici Onay Sistemi (Sayfa Bazlı) */}
-            <Card className={`border-2 ${
-              approvalStatus === 'approved' ? 'border-green-500 bg-green-50' : 
-              approvalStatus === 'rejected' ? 'border-red-500 bg-red-50' :
-              'border-purple-300 bg-purple-50'
-            }`}>
+            {/* Bilgilendirme */}
+            <Card className="border-2 border-blue-300 bg-blue-50">
               <CardHeader className="py-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className={`h-5 w-5 ${
-                    approvalStatus === 'approved' ? 'text-green-600' : 
-                    approvalStatus === 'rejected' ? 'text-red-600' :
-                    'text-purple-600'
-                  }`} />
-                  Yönetici Onayı
-                  {approvalStatus === 'approved' && <span className="text-green-600 text-sm ml-2">✓ Onaylandı</span>}
-                  {approvalStatus === 'rejected' && <span className="text-red-600 text-sm ml-2">✗ Reddedildi</span>}
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                  Vardiya Başlatma Onayı
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {approvalStatus === null && (
-                  <>
-                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                      <p className="text-sm text-yellow-800">
-                        ⚠️ Vardiyayı başlatmak için yönetici onayı gerekli.
-                        <br />
-                        <span className="text-xs">Onay talebi Vardiya Onayları sayfasına düşecek.</span>
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      onClick={handleRequestApproval} 
-                      disabled={sendingApproval}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                    >
-                      {sendingApproval ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
-                      ) : (
-                        <><Send className="h-4 w-4 mr-2" /> Onay Talebi Gönder</>
-                      )}
-                    </Button>
-                  </>
-                )}
-                
-                {approvalStatus === 'pending' && (
-                  <div className="space-y-3">
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
-                      <p className="text-blue-800 font-medium">Onay Bekleniyor...</p>
-                      <p className="text-sm text-blue-600 mt-1">
-                        Yönetici onayı için bekleyiniz. Bu süre zarfında görevlerinize devam edebilirsiniz.
-                      </p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleCheckApproval}
-                      disabled={checkingApproval}
-                      className="w-full"
-                    >
-                      {checkingApproval ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Kontrol ediliyor...</>
-                      ) : (
-                        'Onay Durumunu Kontrol Et'
-                      )}
-                    </Button>
-                    <p className="text-xs text-center text-gray-400">Otomatik olarak 5 saniyede bir kontrol edilir</p>
-                  </div>
-                )}
-                
-                {approvalStatus === 'approved' && (
-                  <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-green-300">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-700">Onay Alındı!</p>
-                      <p className="text-sm text-gray-500">Vardiya başlatılabilir</p>
-                    </div>
-                  </div>
-                )}
-                
-                {approvalStatus === 'rejected' && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-red-300">
-                      <AlertCircle className="h-8 w-8 text-red-600" />
-                      <div>
-                        <p className="font-medium text-red-700">Onay Reddedildi!</p>
-                        <p className="text-sm text-gray-500">Yöneticinizle iletişime geçin</p>
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => { setApprovalId(null); setApprovalStatus(null); }}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      Yeniden Talep Gönder
-                    </Button>
-                  </div>
-                )}
+                <div className="bg-white border border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    ✅ Vardiyayı başlatabilirsiniz. Onay kaydı otomatik olarak oluşturulacak ve yöneticiye bildirilecektir.
+                  </p>
+                </div>
               </CardContent>
             </Card>
-
-            {/* Uyarı */}
-            {approvalStatus === 'approved' && (
-              <div className="flex items-start space-x-2 bg-green-50 p-4 rounded-lg border border-green-200">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-green-900">Tüm onaylar tamamlandı!</p>
-                  <p className="text-green-700">Vardiyayı başlatabilirsiniz.</p>
-                </div>
-              </div>
-            )}
 
             <div className="flex justify-between pt-4 border-t">
               <Button variant="outline" onClick={() => setStep(3)}>Geri</Button>
               <Button
                 onClick={handleStartShift}
-                disabled={loading || approvalStatus !== 'approved'}
-                className={`${approvalStatus === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700"
                 data-testid="confirm-start-button"
               >
                 {loading ? (

@@ -40,6 +40,9 @@ import CaseAccessRestriction from '../components/CaseAccessRestriction';
 import { saveAs } from 'file-saver';
 import BarcodeScanner from '../components/BarcodeScanner';
 import SignaturePad from '../components/SignaturePad';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 // Onam Form Bileşenleri
 import KVKKConsentForm from '../components/forms/KVKKConsentForm';
@@ -50,6 +53,14 @@ import GeneralConsentForm from '../components/forms/GeneralConsentForm';
 
 // Jitsi server URL - kendi sunucunuzu kullanmak için değiştirin
 const JITSI_DOMAIN = process.env.REACT_APP_JITSI_DOMAIN || 'meet.jit.si';
+
+// Fix leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -84,6 +95,7 @@ const CaseDetail = () => {
   const [patientCardData, setPatientCardData] = useState(null);
   const [showPatientCardDialog, setShowPatientCardDialog] = useState(false);
   const [lookingUpPatient, setLookingUpPatient] = useState(false);
+  const [patientCaseCount, setPatientCaseCount] = useState(0);
   
   const [icdSearch, setIcdSearch] = useState('');
   const [icdResults, setIcdResults] = useState([]);
@@ -368,8 +380,27 @@ const CaseDetail = () => {
   useEffect(() => {
     if (!caseData) return;
     
-    // Join case
-    casesAPI.joinCase(id).catch(console.error);
+    let joinRetryCount = 0;
+    const maxRetries = 3;
+    
+    // Join case with retry mechanism
+    const joinCaseWithRetry = async () => {
+      try {
+        await casesAPI.joinCase(id);
+        joinRetryCount = 0; // Reset on success
+      } catch (error) {
+        console.error('Error joining case:', error);
+        joinRetryCount++;
+        if (joinRetryCount < maxRetries) {
+          // Retry after 2 seconds
+          setTimeout(joinCaseWithRetry, 2000);
+        } else {
+          toast.error('Vakaya katılım başarısız. Sayfayı yenileyin.');
+        }
+      }
+    };
+    
+    joinCaseWithRetry();
     
     // Vaka kapalıysa polling yapma
     const closedStatuses = ['tamamlandi', 'iptal_edildi', 'kapandi'];
@@ -377,20 +408,37 @@ const CaseDetail = () => {
       return;
     }
     
+    // Heartbeat interval - update last_activity every 30 seconds
+    const heartbeatInterval = setInterval(async () => {
+      if (!document.hidden) {
+        try {
+          // Re-join to update last_activity
+          await casesAPI.joinCase(id);
+        } catch (error) {
+          console.error('Heartbeat error:', error);
+        }
+      }
+    }, 30000); // 30 saniyede bir heartbeat
+    
     // Visibility change handler - sayfa görünür değilse polling durdur
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.hidden) {
         if (pollInterval.current) {
           clearInterval(pollInterval.current);
           pollInterval.current = null;
         }
       } else {
-        // Sayfa tekrar görünür olduğunda polling başlat
+        // Sayfa tekrar görünür olduğunda join et ve polling başlat
+        try {
+          await casesAPI.joinCase(id);
+        } catch (error) {
+          console.error('Error rejoining case:', error);
+        }
         if (!pollInterval.current) {
           pollInterval.current = setInterval(() => {
             loadMedicalForm();
             loadParticipants();
-          }, 5000); // 5 saniyeye çıkardık
+          }, 5000); // 5 saniyede bir
         }
       }
     };
@@ -411,6 +459,11 @@ const CaseDetail = () => {
         clearInterval(pollInterval.current);
         pollInterval.current = null;
       }
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      // Leave case on unmount
+      casesAPI.leaveCase(id).catch(() => {});
     };
   }, [caseData?.status, id]);
 
@@ -422,7 +475,9 @@ const CaseDetail = () => {
         usersAPI.getAll()
       ]);
       setCaseData(caseRes.data);
-      setVehicles(vehiclesRes.data);
+      // Sadece ambulans tipindeki araçları göster
+      const ambulances = (vehiclesRes.data || []).filter(v => v.type === 'ambulans');
+      setVehicles(ambulances);
       setUsers(usersRes.data);
       
       // Set patient info for editing
@@ -693,6 +748,17 @@ const CaseDetail = () => {
         }));
         setPatientInfoChanged(true);
         
+        // Vaka sayısını çek
+        if (patientCard.id) {
+          try {
+            const caseCountResponse = await patientsAPI.getCaseCount(patientCard.id);
+            setPatientCaseCount(caseCountResponse.data.case_count || 0);
+          } catch (err) {
+            console.log('Vaka sayısı alınamadı:', err);
+            setPatientCaseCount(0);
+          }
+        }
+        
         // Eğer alerji, kronik hastalık veya tıbbi geçmiş varsa pop-up göster
         const hasAlerts = (patientCard.allergies && patientCard.allergies.length > 0) ||
                           (patientCard.chronic_diseases && patientCard.chronic_diseases.length > 0) ||
@@ -709,6 +775,8 @@ const CaseDetail = () => {
       if (error.response?.status !== 404) {
         console.log('Hasta kartı bulunamadı veya hata:', error.message);
       }
+      setPatientCardData(null);
+      setPatientCaseCount(0);
     } finally {
       setLookingUpPatient(false);
     }
@@ -3095,6 +3163,54 @@ const CaseDetail = () => {
             </CardContent>
           </Card>
 
+          {/* Vaka Konumu Haritası */}
+          {caseData?.location?.coordinates?.lat && caseData?.location?.coordinates?.lng && (
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-t-lg">
+                <CardTitle className="flex items-center space-x-2 text-lg">
+                  <MapPin className="h-5 w-5" />
+                  <span>Vaka Konumu</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div style={{ height: '400px', width: '100%' }}>
+                  <MapContainer
+                    center={[caseData.location.coordinates.lat, caseData.location.coordinates.lng]}
+                    zoom={15}
+                    style={{ height: '100%', width: '100%' }}
+                    className="rounded-b-lg"
+                  >
+                    <TileLayer
+                      url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                      attribution='&copy; Google Maps'
+                      maxZoom={20}
+                    />
+                    <Marker position={[caseData.location.coordinates.lat, caseData.location.coordinates.lng]}>
+                      <Popup>
+                        <div>
+                          <strong>Vaka Konumu</strong>
+                          <br />
+                          {caseData.location.address || 'Adres belirtilmemiş'}
+                          <br />
+                          <span className="text-xs text-gray-500">
+                            {caseData.location.coordinates.lat.toFixed(5)}, {caseData.location.coordinates.lng.toFixed(5)}
+                          </span>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+                {caseData.location.address && (
+                  <div className="p-3 bg-gray-50">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">Adres:</span> {caseData.location.address}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Ekip Bilgileri */}
           {caseData.assigned_team && (
             <Card>
@@ -3492,7 +3608,10 @@ const CaseDetail = () => {
                   </h4>
                   <ul className="list-disc list-inside text-sm text-red-700">
                     {patientCardData.allergies.map((allergy, idx) => (
-                      <li key={idx}>{allergy.name} - {allergy.severity || 'Belirtilmemiş'}</li>
+                      <li key={idx}>
+                        {typeof allergy === 'string' ? allergy : (allergy.name || allergy)}
+                        {typeof allergy === 'object' && allergy.severity && ` - ${allergy.severity}`}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -3506,7 +3625,10 @@ const CaseDetail = () => {
                   </h4>
                   <ul className="list-disc list-inside text-sm text-orange-700">
                     {patientCardData.chronic_diseases.map((disease, idx) => (
-                      <li key={idx}>{disease.name} - {disease.diagnosis_date || ''}</li>
+                      <li key={idx}>
+                        {typeof disease === 'string' ? disease : (disease.name || disease)}
+                        {typeof disease === 'object' && disease.diagnosis_date && ` - ${disease.diagnosis_date}`}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -3520,8 +3642,13 @@ const CaseDetail = () => {
                   </h4>
                   {patientCardData.doctor_notes.slice(0, 3).map((note, idx) => (
                     <div key={idx} className="text-sm mb-2 p-2 bg-white rounded">
-                      <p className="text-purple-800">{note.note}</p>
-                      <p className="text-xs text-gray-500 mt-1">{note.doctor_name} - {note.date}</p>
+                      <p className="font-semibold text-purple-900 mb-1">{note.title || 'Not'}</p>
+                      <p className="text-purple-800">{note.content || note.note || '-'}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {note.doctor_name || note.doctorName || 'Doktor'} 
+                        {note.created_at && ` - ${new Date(note.created_at).toLocaleDateString('tr-TR')}`}
+                        {note.date && ` - ${note.date}`}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -3552,6 +3679,43 @@ const CaseDetail = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Hasta Kartı Notları - Sağ Altta Sticky Note */}
+      {patientCardData && patientCardData.doctor_notes && patientCardData.doctor_notes.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm">
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg shadow-xl p-4 transform rotate-[-2deg] hover:rotate-0 transition-transform">
+            <div className="flex items-start justify-between mb-2">
+              <h4 className="font-bold text-yellow-900 text-sm flex items-center gap-2">
+                📝 Hasta Notları
+              </h4>
+              <button
+                onClick={() => setShowPatientCardDialog(true)}
+                className="text-yellow-700 hover:text-yellow-900 text-xs underline"
+              >
+                Tümünü Gör
+              </button>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {patientCardData.doctor_notes.slice(0, 3).map((note, idx) => (
+                <div key={idx} className="text-xs bg-white p-2 rounded border-l-2 border-yellow-400">
+                  <p className="font-semibold text-yellow-900 mb-1">{note.title || 'Not'}</p>
+                  <p className="text-yellow-800 text-xs leading-relaxed">{note.content || note.note || '-'}</p>
+                  {note.doctor_name && (
+                    <p className="text-yellow-600 text-xs mt-1">— {note.doctor_name}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {patientCaseCount > 0 && (
+              <div className="mt-3 pt-2 border-t border-yellow-300">
+                <p className="text-xs text-yellow-700 font-medium">
+                  📊 Toplam Vaka Sayısı: <span className="font-bold">{patientCaseCount}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

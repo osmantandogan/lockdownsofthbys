@@ -66,6 +66,8 @@ const ShiftAssignments = () => {
       
       const allUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
       const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
+      // Sadece ambulans tipindeki araçları göster
+      const ambulances = allVehicles.filter(v => v.type === 'ambulans');
       const assignmentsData = Array.isArray(assignmentsRes.data) ? assignmentsRes.data : [];
       
       // Enrich assignments
@@ -93,7 +95,7 @@ const ShiftAssignments = () => {
         ['sofor', 'bas_sofor', 'paramedik', 'att', 'hemsire', 'doktor'].includes(u.role)
       );
       setUsers(fieldUsers);
-      setVehicles(allVehicles);
+      setVehicles(ambulances);
     } catch (error) {
       console.error('Error loading data:', error);
       
@@ -500,7 +502,7 @@ const ShiftAssignments = () => {
           </Dialog>
           
           {/* Tek Tek Atama */}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="new-assignment-button">
               <Plus className="h-4 w-4 mr-2" />

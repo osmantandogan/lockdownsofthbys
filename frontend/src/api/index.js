@@ -130,6 +130,7 @@ export const vehiclesAPI = {
 // Stock API
 export const stockAPI = {
   getAll: (params) => api.get('/stock', { params }),
+  getAllGrouped: (params) => api.get('/stock/all-grouped', { params }),
   getById: (id) => api.get(`/stock/${id}`),
   getByQR: (qr) => api.get(`/stock/qr/${qr}`),
   create: (data) => api.post('/stock', data),
@@ -170,7 +171,9 @@ export const stockAPI = {
   
   // Stok Hareketleri
   sendStockToLocation: (data) => api.post('/stock-barcode/movements/send', data),
-  getStockMovements: (params) => api.get('/stock-barcode/movements', { params })
+  getStockMovements: (params) => api.get('/stock-barcode/movements', { params }),
+  createStockMovement: (data) => api.post('/stock-barcode/movements/create', data),
+  createStockMovement: (data) => api.post('/stock-barcode/movements/create', data)
 };
 
 // Medications API (Vakada kullanılan ilaçlar)
@@ -485,6 +488,7 @@ export const patientsAPI = {
   
   // Erişim logları
   getAccessLogs: (patientId, limit = 50) => api.get(`/patients/${patientId}/access-logs`, { params: { limit } }),
+  getCaseCount: (patientId) => api.get(`/patients/${patientId}/case-count`),
   
   // İstatistikler
   getStats: () => api.get('/patients/stats/summary')

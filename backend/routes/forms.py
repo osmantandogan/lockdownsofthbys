@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException, Request
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from database import forms_collection, users_collection, cases_collection
 from models import FormSubmission, FormSubmissionCreate
 from auth_utils import get_current_user
 from datetime import datetime
+import re
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Rol çevirisi
 ROLE_LABELS = {
@@ -25,9 +28,12 @@ async def submit_form(data: FormSubmissionCreate, request: Request):
     """Submit a new form"""
     user = await get_current_user(request)
     
+    # Form verilerini temizle
+    sanitized_form_data = sanitize_form_data(data.form_data)
+    
     new_form = FormSubmission(
         form_type=data.form_type,
-        form_data=data.form_data,
+        form_data=sanitized_form_data,
         patient_name=data.patient_name,
         vehicle_plate=data.vehicle_plate,
         case_id=data.case_id,
@@ -36,6 +42,8 @@ async def submit_form(data: FormSubmissionCreate, request: Request):
     
     form_dict = new_form.model_dump(by_alias=True)
     await forms_collection.insert_one(form_dict)
+    
+    logger.info(f"Form gönderildi: {data.form_type} by {user.name}")
     
     return new_form
 

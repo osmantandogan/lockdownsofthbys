@@ -41,6 +41,16 @@ const getInspectionStatus = (daysRemaining) => {
   return { color: 'bg-green-100 text-green-700', label: `${daysRemaining} gün kaldı` };
 };
 
+// Bakım kilometresi durumunu belirle
+const getMaintenanceKmStatus = (currentKm, nextMaintenanceKm) => {
+  if (!nextMaintenanceKm || nextMaintenanceKm === 0) return null;
+  const remainingKm = nextMaintenanceKm - currentKm;
+  if (remainingKm <= 0) return { color: 'bg-red-500 text-white', label: 'Bakım Zamanı!', km: 0 };
+  if (remainingKm <= 1000) return { color: 'bg-red-100 text-red-700', label: 'Bakım Yaklaşıyor', km: remainingKm };
+  if (remainingKm <= 2000) return { color: 'bg-yellow-100 text-yellow-700', label: 'Bakım Yaklaşıyor', km: remainingKm };
+  return null; // 2000'den fazla ise gösterme
+};
+
 const Vehicles = () => {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
@@ -62,8 +72,20 @@ const Vehicles = () => {
   });
 
   // Yetki kontrolleri
+  const canViewVehicles = ['operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
   const canManageVehicles = ['operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
   const canViewKmReport = ['operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
+  
+  // Erişim kontrolü
+  if (!canViewVehicles) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Erişim Reddedildi</h2>
+        <p className="text-gray-600">Bu sayfayı görüntülemek için yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadData();
@@ -425,26 +447,47 @@ const Vehicles = () => {
                 </p>
               </div>
               
-              {/* Muayene Tarihi Uyarısı */}
-              {(() => {
+              {/* Son Muayene Tarihi - Her zaman göster */}
+              {vehicle.last_inspection_date && (() => {
                 const daysRemaining = getDaysUntilInspection(vehicle.last_inspection_date);
                 const status = getInspectionStatus(daysRemaining);
                 const nextDate = getNextInspectionDate(vehicle.last_inspection_date);
+                const lastDate = new Date(vehicle.last_inspection_date);
                 
-                if (status && daysRemaining !== null && daysRemaining <= 60) {
+                // Eğer 60 günden fazla varsa yeşil, yoksa mevcut renk
+                const bgColor = daysRemaining > 60 ? 'bg-green-100 text-green-700' : (status?.color || 'bg-gray-100 text-gray-700');
+                
+                return (
+                  <div className={`mt-3 p-2 rounded-lg ${bgColor} flex items-center justify-between`}>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span className="text-xs font-medium">Son Muayene</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold">{lastDate.toLocaleDateString('tr-TR')}</p>
+                      {status && daysRemaining !== null && (
+                        <p className="text-xs opacity-75">{status.label}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Bakım Kilometresi Uyarısı */}
+              {(() => {
+                const kmStatus = getMaintenanceKmStatus(vehicle.km, vehicle.next_maintenance_km);
+                if (kmStatus) {
                   return (
-                    <div className={`mt-3 p-2 rounded-lg ${status.color} flex items-center justify-between`}>
+                    <div className={`mt-2 p-2 rounded-lg ${kmStatus.color} flex items-center justify-between`}>
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-xs font-medium">Muayene</span>
+                        <Clock className="h-4 w-4" />
+                        <span className="text-xs font-medium">Bakım KM</span>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold">{status.label}</p>
-                        {nextDate && (
-                          <p className="text-xs opacity-75">
-                            {nextDate.toLocaleDateString('tr-TR')}
-                          </p>
-                        )}
+                        <p className="text-xs font-bold">{kmStatus.label}</p>
+                        <p className="text-xs opacity-75">
+                          {kmStatus.km.toLocaleString()} km kaldı
+                        </p>
                       </div>
                     </div>
                   );

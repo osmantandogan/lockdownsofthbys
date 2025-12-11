@@ -227,10 +227,30 @@ const FormHistory = () => {
           <div class="form-data">
             <h2>Form Verileri</h2>
             ${Object.entries(selectedForm?.form_data || {}).map(([key, value]) => {
-              if (key === 'signature' && value) {
-                return `<div class="signature-section"><p class="field-label">İmza:</p><img class="signature-img" src="${value}" alt="İmza" /></div>`;
+              // Güvenli değer temizleme
+              const sanitizedValue = sanitizeValue(value);
+              
+              if (key === 'signature' && sanitizedValue) {
+                // İmza validasyonu
+                const isValidSignature = typeof sanitizedValue === 'string' && (
+                  sanitizedValue.startsWith('data:image/') ||
+                  sanitizedValue.startsWith('http://') ||
+                  sanitizedValue.startsWith('https://')
+                ) && sanitizedValue.length > 100;
+                
+                if (isValidSignature) {
+                  const safeValue = sanitizedValue.replace(/javascript:/gi, '').replace(/<script[^>]*>.*?<\/script>/gi, '');
+                  return `<div class="signature-section"><p class="field-label">İmza:</p><img class="signature-img" src="${safeValue}" alt="İmza" /></div>`;
+                } else {
+                  return `<div class="field"><span class="field-label">İmza:</span> <span class="text-red-600">Geçersiz veya hasarlı</span></div>`;
+                }
               }
-              return `<div class="field"><span class="field-label">${formatFieldLabel(key)}:</span> ${formatFieldValue(value)}</div>`;
+              
+              // Diğer alanlar için güvenli formatlama
+              const formatted = formatFieldValue(sanitizedValue);
+              // HTML escape
+              const escaped = String(formatted).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+              return `<div class="field"><span class="field-label">${formatFieldLabel(key)}:</span> ${escaped}</div>`;
             }).join('')}
           </div>
         </body>
@@ -414,14 +434,44 @@ const FormHistory = () => {
     return labels[key] || key;
   };
 
+  // Güvenli değer temizleme (JavaScript kodlarını kaldır)
+  const sanitizeValue = (value) => {
+    if (!value) return null;
+    
+    // String ise JavaScript kodlarını temizle
+    if (typeof value === 'string') {
+      // Script taglarını kaldır
+      let cleaned = value.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      // JavaScript: ile başlayan kodları kaldır
+      cleaned = cleaned.replace(/javascript:/gi, '');
+      // onerror, onclick gibi event handler'ları kaldır
+      cleaned = cleaned.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+      return cleaned;
+    }
+    
+    return value;
+  };
+
   const formatFieldValue = (value) => {
     if (value === 'informed') return 'Bilgilendirildi';
     if (value === 'not-informed') return 'Bilgilendirilmedi';
     if (value === 'consent') return 'Onay Verildi';
     if (value === 'no-consent') return 'Onay Verilmedi';
     if (typeof value === 'boolean') return value ? 'Evet' : 'Hayır';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return value || '-';
+    
+    // Güvenli temizleme
+    const sanitized = sanitizeValue(value);
+    
+    if (typeof sanitized === 'object') {
+      // Obje ise güvenli şekilde stringify et
+      try {
+        return JSON.stringify(sanitized, null, 2);
+      } catch {
+        return '[Geçersiz veri]';
+      }
+    }
+    
+    return sanitized || '-';
   };
 
   // Form bileşenini render et (readonly)
@@ -450,7 +500,41 @@ const FormHistory = () => {
               <div key={key} className="border-b pb-2">
                 <p className="text-sm font-medium text-gray-500">{formatFieldLabel(key)}</p>
                 {key === 'signature' && value ? (
-                  <img src={value} alt="İmza" className="max-w-xs border rounded mt-2" />
+                  <div className="mt-2">
+                    {(() => {
+                      // İmza validasyonu
+                      const isValidSignature = value && typeof value === 'string' && (
+                        value.startsWith('data:image/') ||
+                        value.startsWith('http://') ||
+                        value.startsWith('https://') ||
+                        value.startsWith('blob:')
+                      ) && value.length > 100;
+                      
+                      if (!isValidSignature) {
+                        return (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                            İmza fotoğrafı geçersiz veya hasarlı
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <img 
+                          src={value} 
+                          alt="İmza" 
+                          className="max-w-xs border rounded"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = `
+                              <div class="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                                İmza fotoğrafı yüklenemedi
+                              </div>
+                            `;
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
                 ) : (
                   <p className="text-base">{formatFieldValue(value)}</p>
                 )}
@@ -920,8 +1004,20 @@ const FormHistory = () => {
                 
                 {/* Fotoğraflar Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(selectedPhotos.photos || {}).map(([key, value]) => (
-                    value && (
+                  {Object.entries(selectedPhotos.photos || {}).map(([key, value]) => {
+                    // Fotoğraf validasyonu
+                    const isValidPhoto = value && (
+                      typeof value === 'string' && (
+                        value.startsWith('data:image/') ||
+                        value.startsWith('http://') ||
+                        value.startsWith('https://') ||
+                        value.startsWith('blob:')
+                      )
+                    ) && value.length > 100; // Minimum uzunluk kontrolü
+                    
+                    if (!isValidPhoto) return null;
+                    
+                    return (
                       <div key={key} className="space-y-2">
                         <p className="text-xs font-medium text-gray-600 uppercase">
                           {key === 'front' && 'Ön'}
@@ -932,7 +1028,13 @@ const FormHistory = () => {
                           {key === 'interior' && 'İç'}
                           {key === 'dashboard' && 'Gösterge Paneli'}
                           {key === 'km' && 'Kilometre'}
-                          {!['front', 'back', 'left', 'right', 'trunk', 'interior', 'dashboard', 'km'].includes(key) && key}
+                          {key === 'rear_cabin_open' && 'Arka Kabin'}
+                          {key === 'engine' && 'Motor'}
+                          {key === 'left_door_open' && 'Sol Kapı'}
+                          {key === 'right_door_open' && 'Sağ Kapı'}
+                          {key === 'front_cabin' && 'Ön Kabin'}
+                          {key === 'front_cabin_seats_back' && 'Ön Kabin Koltuk'}
+                          {!['front', 'back', 'left', 'right', 'trunk', 'interior', 'dashboard', 'km', 'rear_cabin_open', 'engine', 'left_door_open', 'right_door_open', 'front_cabin', 'front_cabin_seats_back'].includes(key) && key}
                         </p>
                         <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border">
                           <img 
@@ -940,11 +1042,27 @@ const FormHistory = () => {
                             alt={key} 
                             className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => window.open(value, '_blank')}
+                            onError={(e) => {
+                              // Fotoğraf yüklenemezse placeholder göster
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = `
+                                <div class="w-full h-full flex items-center justify-center bg-red-50 border-2 border-red-200 rounded">
+                                  <div class="text-center p-2">
+                                    <p class="text-xs text-red-600 font-medium">Fotoğraf Yüklenemedi</p>
+                                    <p class="text-xs text-red-400 mt-1">Hasarlı veya eksik</p>
+                                  </div>
+                                </div>
+                              `;
+                            }}
+                            onLoad={(e) => {
+                              // Fotoğraf başarıyla yüklendi
+                              e.target.style.display = 'block';
+                            }}
                           />
                         </div>
                       </div>
-                    )
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

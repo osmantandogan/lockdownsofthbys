@@ -11,17 +11,51 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box, Scissors, ArrowRightLeft, History, Send } from 'lucide-react';
+import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box, Scissors, ArrowRightLeft, History, Send, Droplet } from 'lucide-react';
 import StockLocationSummary from '../components/StockLocationSummary';
+import { useAuth } from '../contexts/AuthContext';
+
+// Kategori etiketleri
+const categoryLabels = {
+  ilac: 'İlaç',
+  itriyat: 'İtriyat',
+  diger: 'Diğer'
+};
+
+const categoryIcons = {
+  ilac: Pill,
+  itriyat: Droplet,
+  diger: Package
+};
 
 const StockManagement = () => {
+  const { user } = useAuth();
+  
+  // Erişim kontrolü
+  const canViewStock = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
+  
+  if (!canViewStock) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Erişim Reddedildi</h2>
+        <p className="text-gray-600">Bu sayfayı görüntülemek için yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+  
   const [stocks, setStocks] = useState([]);
+  const [allStockGroups, setAllStockGroups] = useState([]);
+  const [allStockLoading, setAllStockLoading] = useState(false);
+  const [stockCategoryFilter, setStockCategoryFilter] = useState(''); // 'ilac', 'itriyat', 'diger'
+  const [stockSearch, setStockSearch] = useState('');
   const [alerts, setAlerts] = useState({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
-  const [dialogStep, setDialogStep] = useState(1); // 1: Lokasyon seç, 2: Detayları doldur
+  const [dialogStep, setDialogStep] = useState(1); // 1: Lokasyon seç, 2: Kategori seç, 3: Detayları doldur
+  const [selectedCategory, setSelectedCategory] = useState(''); // 'ilac', 'itriyat', 'diger'
   const [vehicles, setVehicles] = useState([]);
   const [customLocations, setCustomLocations] = useState([]);
   const [barcodeLoading, setBarcodeLoading] = useState(false);
@@ -34,8 +68,10 @@ const StockManagement = () => {
     min_quantity: 0,
     location: '',
     location_detail: '',
+    shelf_code: '', // Raf kodu
     lot_number: '',
-    expiry_date: ''
+    expiry_date: '',
+    gtin: '' // İlaç için GTIN
   });
 
   // Karekod Bazlı Stok State
@@ -60,6 +96,19 @@ const StockManagement = () => {
   const [stockMovements, setStockMovements] = useState([]);
   const [movementsLoading, setMovementsLoading] = useState(false);
   
+  // Stok Hareketi Ekleme State
+  const [addMovementDialogOpen, setAddMovementDialogOpen] = useState(false);
+  const [movementStep, setMovementStep] = useState(1); // 1: Kategori, 2: Ürün, 3: Lokasyon ve Detaylar
+  const [movementCategory, setMovementCategory] = useState('');
+  const [movementItems, setMovementItems] = useState([]); // Seçilen ürünler
+  const [availableItems, setAvailableItems] = useState([]); // Kategoriye göre filtrelenmiş ürünler
+  const [movementFromLocation, setMovementFromLocation] = useState('');
+  const [movementToLocation, setMovementToLocation] = useState('');
+  const [movementShelfCode, setMovementShelfCode] = useState('');
+  const [movementLoading, setMovementLoading] = useState(false);
+  const [selectedItemForMovement, setSelectedItemForMovement] = useState(null);
+  const [movementQuantity, setMovementQuantity] = useState(1);
+  
   // Stok Lokasyonları State
   const [stockLocations, setStockLocations] = useState([]);
   const [syncingLocations, setSyncingLocations] = useState(false);
@@ -68,12 +117,18 @@ const StockManagement = () => {
     loadData();
     loadBarcodeGroups();
     loadStockLocations();
+    loadAllStockGroups();
   }, []);
   
   // Lokasyon filtresi değiştiğinde yeniden yükle
   useEffect(() => {
     loadBarcodeGroups();
   }, [barcodeLocationFilter]);
+  
+  // Tüm stok filtreleri değiştiğinde yeniden yükle
+  useEffect(() => {
+    loadAllStockGroups();
+  }, [stockCategoryFilter, stockSearch]);
 
   const loadData = async () => {
     try {
@@ -86,20 +141,17 @@ const StockManagement = () => {
       setAlerts(alertsRes.data);
       setVehicles(vehiclesRes.data || []);
       
-      // Araçlardan ve bekleme noktalarından lokasyon listesi oluştur
+      // Sadece ambulans tipindeki araçları göster
+      const ambulances = (vehiclesRes.data || []).filter(v => v.type === 'ambulans');
+      
+      // Araçlardan lokasyon listesi oluştur (bekleme noktası yok)
       const locations = [];
-      (vehiclesRes.data || []).forEach(v => {
+      ambulances.forEach(v => {
         locations.push({
           type: 'vehicle',
           name: `${v.plate} Aracı`,
           plate: v.plate,
           icon: 'truck'
-        });
-        locations.push({
-          type: 'waiting_point',
-          name: `${v.plate} Bekleme Noktası`,
-          plate: v.plate,
-          icon: 'mappin'
         });
       });
       setCustomLocations(locations);
@@ -108,6 +160,24 @@ const StockManagement = () => {
       toast.error('Stok yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Tüm stokları gruplandırılmış şekilde yükle
+  const loadAllStockGroups = async () => {
+    setAllStockLoading(true);
+    try {
+      const params = {};
+      if (stockCategoryFilter) params.category = stockCategoryFilter;
+      if (stockSearch) params.search = stockSearch;
+      
+      const response = await stockAPI.getAllGrouped(params);
+      setAllStockGroups(response.data.groups || []);
+    } catch (error) {
+      console.error('Tüm stoklar yüklenemedi:', error);
+      toast.error('Stoklar yüklenemedi');
+    } finally {
+      setAllStockLoading(false);
     }
   };
 
@@ -269,6 +339,67 @@ const StockManagement = () => {
     setMovementsDialogOpen(true);
     loadStockMovements();
   };
+  
+  // Kategoriye göre mevcut ürünleri yükle
+  const loadAvailableItemsForMovement = async (category) => {
+    try {
+      const response = await stockAPI.getAllGrouped({ category });
+      setAvailableItems(response.data.groups || []);
+    } catch (error) {
+      console.error('Ürünler yüklenemedi:', error);
+      toast.error('Ürünler yüklenemedi');
+    }
+  };
+  
+  // Stok hareketi formunu sıfırla
+  const resetMovementForm = () => {
+    setMovementStep(1);
+    setMovementCategory('');
+    setMovementItems([]);
+    setAvailableItems([]);
+    setMovementFromLocation('');
+    setMovementToLocation('');
+    setMovementShelfCode('');
+    setSelectedItemForMovement(null);
+    setMovementQuantity(1);
+  };
+  
+  // Stok hareketi oluştur
+  const handleCreateMovement = async () => {
+    if (!movementFromLocation || !movementToLocation || !movementShelfCode || movementItems.length === 0) {
+      toast.error('Lütfen tüm alanları doldurun');
+      return;
+    }
+    
+    setMovementLoading(true);
+    try {
+      // Her ürün için stok hareketi oluştur
+      const items = movementItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        category: item.category
+      }));
+      
+      const response = await stockAPI.createStockMovement({
+        from_location: movementFromLocation,
+        to_location: movementToLocation,
+        items: items,
+        shelf_code: movementShelfCode,
+        notes: `Raf kodu: ${movementShelfCode}`
+      });
+      
+      toast.success(response.data.message || 'Stok hareketi oluşturuldu');
+      setAddMovementDialogOpen(false);
+      resetMovementForm();
+      loadAllStockGroups();
+      loadStockMovements();
+    } catch (error) {
+      console.error('Stok hareketi oluşturulamadı:', error);
+      toast.error(error.response?.data?.detail || 'Stok hareketi oluşturulamadı');
+    } finally {
+      setMovementLoading(false);
+    }
+  };
 
   const handleCreate = async () => {
     try {
@@ -324,18 +455,21 @@ const StockManagement = () => {
       min_quantity: 0,
       location: '',
       location_detail: '',
+      shelf_code: '',
       lot_number: '',
-      expiry_date: ''
+      expiry_date: '',
+      gtin: ''
     });
     setEditMode(false);
     setSelectedStock(null);
     setDialogStep(1);
+    setSelectedCategory('');
     setItsDrug(null); // İTS ilaç bilgisini temizle
   };
 
   const selectLocation = (locationName) => {
     setFormData(prev => ({ ...prev, location: locationName }));
-    setDialogStep(2);
+    setDialogStep(2); // Kategori seçim adımına git
   };
 
   const goBackToLocationSelect = () => {
@@ -442,24 +576,601 @@ const StockManagement = () => {
             <History className="h-4 w-4 mr-2" />
             Stok Hareketleri
           </Button>
+          <Button onClick={() => setAddMovementDialogOpen(true)}>
+            <Send className="h-4 w-4 mr-2" />
+            Stok Hareketi Ekle
+          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="barcode" className="space-y-4" onValueChange={handleTabChange}>
+      <Tabs defaultValue="all" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
-          <TabsTrigger value="barcode" className="flex items-center space-x-2">
-            <QrCode className="h-4 w-4" />
-            <span>Karekod Stok</span>
-          </TabsTrigger>
           <TabsTrigger value="all" className="flex items-center space-x-2">
             <Package className="h-4 w-4" />
             <span>Tüm Stoklar</span>
+          </TabsTrigger>
+          <TabsTrigger value="barcode" className="flex items-center space-x-2">
+            <QrCode className="h-4 w-4" />
+            <span>Karekod Stok</span>
           </TabsTrigger>
           <TabsTrigger value="locations" className="flex items-center space-x-2">
             <MapPin className="h-4 w-4" />
             <span>Lokasyonlar</span>
           </TabsTrigger>
         </TabsList>
+        
+        {/* Tüm Stoklar Sekmesi - Gruplandırılmış */}
+        <TabsContent value="all">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex gap-4 flex-wrap items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <Label className="text-sm text-gray-500 mb-1 block">Ürün Ara</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Ürün adı ara..."
+                      value={stockSearch}
+                      onChange={(e) => setStockSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && loadAllStockGroups()}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    variant={stockCategoryFilter === '' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStockCategoryFilter('')}
+                  >
+                    Tümü
+                  </Button>
+                  <Button
+                    variant={stockCategoryFilter === 'ilac' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStockCategoryFilter('ilac')}
+                  >
+                    <Pill className="h-4 w-4 mr-1" />
+                    İlaç
+                  </Button>
+                  <Button
+                    variant={stockCategoryFilter === 'itriyat' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStockCategoryFilter('itriyat')}
+                  >
+                    <Droplet className="h-4 w-4 mr-1" />
+                    İtriyat
+                  </Button>
+                  <Button
+                    variant={stockCategoryFilter === 'diger' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStockCategoryFilter('diger')}
+                  >
+                    <Package className="h-4 w-4 mr-1" />
+                    Diğer
+                  </Button>
+                </div>
+
+                <Button onClick={loadAllStockGroups} disabled={allStockLoading}>
+                  {allStockLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Yenile
+                </Button>
+              </div>
+              
+              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Yeni Stok
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editMode ? 'Stok Düzenle' : 
+                       dialogStep === 1 ? '1. Adım: Lokasyon Seç' :
+                       dialogStep === 2 ? '2. Adım: Kategori Seç' :
+                       '3. Adım: Stok Bilgilerini Gir'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  {/* ADIM 1: LOKASYON SEÇİMİ */}
+                  {dialogStep === 1 && !editMode && (
+                    <div className="space-y-4 pt-4">
+                      <p className="text-sm text-gray-500">Stok eklenecek lokasyonu seçin</p>
+                      
+                      {/* Sabit Lokasyonlar */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm text-gray-700">Sabit Lokasyonlar</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => selectLocation('merkez_depo')}
+                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                          >
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <Warehouse className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Merkez Depo</p>
+                              <p className="text-xs text-gray-500">Ana stok deposu</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => selectLocation('saglik_merkezi')}
+                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+                          >
+                            <div className="p-2 bg-green-100 rounded-lg">
+                              <Briefcase className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Sağlık Merkezi</p>
+                              <p className="text-xs text-gray-500">Sağlık merkezi stoğu</p>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Araçlar */}
+                      {customLocations.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-sm text-gray-700">Araçlar</h4>
+                          <ScrollArea className="h-[200px] pr-3">
+                            <div className="space-y-2">
+                              {customLocations.map(loc => (
+                                <button
+                                  key={loc.plate}
+                                  onClick={() => selectLocation(loc.name)}
+                                  className="w-full flex items-center justify-between p-3 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <div className="p-2 bg-green-100 rounded-lg">
+                                      <Truck className="h-4 w-4 text-green-600" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{loc.plate}</p>
+                                      <p className="text-xs text-gray-500">Araç içi stok</p>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </div>
+                      )}
+
+                      {/* Saha İçi Noktalar */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm text-gray-700">Saha İçi Noktalar</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => selectLocation('Osman Gazi/FPU')}
+                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+                          >
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <MapPin className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Osman Gazi/FPU</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => selectLocation('Green Zone/Rönesans')}
+                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+                          >
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <MapPin className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Green Zone/Rönesans</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => selectLocation('Batı-Kuzey/İSG BİNA')}
+                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+                          >
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <MapPin className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Batı-Kuzey/İSG BİNA</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => selectLocation('Red Zone/Kara Tesisleri')}
+                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+                          >
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <MapPin className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Red Zone/Kara Tesisleri</p>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* ADIM 2: KATEGORİ SEÇİMİ */}
+                  {dialogStep === 2 && !editMode && (
+                    <div className="space-y-4 pt-4">
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="font-medium text-green-800">Lokasyon: {formData.location}</span>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setDialogStep(1)}>
+                          <ArrowLeft className="h-4 w-4 mr-1" />
+                          Değiştir
+                        </Button>
+                      </div>
+                      
+                      <p className="text-sm text-gray-500 mb-4">Stok eklenecek kategoriyi seçin</p>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <button
+                          onClick={() => {
+                            setSelectedCategory('ilac');
+                            setDialogStep(3);
+                          }}
+                          className="flex flex-col items-center space-y-3 p-6 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                        >
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <Pill className="h-8 w-8 text-blue-600" />
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium">İlaç</p>
+                            <p className="text-xs text-gray-500 mt-1">GTIN ile ekleme</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCategory('itriyat');
+                            setDialogStep(3);
+                          }}
+                          className="flex flex-col items-center space-y-3 p-6 border-2 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-colors"
+                        >
+                          <div className="p-3 bg-cyan-100 rounded-lg">
+                            <Droplet className="h-8 w-8 text-cyan-600" />
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium">İtriyat</p>
+                            <p className="text-xs text-gray-500 mt-1">İsim, sayı, tarih</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCategory('diger');
+                            setDialogStep(3);
+                          }}
+                          className="flex flex-col items-center space-y-3 p-6 border-2 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="p-3 bg-gray-100 rounded-lg">
+                            <Package className="h-8 w-8 text-gray-600" />
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium">Diğer</p>
+                            <p className="text-xs text-gray-500 mt-1">Malzeme, ekipman</p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* ADIM 3: STOK BİLGİLERİ */}
+                  {(dialogStep === 3 || editMode) && (
+                    <div className="space-y-4 pt-4">
+                      {/* Seçilen Lokasyon ve Kategori Gösterimi */}
+                      {!editMode && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                              <span className="font-medium text-green-800">Lokasyon: {formData.location}</span>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setDialogStep(1)}>
+                              <ArrowLeft className="h-4 w-4 mr-1" />
+                              Değiştir
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-5 w-5 text-blue-600" />
+                              <span className="font-medium text-blue-800">Kategori: {categoryLabels[selectedCategory]}</span>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setDialogStep(2)}>
+                              <ArrowLeft className="h-4 w-4 mr-1" />
+                              Değiştir
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {editMode && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <span className="font-medium text-blue-800">Lokasyon: {formData.location}</span>
+                        </div>
+                      )}
+
+                      {/* İlaç Formu */}
+                      {selectedCategory === 'ilac' && !editMode && (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>İlaç Adı * {itsDrug && <Badge variant="secondary" className="ml-2 text-xs">İTS</Badge>}</Label>
+                              <Input
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                disabled={!!itsDrug}
+                                placeholder="İlaç adı"
+                                className={itsDrug ? 'bg-green-50 border-green-300' : ''}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="flex items-center space-x-2">
+                                <QrCode className="h-4 w-4" />
+                                <span>GTIN *</span>
+                                {barcodeLoading && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+                              </Label>
+                              <Input
+                                ref={barcodeInputRef}
+                                value={formData.gtin || formData.code}
+                                onChange={(e) => handleBarcodeChange(e.target.value)}
+                                placeholder="GTIN kodu"
+                                className={itsDrug ? 'border-green-500 bg-green-50' : ''}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label>Raf Kodu *</Label>
+                            <Input
+                              value={formData.shelf_code}
+                              onChange={(e) => setFormData({...formData, shelf_code: e.target.value})}
+                              placeholder="Raf kodu (örn: A-1-2)"
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Miktar</Label>
+                              <Input
+                                type="number"
+                                value={formData.quantity}
+                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Minimum Miktar (Uyarı)</Label>
+                              <Input
+                                type="number"
+                                value={formData.min_quantity}
+                                onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value) || 0})}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* İtriyat/Diger Formu */}
+                      {(selectedCategory === 'itriyat' || selectedCategory === 'diger') && !editMode && (
+                        <>
+                          <div className="space-y-2">
+                            <Label>Ürün Adı *</Label>
+                            <Input
+                              value={formData.name}
+                              onChange={(e) => setFormData({...formData, name: e.target.value})}
+                              placeholder={selectedCategory === 'itriyat' ? 'İtriyat adı' : 'Malzeme adı'}
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Miktar *</Label>
+                              <Input
+                                type="number"
+                                value={formData.quantity}
+                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Minimum Miktar (Uyarı)</Label>
+                              <Input
+                                type="number"
+                                value={formData.min_quantity}
+                                onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value) || 0})}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Son Kullanma Tarihi</Label>
+                              <Input
+                                type="date"
+                                value={formData.expiry_date}
+                                onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Raf Kodu *</Label>
+                              <Input
+                                value={formData.shelf_code}
+                                onChange={(e) => setFormData({...formData, shelf_code: e.target.value})}
+                                placeholder="Raf kodu (örn: A-1-2)"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Edit Mode Formu (eski form) */}
+                      {editMode && (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Malzeme Adı *</Label>
+                              <Input
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Kod</Label>
+                              <Input
+                                value={formData.code}
+                                onChange={(e) => setFormData({...formData, code: e.target.value})}
+                                disabled
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Miktar</Label>
+                              <Input
+                                type="number"
+                                value={formData.quantity}
+                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Minimum Miktar</Label>
+                              <Input
+                                type="number"
+                                value={formData.min_quantity}
+                                onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value) || 0})}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <div className="flex space-x-3 pt-2">
+                        {!editMode && (
+                          <Button variant="outline" onClick={() => setDialogStep(2)} className="flex-1">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Geri
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={editMode ? handleUpdate : handleCreate} 
+                          className="flex-1 bg-red-600 hover:bg-red-700"
+                        >
+                          {editMode ? 'Güncelle' : 'Stok Ekle'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Özet Bilgi */}
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <span>
+                {allStockGroups.length} çeşit ürün, toplam{' '}
+                {allStockGroups.reduce((sum, g) => sum + g.total_quantity, 0)} adet
+              </span>
+            </div>
+
+            {/* Ürün Listesi - Gruplu Görünüm */}
+            {allStockLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : allStockGroups.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-gray-500">
+                  <Box className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Stokta ürün bulunamadı</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {allStockGroups.map((group) => {
+                  const CategoryIcon = categoryIcons[group.category] || Package;
+                  const expiryStatus = getExpiryStatus(group.earliest_expiry);
+                  
+                  return (
+                    <Card 
+                      key={group.name}
+                      className={`cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border-l-4 ${
+                        expiryStatus?.status === 'expired' ? 'border-l-red-500 bg-red-50/50' :
+                        expiryStatus?.status === 'expiring' ? 'border-l-orange-500 bg-orange-50/50' :
+                        'border-l-green-500'
+                      }`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <CategoryIcon className={`h-5 w-5 flex-shrink-0 ${
+                                group.category === 'ilac' ? 'text-blue-600' :
+                                group.category === 'itriyat' ? 'text-cyan-600' :
+                                'text-gray-600'
+                              }`} />
+                              <h4 className="font-semibold text-sm truncate" title={group.name}>
+                                {group.name}
+                              </h4>
+                            </div>
+                            
+                            {group.manufacturer_name && (
+                              <p className="text-xs text-gray-500 mb-2 truncate">
+                                {group.manufacturer_name}
+                              </p>
+                            )}
+                            
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              <Badge className={`${
+                                group.category === 'ilac' ? 'bg-blue-600' :
+                                group.category === 'itriyat' ? 'bg-cyan-600' :
+                                'bg-gray-600'
+                              } text-white`}>
+                                {categoryLabels[group.category] || 'Diğer'}
+                              </Badge>
+                              <Badge className="bg-gray-600 text-white">
+                                {group.total_quantity} adet
+                              </Badge>
+                              
+                              {expiryStatus && (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${
+                                    expiryStatus.status === 'expired' ? 'border-red-300 text-red-700 bg-red-50' :
+                                    expiryStatus.status === 'expiring' ? 'border-orange-300 text-orange-700 bg-orange-50' :
+                                    expiryStatus.status === 'warning' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
+                                    'border-green-300 text-green-700 bg-green-50'
+                                  }`}
+                                >
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  {expiryStatus.label}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {group.locations.length > 0 && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Lokasyonlar: {group.locations.slice(0, 3).join(', ')}
+                                {group.locations.length > 3 && ` +${group.locations.length - 3}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
 
         {/* Karekod Bazlı Stok Sekmesi */}
         <TabsContent value="barcode">
@@ -735,108 +1446,6 @@ const StockManagement = () => {
           <StockLocationSummary />
         </TabsContent>
 
-        {/* Tüm Stoklar Sekmesi */}
-        <TabsContent value="all">
-        <div className="flex justify-end">
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Stok
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editMode ? 'Stok Düzenle' : dialogStep === 1 ? '1. Adım: Stok Lokasyonu Seç' : '2. Adım: Stok Bilgilerini Gir'}
-              </DialogTitle>
-            </DialogHeader>
-            
-            {/* ADIM 1: LOKASYON SEÇİMİ */}
-            {dialogStep === 1 && !editMode && (
-              <div className="space-y-4 pt-4">
-                <p className="text-sm text-gray-500">Stok eklenecek lokasyonu seçin</p>
-                
-                {/* Sabit Lokasyonlar */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm text-gray-700">Sabit Lokasyonlar</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => selectLocation('Merkez Depo')}
-                      className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left"
-                    >
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Warehouse className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Merkez Depo</p>
-                        <p className="text-xs text-gray-500">Ana stok deposu</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => selectLocation('Acil Çanta')}
-                      className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left"
-                    >
-                      <div className="p-2 bg-red-100 rounded-lg">
-                        <Briefcase className="h-5 w-5 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Acil Çanta</p>
-                        <p className="text-xs text-gray-500">Portatif ilaç çantası</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Araç Lokasyonları */}
-                {customLocations.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-gray-700">Araç ve Bekleme Noktaları</h4>
-                    <ScrollArea className="h-[250px] pr-3">
-                      <div className="space-y-2">
-                        {vehicles.map(vehicle => (
-                          <div key={vehicle.id || vehicle._id} className="space-y-2">
-                            {/* Araç */}
-                            <button
-                              onClick={() => selectLocation(`${vehicle.plate} Aracı`)}
-                              className="w-full flex items-center justify-between p-3 border-2 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left"
-                            >
-                              <div className="flex items-center space-x-3">
-                                <div className="p-2 bg-green-100 rounded-lg">
-                                  <Truck className="h-4 w-4 text-green-600" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{vehicle.plate}</p>
-                                  <p className="text-xs text-gray-500">Araç içi stok</p>
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {vehicle.status === 'musait' ? 'Müsait' : 'Görevde'}
-                              </Badge>
-                            </button>
-                            {/* Bekleme Noktası */}
-                            <button
-                              onClick={() => selectLocation(`${vehicle.plate} Bekleme Noktası`)}
-                              className="w-full flex items-center justify-between p-3 border-2 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left ml-6"
-                            >
-                              <div className="flex items-center space-x-3">
-                                <div className="p-2 bg-amber-100 rounded-lg">
-                                  <MapPin className="h-4 w-4 text-amber-600" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{vehicle.plate} Bekleme Noktası</p>
-                                  <p className="text-xs text-gray-500">Bekleme noktası stoğu</p>
-                                </div>
-                              </div>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* ADIM 2: STOK BİLGİLERİ */}
             {(dialogStep === 2 || editMode) && (

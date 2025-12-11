@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from utils.timezone import get_turkey_time
 import uuid
 import logging
 
@@ -66,8 +67,8 @@ async def create_ticket(data: TicketCreate, request: Request):
         "status": "pending",  # pending, in_progress, completed, rejected
         "created_by": user.id,
         "created_by_name": user.name,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": get_turkey_time(),
+        "updated_at": get_turkey_time(),
         "resolved_by": None,
         "resolved_at": None,
         "resolution_notes": None
@@ -148,7 +149,7 @@ async def update_ticket(ticket_id: str, data: TicketUpdate, request: Request):
     if data.status in ["completed", "rejected"]:
         update_data["resolved_by"] = user.id
         update_data["resolved_by_name"] = user.name
-        update_data["resolved_at"] = datetime.utcnow()
+        update_data["resolved_at"] = get_turkey_time()
         
     if data.resolution_notes:
         update_data["resolution_notes"] = data.resolution_notes
@@ -181,13 +182,13 @@ async def update_ticket_status(
     
     update_data = {
         "status": status,
-        "updated_at": datetime.utcnow()
+        "updated_at": get_turkey_time()
     }
     
     if status in ["completed", "rejected"]:
         update_data["resolved_by"] = user.id
         update_data["resolved_by_name"] = user.name
-        update_data["resolved_at"] = datetime.utcnow()
+        update_data["resolved_at"] = get_turkey_time()
         update_data["resolution_notes"] = notes
     
     result = await tickets_collection.update_one(

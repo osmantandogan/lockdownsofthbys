@@ -23,6 +23,7 @@ from models import (
     EmergencyContact, PatientAccessRequest, PatientAccessLog
 )
 from auth_utils import get_current_user
+from utils.timezone import get_turkey_time
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -126,35 +127,39 @@ async def search_patient(
     request: Request,
     tc_no: Optional[str] = None,
     name: Optional[str] = None,
-    phone: Optional[str] = None
+    phone: Optional[str] = None,
+    limit: int = 20
 ):
-    """Hasta ara (TC, ad veya telefon ile)"""
+    """Hasta ara (TC, ad veya telefon ile) - TC olmadan da arama yapılabilir"""
     user = await get_current_user(request)
     
-    # Arama kriteri gerekli
+    # Arama kriteri gerekli (TC artık zorunlu değil)
     if not tc_no and not name and not phone:
-        raise HTTPException(status_code=400, detail="En az bir arama kriteri gerekli (TC, ad veya telefon)")
+        # Eğer hiçbir kriter yoksa, tüm hasta kartlarını listele (erişim kısıtı korunur)
+        query = {}
+    else:
+        query = {}
+        if tc_no:
+            query["tc_no"] = tc_no
+        if name:
+            # Ad veya soyad içinde ara (case insensitive)
+            if "$or" not in query:
+                query["$or"] = []
+            query["$or"].extend([
+                {"name": {"$regex": name, "$options": "i"}},
+                {"surname": {"$regex": name, "$options": "i"}}
+            ])
+        if phone:
+            query["phone"] = {"$regex": phone}
     
-    query = {}
-    if tc_no:
-        query["tc_no"] = tc_no
-    if name:
-        # Ad veya soyad içinde ara (case insensitive)
-        query["$or"] = [
-            {"name": {"$regex": name, "$options": "i"}},
-            {"surname": {"$regex": name, "$options": "i"}}
-        ]
-    if phone:
-        query["phone"] = {"$regex": phone}
-    
-    patients = await patients_collection.find(query).limit(20).to_list(20)
+    patients = await patients_collection.find(query).limit(limit).to_list(limit)
     
     # Hemşire ise sadece temel bilgileri göster
     if user.role in OTP_ACCESS_ROLES:
         return [
             {
                 "id": p["_id"],
-                "tc_no": p["tc_no"][-4:].rjust(11, '*'),  # Son 4 hane görünür
+                "tc_no": p["tc_no"][-4:].rjust(11, '*') if p.get("tc_no") else "***********",  # Son 4 hane görünür
                 "name": p["name"],
                 "surname": p["surname"],
                 "birth_date": p.get("birth_date"),
@@ -215,7 +220,7 @@ async def get_patient_by_tc(tc_no: str, request: Request):
     await patients_collection.update_one(
         {"tc_no": tc_no},
         {"$set": {
-            "last_accessed_at": datetime.utcnow(),
+            "last_accessed_at": get_turkey_time(),
             "last_accessed_by": user.id
         }}
     )
@@ -308,7 +313,7 @@ async def update_patient(patient_id: str, data: PatientCardUpdate, request: Requ
         raise HTTPException(status_code=404, detail="Hasta kartı bulunamadı")
     
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = get_turkey_time()
     
     await patients_collection.update_one(
         {"_id": patient_id},
@@ -339,13 +344,13 @@ async def add_allergy(patient_id: str, allergy: Allergy, request: Request):
         raise HTTPException(status_code=404, detail="Hasta kartı bulunamadı")
     
     allergy.recorded_by = user.id
-    allergy.recorded_at = datetime.utcnow()
+    allergy.recorded_at = get_turkey_time()
     
     await patients_collection.update_one(
         {"_id": patient_id},
         {
             "$push": {"allergies": allergy.model_dump()},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -369,7 +374,7 @@ async def remove_allergy(patient_id: str, allergy_id: str, request: Request):
         {"_id": patient_id},
         {
             "$pull": {"allergies": {"id": allergy_id}},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -391,13 +396,13 @@ async def add_chronic_disease(patient_id: str, disease: ChronicDisease, request:
         raise HTTPException(status_code=404, detail="Hasta kartı bulunamadı")
     
     disease.recorded_by = user.id
-    disease.recorded_at = datetime.utcnow()
+    disease.recorded_at = get_turkey_time()
     
     await patients_collection.update_one(
         {"_id": patient_id},
         {
             "$push": {"chronic_diseases": disease.model_dump()},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -421,7 +426,7 @@ async def remove_chronic_disease(patient_id: str, disease_id: str, request: Requ
         {"_id": patient_id},
         {
             "$pull": {"chronic_diseases": {"id": disease_id}},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -455,7 +460,7 @@ async def add_doctor_note(patient_id: str, note_data: dict, request: Request):
         {"_id": patient_id},
         {
             "$push": {"doctor_notes": note.model_dump()},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -479,7 +484,7 @@ async def remove_doctor_note(patient_id: str, note_id: str, request: Request):
         {"_id": patient_id},
         {
             "$pull": {"doctor_notes": {"id": note_id}},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -500,7 +505,7 @@ async def add_emergency_contact(patient_id: str, contact: EmergencyContact, requ
         {"_id": patient_id},
         {
             "$push": {"emergency_contacts": contact.model_dump()},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -572,7 +577,7 @@ async def add_medical_history(patient_id: str, history_data: dict, request: Requ
     history = MedicalHistory(
         case_id=history_data.get("case_id", ""),
         case_number=history_data.get("case_number", ""),
-        date=datetime.utcnow(),
+        date=get_turkey_time(),
         complaint=history_data.get("complaint", ""),
         diagnosis=history_data.get("diagnosis"),
         treatment=history_data.get("treatment"),
@@ -587,7 +592,7 @@ async def add_medical_history(patient_id: str, history_data: dict, request: Requ
         {"_id": patient_id},
         {
             "$push": {"medical_history": history.model_dump()},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": get_turkey_time()}
         }
     )
     
@@ -620,6 +625,33 @@ async def get_access_logs(patient_id: str, request: Request, limit: int = 50):
 
 # ==================== İSTATİSTİKLER ====================
 
+@router.get("/{patient_id}/case-count")
+async def get_patient_case_count(patient_id: str, request: Request):
+    """Hasta için toplam vaka sayısını getir"""
+    user = await get_current_user(request)
+    
+    patient = await patients_collection.find_one({"_id": patient_id})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Hasta kartı bulunamadı")
+    
+    # Erişim kontrolü
+    has_access = await check_patient_access(user, patient_id)
+    if not has_access:
+        raise HTTPException(status_code=403, detail="Bu bilgiye erişim yetkiniz yok")
+    
+    # TC ile eşleşen vakaları say
+    tc_no = patient.get("tc_no")
+    if not tc_no:
+        return {"case_count": 0}
+    
+    from database import cases_collection
+    case_count = await cases_collection.count_documents({
+        "patient.tc_no": tc_no
+    })
+    
+    return {"case_count": case_count, "tc_no": tc_no}
+
+
 @router.get("/stats/summary")
 async def get_patient_stats(request: Request):
     """Hasta kartı istatistikleri"""
@@ -633,7 +665,7 @@ async def get_patient_stats(request: Request):
     with_chronic = await patients_collection.count_documents({"chronic_diseases.0": {"$exists": True}})
     
     # Son 30 günde erişilen
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = get_turkey_time() - timedelta(days=30)
     recently_accessed = await patients_collection.count_documents({
         "last_accessed_at": {"$gte": thirty_days_ago}
     })

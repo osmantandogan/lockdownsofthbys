@@ -82,6 +82,121 @@ async def get_stock_items(
     
     return items
 
+@router.get("/all-grouped")
+async def get_all_stock_grouped(
+    request: Request,
+    category: Optional[str] = None,  # 'ilac', 'itriyat', 'diger'
+    search: Optional[str] = None
+):
+    """
+    Tüm stokları (stock + barcode_stock) gruplandır ve kategorilere ayır
+    Kategoriler: ilac (GTIN varsa), itriyat (isimde itriyat/iv/ivf geçiyorsa), diger
+    """
+    await get_current_user(request)
+    
+    from database import barcode_stock_collection
+    
+    # Kategori belirleme fonksiyonu
+    def determine_category(item):
+        name_lower = item.get("name", "").lower()
+        gtin = item.get("gtin")
+        
+        # GTIN varsa ilaç
+        if gtin:
+            return "ilac"
+        
+        # İsimde itriyat/iv/ivf geçiyorsa itriyat
+        if any(keyword in name_lower for keyword in ["itriyat", "iv", "ivf", "infüzyon", "serum"]):
+            return "itriyat"
+        
+        # Diğer
+        return "diger"
+    
+    # Tüm stokları al
+    all_items = []
+    
+    # Normal stoklar
+    stock_items = await stock_collection.find({}).to_list(1000)
+    for item in stock_items:
+        item["id"] = item.pop("_id")
+        item["source"] = "stock"
+        item["category"] = determine_category(item)
+        all_items.append(item)
+    
+    # Karekod stoklar
+    barcode_items = await barcode_stock_collection.find({"status": "available"}).to_list(1000)
+    for item in barcode_items:
+        item["id"] = item.pop("_id")
+        item["source"] = "barcode"
+        item["category"] = determine_category(item)
+        all_items.append(item)
+    
+    # Kategori filtresi
+    if category:
+        all_items = [item for item in all_items if item.get("category") == category]
+    
+    # Arama filtresi
+    if search:
+        search_lower = search.lower()
+        all_items = [item for item in all_items if search_lower in item.get("name", "").lower()]
+    
+    # İsme göre grupla
+    grouped = {}
+    for item in all_items:
+        name = item.get("name", "Bilinmeyen")
+        if name not in grouped:
+            grouped[name] = {
+                "name": name,
+                "category": item.get("category", "diger"),
+                "total_quantity": 0,
+                "items": [],
+                "locations": set(),
+                "earliest_expiry": None,
+                "gtin": item.get("gtin"),
+                "manufacturer_name": item.get("manufacturer_name")
+            }
+        
+        # Miktar hesapla
+        if item.get("source") == "stock":
+            quantity = item.get("quantity", 0)
+        else:
+            quantity = 1  # Karekod stok = 1 adet
+        
+        grouped[name]["total_quantity"] += quantity
+        grouped[name]["items"].append(item)
+        if item.get("location"):
+            grouped[name]["locations"].add(item.get("location"))
+        
+        # En yakın SKT
+        expiry = item.get("expiry_date")
+        if expiry:
+            if not grouped[name]["earliest_expiry"] or expiry < grouped[name]["earliest_expiry"]:
+                grouped[name]["earliest_expiry"] = expiry
+    
+    # Format sonuçları
+    result = []
+    for name, group in grouped.items():
+        result.append({
+            "name": name,
+            "category": group["category"],
+            "total_quantity": group["total_quantity"],
+            "item_count": len(group["items"]),
+            "locations": list(group["locations"]),
+            "earliest_expiry": group["earliest_expiry"],
+            "gtin": group["gtin"],
+            "manufacturer_name": group["manufacturer_name"]
+        })
+    
+    # Kategoriye göre sırala
+    category_order = {"ilac": 0, "itriyat": 1, "diger": 2}
+    result.sort(key=lambda x: (category_order.get(x["category"], 3), x["name"]))
+    
+    return {
+        "groups": result,
+        "total_groups": len(result),
+        "total_items": sum(g["total_quantity"] for g in result)
+    }
+
 @router.get("/{item_id}", response_model=StockItem)
 async def get_stock_item(item_id: str, request: Request):
     """Get stock item by ID"""

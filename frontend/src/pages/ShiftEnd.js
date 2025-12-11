@@ -641,101 +641,24 @@ const ShiftEnd = () => {
         </CardContent>
       </Card>
 
-      {/* Yönetici Onayı - Buton bazlı sistem */}
-      <Card className={`border-purple-200 ${managerApproved ? 'bg-green-50/50 border-green-200' : 'bg-purple-50/50'}`}>
+      {/* Bilgilendirme */}
+      <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader>
-          <CardTitle className={managerApproved ? 'text-green-700' : 'text-purple-700'}>
-            <Shield className="h-5 w-5 inline mr-2" />
-            Yönetici Onayı
-            {managerApproved && <span className="ml-2 text-green-600">✓ Onaylandı</span>}
+          <CardTitle className="text-blue-700">
+            <CheckCircle className="h-5 w-5 inline mr-2" />
+            Vardiya Bitirme
           </CardTitle>
           <CardDescription>
-            Baş Şoför veya Operasyon Müdürü tarafından onaylanacak
+            Vardiyayı bitirebilirsiniz. Onay kaydı otomatik olarak oluşturulacak ve yöneticiye bildirilecektir.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {!managerApproved ? (
-            <>
-              {!approvalRequestSent ? (
-                <>
-                  <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg">
-                    <p className="text-sm text-purple-800">
-                      ⚠️ Vardiya bitirmek için yönetici onayı gerekli. Onay talebi gönderildikten sonra 
-                      yöneticinin /dashboard/shift-approvals sayfasından onay vermesi gerekiyor.
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    onClick={requestManagerApproval} 
-                    disabled={sendingApproval}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                  >
-                    {sendingApproval ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gönderiliyor...</>
-                    ) : (
-                      <><Shield className="h-4 w-4 mr-2" /> Vardiya Bitirme Onayı İste</>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="h-5 w-5 text-yellow-600 animate-pulse" />
-                      <p className="font-medium text-yellow-800">Onay Bekleniyor...</p>
-                    </div>
-                    <p className="text-sm text-yellow-700">
-                      Onay talebi Baş Şoför ve Operasyon Müdürüne gönderildi. 
-                      Onaylandığında otomatik olarak güncellenecek.
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={checkApprovalStatus}
-                    disabled={checkingApproval}
-                    className="w-full"
-                  >
-                    {checkingApproval ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Kontrol ediliyor...</>
-                    ) : (
-                      <><RefreshCw className="h-4 w-4 mr-2" /> Onay Durumunu Kontrol Et</>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-green-200">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="font-medium text-green-700">Yönetici Onayı Alındı</p>
-                <p className="text-sm text-gray-500">Vardiya sonlandırılabilir</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
       </Card>
 
-      {/* Onay Özeti ve Bitiş */}
-      <Card className={`${managerApproved ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
+      {/* Özet ve Bitiş */}
+      <Card className="border-green-500 bg-green-50">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2">
-                  {managerApproved ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  ) : approvalRequestSent ? (
-                    <Clock className="h-5 w-5 text-yellow-600 animate-pulse" />
-                  ) : (
-                    <Clock className="h-5 w-5 text-gray-400" />
-                  )}
-                  <span className={!managerApproved ? 'text-yellow-700' : 'text-green-700'}>
-                    Yönetici Onayı: {managerApproved ? '✓ Onaylandı' : approvalRequestSent ? 'Bekliyor...' : 'Gönderilmedi'}
-                  </span>
-                </div>
-              </div>
               <p className="text-sm text-gray-600">
                 Toplam süre: {Math.floor(duration / 60)} saat {duration % 60} dakika
               </p>
@@ -749,7 +672,7 @@ const ShiftEnd = () => {
               </Button>
               <Button
                 onClick={handleEndShift}
-                disabled={submitting || !managerApproved}
+                disabled={submitting}
                 className="bg-green-600 hover:bg-green-700"
                 data-testid="end-shift-button"
               >

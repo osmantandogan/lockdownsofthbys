@@ -39,8 +39,12 @@ const ShiftApprovals = () => {
   const { user } = useAuth();
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [shiftApprovalLogs, setShiftApprovalLogs] = useState([]); // Vardiya başlatma/bitirme logları
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
+  const [logFilter, setLogFilter] = useState('all'); // 'all', 'user', 'vehicle'
+  const [logUserFilter, setLogUserFilter] = useState('');
+  const [logVehicleFilter, setLogVehicleFilter] = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -59,7 +63,22 @@ const ShiftApprovals = () => {
     fetchLogs();
     fetchStartApprovals();
     fetchEndApprovals();
+    fetchShiftApprovalLogs();
   }, [selectedDate]);
+  
+  // Vardiya başlatma/bitirme loglarını çek
+  const fetchShiftApprovalLogs = async () => {
+    try {
+      const params = { date: selectedDate, limit: 200 };
+      if (logUserFilter) params.user_id = logUserFilter;
+      if (logVehicleFilter) params.vehicle_id = logVehicleFilter;
+      
+      const response = await shiftsAPI.getShiftApprovalLogs(params);
+      setShiftApprovalLogs(response.data || []);
+    } catch (error) {
+      console.error('Error fetching shift approval logs:', error);
+    }
+  };
   
   // Vardiya başlatma onaylarını çek
   const fetchStartApprovals = async () => {
@@ -626,77 +645,219 @@ const ShiftApprovals = () => {
       {/* Günlük Loglar */}
       {activeTab === 'logs' && (
         <div className="space-y-4">
-          {/* Tarih Seçici */}
-          <div className="flex items-center gap-4 justify-center">
-            <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-48"
-            />
-            <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          {/* Tarih Seçici ve Filtreler */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 justify-center">
+              <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-48"
+              />
+              <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Filtreler */}
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                variant={logFilter === 'all' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => {
+                  setLogFilter('all');
+                  setLogUserFilter('');
+                  setLogVehicleFilter('');
+                }}
+              >
+                Tümü
+              </Button>
+              <Button 
+                variant={logFilter === 'user' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setLogFilter('user')}
+              >
+                Kişi Bazında
+              </Button>
+              <Button 
+                variant={logFilter === 'vehicle' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setLogFilter('vehicle')}
+              >
+                Araç Bazında
+              </Button>
+            </div>
+            
+            {logFilter === 'user' && (
+              <Input
+                placeholder="Kullanıcı ID veya isim ara..."
+                value={logUserFilter}
+                onChange={(e) => {
+                  setLogUserFilter(e.target.value);
+                  fetchShiftApprovalLogs();
+                }}
+                className="max-w-xs"
+              />
+            )}
+            
+            {logFilter === 'vehicle' && (
+              <Input
+                placeholder="Araç plakası veya ID ara..."
+                value={logVehicleFilter}
+                onChange={(e) => {
+                  setLogVehicleFilter(e.target.value);
+                  fetchShiftApprovalLogs();
+                }}
+                className="max-w-xs"
+              />
+            )}
           </div>
 
           {loading ? (
             <div className="text-center py-8">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto text-blue-600" />
             </div>
-          ) : logs.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-gray-500">
-                <Calendar className="h-12 w-12 mx-auto mb-4" />
-                <p>Bu tarihte devir teslim kaydı yok</p>
-              </CardContent>
-            </Card>
           ) : (
-            logs.map((logItem, index) => (
-              <Card key={index}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Truck className="h-5 w-5 text-blue-600" />
-                      <CardTitle className="text-lg">{logItem.session.vehicle_plate}</CardTitle>
-                      {statusBadge(logItem.session.status)}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {logItem.session.giver_name} → {logItem.session.receiver_name}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {logItem.logs.map((log, logIndex) => (
-                      <div key={logIndex} className="flex items-center gap-4 text-sm py-2 border-l-2 border-gray-200 pl-4">
-                        <div className="w-16 text-gray-500 font-mono">
-                          {formatTime(log.time)}
+            <div className="space-y-4">
+              {/* Vardiya Başlatma/Bitirme Logları */}
+              {shiftApprovalLogs.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold">Vardiya Başlatma/Bitirme Logları</h3>
+                  {shiftApprovalLogs.map((log) => (
+                    <Card key={log.id} className={`border-l-4 ${
+                      log.type === 'start' ? 'border-l-green-500' : 'border-l-red-500'
+                    }`}>
+                      <CardContent className="py-4">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-3">
+                              <Badge className={
+                                log.type === 'start' 
+                                  ? 'bg-green-600' 
+                                  : 'bg-red-600'
+                              }>
+                                {log.type_label}
+                              </Badge>
+                              <span className="font-bold text-lg">{log.vehicle_plate}</span>
+                              {log.auto_created && (
+                                <Badge variant="outline" className="text-xs">
+                                  Otomatik
+                                </Badge>
+                              )}
+                              {log.status === 'pending' && (
+                                <Badge variant="outline" className="text-xs bg-yellow-50">
+                                  Bekliyor
+                                </Badge>
+                              )}
+                              {log.status === 'approved' && (
+                                <Badge variant="outline" className="text-xs bg-green-50">
+                                  Onaylandı
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-500">Kişi:</span>
+                                <span className="ml-2 font-medium">{log.user_name}</span>
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {log.user_role}
+                                </Badge>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Araç:</span>
+                                <span className="ml-2 font-medium">{log.vehicle_plate}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">İşlem Zamanı:</span>
+                                <span className="ml-2 font-medium">
+                                  {formatDateTime(log.action_time || log.created_at)}
+                                </span>
+                              </div>
+                              {log.approved_at && (
+                                <div>
+                                  <span className="text-gray-500">Onay Zamanı:</span>
+                                  <span className="ml-2 font-medium">
+                                    {formatDateTime(log.approved_at)}
+                                  </span>
+                                  {log.approved_by_name && (
+                                    <span className="text-gray-500 ml-2">
+                                      ({log.approved_by_name})
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <span className="font-medium">{log.description}</span>
-                          {log.user && <span className="text-gray-500 ml-2">({log.user})</span>}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              {/* Devir Teslim Logları */}
+              {logs.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold">Devir Teslim Logları</h3>
+                  {logs.map((logItem, index) => (
+                    <Card key={index}>
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <Truck className="h-5 w-5 text-blue-600" />
+                            <CardTitle className="text-lg">{logItem.session.vehicle_plate}</CardTitle>
+                            {statusBadge(logItem.session.status)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {logItem.session.giver_name} → {logItem.session.receiver_name}
+                          </div>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {log.event}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {logItem.session.giver_shift_id && (
-                    <div className="mt-4 flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => fetchShiftPhotos(logItem.session.giver_shift_id)}>
-                        <Image className="h-4 w-4 mr-1" />
-                        Fotoğrafları Gör
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {logItem.logs.map((log, logIndex) => (
+                            <div key={logIndex} className="flex items-center gap-4 text-sm py-2 border-l-2 border-gray-200 pl-4">
+                              <div className="w-16 text-gray-500 font-mono">
+                                {formatTime(log.time)}
+                              </div>
+                              <div className="flex-1">
+                                <span className="font-medium">{log.description}</span>
+                                {log.user && <span className="text-gray-500 ml-2">({log.user})</span>}
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {log.event}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {logItem.session.giver_shift_id && (
+                          <div className="mt-4 flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => fetchShiftPhotos(logItem.session.giver_shift_id)}>
+                              <Image className="h-4 w-4 mr-1" />
+                              Fotoğrafları Gör
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              {shiftApprovalLogs.length === 0 && logs.length === 0 && (
+                <Card>
+                  <CardContent className="py-8 text-center text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-4" />
+                    <p>Bu tarihte kayıt bulunmuyor</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
         </div>
       )}

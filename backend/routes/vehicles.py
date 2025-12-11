@@ -308,20 +308,20 @@ async def get_vehicle_km_report(
                 km_diff = abs(end_km - start_km)
                 
                 if km_diff > 0 and km_diff < 1000:  # Reasonable check
-                    submitted_by = form.get("submitted_by")
+            submitted_by = form.get("submitted_by")
                     user = await users_collection.find_one({"_id": submitted_by}) if submitted_by else None
-                    
-                    case_km_data.append({
-                        "case_id": form.get("case_id"),
+            
+            case_km_data.append({
+                "case_id": form.get("case_id"),
                         "case_number": form_data.get("healmedyProtocol") or form_data.get("protocol_number") or "N/A",
                         "driver_name": user.get("name") if user else "Bilinmiyor",
-                        "driver_id": submitted_by,
-                        "start_km": start_km,
-                        "end_km": end_km,
-                        "km_used": km_diff,
-                        "date": form.get("created_at").isoformat() if form.get("created_at") else None
-                    })
-                    total_case_km += km_diff
+                "driver_id": submitted_by,
+                "start_km": start_km,
+                "end_km": end_km,
+                "km_used": km_diff,
+                "date": form.get("created_at").isoformat() if form.get("created_at") else None
+            })
+            total_case_km += km_diff
             except (ValueError, TypeError) as e:
                 logger.warning(f"KM parse error for case: {e}")
                 continue
@@ -355,18 +355,18 @@ async def get_vehicle_km_report(
                 
                 if km_diff >= 0 and km_diff < 2000:  # Reasonable daily km check
                     user = await users_collection.find_one({"_id": shift.get("user_id")}) if shift.get("user_id") else None
-                    
-                    shift_km_data.append({
-                        "shift_id": shift["_id"],
+            
+            shift_km_data.append({
+                "shift_id": shift["_id"],
                         "driver_name": user.get("name") if user else "Bilinmiyor",
                         "driver_id": shift.get("user_id"),
-                        "start_km": start_km,
-                        "end_km": end_km,
-                        "km_used": km_diff,
-                        "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
-                        "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
-                    })
-                    total_shift_km += km_diff
+                "start_km": start_km,
+                "end_km": end_km,
+                "km_used": km_diff,
+                "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
+                "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
+            })
+            total_shift_km += km_diff
             except (ValueError, TypeError) as e:
                 logger.warning(f"KM parse error for shift: {e}")
                 continue
