@@ -335,9 +335,7 @@ export const excelTemplatesAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
-  importVakaFormu: (formData) => api.post('/excel-templates/import-from-file', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  importVakaFormu: (formData) => api.post('/excel-templates/import-from-file', formData)
 };
 
 // Şablonlu PDF Oluşturma API
