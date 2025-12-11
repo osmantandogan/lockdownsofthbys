@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box, Scissors, ArrowRightLeft, History, Send, Droplet } from 'lucide-react';
+import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, ArrowRight, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box, Scissors, ArrowRightLeft, History, Send, Droplet } from 'lucide-react';
 import StockLocationSummary from '../components/StockLocationSummary';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -1721,6 +1721,249 @@ const StockManagement = () => {
               Kapat
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stok Hareketi Ekleme Dialog */}
+      <Dialog open={addMovementDialogOpen} onOpenChange={(open) => {
+        setAddMovementDialogOpen(open);
+        if (!open) {
+          setMovementStep(1);
+          setMovementCategory('');
+          setMovementItems([]);
+          setMovementFromLocation('');
+          setMovementToLocation('');
+          setMovementShelfCode('');
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Send className="h-5 w-5 text-blue-600" />
+              <span>
+                {movementStep === 1 ? 'Adım 1: Kategori Seç' :
+                 movementStep === 2 ? 'Adım 2: Ürün Seç' :
+                 'Adım 3: Lokasyon ve Detaylar'}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {/* Adım 1: Kategori Seçimi */}
+          {movementStep === 1 && (
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-gray-500">Hangi kategoride stok hareketi yapılacak?</p>
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  onClick={() => { setMovementCategory('ilac'); setMovementStep(2); }}
+                  className="p-4 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center"
+                >
+                  <Pill className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                  <p className="font-medium">İlaç</p>
+                  <p className="text-xs text-gray-500">GTIN bazlı ilaçlar</p>
+                </button>
+                <button
+                  onClick={() => { setMovementCategory('itriyat'); setMovementStep(2); }}
+                  className="p-4 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-center"
+                >
+                  <Package className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                  <p className="font-medium">İtriyat</p>
+                  <p className="text-xs text-gray-500">Sarf malzemeleri</p>
+                </button>
+                <button
+                  onClick={() => { setMovementCategory('diger'); setMovementStep(2); }}
+                  className="p-4 border-2 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors text-center"
+                >
+                  <Box className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+                  <p className="font-medium">Diğer</p>
+                  <p className="text-xs text-gray-500">Diğer malzemeler</p>
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Adım 2: Ürün Seçimi */}
+          {movementStep === 2 && (
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <span className="font-medium text-blue-800">
+                  Kategori: {movementCategory === 'ilac' ? 'İlaç' : movementCategory === 'itriyat' ? 'İtriyat' : 'Diğer'}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => setMovementStep(1)}>
+                  Değiştir
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Ürün Seçin</Label>
+                <Select 
+                  onValueChange={(value) => {
+                    const group = allStockGroups.find(g => g.name === value);
+                    if (group) {
+                      setSelectedItemForMovement(group);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ürün seçin..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allStockGroups
+                      .filter(g => g.category === movementCategory)
+                      .map(group => (
+                        <SelectItem key={group.name} value={group.name}>
+                          {group.name} ({group.total_quantity} adet)
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedItemForMovement && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="font-medium text-green-800">{selectedItemForMovement.name}</p>
+                  <p className="text-sm text-green-600">Mevcut: {selectedItemForMovement.total_quantity} adet</p>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>Miktar</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={selectedItemForMovement?.total_quantity || 1}
+                  value={movementQuantity}
+                  onChange={(e) => setMovementQuantity(parseInt(e.target.value) || 1)}
+                />
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button variant="outline" onClick={() => setMovementStep(1)} className="flex-1">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Geri
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (selectedItemForMovement) {
+                      setMovementItems([{
+                        name: selectedItemForMovement.name,
+                        quantity: movementQuantity,
+                        category: movementCategory
+                      }]);
+                      setMovementStep(3);
+                    }
+                  }}
+                  disabled={!selectedItemForMovement}
+                  className="flex-1"
+                >
+                  Devam
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Adım 3: Lokasyon ve Detaylar */}
+          {movementStep === 3 && (
+            <div className="space-y-4 pt-4">
+              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="font-medium text-green-800">
+                  {movementItems[0]?.name} - {movementItems[0]?.quantity} adet
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Kaynak Lokasyon</Label>
+                  <Select onValueChange={setMovementFromLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nereden?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
+                      <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
+                      {vehicles.map(v => (
+                        <SelectItem key={v.id} value={v.plate}>{v.plate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Hedef Lokasyon</Label>
+                  <Select onValueChange={setMovementToLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nereye?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
+                      <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
+                      {vehicles.map(v => (
+                        <SelectItem key={v.id} value={v.plate}>{v.plate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Raf Kodu (Opsiyonel)</Label>
+                <Input
+                  value={movementShelfCode}
+                  onChange={(e) => setMovementShelfCode(e.target.value)}
+                  placeholder="Örn: A-01-03"
+                />
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button variant="outline" onClick={() => setMovementStep(2)} className="flex-1">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Geri
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (!movementFromLocation || !movementToLocation) {
+                      toast.error('Kaynak ve hedef lokasyon seçiniz');
+                      return;
+                    }
+                    
+                    setMovementLoading(true);
+                    try {
+                      await stockAPI.createStockMovement({
+                        from_location: movementFromLocation,
+                        to_location: movementToLocation,
+                        items: movementItems,
+                        shelf_code: movementShelfCode
+                      });
+                      toast.success('Stok hareketi başarıyla oluşturuldu');
+                      setAddMovementDialogOpen(false);
+                      setMovementStep(1);
+                      setMovementCategory('');
+                      setMovementItems([]);
+                      setMovementFromLocation('');
+                      setMovementToLocation('');
+                      setMovementShelfCode('');
+                      loadAllStockGroups();
+                    } catch (error) {
+                      console.error('Stok hareketi oluşturulurken hata:', error);
+                      toast.error('Stok hareketi oluşturulamadı');
+                    } finally {
+                      setMovementLoading(false);
+                    }
+                  }}
+                  disabled={!movementFromLocation || !movementToLocation || movementLoading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {movementLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Hareketi Oluştur
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

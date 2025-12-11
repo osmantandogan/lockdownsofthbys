@@ -25,7 +25,7 @@ async def create_document_metadata(data: DocumentMetadataCreate, request: Reques
 @router.get("/metadata", response_model=List[DocumentMetadata])
 async def get_all_document_metadata(request: Request):
     """Get all document metadata"""
-    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor", "cagri_merkezi", "hemsire"])(request)
     
     docs = await document_metadata_collection.find({}).sort("created_at", -1).to_list(1000)
     
@@ -37,7 +37,7 @@ async def get_all_document_metadata(request: Request):
 @router.get("/metadata/{form_type}")
 async def get_document_metadata_by_type(form_type: str, request: Request):
     """Get document metadata for specific form type"""
-    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor", "cagri_merkezi", "hemsire"])(request)
     
     doc = await document_metadata_collection.find_one({"form_type": form_type})
     

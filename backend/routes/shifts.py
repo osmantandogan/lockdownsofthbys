@@ -1602,7 +1602,7 @@ async def get_pending_handover_approvals(request: Request, date: Optional[str] =
     """
     Bekleyen devir teslim onaylarını getir (Baş Şoför için)
     """
-    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "cagri_merkezi", "hemsire"])(request)
     
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     
@@ -1632,7 +1632,7 @@ async def get_handover_logs(request: Request, date: Optional[str] = None, vehicl
     Devir teslim loglarını getir (Baş Şoför için)
     Tarih ve araç bazlı filtreleme
     """
-    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis"])(request)
+    user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "cagri_merkezi", "hemsire"])(request)
     
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     
