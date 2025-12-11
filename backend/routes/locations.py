@@ -344,45 +344,52 @@ async def get_vehicle_current_location(vehicle_id: str, request: Request):
 @router.post("/vehicle/{vehicle_id}/set-location")
 async def set_vehicle_location(vehicle_id: str, request: Request):
     """Araç lokasyonunu ayarla (vardiya atamasında)"""
-    user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor", "cagri_merkezi"])(request)
-    body = await request.json()
-    
-    location_id = body.get("location_id")
-    if not location_id:
-        raise HTTPException(status_code=400, detail="location_id gerekli")
-    
-    # Lokasyon bilgisini al
-    location = next((l for l in HEALMEDY_LOCATIONS if l["id"] == location_id), None)
-    if not location:
-        raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
-    
-    # Araç bilgisini al
-    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
-    if not vehicle:
-        raise HTTPException(status_code=404, detail="Araç bulunamadı")
-    
-    turkey_now = datetime.utcnow() + timedelta(hours=3)
-    
-    location_data = VehicleCurrentLocation(
-        vehicle_id=vehicle_id,
-        vehicle_plate=vehicle.get("plate"),
-        assigned_location_id=location_id,
-        assigned_location_name=location["name"],
-        current_location_id=location_id,
-        current_location_name=location["name"],
-        updated_by=user.id,
-        updated_at=turkey_now
-    )
-    
-    await vehicle_current_locations_collection.update_one(
-        {"vehicle_id": vehicle_id},
-        {"$set": location_data.model_dump(by_alias=True)},
-        upsert=True
-    )
-    
-    logger.info(f"Araç lokasyonu ayarlandı: {vehicle.get('plate')} → {location['name']}")
-    
-    return {"message": f"Araç lokasyonu ayarlandı: {location['name']}"}
+    try:
+        user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor", "cagri_merkezi", "hemsire", "att", "paramedik", "sofor"])(request)
+        body = await request.json()
+        
+        location_id = body.get("location_id")
+        if not location_id:
+            raise HTTPException(status_code=400, detail="location_id gerekli")
+        
+        # Lokasyon bilgisini al
+        location = next((l for l in HEALMEDY_LOCATIONS if l["id"] == location_id), None)
+        if not location:
+            raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
+        
+        # Araç bilgisini al
+        vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Araç bulunamadı")
+        
+        turkey_now = datetime.utcnow() + timedelta(hours=3)
+        
+        # Update document directly instead of using model to avoid validation issues
+        update_data = {
+            "vehicle_id": vehicle_id,
+            "vehicle_plate": vehicle.get("plate", ""),
+            "assigned_location_id": location_id,
+            "assigned_location_name": location["name"],
+            "current_location_id": location_id,
+            "current_location_name": location["name"],
+            "updated_by": user.id,
+            "updated_at": turkey_now
+        }
+        
+        await vehicle_current_locations_collection.update_one(
+            {"vehicle_id": vehicle_id},
+            {"$set": update_data},
+            upsert=True
+        )
+        
+        logger.info(f"Araç lokasyonu ayarlandı: {vehicle.get('plate')} → {location['name']}")
+        
+        return {"message": f"Araç lokasyonu ayarlandı: {location['name']}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Araç lokasyonu ayarlanırken hata: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Lokasyon ayarlanamadı: {str(e)}")
 
 
 @router.get("/vehicles/by-location/{location_id}")

@@ -1052,15 +1052,15 @@ class VehicleCurrentLocation(BaseModel):
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     vehicle_id: str
-    vehicle_plate: str
+    vehicle_plate: Optional[str] = None
     
     # Atanan lokasyon (vardiya başında)
-    assigned_location_id: str
-    assigned_location_name: str
+    assigned_location_id: Optional[str] = None
+    assigned_location_name: Optional[str] = None
     
     # Güncel lokasyon (değişebilir)
-    current_location_id: str
-    current_location_name: str
+    current_location_id: Optional[str] = None
+    current_location_name: Optional[str] = None
     
     # Kim güncelledi
     updated_by: Optional[str] = None
