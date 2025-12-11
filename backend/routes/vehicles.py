@@ -355,18 +355,18 @@ async def get_vehicle_km_report(
                 
                 if km_diff >= 0 and km_diff < 2000:  # Reasonable daily km check
                     user = await users_collection.find_one({"_id": shift.get("user_id")}) if shift.get("user_id") else None
-            
-            shift_km_data.append({
-                "shift_id": shift["_id"],
+                    
+                    shift_km_data.append({
+                        "shift_id": shift["_id"],
                         "driver_name": user.get("name") if user else "Bilinmiyor",
                         "driver_id": shift.get("user_id"),
-                "start_km": start_km,
-                "end_km": end_km,
-                "km_used": km_diff,
-                "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
-                "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
-            })
-            total_shift_km += km_diff
+                        "start_km": start_km,
+                        "end_km": end_km,
+                        "km_used": km_diff,
+                        "start_time": shift.get("start_time").isoformat() if shift.get("start_time") else None,
+                        "end_time": shift.get("end_time").isoformat() if shift.get("end_time") else None
+                    })
+                    total_shift_km += km_diff
             except (ValueError, TypeError) as e:
                 logger.warning(f"KM parse error for shift: {e}")
                 continue

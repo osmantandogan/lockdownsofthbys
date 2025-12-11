@@ -647,19 +647,19 @@ const ShiftApprovals = () => {
         <div className="space-y-4">
           {/* Tarih Seçici ve Filtreler */}
           <div className="space-y-4">
-            <div className="flex items-center gap-4 justify-center">
-              <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-48"
-              />
-              <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          <div className="flex items-center gap-4 justify-center">
+            <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-48"
+            />
+            <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
             </div>
             
             {/* Filtreler */}
@@ -793,8 +793,8 @@ const ShiftApprovals = () => {
                             </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+              </CardContent>
+            </Card>
                   ))}
                 </div>
               )}
@@ -804,47 +804,47 @@ const ShiftApprovals = () => {
                 <div className="space-y-3">
                   <h3 className="text-lg font-semibold">Devir Teslim Logları</h3>
                   {logs.map((logItem, index) => (
-                    <Card key={index}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                            <Truck className="h-5 w-5 text-blue-600" />
-                            <CardTitle className="text-lg">{logItem.session.vehicle_plate}</CardTitle>
-                            {statusBadge(logItem.session.status)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {logItem.session.giver_name} → {logItem.session.receiver_name}
-                          </div>
+              <Card key={index}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <Truck className="h-5 w-5 text-blue-600" />
+                      <CardTitle className="text-lg">{logItem.session.vehicle_plate}</CardTitle>
+                      {statusBadge(logItem.session.status)}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {logItem.session.giver_name} → {logItem.session.receiver_name}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {logItem.logs.map((log, logIndex) => (
+                      <div key={logIndex} className="flex items-center gap-4 text-sm py-2 border-l-2 border-gray-200 pl-4">
+                        <div className="w-16 text-gray-500 font-mono">
+                          {formatTime(log.time)}
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {logItem.logs.map((log, logIndex) => (
-                            <div key={logIndex} className="flex items-center gap-4 text-sm py-2 border-l-2 border-gray-200 pl-4">
-                              <div className="w-16 text-gray-500 font-mono">
-                                {formatTime(log.time)}
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-medium">{log.description}</span>
-                                {log.user && <span className="text-gray-500 ml-2">({log.user})</span>}
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {log.event}
-                              </Badge>
-                            </div>
-                          ))}
+                        <div className="flex-1">
+                          <span className="font-medium">{log.description}</span>
+                          {log.user && <span className="text-gray-500 ml-2">({log.user})</span>}
                         </div>
-                        
-                        {logItem.session.giver_shift_id && (
-                          <div className="mt-4 flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => fetchShiftPhotos(logItem.session.giver_shift_id)}>
-                              <Image className="h-4 w-4 mr-1" />
-                              Fotoğrafları Gör
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                        <Badge variant="outline" className="text-xs">
+                          {log.event}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {logItem.session.giver_shift_id && (
+                    <div className="mt-4 flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => fetchShiftPhotos(logItem.session.giver_shift_id)}>
+                        <Image className="h-4 w-4 mr-1" />
+                        Fotoğrafları Gör
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
                   ))}
                 </div>
               )}

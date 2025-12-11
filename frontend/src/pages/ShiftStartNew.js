@@ -1006,8 +1006,8 @@ const ShiftStartNew = () => {
                 <div className="bg-white border border-blue-200 p-4 rounded-lg">
                   <p className="text-sm text-gray-700">
                     ✅ Vardiyayı başlatabilirsiniz. Onay kaydı otomatik olarak oluşturulacak ve yöneticiye bildirilecektir.
-                  </p>
-                </div>
+                      </p>
+                    </div>
               </CardContent>
             </Card>
 
