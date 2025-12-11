@@ -6,8 +6,20 @@ import os
 import logging
 from pathlib import Path
 
+# Configure logging first
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Import routers
-from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates
+try:
+    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates
+    logger.info("Tüm router'lar başarıyla yüklendi")
+except ImportError as e:
+    logger.error(f"Router import hatası: {e}")
+    raise
 
 ROOT_DIR = Path(__file__).parent.resolve()
 load_dotenv(ROOT_DIR / '.env', override=True)
@@ -86,16 +98,14 @@ async def health_check():
 # Include the router in the main app
 app.include_router(api_router)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
+    logger.info("Server başlatılıyor...")
+    logger.info(f"Excel templates router yüklendi: {hasattr(excel_templates, 'router')}")
+    if hasattr(excel_templates, 'router'):
+        logger.info(f"Excel templates router routes: {[r.path for r in excel_templates.router.routes]}")
+    
     # Initialize notification service to load config
     from services.notification_service import notification_service
     logger.info("Notification service initialized")
