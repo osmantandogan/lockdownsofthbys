@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import Optional, List, Literal
 from datetime import datetime
 import uuid
+from utils.timezone import get_turkey_time
 
 # User Roles
 UserRole = Literal[
@@ -40,7 +41,7 @@ class UserSession(BaseModel):
     user_id: str
     session_token: str
     expires_at: datetime
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -98,7 +99,7 @@ class AssignedTeam(BaseModel):
     paramedic_id: Optional[str] = None
     att_id: Optional[str] = None
     nurse_id: Optional[str] = None
-    assigned_at: datetime = Field(default_factory=datetime.utcnow)
+    assigned_at: datetime = Field(default_factory=get_turkey_time)
 
 class CaseStatusUpdate(BaseModel):
     status: CaseStatus
@@ -106,7 +107,7 @@ class CaseStatusUpdate(BaseModel):
     updated_by: str
     updated_by_name: Optional[str] = None  # Kullanıcı adı
     updated_by_role: Optional[str] = None  # Kullanıcı rolü (att, paramedik, hemsire vb.)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
     location: Optional[dict] = None  # GPS coordinates
 
 class MedicalFormData(BaseModel):
@@ -155,8 +156,8 @@ class CaseParticipant(BaseModel):
     user_id: str
     user_name: str
     user_role: str
-    joined_at: datetime = Field(default_factory=datetime.utcnow)
-    last_activity: datetime = Field(default_factory=datetime.utcnow)
+    joined_at: datetime = Field(default_factory=get_turkey_time)
+    last_activity: datetime = Field(default_factory=get_turkey_time)
 
 class Case(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -344,7 +345,7 @@ class MedicationUsage(BaseModel):
     # Tracking
     added_by: str
     added_by_name: str
-    added_at: datetime = Field(default_factory=datetime.utcnow)
+    added_at: datetime = Field(default_factory=get_turkey_time)
     
     # Stock deduction
     stock_deducted: bool = False
@@ -388,7 +389,7 @@ class StockUsageLog(BaseModel):
     reason: Optional[str] = None
     performed_by: str
     performed_by_name: str
-    performed_at: datetime = Field(default_factory=datetime.utcnow)
+    performed_at: datetime = Field(default_factory=get_turkey_time)
 
 # Parsed Barcode Data
 class ParsedBarcodeData(BaseModel):
@@ -423,7 +424,7 @@ class ShiftAssignment(BaseModel):
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
     is_driver_duty: bool = False  # ATT/Paramedik için şoför görevi var mı?
     shift_type: ShiftType = "saha_24"  # Vardiya tipi: saha 24 saat veya ofis 8 saat
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 class Shift(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -433,7 +434,7 @@ class Shift(BaseModel):
     user_id: str
     vehicle_id: Optional[str] = None
     vehicle_plate: Optional[str] = None
-    start_time: datetime = Field(default_factory=datetime.utcnow)
+    start_time: datetime = Field(default_factory=get_turkey_time)
     end_time: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     start_km: Optional[int] = None
@@ -492,7 +493,7 @@ class Shift(BaseModel):
     form_completed_at: Optional[datetime] = None  # Form ne zaman tamamlandı
     section_times: Optional[dict] = None  # Her section ne kadar sürdü
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 
 # Handover Session - Devir Teslim Oturumu
@@ -516,7 +517,7 @@ class HandoverSession(BaseModel):
     status: Literal["waiting_receiver", "waiting_manager", "approved", "rejected", "expired"] = "waiting_receiver"
     
     # Zaman logları
-    form_opened_at: datetime = Field(default_factory=datetime.utcnow)  # Form ne zaman açıldı
+    form_opened_at: datetime = Field(default_factory=get_turkey_time)  # Form ne zaman açıldı
     receiver_signed_at: Optional[datetime] = None  # Devralan ne zaman imzaladı
     manager_action_at: Optional[datetime] = None  # Yönetici ne zaman işlem yaptı
     
@@ -565,7 +566,7 @@ class Notification(BaseModel):
     message: str
     type: Literal["info", "warning", "error", "success"]
     is_read: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 # Audit Log Models
 class AuditLog(BaseModel):
@@ -578,7 +579,7 @@ class AuditLog(BaseModel):
     entity_id: str
     details: dict
     ip_address: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 # Vehicle KM Log Models
 class VehicleKmLog(BaseModel):
@@ -594,7 +595,7 @@ class VehicleKmLog(BaseModel):
     km_difference: int
     log_type: Literal["case", "shift", "maintenance", "other"]
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 # Document Metadata Models
 class DocumentMetadata(BaseModel):
@@ -679,7 +680,7 @@ class Allergy(BaseModel):
     reaction: Optional[str] = None  # Reaksiyon açıklaması
     notes: Optional[str] = None
     recorded_by: Optional[str] = None  # Kaydeden kullanıcı ID
-    recorded_at: datetime = Field(default_factory=datetime.utcnow)
+    recorded_at: datetime = Field(default_factory=get_turkey_time)
 
 class ChronicDisease(BaseModel):
     """Kronik hastalık kaydı"""
@@ -691,7 +692,7 @@ class ChronicDisease(BaseModel):
     medications: Optional[str] = None  # Kullandığı ilaçlar
     notes: Optional[str] = None
     recorded_by: Optional[str] = None
-    recorded_at: datetime = Field(default_factory=datetime.utcnow)
+    recorded_at: datetime = Field(default_factory=get_turkey_time)
 
 class DoctorNote(BaseModel):
     """Doktor notu / brif"""
@@ -825,7 +826,7 @@ class PatientAccessLog(BaseModel):
     approval_code: Optional[str] = None  # Hemşire için onay kodu
     approved_by: Optional[str] = None  # Onaylayan (hemşire erişimi için)
     ip_address: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 
 # ==================== MALZEME TALEBİ MODELLERİ ====================
@@ -981,7 +982,7 @@ class StockTransfer(BaseModel):
     # Notlar
     notes: Optional[str] = None
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 
 class StockTransferCreate(BaseModel):
@@ -1033,7 +1034,7 @@ class LocationChangeRequest(BaseModel):
     approved_at: Optional[datetime] = None
     rejection_reason: Optional[str] = None
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_turkey_time)
 
 
 class LocationChangeRequestCreate(BaseModel):
@@ -1063,7 +1064,7 @@ class VehicleCurrentLocation(BaseModel):
     
     # Kim güncelledi
     updated_by: Optional[str] = None
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
     
     # Vardiya bilgisi
     shift_id: Optional[str] = None
