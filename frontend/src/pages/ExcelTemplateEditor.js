@@ -48,6 +48,7 @@ const ExcelTemplateEditor = () => {
   const [rowHeights, setRowHeights] = useState({});
   const [columnWidths, setColumnWidths] = useState({});
   const editingInputRef = useRef(null);
+  const previousEditingCellRef = useRef(null);
   
   // Editor settings
   const [zoom, setZoom] = useState(100);
@@ -250,13 +251,26 @@ const ExcelTemplateEditor = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedCell, editingCell, cells, maxRow, maxCol]);
 
-  // Düzenleme input focus
+  // Düzenleme input focus - sadece yeni hücreye geçildiğinde select yap
   useEffect(() => {
     if (editingCell && editingInputRef.current) {
       editingInputRef.current.focus();
-      editingInputRef.current.select();
+      
+      // Sadece yeni bir hücreye geçildiğinde select yap (value değişikliği değil)
+      const isNewCell = !previousEditingCellRef.current || 
+        previousEditingCellRef.current.row !== editingCell.row || 
+        previousEditingCellRef.current.col !== editingCell.col;
+      
+      if (isNewCell) {
+        // Yeni hücreye geçildi - tüm metni seç
+        editingInputRef.current.select();
+        previousEditingCellRef.current = { row: editingCell.row, col: editingCell.col };
+      }
+      // Aynı hücrede value değişiyorsa hiçbir şey yapma (kullanıcı yazıyor)
+    } else {
+      previousEditingCellRef.current = null;
     }
-  }, [editingCell]);
+  }, [editingCell?.row, editingCell?.col]); // Sadece row/col değiştiğinde tetikle, value değil
 
   // Hücre düzenleme bitir
   const handleCellEditFinish = () => {
