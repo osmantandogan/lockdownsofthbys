@@ -3582,18 +3582,108 @@ const CaseDetail = () => {
 
           {/* Ekip Bilgileri */}
           {caseData.assigned_team && (
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-blue-200">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-t-lg">
                 <CardTitle className="flex items-center space-x-2">
                   <Truck className="h-5 w-5" />
                   <span>Atanan Ekip</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <p><span className="font-medium">Araç:</span> {caseData.assigned_team.vehicle_id}</p>
-                <p className="text-xs text-gray-500">
-                  Atanma: {new Date(caseData.assigned_team.assigned_at).toLocaleString('tr-TR')}
-                </p>
+              <CardContent className="space-y-3 pt-4">
+                {/* Araç Plakası */}
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <Ambulance className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <p className="text-xs text-gray-500">Araç Plakası</p>
+                    <p className="font-bold text-lg text-blue-800">
+                      {caseData.assigned_team.vehicle_plate || 
+                       vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate || 
+                       'Plaka Bilgisi Yok'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Ekip Üyeleri */}
+                <div className="grid grid-cols-2 gap-2">
+                  {caseData.assigned_team.driver_name && (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-700 text-xs font-bold">Ş</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Şoför</p>
+                        <p className="font-medium text-sm">{caseData.assigned_team.driver_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {caseData.assigned_team.paramedic_name && (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                        <span className="text-red-700 text-xs font-bold">P</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Paramedik</p>
+                        <p className="font-medium text-sm">{caseData.assigned_team.paramedic_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {caseData.assigned_team.att_name && (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <span className="text-orange-700 text-xs font-bold">A</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">ATT</p>
+                        <p className="font-medium text-sm">{caseData.assigned_team.att_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {caseData.assigned_team.nurse_name && (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-purple-700 text-xs font-bold">H</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Hemşire</p>
+                        <p className="font-medium text-sm">{caseData.assigned_team.nurse_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {caseData.assigned_team.doctor_name && (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-700 text-xs font-bold">D</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Doktor</p>
+                        <p className="font-medium text-sm">{caseData.assigned_team.doctor_name}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Hiç isim yoksa ID'leri göster */}
+                {!caseData.assigned_team.driver_name && 
+                 !caseData.assigned_team.paramedic_name && 
+                 !caseData.assigned_team.att_name && 
+                 !caseData.assigned_team.nurse_name && 
+                 !caseData.assigned_team.doctor_name && (
+                  <p className="text-sm text-gray-500 italic">
+                    Ekip üye bilgileri henüz yüklenmemiş
+                  </p>
+                )}
+                
+                {/* Atanma Tarihi */}
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-gray-500">
+                    <Clock className="inline h-3 w-3 mr-1" />
+                    Atanma: {new Date(caseData.assigned_team.assigned_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
