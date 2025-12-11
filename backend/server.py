@@ -47,7 +47,9 @@ allowed_origins.extend([
     "https://localhost",
     "capacitor://localhost",
     "http://localhost",
-    "ionic://localhost"
+    "ionic://localhost",
+    "https://app.healmedy.com",
+    "capacitor://app.healmedy.com"
 ])
 # Remove empty strings
 allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
