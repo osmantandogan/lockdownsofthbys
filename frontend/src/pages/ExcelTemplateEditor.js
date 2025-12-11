@@ -1059,6 +1059,30 @@ const ExcelTemplateEditor = () => {
                           <Minus className="h-2 w-2" />
                         </Button>
                       </div>
+                      {/* Satır yüksekliği ayarla */}
+                      <div 
+                        className="absolute right-0 bottom-0 w-full h-1 cursor-ns-resize hover:bg-blue-400 opacity-0 group-hover:opacity-100 z-20"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const startY = e.clientY;
+                          const startHeight = rowHeights[row] || 24;
+                          
+                          const handleMouseMove = (moveEvent) => {
+                            const diff = moveEvent.clientY - startY;
+                            const newHeight = Math.max(15, startHeight + diff);
+                            setRowHeights(prev => ({ ...prev, [row]: newHeight }));
+                          };
+                          
+                          const handleMouseUp = () => {
+                            document.removeEventListener('mousemove', handleMouseMove);
+                            document.removeEventListener('mouseup', handleMouseUp);
+                          };
+                          
+                          document.addEventListener('mousemove', handleMouseMove);
+                          document.addEventListener('mouseup', handleMouseUp);
+                        }}
+                        title="Satır yüksekliğini ayarla"
+                      />
                     </td>
                     {Array.from({ length: maxCol }, (_, colIdx) => {
                       const col = colIdx + 1;
