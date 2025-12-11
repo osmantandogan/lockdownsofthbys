@@ -470,7 +470,35 @@ const ExcelTemplateEditor = () => {
                           `}
                           style={{
                             minWidth: columnWidths[getColumnLetter(col)] || 80,
-                            backgroundColor: cell?.fill?.color ? `#${cell.fill.color.slice(-6)}` : undefined,
+                            backgroundColor: (() => {
+                              if (!cell?.fill?.color) return '#ffffff';
+                              // ARGB formatından RGB'ye çevir (FFRRGGBB -> #RRGGBB)
+                              const color = cell.fill.color;
+                              if (color.length === 8) {
+                                // ARGB formatı: ilk 2 karakter alpha, son 6 karakter RGB
+                                const rgb = color.slice(2);
+                                // Eğer tamamen şeffaf (alpha = 00) veya siyah (000000) ise beyaz göster
+                                if (color.slice(0, 2) === '00' || rgb === '000000') {
+                                  return '#ffffff';
+                                }
+                                return `#${rgb}`;
+                              } else if (color.length === 6) {
+                                // Zaten RGB formatı
+                                return color === '000000' ? '#ffffff' : `#${color}`;
+                              }
+                              return '#ffffff';
+                            })(),
+                            color: (() => {
+                              if (!cell?.font?.color) return '#000000';
+                              const fontColor = cell.font.color;
+                              if (fontColor.length === 8) {
+                                const rgb = fontColor.slice(2);
+                                return `#${rgb}`;
+                              } else if (fontColor.length === 6) {
+                                return `#${fontColor}`;
+                              }
+                              return '#000000';
+                            })(),
                             fontWeight: cell?.font?.bold ? 'bold' : 'normal',
                             fontStyle: cell?.font?.italic ? 'italic' : 'normal',
                             textAlign: cell?.alignment?.horizontal || 'left',
