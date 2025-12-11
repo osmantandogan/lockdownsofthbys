@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 tickets_collection = db.tickets
 
 # Ticket'ları görebilecek roller
-TICKET_ADMIN_ROLES = ["operasyon_muduru", "merkez_ofis", "bas_sofor"]
+TICKET_ADMIN_ROLES = ["operasyon_muduru", "merkez_ofis", "bas_sofor", "cagri_merkezi", "hemsire"]
 
 
 class TicketItem(BaseModel):

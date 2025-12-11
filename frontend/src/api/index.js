@@ -542,6 +542,7 @@ export const ticketsAPI = {
   getTickets: (params) => api.get('/tickets', { params }), // Alias for getAll
   getById: (id) => api.get(`/tickets/${id}`),
   update: (id, data) => api.patch(`/tickets/${id}`, data),
+  updateTicket: (id, data) => api.patch(`/tickets/${id}`, data), // Alias for update
   updateStatus: (id, status, notes) => api.patch(`/tickets/${id}/status`, null, { params: { status, notes } }),
   getPendingCount: () => api.get('/tickets/pending/count')
 };

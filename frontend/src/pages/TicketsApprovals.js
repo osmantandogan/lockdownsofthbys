@@ -49,12 +49,22 @@ const TicketsApprovals = () => {
       const params = {};
       if (activeFilter === 'pending') {
         params.status = 'pending';
-      } else if (['bildirim', 'malzeme_talep', 'ilac_talep'].includes(activeFilter)) {
+      } else if (activeFilter === 'archived') {
+        // Arşivlenmiş ticketlar için özel filtre - tamamlanan ve reddedilenleri getir
+        params.limit = 100;
+      } else if (['bildirim', 'malzeme_talep', 'ilac_talep', 'ekipman_hasar'].includes(activeFilter)) {
         params.type = activeFilter;
       }
       
       const response = await ticketsAPI.getTickets(params);
-      setTickets(response.data || []);
+      let ticketData = response.data || [];
+      
+      // Arşivlenmiş filtresi için manuel filtreleme
+      if (activeFilter === 'archived') {
+        ticketData = ticketData.filter(t => t.status === 'completed' || t.status === 'rejected');
+      }
+      
+      setTickets(ticketData);
     } catch (error) {
       console.error('Error fetching tickets:', error);
       toast.error('Ticketlar yüklenemedi');
@@ -122,6 +132,7 @@ const TicketsApprovals = () => {
       case 'bildirim': return <Bell className="h-4 w-4" />;
       case 'malzeme_talep': return <Package className="h-4 w-4" />;
       case 'ilac_talep': return <Pill className="h-4 w-4" />;
+      case 'ekipman_hasar': return <AlertTriangle className="h-4 w-4" />;
       default: return <MessageSquare className="h-4 w-4" />;
     }
   };
@@ -131,6 +142,7 @@ const TicketsApprovals = () => {
       case 'bildirim': return 'Olay Bildirimi';
       case 'malzeme_talep': return 'Malzeme Talebi';
       case 'ilac_talep': return 'İlaç Talebi';
+      case 'ekipman_hasar': return 'Ekipman Hasarı';
       default: return type;
     }
   };
@@ -140,6 +152,7 @@ const TicketsApprovals = () => {
       case 'bildirim': return 'bg-orange-100 text-orange-800';
       case 'malzeme_talep': return 'bg-blue-100 text-blue-800';
       case 'ilac_talep': return 'bg-purple-100 text-purple-800';
+      case 'ekipman_hasar': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -162,9 +175,11 @@ const TicketsApprovals = () => {
   };
 
   const pendingCount = tickets.filter(t => t.status === 'pending').length;
+  const archivedCount = tickets.filter(t => t.status === 'completed' || t.status === 'rejected').length;
   const bildirimCount = tickets.filter(t => t.type === 'bildirim').length;
   const malzemeCount = tickets.filter(t => t.type === 'malzeme_talep').length;
   const ilacCount = tickets.filter(t => t.type === 'ilac_talep').length;
+  const hasarCount = tickets.filter(t => t.type === 'ekipman_hasar').length;
 
   return (
     <div className="space-y-6">
@@ -223,6 +238,24 @@ const TicketsApprovals = () => {
         >
           <Pill className="h-4 w-4 mr-1" />
           İlaç ({ilacCount})
+        </Button>
+        <Button 
+          variant={activeFilter === 'ekipman_hasar' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setActiveFilter('ekipman_hasar')}
+          className="bg-red-600 hover:bg-red-700"
+        >
+          <AlertTriangle className="h-4 w-4 mr-1" />
+          Hasar ({hasarCount})
+        </Button>
+        <Button 
+          variant={activeFilter === 'archived' ? 'default' : 'outline'} 
+          size="sm"
+          onClick={() => setActiveFilter('archived')}
+          className="bg-gray-600 hover:bg-gray-700"
+        >
+          <Check className="h-4 w-4 mr-1" />
+          Eskiler ({archivedCount})
         </Button>
       </div>
 

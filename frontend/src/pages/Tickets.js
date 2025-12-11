@@ -51,6 +51,16 @@ const Tickets = () => {
     urgency: 'normal'
   });
 
+  // Ekipman hasar formu
+  const [hasarForm, setHasarForm] = useState({
+    item_name: '',
+    item_type: '', // ilac, ekipman, malzeme
+    damage_type: '', // kirildi, bozuldu, tarihi_gecti
+    description: '',
+    photos: [],
+    vehicle_id: ''
+  });
+
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -200,6 +210,89 @@ const Tickets = () => {
     }
   };
 
+  const handleHasarSubmit = async (e) => {
+    e.preventDefault();
+    if (!hasarForm.item_name || !hasarForm.damage_type) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await ticketsAPI.create({
+        type: 'ekipman_hasar',
+        title: `${hasarForm.item_type === 'ilac' ? 'İlaç' : hasarForm.item_type === 'ekipman' ? 'Ekipman' : 'Malzeme'} Hasarı: ${hasarForm.item_name}`,
+        description: hasarForm.description,
+        category: hasarForm.damage_type,
+        photos: hasarForm.photos,
+        vehicle_id: hasarForm.vehicle_id,
+        created_by: user?.id,
+        created_by_name: user?.name,
+        priority: 'high'
+      });
+
+      toast.success('Hasar bildirimi gönderildi');
+      setHasarForm({
+        item_name: '',
+        item_type: '',
+        damage_type: '',
+        description: '',
+        photos: [],
+        vehicle_id: ''
+      });
+      setTicketType(null);
+    } catch (error) {
+      toast.error('Hasar bildirimi gönderilemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCameraCapture = async (formType) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+      
+      // Wait for video to be ready
+      await new Promise(resolve => video.onloadedmetadata = resolve);
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      stream.getTracks().forEach(track => track.stop());
+      
+      if (formType === 'bildirim') {
+        setBildirimForm(prev => ({
+          ...prev,
+          photos: [...prev.photos, { name: `foto_${Date.now()}.jpg`, data: imageData }]
+        }));
+      } else if (formType === 'hasar') {
+        setHasarForm(prev => ({
+          ...prev,
+          photos: [...prev.photos, { name: `foto_${Date.now()}.jpg`, data: imageData }]
+        }));
+      }
+      toast.success('Fotoğraf çekildi');
+    } catch (error) {
+      console.error('Kamera hatası:', error);
+      toast.error('Kamera açılamadı. Lütfen izin verin.');
+    }
+  };
+
+  const removeHasarPhoto = (index) => {
+    setHasarForm(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
+    }));
+  };
+
   const addItem = (formType) => {
     if (formType === 'malzeme') {
       setMalzemeForm(prev => ({
@@ -251,7 +344,7 @@ const Tickets = () => {
 
       {/* Ticket Tipi Seçimi */}
       {!ticketType && (
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card 
             className="cursor-pointer hover:border-orange-500 transition-colors"
             onClick={() => setTicketType('bildirim')}
@@ -287,6 +380,19 @@ const Tickets = () => {
               <h3 className="font-bold text-lg">İlaç Talebi</h3>
               <p className="text-sm text-gray-500 mt-2">
                 İlaç ve medikal ürün talep edin
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:border-red-500 transition-colors"
+            onClick={() => setTicketType('ekipman_hasar')}
+          >
+            <CardContent className="pt-6 text-center">
+              <XCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+              <h3 className="font-bold text-lg">Ekipman Hasarı</h3>
+              <p className="text-sm text-gray-500 mt-2">
+                İlaç/ekipman kırıldı, bozuldu veya tarihi geçti
               </p>
             </CardContent>
           </Card>
@@ -674,6 +780,136 @@ const Tickets = () => {
                 </Button>
                 <Button type="submit" disabled={loading}>
                   {loading ? 'Gönderiliyor...' : 'Talep Gönder'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ekipman Hasar Formu */}
+      {ticketType === 'ekipman_hasar' && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  Ekipman Hasarı Bildirimi
+                </CardTitle>
+                <CardDescription>İlaç veya ekipmanınız kırıldı, bozuldu veya tarihi geçti mi?</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setTicketType(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleHasarSubmit} className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Ürün Türü *</Label>
+                  <Select
+                    value={hasarForm.item_type}
+                    onValueChange={(v) => setHasarForm(prev => ({ ...prev, item_type: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçin..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ilac">İlaç</SelectItem>
+                      <SelectItem value="ekipman">Ekipman</SelectItem>
+                      <SelectItem value="malzeme">Malzeme</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Hasar Türü *</Label>
+                  <Select
+                    value={hasarForm.damage_type}
+                    onValueChange={(v) => setHasarForm(prev => ({ ...prev, damage_type: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seçin..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kirildi">Kırıldı</SelectItem>
+                      <SelectItem value="bozuldu">Bozuldu</SelectItem>
+                      <SelectItem value="tarihi_gecti">Tarihi Geçti</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Ürün Adı *</Label>
+                <Input
+                  placeholder="Hasar gören ürünün adı"
+                  value={hasarForm.item_name}
+                  onChange={(e) => setHasarForm(prev => ({ ...prev, item_name: e.target.value }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Araç</Label>
+                <Select
+                  value={hasarForm.vehicle_id}
+                  onValueChange={(v) => setHasarForm(prev => ({ ...prev, vehicle_id: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Araç seçin (opsiyonel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Araç yok</SelectItem>
+                    {vehicles.map(v => (
+                      <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Açıklama</Label>
+                <Textarea
+                  placeholder="Hasar hakkında detay verin..."
+                  value={hasarForm.description}
+                  onChange={(e) => setHasarForm(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fotoğraf</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {hasarForm.photos.map((photo, index) => (
+                    <div key={index} className="relative w-20 h-20 border rounded overflow-hidden">
+                      <img src={photo.data} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeHasarPhoto(index)}
+                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleCameraCapture('hasar')}
+                    className="w-20 h-20 border-2 border-dashed rounded flex flex-col items-center justify-center text-gray-400 hover:border-red-500 hover:text-red-500 transition-colors"
+                  >
+                    <Camera className="h-6 w-6" />
+                    <span className="text-xs mt-1">Çek</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setTicketType(null)}>
+                  İptal
+                </Button>
+                <Button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700">
+                  {loading ? 'Gönderiliyor...' : 'Hasar Bildir'}
                 </Button>
               </div>
             </form>
