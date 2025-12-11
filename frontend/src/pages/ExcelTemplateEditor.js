@@ -256,7 +256,7 @@ const ExcelTemplateEditor = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCell, editingCell, cells, maxRow, maxCol, copiedCell, handleCopyCell, handleCutCell, handlePasteCell, handleDeleteCell]);
+  }, [selectedCell, editingCell, cells, maxRow, maxCol, copiedCell]);
 
   // Düzenleme input focus - sadece yeni hücreye geçildiğinde select yap
   useEffect(() => {
