@@ -79,6 +79,30 @@ def parse_excel_file(file_content: bytes) -> dict:
             has_fill = cell.fill and cell.fill.fgColor and cell.fill.fgColor.rgb and cell.fill.fgColor.rgb != "00000000"
             
             if has_value or has_border or has_fill:
+                # Font rengi güvenli şekilde al
+                font_color = None
+                try:
+                    if cell.font and cell.font.color:
+                        if hasattr(cell.font.color, 'rgb') and cell.font.color.rgb:
+                            font_color = str(cell.font.color.rgb)
+                        elif hasattr(cell.font.color, 'theme') and cell.font.color.theme:
+                            # Theme color - skip for now
+                            font_color = None
+                except (AttributeError, TypeError) as e:
+                    font_color = None
+                
+                # Fill rengi güvenli şekilde al
+                fill_color = None
+                try:
+                    if cell.fill and cell.fill.fgColor:
+                        if hasattr(cell.fill.fgColor, 'rgb') and cell.fill.fgColor.rgb:
+                            fill_color = str(cell.fill.fgColor.rgb)
+                        elif hasattr(cell.fill.fgColor, 'theme') and cell.fill.fgColor.theme:
+                            # Theme color - skip for now
+                            fill_color = None
+                except (AttributeError, TypeError) as e:
+                    fill_color = None
+                
                 cell_data = {
                     "row": row,
                     "col": col,
@@ -90,10 +114,10 @@ def parse_excel_file(file_content: bytes) -> dict:
                         "size": cell.font.size if cell.font else None,
                         "bold": cell.font.bold if cell.font else False,
                         "italic": cell.font.italic if cell.font else False,
-                        "color": cell.font.color.rgb if cell.font and cell.font.color and hasattr(cell.font.color, 'rgb') and cell.font.color.rgb else None
+                        "color": font_color
                     },
                     "fill": {
-                        "color": cell.fill.fgColor.rgb if cell.fill and cell.fill.fgColor and hasattr(cell.fill.fgColor, 'rgb') else None
+                        "color": fill_color
                     },
                     "alignment": {
                         "horizontal": cell.alignment.horizontal if cell.alignment else None,
