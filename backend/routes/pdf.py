@@ -5,16 +5,21 @@ import logging
 
 from services.excel_to_pdf_with_data import excel_form_to_pdf_with_data
 from services.template_pdf_generator import generate_pdf_from_template
+from services.libreoffice_pdf import generate_case_pdf_with_libreoffice, check_libreoffice_installed
 from auth_utils import get_current_user
 from database import cases_collection, pdf_templates_collection
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
 logger = logging.getLogger(__name__)
 
+# LibreOffice kurulu mu kontrol et
+LIBREOFFICE_AVAILABLE = check_libreoffice_installed()
+logger.info(f"LibreOffice available: {LIBREOFFICE_AVAILABLE}")
+
 
 @router.get("/case/{case_id}")
 async def generate_case_pdf(case_id: str, request: Request):
-    """Generate PDF for a specific case"""
+    """Generate PDF for a specific case using LibreOffice (if available) or fallback"""
     
     # Authenticate user
     user = await get_current_user(request)
@@ -32,28 +37,37 @@ async def generate_case_pdf(case_id: str, request: Request):
         logger.error(f"Excel template not found at: {excel_template}")
         raise HTTPException(status_code=500, detail=f"Excel template not found")
     
-    # Create temp directory
-    temp_dir = os.path.join(backend_dir, "temp")
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    # Generate unique PDF filename
-    pdf_path = os.path.join(temp_dir, f"case_{case_id}.pdf")
-    
     # Prepare form data from case
     form_data = case.get('form_data', {})
     
+    # Generate filename
+    filename = f"Ambulans_Vaka_Formu_{case.get('case_number', case_id)}.pdf"
+    
     try:
-        # Generate PDF
-        result_path = excel_form_to_pdf_with_data(
-            excel_path=excel_template,
-            pdf_path=pdf_path,
-            case_data=case,
-            form_data=form_data
-        )
+        # Use LibreOffice if available (better quality)
+        if LIBREOFFICE_AVAILABLE:
+            logger.info(f"Using LibreOffice for case {case_id}")
+            result_path = generate_case_pdf_with_libreoffice(
+                template_path=excel_template,
+                case_data=case,
+                form_data=form_data,
+                output_filename=f"case_{case_id}.pdf"
+            )
+        else:
+            # Fallback to ReportLab method
+            logger.info(f"LibreOffice not available, using fallback for case {case_id}")
+            temp_dir = os.path.join(backend_dir, "temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            pdf_path = os.path.join(temp_dir, f"case_{case_id}.pdf")
+            
+            result_path = excel_form_to_pdf_with_data(
+                excel_path=excel_template,
+                pdf_path=pdf_path,
+                case_data=case,
+                form_data=form_data
+            )
         
         # Return PDF as download
-        filename = f"Ambulans_Vaka_Formu_{case.get('case_number', case_id)}.pdf"
-        
         return FileResponse(
             result_path,
             media_type="application/pdf",
@@ -65,13 +79,6 @@ async def generate_case_pdf(case_id: str, request: Request):
         
     except Exception as e:
         logger.error(f"Error generating PDF for case {case_id}: {str(e)}")
-        # Clean up partial file if exists
-        if os.path.exists(pdf_path):
-            try:
-                os.remove(pdf_path)
-            except:
-                pass
-        
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
@@ -99,25 +106,34 @@ async def generate_case_pdf_with_form_data(
         logger.error(f"Excel template not found at: {excel_template}")
         raise HTTPException(status_code=500, detail=f"Excel template not found")
     
-    # Create temp directory
-    temp_dir = os.path.join(backend_dir, "temp")
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    # Generate unique PDF filename
-    pdf_path = os.path.join(temp_dir, f"case_{case_id}.pdf")
+    # Generate filename
+    filename = f"Ambulans_Vaka_Formu_{case.get('case_number', case_id)}.pdf"
     
     try:
-        # Generate PDF
-        result_path = excel_form_to_pdf_with_data(
-            excel_path=excel_template,
-            pdf_path=pdf_path,
-            case_data=case,
-            form_data=form_data
-        )
+        # Use LibreOffice if available (better quality)
+        if LIBREOFFICE_AVAILABLE:
+            logger.info(f"Using LibreOffice for case {case_id} with form data")
+            result_path = generate_case_pdf_with_libreoffice(
+                template_path=excel_template,
+                case_data=case,
+                form_data=form_data,
+                output_filename=f"case_{case_id}.pdf"
+            )
+        else:
+            # Fallback to ReportLab method
+            logger.info(f"LibreOffice not available, using fallback for case {case_id}")
+            temp_dir = os.path.join(backend_dir, "temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            pdf_path = os.path.join(temp_dir, f"case_{case_id}.pdf")
+            
+            result_path = excel_form_to_pdf_with_data(
+                excel_path=excel_template,
+                pdf_path=pdf_path,
+                case_data=case,
+                form_data=form_data
+            )
         
         # Return PDF as download
-        filename = f"Ambulans_Vaka_Formu_{case.get('case_number', case_id)}.pdf"
-        
         return FileResponse(
             result_path,
             media_type="application/pdf",
@@ -129,11 +145,4 @@ async def generate_case_pdf_with_form_data(
         
     except Exception as e:
         logger.error(f"Error generating PDF for case {case_id}: {str(e)}")
-        # Clean up partial file if exists
-        if os.path.exists(pdf_path):
-            try:
-                os.remove(pdf_path)
-            except:
-                pass
-        
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
