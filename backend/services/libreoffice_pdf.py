@@ -427,6 +427,35 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             except:
                 pass
     
+    # Sayfa düzenini landscape ve fit-to-page yap
+    try:
+        from openpyxl.worksheet.page import PageMargins, PrintPageSetup
+        
+        # Landscape (yatay) moduna ayarla
+        ws.page_setup.orientation = 'landscape'
+        
+        # Sayfaya sığdır (1 sayfa genişlik, 1 sayfa yükseklik)
+        ws.page_setup.fitToPage = True
+        ws.page_setup.fitToWidth = 1
+        ws.page_setup.fitToHeight = 1
+        
+        # Kenar boşluklarını küçült
+        ws.page_margins = PageMargins(
+            left=0.25,
+            right=0.25,
+            top=0.25,
+            bottom=0.25,
+            header=0.1,
+            footer=0.1
+        )
+        
+        # Yazdırma alanını ayarla (tüm kullanılan alan)
+        ws.print_area = f"A1:Z{ws.max_row}"
+        
+        logger.info("Sayfa düzeni landscape ve fit-to-page olarak ayarlandı")
+    except Exception as e:
+        logger.warning(f"Sayfa düzeni ayarlanamadı: {e}")
+    
     # Kaydet
     wb.save(output_path)
     logger.info(f"Excel dolduruldu: {output_path}")
