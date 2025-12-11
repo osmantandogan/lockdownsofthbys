@@ -223,7 +223,9 @@ const CaseDetail = () => {
     chronicDiseases: '',       // Kronik hastalıklar
     callType: '',              // Çağrı tipi: telsiz, telefon, diger
     callReason: '',            // Çağrı nedeni (detaylı)
+    callReasonDetail: [],      // Çağrı nedeni detay (çoklu seçim)
     sceneType: '',             // Olay yeri tipi
+    incidentLocation: [],      // Olay yeri detay (çoklu seçim)
     bloodSugar: '',            // Kan şekeri (mg/dL)
     bodyTemp: '',              // Vücut sıcaklığı
     isForensic: false,         // Adli vaka
@@ -233,7 +235,11 @@ const CaseDetail = () => {
     referralSource: '',        // Vakayı veren kurum
     patientArrivalTime: '',    // Hastaya varış saati
     stationReturnTime: '',     // İstasyona dönüş saati
-    materialsUsed: []          // Kullanılan malzemeler
+    materialsUsed: [],         // Kullanılan malzemeler
+    stationCode: '',           // İstasyon kodu
+    hospitalName: '',          // Nakledilen hastane
+    triageCode: '',            // Triyaj kodu (kirmizi, sari, yesil, siyah, sosyal)
+    birthDate: ''              // Doğum tarihi
   });
   
   // CPR data
@@ -1850,6 +1856,62 @@ const CaseDetail = () => {
                 <Textarea value={caseData.patient.complaint} disabled className="bg-gray-50" rows={2} />
               </div>
               
+              {/* Triyaj ve İstasyon Bilgileri */}
+              <div className="grid grid-cols-4 gap-3 bg-red-50 p-3 rounded-lg">
+                <div>
+                  <Label className="font-semibold text-red-700">Triyaj Kodu</Label>
+                  <Select 
+                    value={extendedForm.triageCode} 
+                    onValueChange={(v) => updateExtendedForm('triageCode', v)}
+                    disabled={!canEditForm}
+                  >
+                    <SelectTrigger className={
+                      extendedForm.triageCode === 'kirmizi' ? 'bg-red-100 border-red-500' :
+                      extendedForm.triageCode === 'sari' ? 'bg-yellow-100 border-yellow-500' :
+                      extendedForm.triageCode === 'yesil' ? 'bg-green-100 border-green-500' :
+                      extendedForm.triageCode === 'siyah' ? 'bg-gray-800 text-white' :
+                      extendedForm.triageCode === 'sosyal' ? 'bg-blue-100 border-blue-500' : ''
+                    }>
+                      <SelectValue placeholder="Seçiniz" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kirmizi">🔴 Kırmızı (Acil)</SelectItem>
+                      <SelectItem value="sari">🟡 Sarı (Ciddi)</SelectItem>
+                      <SelectItem value="yesil">🟢 Yeşil (Hafif)</SelectItem>
+                      <SelectItem value="siyah">⚫ Siyah (EX)</SelectItem>
+                      <SelectItem value="sosyal">🔵 Sosyal Endikasyon</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>İstasyon Kodu</Label>
+                  <Input 
+                    placeholder="Örn: HM-01"
+                    value={extendedForm.stationCode}
+                    onChange={(e) => updateExtendedForm('stationCode', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Vakayı Veren Kurum</Label>
+                  <Input 
+                    placeholder="Örn: 112, TPOC..."
+                    value={extendedForm.referralSource}
+                    onChange={(e) => updateExtendedForm('referralSource', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Nakledilen Hastane</Label>
+                  <Input 
+                    placeholder="Hastane adı"
+                    value={extendedForm.hospitalName}
+                    onChange={(e) => updateExtendedForm('hospitalName', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label>Kronik Hastalıklar</Label>
                 <Textarea 
@@ -1955,6 +2017,77 @@ const CaseDetail = () => {
                 <Label htmlFor="conscious" className="cursor-pointer">
                   Hasta Bilinci Durumu: <strong>{clinicalObs.consciousStatus ? 'Bilinci Açık' : 'Bilinci Kapalı'}</strong>
                 </Label>
+              </div>
+
+              {/* Nakil Mesafe Seçenekleri */}
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <Label className="font-semibold mb-2 block">Nakil Mesafe</Label>
+                <div className="flex gap-4 flex-wrap">
+                  {['ilce_ici', 'ilce_disi', 'il_disi'].map((opt) => (
+                    <div key={opt} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id={`transfer-${opt}`}
+                        name="transferType"
+                        value={opt}
+                        checked={extendedForm.transferType === opt}
+                        onChange={(e) => updateExtendedForm('transferType', e.target.value)}
+                        disabled={!canEditForm}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor={`transfer-${opt}`} className="font-normal cursor-pointer">
+                        {opt === 'ilce_ici' ? 'İlçe İçi' : opt === 'ilce_disi' ? 'İlçe Dışı' : 'İl Dışı'}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Kaza Araç Plakaları */}
+              {(extendedForm.callReason === 'trafik_kazasi' || extendedForm.callReason === 'diger_kaza') && (
+                <div className="bg-orange-50 p-3 rounded-lg">
+                  <Label className="font-semibold mb-2 block">Kazaya Karışan Araç Plakaları</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 1, 2, 3].map((idx) => (
+                      <Input
+                        key={idx}
+                        placeholder={`Plaka ${idx + 1}`}
+                        value={extendedForm.accidentVehicles?.[idx] || ''}
+                        onChange={(e) => {
+                          const newVehicles = [...(extendedForm.accidentVehicles || ['', '', '', ''])];
+                          newVehicles[idx] = e.target.value.toUpperCase();
+                          updateExtendedForm('accidentVehicles', newVehicles);
+                        }}
+                        disabled={!canEditForm}
+                        className="uppercase"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* KM Bilgileri */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Başlangıç KM</Label>
+                  <Input 
+                    type="number"
+                    placeholder="Başlangıç km"
+                    value={vehicleInfo.startKm}
+                    onChange={(e) => updateVehicleInfo('startKm', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
+                <div>
+                  <Label>Bitiş KM</Label>
+                  <Input 
+                    type="number"
+                    placeholder="Bitiş km"
+                    value={vehicleInfo.endKm}
+                    onChange={(e) => updateVehicleInfo('endKm', e.target.value)}
+                    disabled={!canEditForm}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

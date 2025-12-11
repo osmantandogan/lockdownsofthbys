@@ -119,19 +119,73 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
     if not tc_no:
         tc_no = safe_get(case_data, 'patient', 'tc_no')
     
+    # Extended form verileri
+    extended_form = form_data.get('extended_form', {}) or {}
+    vehicle_info = form_data.get('vehicle_info', {}) or {}
+    
     # Kronik hastalıklar
-    chronic_diseases = form_data.get('chronicDiseases', '')
+    chronic_diseases = extended_form.get('chronicDiseases', '') or form_data.get('chronicDiseases', '')
+    
+    # Triyaj kodu
+    triage_code = extended_form.get('triageCode', '') or form_data.get('triageCode', '')
+    
+    # İstasyon kodu
+    station_code = extended_form.get('stationCode', '') or form_data.get('stationCode', '')
+    
+    # Nakledilen hastane
+    hospital_name = extended_form.get('hospitalName', '') or form_data.get('hospitalName', '')
+    
+    # Vakayı veren kurum
+    referral_source = extended_form.get('referralSource', '') or form_data.get('callerOrganization', '')
+    
+    # Nakil mesafe
+    transfer_type = extended_form.get('transferType', '') or form_data.get('transferType', '')
+    
+    # KM bilgileri
+    start_km = vehicle_info.get('startKm', '') or form_data.get('startKm', '')
+    end_km = vehicle_info.get('endKm', '') or form_data.get('endKm', '')
+    
+    # Kaza araç plakaları
+    accident_vehicles = extended_form.get('accidentVehicles', []) or form_data.get('accidentVehicles', [])
+    if isinstance(accident_vehicles, list):
+        accident_plate_1 = accident_vehicles[0] if len(accident_vehicles) > 0 else ''
+        accident_plate_2 = accident_vehicles[1] if len(accident_vehicles) > 1 else ''
+        accident_plate_3 = accident_vehicles[2] if len(accident_vehicles) > 2 else ''
+        accident_plate_4 = accident_vehicles[3] if len(accident_vehicles) > 3 else ''
+    else:
+        accident_plate_1 = accident_plate_2 = accident_plate_3 = accident_plate_4 = ''
     
     # Alerjiler
     allergies = form_data.get('allergies', '')
     
     # Vital bulgular
     vitals = form_data.get('vitals', {}) or {}
-    blood_pressure = vitals.get('bloodPressure', '') or form_data.get('bloodPressure', '')
-    pulse = vitals.get('pulse', '') or form_data.get('pulse', '')
-    spo2 = vitals.get('spo2', '') or form_data.get('spo2', '')
-    temperature = vitals.get('temperature', '') or form_data.get('temperature', '')
-    respiration = vitals.get('respiration', '') or form_data.get('respiration', '')
+    vital_signs = form_data.get('vital_signs', []) or []
+    clinical_obs = form_data.get('clinical_obs', {}) or {}
+    
+    # İlk ölçüm
+    if vital_signs and len(vital_signs) > 0:
+        first_vital = vital_signs[0] if isinstance(vital_signs[0], dict) else {}
+        blood_pressure = first_vital.get('bp', '') or vitals.get('bloodPressure', '') or form_data.get('bloodPressure', '')
+        pulse = first_vital.get('pulse', '') or vitals.get('pulse', '') or form_data.get('pulse', '')
+        spo2 = first_vital.get('spo2', '') or vitals.get('spo2', '') or form_data.get('spo2', '')
+        temperature = first_vital.get('temp', '') or vitals.get('temperature', '') or form_data.get('temperature', '')
+        respiration = first_vital.get('respiration', '') or vitals.get('respiration', '') or form_data.get('respiration', '')
+    else:
+        blood_pressure = vitals.get('bloodPressure', '') or form_data.get('bloodPressure', '')
+        pulse = vitals.get('pulse', '') or form_data.get('pulse', '')
+        spo2 = vitals.get('spo2', '') or form_data.get('spo2', '')
+        temperature = vitals.get('temperature', '') or form_data.get('temperature', '')
+        respiration = vitals.get('respiration', '') or form_data.get('respiration', '')
+    
+    # GCS değerleri (clinical_obs'dan)
+    gcs_motor = clinical_obs.get('motorResponse', '') or form_data.get('gcsMotor', '')
+    gcs_verbal = clinical_obs.get('verbalResponse', '') or form_data.get('gcsVerbal', '')
+    gcs_eye = clinical_obs.get('eyeOpening', '') or form_data.get('gcsEye', '')
+    
+    # Kan şekeri
+    blood_sugar = extended_form.get('bloodSugar', '') or form_data.get('bloodSugar', '')
+    
     gcs = vitals.get('gcs', '') or form_data.get('gcs', '')
     
     # Hücre eşlemesi - Vaka formu v2.xlsx yapısına göre
@@ -140,16 +194,16 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
     cell_mapping = {
         # ÜST BÖLÜM - ATN NO, KM bilgileri (Row 2 - değer satırı)
         'U2': case_data.get('case_number', ''),  # ATN NO değeri (U1 label, U2 değer)
-        'W2': form_data.get('startKm', ''),  # BAŞLANGIÇ KM değeri
-        'Y2': form_data.get('endKm', ''),  # BİTİŞ KM değeri
+        'W2': start_km,  # BAŞLANGIÇ KM değeri
+        'Y2': end_km,  # BİTİŞ KM değeri
         
         # İSTASYON BÖLÜMÜ - Değer hücreleri C sütununda
         'C4': form_data.get('healmedyProtocol') or case_data.get('case_number', ''),  # PROTOKOL NO değeri
         'C5': date_str,  # TARİH değeri (A5 label, C5 değer - eğer ayrıysa)
-        'C6': form_data.get('stationCode', ''),  # KODU değeri
+        'C6': station_code,  # KODU değeri
         'C7': vehicle_plate,  # PLAKA değeri
         'C8': address,  # HASTANIN ALINDIĞI ADRES değeri
-        'C9': form_data.get('callerOrganization', ''),  # VAKAYI VEREN KURUM değeri
+        'C9': referral_source,  # VAKAYI VEREN KURUM değeri
         
         # SAATLER BÖLÜMÜ - Değer hücreleri I sütununda
         'I4': call_time,  # ÇAĞRI SAATİ değeri
@@ -184,12 +238,12 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
         'Y19': temperature,  # ATEŞ (°C) değeri
         
         # GKS (Glasgow Koma Skalası)
-        'O17': form_data.get('gcsMotor', ''),  # Motor değeri
-        'R17': form_data.get('gcsVerbal', ''),  # Verbal değeri
-        'U17': form_data.get('gcsEye', ''),  # Göz açma değeri
+        'O17': gcs_motor,  # Motor değeri
+        'R17': gcs_verbal,  # Verbal değeri
+        'U17': gcs_eye,  # Göz açma değeri
         
         # KAN ŞEKERİ
-        'Z17': form_data.get('bloodSugar', ''),  # Kan şekeri Mg/dL
+        'Z17': blood_sugar,  # Kan şekeri Mg/dL
         
         # ÖN TANI (Row 23)
         'B23': form_data.get('diagnosis', ''),  # ÖN TANI değeri
@@ -198,13 +252,13 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
         'I23': form_data.get('notes', ''),  # AÇIKLAMALAR değeri
         
         # NAKLEDİLEN HASTANE
-        'L24': form_data.get('hospitalName', ''),  # NAKLEDİLEN HASTANE değeri
+        'L24': hospital_name,  # NAKLEDİLEN HASTANE değeri
         
         # KAZAYA KARIŞAN ARAÇ PLAKA
-        'P25': form_data.get('accidentVehiclePlate1', ''),
-        'P26': form_data.get('accidentVehiclePlate2', ''),
-        'P27': form_data.get('accidentVehiclePlate3', ''),
-        'P28': form_data.get('accidentVehiclePlate4', ''),
+        'P25': accident_plate_1,
+        'P26': accident_plate_2,
+        'P27': accident_plate_3,
+        'P28': accident_plate_4,
         
         # CPR bilgileri
         'U25': form_data.get('cprStartTime', ''),  # CPR BAŞLAMA ZAMANI
@@ -246,7 +300,7 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
                 pass
     
     # DURUMU / TRİYAJ KODU - V4-V8 checkbox hücreleri
-    triage_code = form_data.get('triageCode', '') or form_data.get('durumu', '')
+    # triage_code zaten yukarıda tanımlandı (extended_form'dan)
     if triage_code:
         triage_cells = {
             'kirmizi': 'V4',  # KIRMIZI KOD
@@ -413,7 +467,7 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
                 pass
     
     # NAKIL TÜRÜ - İLÇE İÇİ/DIŞI/İL DIŞI (K27-K29)
-    transfer_type = form_data.get('transferType', '')
+    # transfer_type zaten yukarıda tanımlandı (extended_form'dan)
     if transfer_type:
         transfer_cells = {
             'ilce_ici': 'L27',
