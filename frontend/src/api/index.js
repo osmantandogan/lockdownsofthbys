@@ -539,6 +539,7 @@ export const stockBarcodeAPI = {
 export const ticketsAPI = {
   create: (data) => api.post('/tickets', data),
   getAll: (params) => api.get('/tickets', { params }),
+  getTickets: (params) => api.get('/tickets', { params }), // Alias for getAll
   getById: (id) => api.get(`/tickets/${id}`),
   update: (id, data) => api.patch(`/tickets/${id}`, data),
   updateStatus: (id, status, notes) => api.patch(`/tickets/${id}/status`, null, { params: { status, notes } }),
