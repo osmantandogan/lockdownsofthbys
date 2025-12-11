@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X } from 'lucide-react';
+import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X, Truck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Cases = () => {
@@ -375,6 +375,42 @@ const Cases = () => {
                             <span className="font-medium">Şikayet:</span> {caseItem.patient.complaint}
                           </p>
                         </div>
+                        {/* Atanan Ekip Bilgisi */}
+                        {caseItem.assigned_team && (
+                          <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Truck className="h-4 w-4 text-blue-600" />
+                              <span className="font-semibold text-blue-800">
+                                {caseItem.assigned_team.vehicle_plate || 'Plaka Yok'}
+                              </span>
+                              {caseItem.assigned_team.driver_name && (
+                                <span className="text-sm text-blue-700">
+                                  | Şoför: {caseItem.assigned_team.driver_name}
+                                </span>
+                              )}
+                              {caseItem.assigned_team.paramedic_name && (
+                                <span className="text-sm text-blue-700">
+                                  | Paramedik: {caseItem.assigned_team.paramedic_name}
+                                </span>
+                              )}
+                              {caseItem.assigned_team.att_name && (
+                                <span className="text-sm text-blue-700">
+                                  | ATT: {caseItem.assigned_team.att_name}
+                                </span>
+                              )}
+                              {caseItem.assigned_team.nurse_name && (
+                                <span className="text-sm text-blue-700">
+                                  | Hemşire: {caseItem.assigned_team.nurse_name}
+                                </span>
+                              )}
+                              {caseItem.assigned_team.doctor_name && (
+                                <span className="text-sm text-blue-700">
+                                  | Doktor: {caseItem.assigned_team.doctor_name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         <p className="text-xs text-gray-500">
                           Oluşturulma: {new Date(caseItem.created_at).toLocaleString('tr-TR')}
                         </p>
@@ -431,6 +467,42 @@ const Cases = () => {
                               <span className="font-medium">Şikayet:</span> {caseItem.patient.complaint}
                             </p>
                           </div>
+                          {/* Atanan Ekip Bilgisi */}
+                          {caseItem.assigned_team && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Truck className="h-4 w-4 text-blue-600" />
+                                <span className="font-semibold text-blue-800">
+                                  {caseItem.assigned_team.vehicle_plate || 'Plaka Yok'}
+                                </span>
+                                {caseItem.assigned_team.driver_name && (
+                                  <span className="text-sm text-blue-700">
+                                    | Şoför: {caseItem.assigned_team.driver_name}
+                                  </span>
+                                )}
+                                {caseItem.assigned_team.paramedic_name && (
+                                  <span className="text-sm text-blue-700">
+                                    | Paramedik: {caseItem.assigned_team.paramedic_name}
+                                  </span>
+                                )}
+                                {caseItem.assigned_team.att_name && (
+                                  <span className="text-sm text-blue-700">
+                                    | ATT: {caseItem.assigned_team.att_name}
+                                  </span>
+                                )}
+                                {caseItem.assigned_team.nurse_name && (
+                                  <span className="text-sm text-blue-700">
+                                    | Hemşire: {caseItem.assigned_team.nurse_name}
+                                  </span>
+                                )}
+                                {caseItem.assigned_team.doctor_name && (
+                                  <span className="text-sm text-blue-700">
+                                    | Doktor: {caseItem.assigned_team.doctor_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                           <p className="text-xs text-gray-500">
                             Oluşturulma: {new Date(caseItem.created_at).toLocaleString('tr-TR')}
                           </p>

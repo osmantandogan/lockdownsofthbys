@@ -576,23 +576,33 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             assigned_user = await users_collection.find_one({"_id": user_id})
             if assigned_user:
                 role = assigned_user.get("role")
-                logger.info(f"User {user_id} has role: {role}")
+                user_name = assigned_user.get("name", "")
+                logger.info(f"User {user_id} has role: {role}, name: {user_name}")
                 if role == "sofor" or role == "bas_sofor":
                     if not assigned_team.get("driver_id"):
                         assigned_team["driver_id"] = user_id
-                        logger.info(f"Set driver_id to {user_id}")
+                        assigned_team["driver_name"] = user_name
+                        logger.info(f"Set driver_id to {user_id}, name: {user_name}")
                 elif role == "paramedik":
                     if not assigned_team.get("paramedic_id"):
                         assigned_team["paramedic_id"] = user_id
-                        logger.info(f"Set paramedic_id to {user_id}")
+                        assigned_team["paramedic_name"] = user_name
+                        logger.info(f"Set paramedic_id to {user_id}, name: {user_name}")
                 elif role == "att":
                     if not assigned_team.get("att_id"):
                         assigned_team["att_id"] = user_id
-                        logger.info(f"Set att_id to {user_id}")
+                        assigned_team["att_name"] = user_name
+                        logger.info(f"Set att_id to {user_id}, name: {user_name}")
                 elif role == "hemsire":
                     if not assigned_team.get("nurse_id"):
                         assigned_team["nurse_id"] = user_id
-                        logger.info(f"Set nurse_id to {user_id}")
+                        assigned_team["nurse_name"] = user_name
+                        logger.info(f"Set nurse_id to {user_id}, name: {user_name}")
+                elif role == "doktor":
+                    if not assigned_team.get("doctor_id"):
+                        assigned_team["doctor_id"] = user_id
+                        assigned_team["doctor_name"] = user_name
+                        logger.info(f"Set doctor_id to {user_id}, name: {user_name}")
     
     logger.info(f"Final assigned_team: {assigned_team}")
     assigned_team["assigned_at"] = get_turkey_time()
@@ -751,14 +761,22 @@ async def assign_multiple_teams(case_id: str, request: Request):
                 assigned_user = await users_collection.find_one({"_id": user_id})
                 if assigned_user:
                     role = assigned_user.get("role")
+                    user_name = assigned_user.get("name", "")
                     if role in ["sofor", "bas_sofor"] and not team_data.get("driver_id"):
                         team_data["driver_id"] = user_id
+                        team_data["driver_name"] = user_name
                     elif role == "paramedik" and not team_data.get("paramedic_id"):
                         team_data["paramedic_id"] = user_id
+                        team_data["paramedic_name"] = user_name
                     elif role == "att" and not team_data.get("att_id"):
                         team_data["att_id"] = user_id
+                        team_data["att_name"] = user_name
                     elif role == "hemsire" and not team_data.get("nurse_id"):
                         team_data["nurse_id"] = user_id
+                        team_data["nurse_name"] = user_name
+                    elif role == "doktor" and not team_data.get("doctor_id"):
+                        team_data["doctor_id"] = user_id
+                        team_data["doctor_name"] = user_name
                     
                     # Bildirim listesine ekle
                     if user_id not in all_recipient_ids:
