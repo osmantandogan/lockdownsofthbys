@@ -123,7 +123,8 @@ export const vehiclesAPI = {
   getStats: () => api.get('/vehicles/stats/summary'),
   getDailyAssignments: (date) => api.get('/vehicles/daily-assignments', { params: { date } }),
   getMonthlyCalendar: (year, month) => api.get('/vehicles/monthly-calendar', { params: { year, month } }),
-  getKmReport: (id, params) => api.get(`/vehicles/km-report/${id}`, { params })
+  getKmReport: (id, params) => api.get(`/vehicles/km-report/${id}`, { params }),
+  updateStationCodes: () => api.post('/vehicles/update-station-codes')
 };
 
 // Stock API
