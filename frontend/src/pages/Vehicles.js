@@ -67,6 +67,7 @@ const Vehicles = () => {
     km: 0,
     fuel_level: 100,
     status: 'musait',
+    station_code: '',
     last_inspection_date: '',
     next_maintenance_km: 0
   });
@@ -170,6 +171,7 @@ const Vehicles = () => {
       km: vehicle.km,
       fuel_level: vehicle.fuel_level || 100,
       status: vehicle.status,
+      station_code: vehicle.station_code || '',
       last_inspection_date: vehicle.last_inspection_date ? new Date(vehicle.last_inspection_date).toISOString().split('T')[0] : '',
       next_maintenance_km: vehicle.next_maintenance_km || 0
     });
@@ -244,20 +246,33 @@ const Vehicles = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Durum</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="musait">Müsait</SelectItem>
-                    <SelectItem value="gorevde">Görevde</SelectItem>
-                    <SelectItem value="bakimda">Bakımda</SelectItem>
-                    <SelectItem value="arizali">Arızalı</SelectItem>
-                    <SelectItem value="kullanim_disi">Kullanım Dışı</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Durum</Label>
+                  <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="musait">Müsait</SelectItem>
+                      <SelectItem value="gorevde">Görevde</SelectItem>
+                      <SelectItem value="bakimda">Bakımda</SelectItem>
+                      <SelectItem value="arizali">Arızalı</SelectItem>
+                      <SelectItem value="kullanim_disi">Kullanım Dışı</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.type === 'ambulans' && (
+                  <div className="space-y-2">
+                    <Label>İstasyon Kodu</Label>
+                    <Input
+                      value={formData.station_code || ''}
+                      onChange={(e) => setFormData({...formData, station_code: e.target.value})}
+                      placeholder="Örn: 9365"
+                    />
+                    <p className="text-xs text-gray-500">Ambulans için zorunlu istasyon kodu</p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

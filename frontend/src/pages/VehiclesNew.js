@@ -33,6 +33,7 @@ const VehiclesNew = () => {
     type: 'ambulans',
     km: 0,
     fuel_level: 50,
+    station_code: '',
     last_inspection_date: '',
     next_maintenance_km: 20000
   });
@@ -92,6 +93,7 @@ const VehiclesNew = () => {
       type: vehicle.type,
       km: vehicle.km,
       fuel_level: vehicle.fuel_level || 50,
+      station_code: vehicle.station_code || '',
       last_inspection_date: vehicle.last_inspection_date ? new Date(vehicle.last_inspection_date).toISOString().split('T')[0] : '',
       next_maintenance_km: vehicle.next_maintenance_km || 20000
     });
@@ -111,6 +113,7 @@ const VehiclesNew = () => {
       type: 'ambulans',
       km: 0,
       fuel_level: 50,
+      station_code: '',
       last_inspection_date: '',
       next_maintenance_km: 20000
     });
@@ -505,17 +508,29 @@ const VehiclesNew = () => {
                 placeholder="34 ABC 123"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Araç Tipi</Label>
-              <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ambulans">Ambulans</SelectItem>
-                  <SelectItem value="arac">Araç</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Araç Tipi</Label>
+                <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ambulans">Ambulans</SelectItem>
+                    <SelectItem value="arac">Araç</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.type === 'ambulans' && (
+                <div className="space-y-2">
+                  <Label>İstasyon Kodu</Label>
+                  <Input 
+                    value={formData.station_code || ''} 
+                    onChange={(e) => setFormData({...formData, station_code: e.target.value})}
+                    placeholder="Örn: 9365"
+                  />
+                </div>
+              )}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
