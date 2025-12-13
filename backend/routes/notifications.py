@@ -17,6 +17,7 @@ from services.onesignal_service import (
     NotificationType,
     send_master_code_notification
 )
+from services.firebase_service import firebase_service
 
 router = APIRouter()
 
@@ -24,6 +25,13 @@ router = APIRouter()
 # Models
 class OneSignalSubscription(BaseModel):
     player_id: str  # OneSignal player_id
+
+
+class FCMTokenRegistration(BaseModel):
+    fcm_token: str
+    device_id: Optional[str] = None
+    device_name: Optional[str] = None
+    platform: str = "android"
 
 
 class NotificationPreferences(BaseModel):
@@ -165,6 +173,132 @@ async def unsubscribe_onesignal(request: Request):
     )
     
     return {"message": "OneSignal bildirimleri devre dışı bırakıldı"}
+
+
+# ==================== FCM (Firebase Cloud Messaging) ====================
+
+@router.post("/fcm/register")
+async def register_fcm_token(data: FCMTokenRegistration, request: Request):
+    """
+    Android cihazdan FCM token kaydet
+    Her cihaz için ayrı token saklanır
+    """
+    user = await get_current_user(request)
+    
+    # Mevcut FCM token'ları al
+    user_doc = await users_collection.find_one({"_id": user.id})
+    fcm_tokens = user_doc.get("fcm_tokens", [])
+    
+    # Aynı token varsa güncelle, yoksa ekle
+    token_exists = False
+    for i, token_info in enumerate(fcm_tokens):
+        if token_info.get("token") == data.fcm_token:
+            fcm_tokens[i] = {
+                "token": data.fcm_token,
+                "device_id": data.device_id,
+                "device_name": data.device_name,
+                "platform": data.platform,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+            token_exists = True
+            break
+    
+    if not token_exists:
+        fcm_tokens.append({
+            "token": data.fcm_token,
+            "device_id": data.device_id,
+            "device_name": data.device_name,
+            "platform": data.platform,
+            "registered_at": datetime.utcnow().isoformat()
+        })
+    
+    # Kullanıcıya kaydet
+    await users_collection.update_one(
+        {"_id": user.id},
+        {
+            "$set": {
+                "fcm_tokens": fcm_tokens,
+                "fcm_enabled": True
+            }
+        }
+    )
+    
+    return {
+        "message": "FCM token kaydedildi",
+        "token_count": len(fcm_tokens)
+    }
+
+
+@router.delete("/fcm/unregister")
+async def unregister_fcm_token(request: Request, fcm_token: str = None):
+    """FCM token kaldır"""
+    user = await get_current_user(request)
+    
+    if fcm_token:
+        # Belirli token'ı kaldır
+        await users_collection.update_one(
+            {"_id": user.id},
+            {"$pull": {"fcm_tokens": {"token": fcm_token}}}
+        )
+    else:
+        # Tüm token'ları kaldır
+        await users_collection.update_one(
+            {"_id": user.id},
+            {
+                "$set": {"fcm_tokens": [], "fcm_enabled": False}
+            }
+        )
+    
+    return {"message": "FCM token kaldırıldı"}
+
+
+@router.post("/fcm/test")
+async def test_fcm_notification(request: Request):
+    """FCM bildirim testi"""
+    user = await get_current_user(request)
+    
+    # Kullanıcının FCM token'larını al
+    user_doc = await users_collection.find_one({"_id": user.id})
+    fcm_tokens = user_doc.get("fcm_tokens", [])
+    
+    if not fcm_tokens:
+        raise HTTPException(status_code=400, detail="Kayıtlı FCM token bulunamadı")
+    
+    tokens = [t.get("token") for t in fcm_tokens if t.get("token")]
+    
+    result = await firebase_service.send_to_multiple(
+        tokens=tokens,
+        title="🔔 Test Bildirimi",
+        body=f"Merhaba {user.name}! Bu bir test bildirimidir.",
+        notification_type="general"
+    )
+    
+    return {
+        "message": "Test bildirimi gönderildi",
+        "result": result
+    }
+
+
+@router.get("/fcm/status")
+async def get_fcm_status(request: Request):
+    """FCM durumunu kontrol et"""
+    user = await get_current_user(request)
+    user_doc = await users_collection.find_one({"_id": user.id})
+    
+    fcm_tokens = user_doc.get("fcm_tokens", [])
+    
+    return {
+        "fcm_enabled": user_doc.get("fcm_enabled", False),
+        "token_count": len(fcm_tokens),
+        "devices": [
+            {
+                "device_name": t.get("device_name"),
+                "platform": t.get("platform"),
+                "registered_at": t.get("registered_at")
+            }
+            for t in fcm_tokens
+        ]
+    }
 
 
 # ==================== Bildirim Tercihleri ====================

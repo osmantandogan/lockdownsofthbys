@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "924881073226",
+    "project_id": "healmedy-abro-v2",
+    "storage_bucket": "healmedy-abro-v2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:924881073226:android:807c4d7d39b0fbb2f422b3",
+        "android_client_info": {
+          "package_name": "com.healmedy.ambulans"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcFfzcnRrdtMxTnOeEY2xgDmL4RP4HynU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

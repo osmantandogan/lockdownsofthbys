@@ -72,9 +72,10 @@ dependencies {
     // Play Services - Konum
     implementation "com.google.android.gms:play-services-location:21.0.1"
     
-    // Firebase - Push Notifications (opsiyonel)
-    // implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    // implementation 'com.google.firebase:firebase-messaging'
+    // Firebase - Push Notifications
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-analytics'
     
     // OSMDroid - Offline haritalar
     implementation 'org.osmdroid:osmdroid-android:6.1.18'

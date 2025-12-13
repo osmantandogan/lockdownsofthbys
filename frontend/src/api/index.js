@@ -373,6 +373,12 @@ export const notificationsAPI = {
   getStatus: () => api.get('/notifications/status'),
   getConfig: () => api.get('/notifications/onesignal-config'),
   
+  // FCM (Firebase Cloud Messaging) - Android
+  registerFCM: (data) => api.post('/notifications/fcm/register', data),
+  unregisterFCM: (token) => api.delete('/notifications/fcm/unregister', { params: { fcm_token: token } }),
+  testFCM: () => api.post('/notifications/fcm/test'),
+  getFCMStatus: () => api.get('/notifications/fcm/status'),
+  
   // Tercihler
   getPreferences: () => api.get('/notifications/preferences'),
   updatePreferences: (prefs) => api.put('/notifications/preferences', prefs),

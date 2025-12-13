@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { notificationsAPI } from '../api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
@@ -28,6 +29,96 @@ export const NotificationProvider = ({ children }) => {
   const [oneSignalReady, setOneSignalReady] = useState(false);
   const [oneSignalError, setOneSignalError] = useState(null);
   const [isLocalhost, setIsLocalhost] = useState(!isProduction());
+  const [fcmToken, setFcmToken] = useState(null);
+  const [fcmEnabled, setFcmEnabled] = useState(false);
+
+  // FCM başlat (Android için)
+  useEffect(() => {
+    const initializeFCM = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        
+        // İzin kontrolü
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive !== 'granted') {
+          console.log('[FCM] Permission not granted');
+          return;
+        }
+
+        // Token listener
+        await PushNotifications.addListener('registration', async (token) => {
+          console.log('[FCM] Token:', token.value);
+          setFcmToken(token.value);
+          setFcmEnabled(true);
+
+          // Backend'e kaydet
+          try {
+            await notificationsAPI.registerFCM({
+              fcm_token: token.value,
+              platform: 'android'
+            });
+            console.log('[FCM] Token registered with backend');
+          } catch (err) {
+            console.error('[FCM] Failed to register token:', err);
+          }
+        });
+
+        // Bildirim listener'ları
+        await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('[FCM] Notification received:', notification);
+          toast.info(notification.title, { description: notification.body });
+        });
+
+        await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('[FCM] Notification action:', action);
+          const data = action.notification.data;
+          if (data?.navigate_to) {
+            window.location.href = data.navigate_to;
+          }
+        });
+
+        // Kaydı başlat
+        await PushNotifications.register();
+        console.log('[FCM] Registration started');
+
+      } catch (err) {
+        console.error('[FCM] Init error:', err);
+      }
+    };
+
+    initializeFCM();
+  }, [isAuthenticated, user]);
+
+  // Native event listener (MainActivity'den gelen token)
+  useEffect(() => {
+    const handleNativeToken = async (event) => {
+      const token = event.detail;
+      console.log('[FCM] Token from native:', token);
+      setFcmToken(token);
+      setFcmEnabled(true);
+
+      if (user) {
+        try {
+          await notificationsAPI.registerFCM({
+            fcm_token: token,
+            platform: 'android'
+          });
+        } catch (err) {
+          console.error('[FCM] Failed to register native token:', err);
+        }
+      }
+    };
+
+    window.addEventListener('fcmToken', handleNativeToken);
+    return () => window.removeEventListener('fcmToken', handleNativeToken);
+  }, [user]);
 
   // Push desteğini kontrol et
   useEffect(() => {
