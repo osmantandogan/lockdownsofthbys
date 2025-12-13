@@ -936,26 +936,36 @@ async def sync_vehicle_stock_locations(request: Request):
                 )
             existing_count += 1
     
-    # 2. Araç lokasyonları
-    vehicles = await vehicles_collection.find({"status": {"$ne": "pasif"}}).to_list(100)
+    # 2. Araç lokasyonları - TÜM araçları al (pasif olmayanları)
+    vehicles = await vehicles_collection.find({}).to_list(100)
     
     for vehicle in vehicles:
         plate = vehicle.get("plate")
         vehicle_id = vehicle.get("_id")
+        station_code = vehicle.get("station_code", "")
+        vehicle_type = vehicle.get("type", "arac")
         
-        # Araç lokasyonu
+        # İstasyon kodu varsa isimde göster
+        display_name = f"{plate} ({station_code})" if station_code else plate
+        
+        # Araç lokasyonu - hem vehicle_id hem de plate ile ara
         existing_vehicle_loc = await stock_locations_collection.find_one({
-            "vehicle_id": vehicle_id,
+            "$or": [
+                {"vehicle_id": vehicle_id},
+                {"vehicle_plate": plate}
+            ],
             "type": "vehicle"
         })
         
         if not existing_vehicle_loc:
             new_loc = {
                 "_id": str(uuid.uuid4()),
-                "name": plate,
+                "name": display_name,
                 "type": "vehicle",
                 "vehicle_id": vehicle_id,
                 "vehicle_plate": plate,
+                "station_code": station_code,
+                "vehicle_type": vehicle_type,
                 "description": f"{plate} plakalı araç stoğu",
                 "is_active": True,
                 "created_at": datetime.utcnow(),
@@ -965,6 +975,19 @@ async def sync_vehicle_stock_locations(request: Request):
             await stock_locations_collection.insert_one(new_loc)
             created_count += 1
         else:
+            # Mevcut lokasyonu güncelle (plaka veya istasyon kodu değişmiş olabilir)
+            update_fields = {
+                "name": display_name,
+                "vehicle_id": vehicle_id,
+                "vehicle_plate": plate,
+                "station_code": station_code,
+                "vehicle_type": vehicle_type,
+                "is_active": True
+            }
+            await stock_locations_collection.update_one(
+                {"_id": existing_vehicle_loc["_id"]},
+                {"$set": update_fields}
+            )
             existing_count += 1
     
     # 3. Merkez Depo lokasyonu

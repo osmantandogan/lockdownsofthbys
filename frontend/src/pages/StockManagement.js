@@ -78,7 +78,7 @@ const StockManagement = () => {
   const [barcodeGroups, setBarcodeGroups] = useState([]);
   const [barcodeLoading2, setBarcodeLoading2] = useState(false);
   const [barcodeSearch, setBarcodeSearch] = useState('');
-  const [barcodeLocationFilter, setBarcodeLocationFilter] = useState('merkez_depo');
+  const [barcodeLocationFilter, setBarcodeLocationFilter] = useState('all');
   const [selectedMedication, setSelectedMedication] = useState(null);
   const [medicationDetailsOpen, setMedicationDetailsOpen] = useState(false);
   const [medicationDetails, setMedicationDetails] = useState(null);
@@ -390,9 +390,27 @@ const StockManagement = () => {
   const loadStockLocations = async () => {
     try {
       const response = await stockAPI.getStockLocations();
-      setStockLocations(response.data.locations || []);
+      const locations = response.data.locations || [];
+      setStockLocations(locations);
+      
+      // Eğer hiç lokasyon yoksa otomatik senkronize et
+      if (locations.length === 0) {
+        console.log('Lokasyon bulunamadı, otomatik senkronizasyon başlatılıyor...');
+        await syncVehicleLocationsAuto();
+      }
     } catch (error) {
       console.error('Lokasyonlar yüklenemedi:', error);
+    }
+  };
+
+  // Otomatik senkronizasyon (sessiz)
+  const syncVehicleLocationsAuto = async () => {
+    try {
+      await stockAPI.syncVehicleLocations();
+      const response = await stockAPI.getStockLocations();
+      setStockLocations(response.data.locations || []);
+    } catch (error) {
+      console.error('Otomatik senkronizasyon hatası:', error);
     }
   };
 
@@ -1353,9 +1371,18 @@ const StockManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                    <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
-                    <SelectItem value="ambulans">Ambulans</SelectItem>
-                    <SelectItem value="acil_canta">Acil Çanta</SelectItem>
+                    {/* Sabit lokasyonlar */}
+                    {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
+                      <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
+                    ))}
+                    {/* Araçlar */}
+                    {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
+                      <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
+                    ))}
+                    {/* Bekleme noktaları */}
+                    {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
+                      <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1612,8 +1639,14 @@ const StockManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                      {allLocations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
+                      ))}
+                      {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
+                      ))}
+                      {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1690,8 +1723,14 @@ const StockManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                      {allLocations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
+                      ))}
+                      {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
+                      ))}
+                      {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1769,8 +1808,14 @@ const StockManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                      {allLocations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
+                      ))}
+                      {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
+                      ))}
+                      {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
