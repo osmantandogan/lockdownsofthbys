@@ -353,8 +353,15 @@ async def get_locations_stock_summary(request: Request):
     """
     await get_current_user(request)
     
-    # Tüm aktif lokasyonları al
-    locations = await locations_collection.find({"is_active": True}).to_list(1000)
+    # stock_locations_collection kullan (stock_barcode ile ayni)
+    stock_locations_col = db["stock_locations"]
+    
+    # Tüm aktif lokasyonları al - ONCE stock_locations_collection kullan
+    locations = await stock_locations_col.find({"is_active": True}).to_list(1000)
+    
+    # Eger hic lokasyon yoksa eski collection'dan dene
+    if len(locations) == 0:
+        locations = await locations_collection.find({"is_active": True}).to_list(1000)
     
     result = []
     now = datetime.utcnow()
@@ -400,10 +407,16 @@ async def get_location_stock_items(location_id: str, request: Request):
     """Belirli bir lokasyondaki stok kalemlerini getir"""
     await get_current_user(request)
     
-    # Lokasyonu bul
-    location = await locations_collection.find_one({"_id": location_id})
+    # stock_locations_collection kullan (stock_barcode ile ayni)
+    stock_locations_col = db["stock_locations"]
+    
+    # Lokasyonu bul - once stock_locations_collection'da ara
+    location = await stock_locations_col.find_one({"_id": location_id})
     if not location:
-        raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
+        # Eski locations_collection'da dene
+        location = await locations_collection.find_one({"_id": location_id})
+        if not location:
+            raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
     
     location_name = location["name"]
     
@@ -419,7 +432,8 @@ async def get_location_stock_items(location_id: str, request: Request):
             "name": location_name,
             "type": location.get("type")
         },
-        "items": items
+        "items": items,
+        "count": len(items)
     }
 
 
@@ -431,10 +445,15 @@ async def get_item_barcode_details(location_id: str, item_name: str, request: Re
     """
     await get_current_user(request)
     
-    # Lokasyonu bul
-    location = await locations_collection.find_one({"_id": location_id})
+    # stock_locations_collection kullan
+    stock_locations_col = db["stock_locations"]
+    
+    # Lokasyonu bul - once stock_locations_collection'da ara
+    location = await stock_locations_col.find_one({"_id": location_id})
     if not location:
-        raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
+        location = await locations_collection.find_one({"_id": location_id})
+        if not location:
+            raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
     
     location_name = location["name"]
     
@@ -796,8 +815,13 @@ async def get_vehicle_all_stock(vehicle_id: str, request: Request):
 async def seed_sample_stock_endpoint(request: Request):
     """Tum lokasyonlara ornek stok ekle - Test icin"""
     import random
+    from database import vehicles_collection
+    from models import HEALMEDY_LOCATIONS
     
     user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    # stock_locations_collection kullan (stock_barcode ile ayni)
+    stock_locations_col = db["stock_locations"]
     
     SAMPLE_ITEMS = [
         {"name": "Parasetamol 500mg", "code": "PAR500", "min_quantity": 10, "category": "ilac"},
@@ -806,52 +830,98 @@ async def seed_sample_stock_endpoint(request: Request):
         {"name": "Serum Fizyolojik 500ml", "code": "SF500", "min_quantity": 20, "category": "ilac"},
         {"name": "Midazolam 5mg/ml", "code": "MID005", "min_quantity": 3, "category": "ilac"},
         {"name": "Aspirin 100mg", "code": "ASP100", "min_quantity": 15, "category": "ilac"},
+        {"name": "Atropin 0.5mg/ml", "code": "ATR05", "min_quantity": 5, "category": "ilac"},
+        {"name": "Dopamin 200mg/5ml", "code": "DOP200", "min_quantity": 3, "category": "ilac"},
+        {"name": "Diazepam 10mg/2ml", "code": "DIA10", "min_quantity": 5, "category": "ilac"},
+        {"name": "Morfin 10mg/ml", "code": "MOR10", "min_quantity": 2, "category": "ilac"},
         {"name": "Eldiven (M)", "code": "ELD-M", "min_quantity": 50, "category": "itriyat"},
         {"name": "Eldiven (L)", "code": "ELD-L", "min_quantity": 50, "category": "itriyat"},
+        {"name": "Eldiven (S)", "code": "ELD-S", "min_quantity": 30, "category": "itriyat"},
         {"name": "Maske N95", "code": "MSK-N95", "min_quantity": 30, "category": "itriyat"},
+        {"name": "Cerrahi Maske", "code": "MSK-CRH", "min_quantity": 100, "category": "itriyat"},
         {"name": "Dezenfektan 500ml", "code": "DEZ500", "min_quantity": 10, "category": "itriyat"},
+        {"name": "El Antiseptigi 100ml", "code": "ELA100", "min_quantity": 20, "category": "itriyat"},
         {"name": "Gazli Bez 10x10", "code": "GZB-10", "min_quantity": 100, "category": "diger"},
         {"name": "Flaster 2.5cm", "code": "FLS-25", "min_quantity": 20, "category": "diger"},
         {"name": "IV Kateter 18G", "code": "IVK-18", "min_quantity": 50, "category": "diger"},
+        {"name": "IV Kateter 20G", "code": "IVK-20", "min_quantity": 50, "category": "diger"},
         {"name": "Enjektör 5ml", "code": "ENJ-05", "min_quantity": 100, "category": "diger"},
+        {"name": "Enjektör 10ml", "code": "ENJ-10", "min_quantity": 50, "category": "diger"},
         {"name": "Serum Seti", "code": "SRM-SET", "min_quantity": 30, "category": "diger"},
+        {"name": "Oksijen Maskesi", "code": "OKS-MSK", "min_quantity": 10, "category": "diger"},
+        {"name": "Ambu Balon", "code": "AMB-BLN", "min_quantity": 2, "category": "diger"},
     ]
     
     # Onceki stoklari temizle
     await stock_collection.delete_many({})
     
-    # Lokasyonlari al
-    locations = await locations_collection.find({"is_active": True}).to_list(100)
-    
-    if len(locations) == 0:
-        from database import vehicles_collection
-        # Lokasyon yoksa olustur
-        await locations_collection.insert_one({
-            "_id": str(uuid.uuid4()), "name": "Merkez Depo", "type": "warehouse",
-            "is_active": True, "created_at": datetime.utcnow()
+    # 1. Lokasyonlari senkronize et (stock_locations_collection kullan)
+    # Ilk once Merkez Depo ekle
+    merkez = await stock_locations_col.find_one({"name": "Merkez Depo"})
+    if not merkez:
+        await stock_locations_col.insert_one({
+            "_id": str(uuid.uuid4()),
+            "name": "Merkez Depo",
+            "type": "warehouse",
+            "is_active": True,
+            "created_at": datetime.utcnow()
         })
-        
-        vehicles = await vehicles_collection.find({}).to_list(100)
-        for v in vehicles:
-            await locations_collection.insert_one({
-                "_id": str(uuid.uuid4()), "name": v.get("plate"), "type": "vehicle",
-                "vehicle_id": v.get("_id"), "is_active": True, "created_at": datetime.utcnow()
+    
+    # HEALMEDY lokasyonlari
+    for loc in HEALMEDY_LOCATIONS:
+        existing = await stock_locations_col.find_one({"healmedy_location_id": loc["id"]})
+        if not existing:
+            await stock_locations_col.insert_one({
+                "_id": str(uuid.uuid4()),
+                "name": loc["name"],
+                "type": "waiting_point",
+                "healmedy_location_id": loc["id"],
+                "is_active": True,
+                "created_at": datetime.utcnow()
             })
+    
+    # Araclar
+    vehicles = await vehicles_collection.find({}).to_list(100)
+    for v in vehicles:
+        plate = v.get("plate")
+        station_code = v.get("station_code", "")
+        display_name = f"{plate} ({station_code})" if station_code else plate
         
-        locations = await locations_collection.find({"is_active": True}).to_list(100)
+        existing = await stock_locations_col.find_one({"vehicle_id": v.get("_id")})
+        if not existing:
+            await stock_locations_col.insert_one({
+                "_id": str(uuid.uuid4()),
+                "name": display_name,
+                "type": "vehicle",
+                "vehicle_id": v.get("_id"),
+                "vehicle_plate": plate,
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            })
+        elif existing.get("name") != display_name:
+            # Ismi guncelle
+            await stock_locations_col.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"name": display_name}}
+            )
+    
+    # 2. Simdi lokasyonlari al ve stok ekle
+    locations = await stock_locations_col.find({"is_active": True}).to_list(100)
     
     total_stock = 0
+    loc_names = []
     
     for loc in locations:
         loc_name = loc.get("name")
         loc_type = loc.get("type", "unknown")
+        loc_names.append(loc_name)
         
         # Merkez depoya tum urunleri, digerlerine rastgele
         if loc_type == "warehouse":
             items = SAMPLE_ITEMS
             qty_mult = 5
         else:
-            items = random.sample(SAMPLE_ITEMS, random.randint(8, 12))
+            items = random.sample(SAMPLE_ITEMS, min(random.randint(8, 12), len(SAMPLE_ITEMS)))
             qty_mult = 1
         
         for item in items:
@@ -864,7 +934,7 @@ async def seed_sample_stock_endpoint(request: Request):
                 "code": item["code"],
                 "quantity": quantity,
                 "min_quantity": item["min_quantity"],
-                "location": loc_name,
+                "location": loc_name,  # Lokasyon ismiyle eslestir
                 "category": item["category"],
                 "lot_number": f"LOT{random.randint(10000, 99999)}",
                 "expiry_date": datetime.utcnow() + timedelta(days=expiry_days),
@@ -878,5 +948,6 @@ async def seed_sample_stock_endpoint(request: Request):
     return {
         "message": f"{len(locations)} lokasyona toplam {total_stock} ornek stok eklendi",
         "locations": len(locations),
-        "total_stock": total_stock
+        "total_stock": total_stock,
+        "location_names": loc_names
     }

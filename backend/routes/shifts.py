@@ -614,7 +614,9 @@ async def import_december_2024_shifts(request: Request):
             if is_new: new_users += 1
             else: existing_users += 1
             for day in person["shifts"]:
-                shift_date = datetime(2024, 12, day)
+                # Aralık ayı, mevcut yıl kullan (2025)
+                current_year = datetime.now().year
+                shift_date = datetime(current_year, 12, day)
                 if await shift_assignments_collection.find_one({"user_id": user_id, "shift_date": shift_date}):
                     skipped_shifts += 1
                     continue
@@ -625,8 +627,8 @@ async def import_december_2024_shifts(request: Request):
                 })
                 new_shifts += 1
     
-    logger.info(f"December 2024 import: {new_users} new users, {new_shifts} new shifts")
-    return {"message": "Aralık 2024 nöbet listesi import edildi", "new_users": new_users,
+    logger.info(f"December {current_year} import: {new_users} new users, {new_shifts} new shifts")
+    return {"message": f"Aralık {current_year} nöbet listesi import edildi", "new_users": new_users,
             "existing_users": existing_users, "new_shifts": new_shifts, "skipped_shifts": skipped_shifts}
 
 
