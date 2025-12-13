@@ -1797,3 +1797,334 @@ async def get_stock_movements(
         m["id"] = m.pop("_id")
     
     return {"movements": movements, "count": len(movements)}
+
+
+# ============================================================================
+# ADET BAZLI STOK (ACILMIS ILACLAR)
+# ============================================================================
+
+unit_stock_collection = db["unit_stock"]
+
+
+@router.get("/unit-stock")
+async def get_unit_stock(
+    request: Request,
+    location: Optional[str] = None
+):
+    """Adet bazli acilmis ilaclari getir"""
+    await get_current_user(request)
+    
+    query = {"status": "opened"}
+    if location:
+        query["location"] = location
+    
+    items = await unit_stock_collection.find(query).sort("opened_at", -1).to_list(1000)
+    
+    for item in items:
+        item["id"] = item.pop("_id")
+    
+    return {"items": items, "count": len(items)}
+
+
+@router.post("/open-box")
+async def open_barcode_box(request: Request):
+    """
+    Karekodlu kutuyu ac ve adet bazli stoka donustur
+    - Ana stoktan kutuyu 'opened' olarak isaretle
+    - Adet bazli stoka ekle
+    """
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    stock_id = body.get("stock_id")
+    if not stock_id:
+        raise HTTPException(status_code=400, detail="Stok ID gerekli")
+    
+    # Stok kaydini bul
+    stock_item = await barcode_stock_collection.find_one({"_id": stock_id})
+    if not stock_item:
+        raise HTTPException(status_code=404, detail="Stok bulunamadi")
+    
+    if stock_item.get("is_opened"):
+        raise HTTPException(status_code=400, detail="Bu kutu zaten acilmis")
+    
+    # Ana stoku 'opened' olarak isaretle
+    await barcode_stock_collection.update_one(
+        {"_id": stock_id},
+        {"$set": {
+            "is_opened": True,
+            "opened_at": datetime.utcnow(),
+            "opened_by": user.id,
+            "opened_by_name": user.name
+        }}
+    )
+    
+    # Adet bazli stoka ekle
+    unit_stock = {
+        "_id": str(uuid.uuid4()),
+        "source_stock_id": stock_id,
+        "gtin": stock_item.get("gtin"),
+        "name": stock_item.get("name"),
+        "manufacturer_name": stock_item.get("manufacturer_name"),
+        "category": "ilac_adet",
+        "original_unit_count": stock_item.get("unit_count", 1),
+        "remaining_units": stock_item.get("unit_count", 1),
+        "lot_number": stock_item.get("lot_number"),
+        "expiry_date": stock_item.get("expiry_date"),
+        "location": stock_item.get("location"),
+        "location_name": stock_item.get("location_name"),
+        "location_type": stock_item.get("location_type"),
+        "status": "opened",
+        "opened_at": datetime.utcnow(),
+        "opened_by": user.id,
+        "opened_by_name": user.name,
+        "added_at": datetime.utcnow(),
+    }
+    
+    await unit_stock_collection.insert_one(unit_stock)
+    
+    return {
+        "message": f"{stock_item.get('name')} kutusu acildi, {stock_item.get('unit_count', 1)} adet stoka eklendi",
+        "unit_stock_id": unit_stock["_id"],
+        "remaining_units": stock_item.get("unit_count", 1)
+    }
+
+
+@router.post("/unit-stock/use")
+async def use_unit_stock(request: Request):
+    """Adet bazli stoktan kullan"""
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    unit_stock_id = body.get("unit_stock_id")
+    quantity = body.get("quantity", 1)
+    case_id = body.get("case_id")
+    
+    if not unit_stock_id:
+        raise HTTPException(status_code=400, detail="Adet stok ID gerekli")
+    
+    # Stok kaydini bul
+    unit_stock = await unit_stock_collection.find_one({"_id": unit_stock_id})
+    if not unit_stock:
+        raise HTTPException(status_code=404, detail="Adet stok bulunamadi")
+    
+    remaining = unit_stock.get("remaining_units", 0)
+    if remaining < quantity:
+        raise HTTPException(status_code=400, detail=f"Yetersiz stok. Kalan: {remaining}")
+    
+    new_remaining = remaining - quantity
+    
+    update_data = {
+        "remaining_units": new_remaining,
+        "last_used_at": datetime.utcnow(),
+        "last_used_by": user.id,
+        "last_used_by_name": user.name
+    }
+    
+    if new_remaining == 0:
+        update_data["status"] = "empty"
+    
+    await unit_stock_collection.update_one(
+        {"_id": unit_stock_id},
+        {"$set": update_data}
+    )
+    
+    # Kullanim logu
+    if case_id:
+        usage_log = {
+            "_id": str(uuid.uuid4()),
+            "unit_stock_id": unit_stock_id,
+            "name": unit_stock.get("name"),
+            "quantity": quantity,
+            "case_id": case_id,
+            "used_at": datetime.utcnow(),
+            "used_by": user.id,
+            "used_by_name": user.name,
+            "location": unit_stock.get("location")
+        }
+        await stock_usage_logs_collection.insert_one(usage_log)
+    
+    return {
+        "message": f"{quantity} adet kullanildi",
+        "remaining_units": new_remaining
+    }
+
+
+@router.get("/by-vehicle-location/{vehicle_id}")
+async def get_stock_by_vehicle_location(vehicle_id: str, request: Request):
+    """Aracin bulundugu lokasyondaki stoklari getir"""
+    await get_current_user(request)
+    
+    # Araci bul
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Arac bulunamadi")
+    
+    # Aracin lokasyonunu al
+    location = vehicle.get("current_location") or vehicle.get("plate")
+    location_id = f"ambulans_{vehicle.get('plate', '').replace(' ', '_').lower()}"
+    
+    # Bu lokasyondaki stoklari getir
+    barcode_items = await barcode_stock_collection.find({
+        "$or": [
+            {"location": location_id},
+            {"location": location},
+            {"location_detail": vehicle.get("plate")}
+        ],
+        "status": "available"
+    }).to_list(1000)
+    
+    unit_items = await unit_stock_collection.find({
+        "$or": [
+            {"location": location_id},
+            {"location": location}
+        ],
+        "status": "opened"
+    }).to_list(1000)
+    
+    for item in barcode_items:
+        item["id"] = item.pop("_id")
+    
+    for item in unit_items:
+        item["id"] = item.pop("_id")
+    
+    return {
+        "vehicle": {
+            "id": vehicle_id,
+            "plate": vehicle.get("plate"),
+            "location": location
+        },
+        "barcode_stock": barcode_items,
+        "unit_stock": unit_items,
+        "total_barcode": len(barcode_items),
+        "total_unit": len(unit_items)
+    }
+
+
+# ============================================================================
+# ITRIYAT VE SARF MALZEME STOKLARI
+# ============================================================================
+
+@router.get("/itriyat")
+async def get_itriyat_stock(
+    request: Request,
+    location: Optional[str] = None
+):
+    """Itriyat stoklarini getir"""
+    await get_current_user(request)
+    
+    query = {"category": "itriyat"}
+    if location:
+        query["location"] = location
+    
+    items = await stock_collection.find(query).sort("name", 1).to_list(1000)
+    
+    for item in items:
+        item["id"] = item.pop("_id")
+    
+    return {"items": items, "count": len(items)}
+
+
+@router.get("/sarf")
+async def get_sarf_stock(
+    request: Request,
+    location: Optional[str] = None
+):
+    """Sarf malzeme stoklarini getir"""
+    await get_current_user(request)
+    
+    query = {"category": "sarf"}
+    if location:
+        query["location"] = location
+    
+    items = await stock_collection.find(query).sort("name", 1).to_list(1000)
+    
+    for item in items:
+        item["id"] = item.pop("_id")
+    
+    return {"items": items, "count": len(items)}
+
+
+@router.post("/bulk-add")
+async def bulk_add_stock(request: Request):
+    """
+    Toplu stok ekleme
+    - QR kodlu ilaclar
+    - Adet bazli urunler
+    - Itriyat ve sarf malzeme
+    """
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    items = body.get("items", [])
+    location = body.get("location", "merkez_depo")
+    location_name = body.get("location_name", "Merkez Depo")
+    category = body.get("category")  # ilac, itriyat, sarf
+    
+    if not items:
+        raise HTTPException(status_code=400, detail="Eklenecek urun listesi bos")
+    
+    results = []
+    
+    for item in items:
+        try:
+            if category == "ilac" and item.get("barcode"):
+                # Karekodlu ilac ekle
+                parsed = parse_datamatrix(item["barcode"])
+                
+                stock_id = str(uuid.uuid4())
+                stock_item = {
+                    "_id": stock_id,
+                    "gtin": parsed.get("gtin", ""),
+                    "serial_number": parsed.get("serial_number", f"BULK-{uuid.uuid4().hex[:8]}"),
+                    "lot_number": parsed.get("lot_number"),
+                    "expiry_date_str": parsed.get("expiry_date"),
+                    "name": item.get("name", "Bilinmeyen Ilac"),
+                    "manufacturer_name": item.get("manufacturer"),
+                    "category": "ilac",
+                    "unit_count": item.get("unit_count", 1),
+                    "remaining_units": item.get("unit_count", 1),
+                    "is_opened": False,
+                    "location": location,
+                    "location_name": location_name,
+                    "status": "available",
+                    "added_at": datetime.utcnow(),
+                    "added_by": user.id,
+                    "added_by_name": user.name,
+                    "raw_barcode": item["barcode"]
+                }
+                
+                await barcode_stock_collection.insert_one(stock_item)
+                results.append({"success": True, "name": item.get("name"), "id": stock_id})
+                
+            else:
+                # Genel stok ekle (itriyat, sarf, adet bazli)
+                stock_id = str(uuid.uuid4())
+                stock_item = {
+                    "_id": stock_id,
+                    "code": item.get("code", f"{category.upper()[:3]}-{uuid.uuid4().hex[:6]}"),
+                    "name": item.get("name"),
+                    "category": category,
+                    "quantity": item.get("quantity", 1),
+                    "min_quantity": item.get("min_quantity", 5),
+                    "location": location,
+                    "location_name": location_name,
+                    "status": "available",
+                    "added_at": datetime.utcnow(),
+                    "added_by": user.id,
+                    "added_by_name": user.name,
+                }
+                
+                await stock_collection.insert_one(stock_item)
+                results.append({"success": True, "name": item.get("name"), "id": stock_id})
+                
+        except Exception as e:
+            results.append({"success": False, "name": item.get("name"), "error": str(e)})
+    
+    success_count = sum(1 for r in results if r.get("success"))
+    
+    return {
+        "message": f"{success_count}/{len(items)} urun eklendi",
+        "results": results,
+        "success_count": success_count
+    }

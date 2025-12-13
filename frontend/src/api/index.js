@@ -534,10 +534,25 @@ export const stockBarcodeAPI = {
   getInventoryByLocation: () => api.get('/stock-barcode/inventory/by-location'),
   getExpiringItems: (days = 30) => api.get(`/stock-barcode/expiring?days=${days}`),
   
-  // YENİ: TİTCK Veritabanı ile İlaç Adı Sorgulama
+  // TİTCK Veritabanı ile İlaç Adı Sorgulama
   lookupBarcode: (barcode) => api.get(`/stock-barcode/lookup-barcode/${encodeURIComponent(barcode)}`),
   lookupBarcodePost: (barcode) => api.post('/stock-barcode/lookup-barcode', { barcode }),
-  searchMedications: (query) => api.get('/stock-barcode/search-medications', { params: { q: query } })
+  searchMedications: (query) => api.get('/stock-barcode/search-medications', { params: { q: query } }),
+  
+  // YENİ: Adet Bazlı Stok (Açılmış İlaçlar)
+  getUnitStock: (location) => api.get('/stock-barcode/unit-stock', { params: { location } }),
+  openBox: (stockId) => api.post('/stock-barcode/open-box', { stock_id: stockId }),
+  useUnitStock: (data) => api.post('/stock-barcode/unit-stock/use', data),
+  
+  // YENİ: Araç Lokasyonuna Göre Stok
+  getByVehicleLocation: (vehicleId) => api.get(`/stock-barcode/by-vehicle-location/${vehicleId}`),
+  
+  // YENİ: İtriyat ve Sarf Stokları
+  getItriyat: (location) => api.get('/stock-barcode/itriyat', { params: { location } }),
+  getSarf: (location) => api.get('/stock-barcode/sarf', { params: { location } }),
+  
+  // YENİ: Toplu Stok Ekleme
+  bulkAdd: (data) => api.post('/stock-barcode/bulk-add', data)
 };
 
 // Tickets API - Bildirim ve Talepler
