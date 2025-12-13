@@ -188,9 +188,21 @@ class Case(BaseModel):
     healmedy_location_id: Optional[str] = None  # osman_gazi_fpu vb.
     healmedy_location_name: Optional[str] = None
     
+    # Zaman damgaları
+    timestamps: Optional[dict] = None  # {call_received, scene_arrival, patient_contact, scene_departure, hospital_arrival, station_return}
+    
     created_by: str
     created_at: datetime = Field(default_factory=get_turkey_time)
     updated_at: datetime = Field(default_factory=get_turkey_time)
+
+class CaseTimestamps(BaseModel):
+    """Vaka zaman damgaları"""
+    call_received: Optional[datetime] = None  # Çağrı alındı
+    scene_arrival: Optional[datetime] = None  # Olay yerine varış
+    patient_contact: Optional[datetime] = None  # Hastaya varış
+    scene_departure: Optional[datetime] = None  # Olay yerinden ayrılış
+    hospital_arrival: Optional[datetime] = None  # Hastaneye varış
+    station_return: Optional[datetime] = None  # İstasyona dönüş
 
 class CaseCreate(BaseModel):
     caller: CallerInfo
@@ -198,6 +210,7 @@ class CaseCreate(BaseModel):
     location: LocationInfo
     priority: CasePriority
     case_details: Optional[dict] = None
+    timestamps: Optional[CaseTimestamps] = None
 
 class CaseAssignTeam(BaseModel):
     vehicle_id: str

@@ -108,6 +108,14 @@ async def create_case(data: CaseCreate, request: Request):
     # Generate case number (async - sıralı numara)
     case_number = await generate_case_number()
     
+    # Timestamps oluştur - çağrı saatini kaydet
+    timestamps_data = None
+    if hasattr(data, 'timestamps') and data.timestamps:
+        timestamps_data = data.timestamps.model_dump() if hasattr(data.timestamps, 'model_dump') else data.timestamps
+    else:
+        # Varsayılan olarak çağrı saatini şimdi olarak ayarla
+        timestamps_data = {"call_received": datetime.now().isoformat()}
+    
     # Create case
     new_case = Case(
         case_number=case_number,
@@ -116,6 +124,7 @@ async def create_case(data: CaseCreate, request: Request):
         location=data.location,
         priority=data.priority,
         case_details=data.case_details if hasattr(data, 'case_details') else None,
+        timestamps=timestamps_data,
         created_by=user.id
     )
     
