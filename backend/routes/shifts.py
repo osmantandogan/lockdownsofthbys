@@ -486,6 +486,150 @@ async def admin_end_shift(assignment_id: str, request: Request):
         "ended_at": get_turkey_time().isoformat()
     }
 
+
+@router.post("/import-december-2024")
+async def import_december_2024_shifts(request: Request):
+    """Aralık 2024 nöbet listesini import et - Sadece operasyon müdürü ve merkez ofis"""
+    import hashlib
+    
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    ROLE_MAPPING = {
+        "Dr.": "doktor", "Prm": "paramedik", "Tek.": "att", "Tek": "att",
+        "Src.": "sofor", "Src": "sofor", "Hem.": "hemsire", "Hem": "hemsire",
+        "Ç.M.": "cagri_merkezi", "T.G.": "temizlik"
+    }
+    
+    def generate_email(name):
+        tr_chars = {"ş": "s", "ğ": "g", "ü": "u", "ı": "i", "ö": "o", "ç": "c",
+                    "Ş": "S", "Ğ": "G", "Ü": "U", "İ": "I", "Ö": "O", "Ç": "C"}
+        clean_name = name.lower()
+        for tr, en in tr_chars.items():
+            clean_name = clean_name.replace(tr, en)
+        parts = clean_name.split()
+        email = f"{parts[0]}.{parts[-1]}@healmedy.com" if len(parts) >= 2 else f"{parts[0]}@healmedy.com"
+        return email.replace(" ", "").lower()
+    
+    async def get_or_create_user(name, role_abbr):
+        role = ROLE_MAPPING.get(role_abbr, "att")
+        email = generate_email(name)
+        existing = await users_collection.find_one({"email": email})
+        if existing:
+            return existing["_id"], False
+        user_id = str(uuid.uuid4())
+        await users_collection.insert_one({
+            "_id": user_id, "email": email, "name": name, "role": role,
+            "password_hash": hashlib.sha256("123456".encode()).hexdigest(),
+            "is_active": True, "phone": "",
+            "created_at": get_turkey_time(), "updated_at": get_turkey_time()
+        })
+        return user_id, True
+    
+    async def get_vehicle_id(plate):
+        if not plate: return None
+        vehicle = await vehicles_collection.find_one({"plate": plate})
+        if vehicle: return vehicle["_id"]
+        vehicle_id = str(uuid.uuid4())
+        await vehicles_collection.insert_one({
+            "_id": vehicle_id, "plate": plate, "type": "ambulans", "status": "musait",
+            "km": 0, "qr_code": str(uuid.uuid4()),
+            "created_at": get_turkey_time(), "updated_at": get_turkey_time()
+        })
+        return vehicle_id
+    
+    SCHEDULE = {
+        "06_CHZ_142": {"plate": "06 CHZ 142", "personnel": [
+            {"role": "Prm", "name": "Hatice Acar CANBAZ", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Prm", "name": "Aleyna OZDEMIR", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Prm", "name": "Hasan GUNEY", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Tek.", "name": "Mustafa KARAGOL", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Tek.", "name": "Derya GOMLEKSIZOGLU", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Src.", "name": "Gorkem GURPUZER", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Src.", "name": "Mert CINAR", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Src.", "name": "Talha Dogukan KARTAL", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]},
+        "06_CHZ_146": {"plate": "06 CHZ 146", "personnel": [
+            {"role": "Prm", "name": "Elif KURBAN", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Prm", "name": "Burak ILIK", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Prm", "name": "Busra Bahtiyar GUZEL", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Tek.", "name": "Berkecan TURPCU", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Tek.", "name": "Rumeysa UZUNAY", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Tek.", "name": "Serkan KAMIT", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Src.", "name": "Kubilay ELICORA", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Src.", "name": "Samet KOCAPINAR", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Src.", "name": "Oktay TUTUNCUOGLU", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]},
+        "06_CHZ_149": {"plate": "06 CHZ 149", "personnel": [
+            {"role": "Prm", "name": "Aysegul Beyza YILMAZ", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Prm", "name": "Ugur VAR", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Prm", "name": "Mervenur GEDIK", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Tek.", "name": "Efe Talha AKKAS", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Tek.", "name": "Mugenur SOYKAN", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Tek.", "name": "Tayfun KOCAMAN", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Src.", "name": "Kadirhan ALKAN", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Src.", "name": "Emirhan DOGAN", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Src.", "name": "Melihcan DOGAN", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]},
+        "34_FTU_336": {"plate": "34 FTU 336", "personnel": [
+            {"role": "Prm", "name": "Nesrin TUYSUZ", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Prm", "name": "Gamze Hande BOZ", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Prm", "name": "Alican TULUBAS", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Tek.", "name": "Muzaffer OZCAN", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Tek.", "name": "Fatih MEKIKCI", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Tek.", "name": "Aysegul ORAL", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Src.", "name": "Serkna Bilal BATTAL", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Src.", "name": "Burak TIRYAKIOGLU", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Src.", "name": "Feyzi FIDAN", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]},
+        "34_KMP_224": {"plate": "34 KMP 224", "personnel": [
+            {"role": "Prm", "name": "Murat KESER", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Prm", "name": "Melike KARATEPE", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Prm", "name": "Burakcan SAHINTURK", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Tek.", "name": "Busra AYDEMIR", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Tek.", "name": "Muhammet BILICI", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Tek.", "name": "Asli KOCOGLU", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Src.", "name": "Onur YALIN", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Src.", "name": "Mehmetcan SAVLI", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Src.", "name": "Tuegay KOSE", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]},
+        "34_MHA_112": {"plate": "34 MHA 112", "personnel": [
+            {"role": "Prm", "name": "Kadir ARTAR", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Prm", "name": "Hamza Tarik ERMIS", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Prm", "name": "Buse TOPCU", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Tek.", "name": "Sule SATICI", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Tek.", "name": "Ceren YIGIT", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Tek.", "name": "Cem BALAT", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"role": "Src.", "name": "Murat GULSEN", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"role": "Src.", "name": "Anil BALCI", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"role": "Src.", "name": "Mesut CINKAVUK", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]},
+    }
+    
+    new_users = existing_users = new_shifts = skipped_shifts = 0
+    
+    for loc_key, loc_data in SCHEDULE.items():
+        vehicle_id = await get_vehicle_id(loc_data["plate"])
+        for person in loc_data["personnel"]:
+            user_id, is_new = await get_or_create_user(person["name"], person["role"])
+            if is_new: new_users += 1
+            else: existing_users += 1
+            for day in person["shifts"]:
+                shift_date = datetime(2024, 12, day)
+                if await shift_assignments_collection.find_one({"user_id": user_id, "shift_date": shift_date}):
+                    skipped_shifts += 1
+                    continue
+                await shift_assignments_collection.insert_one({
+                    "_id": str(uuid.uuid4()), "user_id": user_id, "vehicle_id": vehicle_id,
+                    "shift_date": shift_date, "start_time": "08:00", "end_time": "20:00",
+                    "location_type": "arac", "status": "pending", "created_at": get_turkey_time()
+                })
+                new_shifts += 1
+    
+    logger.info(f"December 2024 import: {new_users} new users, {new_shifts} new shifts")
+    return {"message": "Aralık 2024 nöbet listesi import edildi", "new_users": new_users,
+            "existing_users": existing_users, "new_shifts": new_shifts, "skipped_shifts": skipped_shifts}
+
+
 @router.post("/start", response_model=Shift)
 async def start_shift(data: ShiftStart, request: Request):
     """Start shift by scanning vehicle QR code"""
