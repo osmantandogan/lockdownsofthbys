@@ -45,6 +45,7 @@ import PdfTemplateEditor from "./pages/PdfTemplateEditor";
 import FormTemplates from "./pages/FormTemplates";
 import TableTemplateEditor from "./pages/TableTemplateEditor";
 import ExcelTemplateEditor from "./pages/ExcelTemplateEditor";
+import FirmManagement from "./pages/FirmManagement";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -154,6 +155,7 @@ function App() {
             <Route path="archive" element={<Archive />} />
             <Route path="notifications" element={<NotificationSettings />} />
             <Route path="vehicle-km-report" element={<VehicleKmReport />} />
+            <Route path="firms" element={<FirmManagement />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

@@ -508,6 +508,32 @@ const CaseDetail = () => {
       // Load medical form
       await loadMedicalForm();
       
+      // Çağrı saatini vaka oluşturma zamanından al (eğer daha önce set edilmemişse)
+      if (caseRes.data.timestamps?.call_received) {
+        const callReceivedTime = new Date(caseRes.data.timestamps.call_received);
+        const timeStr = callReceivedTime.toLocaleTimeString('tr-TR', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+        setTimeInfo(prev => ({
+          ...prev,
+          callTime: prev.callTime || timeStr
+        }));
+      } else if (caseRes.data.created_at) {
+        // Fallback: created_at kullan
+        const createdTime = new Date(caseRes.data.created_at);
+        const timeStr = createdTime.toLocaleTimeString('tr-TR', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+        setTimeInfo(prev => ({
+          ...prev,
+          callTime: prev.callTime || timeStr
+        }));
+      }
+      
       // Load medications
       await loadMedications();
       
@@ -3537,16 +3563,30 @@ const CaseDetail = () => {
           {caseData?.location?.coordinates?.lat && caseData?.location?.coordinates?.lng && (
             <Card>
               <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-t-lg">
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <MapPin className="h-5 w-5" />
-                  <span>Vaka Konumu</span>
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <span className="flex items-center space-x-2">
+                    <MapPin className="h-5 w-5" />
+                    <span>Vaka Konumu</span>
+                  </span>
+                  <Button 
+                    size="sm" 
+                    variant="secondary"
+                    onClick={() => {
+                      const lat = caseData.location.coordinates.lat;
+                      const lng = caseData.location.coordinates.lng;
+                      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                    }}
+                    className="bg-white/20 hover:bg-white/30 text-white"
+                  >
+                    🗺️ Google Maps
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div style={{ height: '400px', width: '100%' }}>
+                <div style={{ height: '300px', width: '100%' }}>
                   <MapContainer
                     center={[caseData.location.coordinates.lat, caseData.location.coordinates.lng]}
-                    zoom={15}
+                    zoom={14}
                     style={{ height: '100%', width: '100%' }}
                     className="rounded-b-lg"
                   >
@@ -3565,16 +3605,37 @@ const CaseDetail = () => {
                           <span className="text-xs text-gray-500">
                             {caseData.location.coordinates.lat.toFixed(5)}, {caseData.location.coordinates.lng.toFixed(5)}
                           </span>
+                          <br />
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`https://www.google.com/maps/dir/?api=1&destination=${caseData.location.coordinates.lat},${caseData.location.coordinates.lng}`, '_blank');
+                            }}
+                            className="mt-2 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                          >
+                            🗺️ Yol Tarifi Al
+                          </button>
                         </div>
                       </Popup>
                     </Marker>
                   </MapContainer>
                 </div>
                 {caseData.location.address && (
-                  <div className="p-3 bg-gray-50">
+                  <div className="p-3 bg-gray-50 flex justify-between items-center">
                     <p className="text-sm text-gray-700">
                       <span className="font-medium">Adres:</span> {caseData.location.address}
                     </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const lat = caseData.location.coordinates.lat;
+                        const lng = caseData.location.coordinates.lng;
+                        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                      }}
+                    >
+                      Yol Tarifi →
+                    </Button>
                   </div>
                 )}
               </CardContent>

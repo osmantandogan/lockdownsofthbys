@@ -552,4 +552,11 @@ export const ticketsAPI = {
   getPendingCount: () => api.get('/tickets/pending/count')
 };
 
+// Firms API - Firma Yönetimi
+export const firmsAPI = {
+  getAll: () => api.get('/firms'),
+  create: (data) => api.post('/firms', data),
+  delete: (id) => api.delete(`/firms/${id}`)
+};
+
 export default api;
