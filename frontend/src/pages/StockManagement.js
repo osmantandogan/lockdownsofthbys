@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { stockAPI, vehiclesAPI, itsAPI } from '../api';
+import { stockAPI, vehiclesAPI, itsAPI, stockBarcodeAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -112,6 +112,21 @@ const StockManagement = () => {
   // Stok Lokasyonları State
   const [stockLocations, setStockLocations] = useState([]);
   const [syncingLocations, setSyncingLocations] = useState(false);
+  
+  // YENİ: Açılmış İlaçlar (Adet Bazlı) State
+  const [unitStockItems, setUnitStockItems] = useState([]);
+  const [unitStockLoading, setUnitStockLoading] = useState(false);
+  const [unitStockLocationFilter, setUnitStockLocationFilter] = useState('');
+  
+  // YENİ: İtriyat State
+  const [itriyatItems, setItriyatItems] = useState([]);
+  const [itriyatLoading, setItriyatLoading] = useState(false);
+  const [itriyatLocationFilter, setItriyatLocationFilter] = useState('');
+  
+  // YENİ: Sarf Malzeme State
+  const [sarfItems, setSarfItems] = useState([]);
+  const [sarfLoading, setSarfLoading] = useState(false);
+  const [sarfLocationFilter, setSarfLocationFilter] = useState('');
 
   useEffect(() => {
     loadData();
@@ -221,10 +236,71 @@ const StockManagement = () => {
     }
   };
 
-  // Tab değiştiğinde karekod stokunu yükle
+  // Tab değiştiğinde ilgili veriyi yükle
   const handleTabChange = (value) => {
     if (value === 'barcode') {
       loadBarcodeGroups();
+    } else if (value === 'opened') {
+      loadUnitStock();
+    } else if (value === 'itriyat') {
+      loadItriyat();
+    } else if (value === 'sarf') {
+      loadSarf();
+    }
+  };
+  
+  // YENİ: Açılmış İlaçları Yükle
+  const loadUnitStock = async () => {
+    setUnitStockLoading(true);
+    try {
+      const response = await stockBarcodeAPI.getUnitStock(unitStockLocationFilter || undefined);
+      setUnitStockItems(response.data.items || []);
+    } catch (error) {
+      console.error('Açılmış ilaçlar yüklenemedi:', error);
+      toast.error('Açılmış ilaçlar yüklenemedi');
+    } finally {
+      setUnitStockLoading(false);
+    }
+  };
+  
+  // YENİ: İtriyat Yükle
+  const loadItriyat = async () => {
+    setItriyatLoading(true);
+    try {
+      const response = await stockBarcodeAPI.getItriyat(itriyatLocationFilter || undefined);
+      setItriyatItems(response.data.items || []);
+    } catch (error) {
+      console.error('İtriyat yüklenemedi:', error);
+      toast.error('İtriyat yüklenemedi');
+    } finally {
+      setItriyatLoading(false);
+    }
+  };
+  
+  // YENİ: Sarf Malzeme Yükle
+  const loadSarf = async () => {
+    setSarfLoading(true);
+    try {
+      const response = await stockBarcodeAPI.getSarf(sarfLocationFilter || undefined);
+      setSarfItems(response.data.items || []);
+    } catch (error) {
+      console.error('Sarf malzeme yüklenemedi:', error);
+      toast.error('Sarf malzeme yüklenemedi');
+    } finally {
+      setSarfLoading(false);
+    }
+  };
+  
+  // YENİ: Kutu Aç (Karekodlu stoktan adet bazlıya dönüştür)
+  const handleOpenBox = async (stockId) => {
+    try {
+      const response = await stockBarcodeAPI.openBox(stockId);
+      toast.success(response.data.message);
+      loadBarcodeGroups();
+      loadUnitStock();
+    } catch (error) {
+      console.error('Kutu açılamadı:', error);
+      toast.error(error.response?.data?.detail || 'Kutu açılamadı');
     }
   };
 
@@ -584,14 +660,26 @@ const StockManagement = () => {
       </div>
 
       <Tabs defaultValue="all" className="space-y-4" onValueChange={handleTabChange}>
-        <TabsList>
+        <TabsList className="flex flex-wrap gap-1">
           <TabsTrigger value="all" className="flex items-center space-x-2">
             <Package className="h-4 w-4" />
             <span>Tüm Stoklar</span>
           </TabsTrigger>
           <TabsTrigger value="barcode" className="flex items-center space-x-2">
             <QrCode className="h-4 w-4" />
-            <span>Karekod Stok</span>
+            <span>Karekod (Kutu)</span>
+          </TabsTrigger>
+          <TabsTrigger value="opened" className="flex items-center space-x-2">
+            <Pill className="h-4 w-4" />
+            <span>Açılmış İlaçlar</span>
+          </TabsTrigger>
+          <TabsTrigger value="itriyat" className="flex items-center space-x-2">
+            <Droplet className="h-4 w-4" />
+            <span>İtriyat</span>
+          </TabsTrigger>
+          <TabsTrigger value="sarf" className="flex items-center space-x-2">
+            <Scissors className="h-4 w-4" />
+            <span>Sarf Malzeme</span>
           </TabsTrigger>
           <TabsTrigger value="locations" className="flex items-center space-x-2">
             <MapPin className="h-4 w-4" />
@@ -1443,6 +1531,245 @@ const StockManagement = () => {
               )}
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        {/* YENİ: Açılmış İlaçlar (Adet Bazlı) Sekmesi */}
+        <TabsContent value="opened">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Pill className="h-5 w-5 text-green-600" />
+                  Açılmış İlaçlar (Adet Bazlı Stok)
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select value={unitStockLocationFilter} onValueChange={(v) => { setUnitStockLocationFilter(v); }}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Tüm Lokasyonlar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tüm Lokasyonlar</SelectItem>
+                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
+                      <SelectItem value="ambulans_1">Ambulans 1</SelectItem>
+                      <SelectItem value="ambulans_2">Ambulans 2</SelectItem>
+                      <SelectItem value="saha_ofis_1">Saha Ofisi 1</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={loadUnitStock}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {unitStockLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : unitStockItems.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Pill className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Açılmış ilaç bulunamadı</p>
+                  <p className="text-sm mt-2">Karekod sekmesinden bir kutu açarak adet bazlı stok oluşturabilirsiniz</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>İlaç Adı</TableHead>
+                      <TableHead>Lokasyon</TableHead>
+                      <TableHead className="text-center">Kalan Adet</TableHead>
+                      <TableHead className="text-center">Toplam</TableHead>
+                      <TableHead>Lot No</TableHead>
+                      <TableHead>SKT</TableHead>
+                      <TableHead>Açılma Tarihi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unitStockItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.location_name || item.location}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={item.remaining_units <= 2 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                            {item.remaining_units}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-gray-500">
+                          {item.original_unit_count}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{item.lot_number || '-'}</TableCell>
+                        <TableCell>{item.expiry_date ? formatDate(item.expiry_date) : '-'}</TableCell>
+                        <TableCell>{item.opened_at ? formatDate(item.opened_at) : '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* YENİ: İtriyat Sekmesi */}
+        <TabsContent value="itriyat">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Droplet className="h-5 w-5 text-blue-600" />
+                  İtriyat Stokları
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select value={itriyatLocationFilter} onValueChange={(v) => { setItriyatLocationFilter(v); }}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Tüm Lokasyonlar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tüm Lokasyonlar</SelectItem>
+                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
+                      <SelectItem value="ambulans_1">Ambulans 1</SelectItem>
+                      <SelectItem value="ambulans_2">Ambulans 2</SelectItem>
+                      <SelectItem value="saha_ofis_1">Saha Ofisi 1</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={loadItriyat}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {itriyatLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : itriyatItems.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Droplet className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>İtriyat ürünü bulunamadı</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ürün Kodu</TableHead>
+                      <TableHead>Ürün Adı</TableHead>
+                      <TableHead>Lokasyon</TableHead>
+                      <TableHead className="text-center">Miktar</TableHead>
+                      <TableHead className="text-center">Min. Miktar</TableHead>
+                      <TableHead>Durum</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itriyatItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-sm">{item.code}</TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.location_name || item.location}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={item.quantity <= item.min_quantity ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}>
+                            {item.quantity}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-gray-500">{item.min_quantity}</TableCell>
+                        <TableCell>
+                          {item.quantity <= item.min_quantity ? (
+                            <Badge className="bg-red-100 text-red-700">Kritik</Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-700">Normal</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* YENİ: Sarf Malzeme Sekmesi */}
+        <TabsContent value="sarf">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Scissors className="h-5 w-5 text-purple-600" />
+                  Sarf Malzeme Stokları
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select value={sarfLocationFilter} onValueChange={(v) => { setSarfLocationFilter(v); }}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Tüm Lokasyonlar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tüm Lokasyonlar</SelectItem>
+                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
+                      <SelectItem value="ambulans_1">Ambulans 1</SelectItem>
+                      <SelectItem value="ambulans_2">Ambulans 2</SelectItem>
+                      <SelectItem value="saha_ofis_1">Saha Ofisi 1</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={loadSarf}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sarfLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : sarfItems.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Scissors className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Sarf malzeme bulunamadı</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ürün Kodu</TableHead>
+                      <TableHead>Ürün Adı</TableHead>
+                      <TableHead>Lokasyon</TableHead>
+                      <TableHead className="text-center">Miktar</TableHead>
+                      <TableHead className="text-center">Min. Miktar</TableHead>
+                      <TableHead>Durum</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sarfItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-sm">{item.code}</TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.location_name || item.location}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={item.quantity <= item.min_quantity ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}>
+                            {item.quantity}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-gray-500">{item.min_quantity}</TableCell>
+                        <TableCell>
+                          {item.quantity <= item.min_quantity ? (
+                            <Badge className="bg-red-100 text-red-700">Kritik</Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-700">Normal</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Lokasyonlar Sekmesi */}
