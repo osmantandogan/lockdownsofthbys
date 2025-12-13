@@ -116,7 +116,7 @@ api_router.include_router(pdf_template.router, prefix="/pdf-template", tags=["PD
 api_router.include_router(tickets.router, prefix="/tickets", tags=["Tickets - Bildirim ve Talepler"])
 api_router.include_router(form_templates.router, prefix="/form-templates", tags=["Form Templates - Form Şablonları (PDF + Tablo)"])
 api_router.include_router(excel_templates.router, prefix="/excel-templates", tags=["Excel Templates - Excel Form Şablonları"])
-api_router.include_router(firms.router, tags=["Firms - Firma Yönetimi"])
+api_router.include_router(firms.router, prefix="/firms", tags=["Firms - Firma Yönetimi"])
 
 # Health check endpoint
 @api_router.get("/")

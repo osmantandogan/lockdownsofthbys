@@ -552,8 +552,8 @@ const CallCenter = () => {
           </form>
         </div>
 
-        {/* SAĞ: Harita - Küçültüldü ve zoom 14 */}
-        <Card className="h-[400px]">
+        {/* SAĞ: Harita - zoom 14 */}
+        <Card className="h-[650px]">
           <CardHeader className="py-3 bg-blue-50">
             <CardTitle className="text-sm flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Konum Seçimi (Haritaya tıklayın)
