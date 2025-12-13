@@ -142,6 +142,14 @@ async def startup_event():
     from services.notification_service import notification_service
     logger.info("Notification service initialized")
     
+    # Initialize Firebase Cloud Messaging
+    from services.firebase_service import firebase_service
+    firebase_initialized = firebase_service.initialize()
+    if firebase_initialized:
+        logger.info("Firebase Cloud Messaging initialized successfully")
+    else:
+        logger.warning("Firebase Cloud Messaging not initialized (credentials missing or invalid)")
+    
     # Initialize ITS (İlaç Takip Sistemi) service with credentials
     from services.its_service import configure_its_service
     its_username = os.environ.get('ITS_USERNAME', '86836847871710000')
