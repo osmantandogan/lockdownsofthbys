@@ -2874,17 +2874,6 @@ const CaseDetail = () => {
                       disabled={!canEditForm}
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="forensic" 
-                      checked={extendedForm.isForensic} 
-                      onCheckedChange={(v) => updateExtendedForm('isForensic', v)}
-                      disabled={!canEditForm}
-                    />
-                    <Label htmlFor="forensic" className="font-semibold text-red-700">
-                      Adli Vaka
-                    </Label>
-                  </div>
                 </div>
                 
                 {/* CPR */}
