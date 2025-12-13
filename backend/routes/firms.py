@@ -9,16 +9,12 @@ from datetime import datetime
 import uuid
 import logging
 
-from database import db
+from database import firms_collection
 from routes.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-def get_firms_collection():
-    """Firms collection getter"""
-    return db.firms
 
 
 class FirmCreate(BaseModel):
@@ -49,7 +45,6 @@ async def get_all_firms(
 ):
     """Tüm firmaları listele"""
     try:
-        firms_collection = get_firms_collection()
         query = {}
         if not include_inactive:
             query["is_active"] = True
@@ -80,7 +75,6 @@ async def create_firm(
 ):
     """Yeni firma ekle"""
     try:
-        firms_collection = get_firms_collection()
         
         # Aynı isimde firma var mı kontrol et
         existing = await firms_collection.find_one({"name": firm_data.name})
@@ -127,7 +121,6 @@ async def update_firm(
 ):
     """Firma bilgilerini güncelle"""
     try:
-        firms_collection = get_firms_collection()
         
         firm = await firms_collection.find_one({"_id": firm_id})
         if not firm:
@@ -180,7 +173,6 @@ async def delete_firm(
 ):
     """Firmayı sil"""
     try:
-        firms_collection = get_firms_collection()
         
         firm = await firms_collection.find_one({"_id": firm_id})
         if not firm:

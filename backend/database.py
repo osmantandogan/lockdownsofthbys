@@ -47,3 +47,6 @@ vehicle_current_locations_collection = db.vehicle_current_locations  # Araçlar�
 
 # YENİ: PDF Şablon Sistemi
 pdf_templates_collection = db.pdf_templates  # PDF şablonları
+
+# YENİ: Firma Yönetimi
+firms_collection = db.firms  # Firmalar
