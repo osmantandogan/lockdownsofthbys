@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { casesAPI, patientsAPI } from '../api';
+import { casesAPI, patientsAPI, firmsAPI, shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,10 +8,28 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
+import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import { User, MapPin, AlertCircle, Hash, Building2, UserPlus, Stethoscope, Search, Heart, AlertTriangle } from 'lucide-react';
-import { COMPANIES, searchCompanies } from '../constants/companies';
+import { User, MapPin, AlertCircle, Hash, Building2, UserPlus, Stethoscope, Search, Heart, AlertTriangle, Clock, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+
+// Türkiye İl/İlçe Verileri
+const TURKEY_PROVINCES = [
+  'Zonguldak', 'Bartın', 'Karabük', 'Kastamonu', 'Bolu', 'Düzce', 'Ankara', 'İstanbul', 'Kocaeli', 'Sakarya'
+];
+
+const DISTRICTS_BY_PROVINCE = {
+  'Zonguldak': ['Merkez', 'Ereğli', 'Çaycuma', 'Devrek', 'Gökçebey', 'Alaplı', 'Kilimli', 'Kozlu'],
+  'Bartın': ['Merkez', 'Amasra', 'Kurucaşile', 'Ulus'],
+  'Karabük': ['Merkez', 'Safranbolu', 'Yenice', 'Eskipazar', 'Ovacık', 'Eflani'],
+  'Kastamonu': ['Merkez', 'Cide', 'İnebolu', 'Tosya', 'Taşköprü'],
+  'Bolu': ['Merkez', 'Gerede', 'Mudurnu', 'Mengen', 'Göynük'],
+  'Düzce': ['Merkez', 'Akçakoca', 'Kaynaşlı', 'Yığılca', 'Gölyaka'],
+  'Ankara': ['Çankaya', 'Keçiören', 'Mamak', 'Etimesgut', 'Yenimahalle', 'Sincan', 'Altındağ', 'Pursaklar'],
+  'İstanbul': ['Kadıköy', 'Beşiktaş', 'Üsküdar', 'Fatih', 'Şişli', 'Bakırköy', 'Beyoğlu', 'Sarıyer', 'Maltepe', 'Pendik'],
+  'Kocaeli': ['İzmit', 'Gebze', 'Darıca', 'Körfez', 'Gölcük', 'Derince', 'Dilovası'],
+  'Sakarya': ['Adapazarı', 'Serdivan', 'Erenler', 'Arifiye', 'Hendek', 'Sapanca', 'Karasu']
+};
 
 /**
  * Hasta Kayıt Ekranı
@@ -22,8 +40,18 @@ const PatientRegistration = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [nextCaseNumber, setNextCaseNumber] = useState('');
+  
+  // Firma sistemi (API'den)
+  const [firms, setFirms] = useState([]);
   const [companySearch, setCompanySearch] = useState('');
-  const [filteredCompanies, setFilteredCompanies] = useState(COMPANIES);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const companyInputRef = useRef(null);
+  
+  // Proje dışı toggle
+  const [isOutsideProject, setIsOutsideProject] = useState(false);
+  
+  // Kullanıcının günlük lokasyonu
+  const [userCurrentLocation, setUserCurrentLocation] = useState('');
   
   // TC Autocomplete için
   const [tcSearch, setTcSearch] = useState('');
@@ -32,28 +60,86 @@ const PatientRegistration = () => {
   const [selectedPatientCard, setSelectedPatientCard] = useState(null);
   const [showTcDropdown, setShowTcDropdown] = useState(false);
   
+  // Form oluşturma zamanı
+  const [formCreatedAt] = useState(new Date());
+  
   const [formData, setFormData] = useState({
     // Patient Info
     patientName: '',
     patientSurname: '',
     patientTcNo: '',
+    patientBirthDate: '',
     patientAge: '',
     patientGender: '',
     patientPhone: '',
     patientComplaint: '',
+    patientNote: '', // Not alanı hasta bilgilerine taşındı
     // Company
-    companyId: '',
     companyName: '',
-    // Location (optional for walk-in)
-    locationAddress: '',
-    locationNote: '',
+    // Location - Proje dışı için
+    province: '',
+    district: '',
+    neighborhood: '',
+    streetAddress: '',
     // Priority
     priority: 'dusuk' // Ayaktan gelenlerde varsayılan düşük
   });
 
   useEffect(() => {
     generateNextCaseNumber();
+    loadFirms();
+    loadUserCurrentLocation();
   }, []);
+
+  // Firma dropdown dışında tıklandığında kapat
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (companyInputRef.current && !companyInputRef.current.contains(event.target)) {
+        setShowCompanyDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Firmaları API'den yükle
+  const loadFirms = async () => {
+    try {
+      const response = await firmsAPI.getAll();
+      setFirms(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Firmalar yüklenemedi:', error);
+      setFirms([]);
+    }
+  };
+
+  // Kullanıcının o gün çalıştığı lokasyonu al
+  const loadUserCurrentLocation = async () => {
+    try {
+      // Bugünün vardiya atamasını kontrol et
+      const response = await shiftsAPI.getMyAssignments();
+      const assignments = response.data || [];
+      
+      // Bugünün tarihiyle eşleşen aktif atamayı bul
+      const today = new Date().toISOString().split('T')[0];
+      const todayAssignment = assignments.find(a => 
+        a.date?.startsWith(today) || a.shift_date?.startsWith(today)
+      );
+      
+      if (todayAssignment?.vehicle?.current_location) {
+        setUserCurrentLocation(todayAssignment.vehicle.current_location);
+      } else if (todayAssignment?.location_name) {
+        setUserCurrentLocation(todayAssignment.location_name);
+      } else if (todayAssignment?.vehicle?.plate) {
+        setUserCurrentLocation(`Araç: ${todayAssignment.vehicle.plate}`);
+      } else {
+        setUserCurrentLocation('Sağlık Merkezi');
+      }
+    } catch (error) {
+      console.error('Lokasyon alınamadı:', error);
+      setUserCurrentLocation('Sağlık Merkezi');
+    }
+  };
 
   // TC arama - debounced
   useEffect(() => {
@@ -67,7 +153,6 @@ const PatientRegistration = () => {
       setTcSearching(true);
       try {
         const response = await patientsAPI.search({ tc_no: tcSearch });
-        // Maksimum 3 sonuç göster
         setTcSuggestions(response.data.slice(0, 3));
         setShowTcDropdown(response.data.length > 0);
       } catch (error) {
@@ -82,10 +167,31 @@ const PatientRegistration = () => {
     return () => clearTimeout(timeoutId);
   }, [tcSearch]);
 
+  // Doğum tarihinden yaş hesapla
+  const calculateAgeFromBirthDate = (birthDate) => {
+    if (!birthDate) return '';
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age.toString();
+  };
+
+  // Doğum tarihi değiştiğinde yaşı güncelle
+  const handleBirthDateChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      patientBirthDate: value,
+      patientAge: calculateAgeFromBirthDate(value)
+    }));
+  };
+
   // Hasta seçildiğinde form alanlarını doldur
   const handleSelectPatient = async (patient) => {
     try {
-      // Tam bilgiyi al (eğer erişim varsa)
       let fullPatient = patient;
       
       if (!patient.requires_approval) {
@@ -93,7 +199,6 @@ const PatientRegistration = () => {
           const response = await patientsAPI.getById(patient.id);
           fullPatient = response.data;
         } catch (e) {
-          // Tam erişim yoksa mevcut bilgiyle devam et
           console.log('Tam bilgi alınamadı, mevcut bilgiyle devam ediliyor');
         }
       }
@@ -102,18 +207,18 @@ const PatientRegistration = () => {
       
       // Doğum tarihinden yaş hesapla
       let age = '';
+      let birthDate = '';
       if (fullPatient.birth_date) {
-        const birthDate = new Date(fullPatient.birth_date);
-        const today = new Date();
-        age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000)).toString();
+        birthDate = fullPatient.birth_date.split('T')[0];
+        age = calculateAgeFromBirthDate(birthDate);
       }
       
-      // Form alanlarını doldur
       setFormData(prev => ({
         ...prev,
         patientTcNo: fullPatient.tc_no,
         patientName: fullPatient.name || '',
         patientSurname: fullPatient.surname || '',
+        patientBirthDate: birthDate,
         patientAge: age,
         patientGender: fullPatient.gender === 'erkek' ? 'erkek' : fullPatient.gender === 'kadin' ? 'kadin' : '',
         patientPhone: fullPatient.phone || ''
@@ -127,7 +232,7 @@ const PatientRegistration = () => {
     }
   };
 
-  // TC maskele (123******12 formatında)
+  // TC maskele
   const maskTcNo = (tc) => {
     if (!tc || tc.length < 11) return tc;
     return tc.slice(0, 3) + '******' + tc.slice(-2);
@@ -145,7 +250,7 @@ const PatientRegistration = () => {
         tc_no: tcSearch,
         name: formData.patientName || 'İsim Girilmedi',
         surname: formData.patientSurname || 'Soyisim Girilmedi',
-        birth_date: null,
+        birth_date: formData.patientBirthDate || null,
         gender: formData.patientGender || 'belirtilmemis'
       });
       
@@ -182,28 +287,49 @@ const PatientRegistration = () => {
     handleChange(field, numericValue);
   };
 
-  // Firma arama
-  const handleCompanySearch = (value) => {
-    setCompanySearch(value);
-    setFilteredCompanies(searchCompanies(value));
+  // Firma seçimi
+  const handleCompanySelect = (firmName) => {
+    setFormData(prev => ({ ...prev, companyName: firmName }));
+    setCompanySearch(firmName);
+    setShowCompanyDropdown(false);
   };
 
-  // Firma seçimi
-  const handleCompanySelect = (companyId) => {
-    const company = COMPANIES.find(c => c.id.toString() === companyId);
-    if (company) {
-      handleChange('companyId', company.id.toString());
-      handleChange('companyName', company.name);
-    }
-  };
+  // Filtrelenmiş firmalar
+  const filteredFirms = companySearch
+    ? firms.filter(f => f.name.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 8)
+    : [];
+
+  // İlçeler
+  const availableDistricts = formData.province ? (DISTRICTS_BY_PROVINCE[formData.province] || []) : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Ayaktan gelen hasta için vaka oluştur
       const patientTcNo = tcSearch.length === 11 ? tcSearch : (formData.patientTcNo || null);
+      
+      // Lokasyon bilgisi - proje dışı ise il/ilçe/mahalle, değilse kullanıcının lokasyonu
+      let locationAddress = userCurrentLocation || 'Sağlık Merkezi - Ayaktan Başvuru';
+      let locationDetails = null;
+      
+      if (isOutsideProject) {
+        locationAddress = [
+          formData.province,
+          formData.district,
+          formData.neighborhood,
+          formData.streetAddress
+        ].filter(Boolean).join(', ');
+        locationDetails = {
+          province: formData.province,
+          district: formData.district,
+          neighborhood: formData.neighborhood,
+          street_address: formData.streetAddress
+        };
+      }
+
+      // Form oluşturma zamanını kaydet
+      const callTime = formCreatedAt.toISOString();
       
       const caseData = {
         caller: {
@@ -215,29 +341,40 @@ const PatientRegistration = () => {
           name: formData.patientName,
           surname: formData.patientSurname,
           tc_no: patientTcNo,
-          age: parseInt(formData.patientAge),
+          birth_date: formData.patientBirthDate || null,
+          age: parseInt(formData.patientAge) || null,
           gender: formData.patientGender,
-          complaint: formData.patientComplaint
+          complaint: formData.patientComplaint,
+          note: formData.patientNote || null
         },
         company: formData.companyName || null,
         location: {
-          address: formData.locationAddress || 'Sağlık Merkezi - Ayaktan Başvuru',
-          district: null,
-          village_or_neighborhood: formData.locationNote || null
+          address: locationAddress,
+          district: formData.district || null,
+          village_or_neighborhood: formData.neighborhood || null,
+          is_outside_project: isOutsideProject,
+          details: locationDetails
         },
         priority: formData.priority,
         case_details: {
           type: 'ayaktan_basvuru',
           registered_by: user?.name || 'Bilinmeyen',
-          registered_role: user?.role || 'att'
-        }
+          registered_role: user?.role || 'att',
+          user_location: userCurrentLocation
+        },
+        // Zaman damgaları - hasta alındı olarak başlat
+        timestamps: {
+          call_received: callTime,
+          scene_arrival: callTime, // Ayaktan başvuruda zaten sahadayız
+          patient_contact: callTime // Hasta zaten yanımızda
+        },
+        // Durum - hasta alındı olarak başlat
+        status: 'hasta_alindi'
       };
 
       const response = await casesAPI.create(caseData);
       const caseId = response.data.id || response.data._id;
       const caseNumber = response.data.case_number;
-      
-      console.log('[PatientRegistration] Created case:', { caseId, caseNumber, response: response.data });
       
       if (!caseId) {
         toast.error('Kayıt oluşturuldu ancak ID alınamadı. Vakalar listesinden erişebilirsiniz.');
@@ -246,8 +383,6 @@ const PatientRegistration = () => {
       }
       
       toast.success(`Hasta kaydı oluşturuldu: ${caseNumber}`);
-      
-      // Vaka detayına git
       navigate(`/dashboard/cases/${caseId}`);
       
     } catch (error) {
@@ -268,13 +403,27 @@ const PatientRegistration = () => {
           </h1>
           <p className="text-gray-500">Ayaktan gelen hasta kaydı oluşturun</p>
         </div>
-        {/* Kayıt Numarası Önizleme */}
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
-          <div className="flex items-center space-x-2">
-            <Hash className="h-5 w-5 text-red-600" />
-            <div>
-              <p className="text-xs text-red-600 font-medium">Yeni Kayıt No</p>
-              <p className="text-lg font-bold text-red-700">{nextCaseNumber || 'Yükleniyor...'}</p>
+        <div className="flex items-center gap-4">
+          {/* Kayıt Zamanı */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-xs text-blue-600 font-medium">Kayıt Zamanı</p>
+                <p className="text-sm font-bold text-blue-700">
+                  {formCreatedAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Kayıt Numarası */}
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+            <div className="flex items-center space-x-2">
+              <Hash className="h-5 w-5 text-red-600" />
+              <div>
+                <p className="text-xs text-red-600 font-medium">Yeni Kayıt No</p>
+                <p className="text-lg font-bold text-red-700">{nextCaseNumber || 'Yükleniyor...'}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -288,7 +437,7 @@ const PatientRegistration = () => {
             <p className="font-medium text-blue-800">Ayaktan Başvuru Kaydı</p>
             <p className="text-sm text-blue-700">
               Bu ekran sağlık merkezine ayaktan gelen hastaların kaydı içindir. 
-              Acil vakalar için Çağrı Merkezi ekranını kullanın.
+              {userCurrentLocation && <span className="font-semibold"> Lokasyonunuz: {userCurrentLocation}</span>}
             </p>
           </div>
         </div>
@@ -304,43 +453,132 @@ const PatientRegistration = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-2" ref={companyInputRef}>
               <Label htmlFor="company">Firma Seçin *</Label>
-              <Select value={formData.companyId} onValueChange={handleCompanySelect} required>
-                <SelectTrigger data-testid="company-select">
-                  <SelectValue placeholder="Firma seçin veya arayın..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-80">
-                  <div className="px-2 py-2 sticky top-0 bg-white border-b">
-                    <Input
-                      placeholder="Firma ara..."
-                      value={companySearch}
-                      onChange={(e) => handleCompanySearch(e.target.value)}
-                      className="h-8"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    />
+              <Input
+                id="company"
+                value={companySearch}
+                onChange={(e) => {
+                  setCompanySearch(e.target.value);
+                  setShowCompanyDropdown(true);
+                  if (!e.target.value) {
+                    setFormData(prev => ({ ...prev, companyName: '' }));
+                  }
+                }}
+                onFocus={() => companySearch && setShowCompanyDropdown(true)}
+                placeholder="Firma adı yazarak arayın..."
+                required={!formData.companyName}
+              />
+              
+              {/* Firma Dropdown */}
+              {showCompanyDropdown && companySearch && (
+                <div className="relative">
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {filteredFirms.length > 0 ? (
+                      filteredFirms.map((firm, index) => (
+                        <div
+                          key={firm._id || firm.id || index}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                          onClick={() => handleCompanySelect(firm.name)}
+                        >
+                          <span className="font-medium">{firm.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-3 text-gray-500 text-center">
+                        Firma bulunamadı
+                      </div>
+                    )}
                   </div>
-                  {filteredCompanies.map((company) => (
-                    <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                  {filteredCompanies.length === 0 && (
-                    <div className="px-2 py-4 text-center text-gray-500 text-sm">
-                      Firma bulunamadı
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
+              
               {formData.companyName && (
                 <p className="text-sm text-green-600 font-medium">
                   Seçilen: {formData.companyName}
                 </p>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Proje Dışı Toggle ve Lokasyon */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5 text-red-600" />
+                <span>Lokasyon</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="outsideProject" className="text-sm font-normal">Proje Dışı</Label>
+                <Switch
+                  id="outsideProject"
+                  checked={isOutsideProject}
+                  onCheckedChange={setIsOutsideProject}
+                />
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isOutsideProject ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>İl *</Label>
+                  <Select value={formData.province} onValueChange={(v) => {
+                    handleChange('province', v);
+                    handleChange('district', '');
+                  }} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="İl seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TURKEY_PROVINCES.map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>İlçe *</Label>
+                  <Select value={formData.district} onValueChange={(v) => handleChange('district', v)} required disabled={!formData.province}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="İlçe seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDistricts.map(d => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Mahalle</Label>
+                  <Input
+                    value={formData.neighborhood}
+                    onChange={(e) => handleChange('neighborhood', e.target.value)}
+                    placeholder="Mahalle adı"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Sokak/Apartman</Label>
+                  <Input
+                    value={formData.streetAddress}
+                    onChange={(e) => handleChange('streetAddress', e.target.value)}
+                    placeholder="Sokak, apartman, daire no"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800">
+                  <span className="font-semibold">Olay Yeri:</span> {userCurrentLocation || 'Sağlık Merkezi - Ayaktan Başvuru'}
+                </p>
+                <p className="text-sm text-green-600 mt-1">
+                  Lokasyon otomatik olarak günlük çalışma yerinizden alındı.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -461,7 +699,22 @@ const PatientRegistration = () => {
                 )}
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="patientBirthDate">Doğum Tarihi</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="patientBirthDate"
+                    type="date"
+                    value={formData.patientBirthDate}
+                    onChange={(e) => handleBirthDateChange(e.target.value)}
+                    className="pl-10"
+                    readOnly={!!selectedPatientCard}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="patientAge">Yaş *</Label>
                 <Input
@@ -473,13 +726,11 @@ const PatientRegistration = () => {
                   onChange={(e) => handleChange('patientAge', e.target.value)}
                   placeholder="Yaş"
                   required
-                  readOnly={!!selectedPatientCard}
-                  className={selectedPatientCard ? 'bg-gray-50' : ''}
+                  readOnly={!!formData.patientBirthDate}
+                  className={formData.patientBirthDate ? 'bg-gray-50' : ''}
                 />
-                {selectedPatientCard?.birth_date && (
-                  <p className="text-xs text-gray-500">
-                    Doğum: {new Date(selectedPatientCard.birth_date).toLocaleDateString('tr-TR')}
-                  </p>
+                {formData.patientBirthDate && (
+                  <p className="text-xs text-gray-500">Doğum tarihinden hesaplandı</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -513,9 +764,10 @@ const PatientRegistration = () => {
                 />
               </div>
             </div>
+            
             {/* Seçilen Hasta - Tıbbi Bilgiler */}
             {selectedPatientCard && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3 md:col-span-3">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <User className="h-5 w-5 text-green-600" />
@@ -590,7 +842,7 @@ const PatientRegistration = () => {
               </div>
             )}
             
-            <div className="space-y-2 md:col-span-3">
+            <div className="space-y-2">
               <Label htmlFor="patientComplaint">Şikayet / Başvuru Nedeni *</Label>
               <Textarea
                 id="patientComplaint"
@@ -598,40 +850,19 @@ const PatientRegistration = () => {
                 value={formData.patientComplaint}
                 onChange={(e) => handleChange('patientComplaint', e.target.value)}
                 required
-                rows={4}
+                rows={3}
               />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Ek Bilgiler */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5 text-red-600" />
-              <span>Ek Bilgiler</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="locationAddress">Çalışma Lokasyonu</Label>
-                <Input
-                  id="locationAddress"
-                  value={formData.locationAddress}
-                  onChange={(e) => handleChange('locationAddress', e.target.value)}
-                  placeholder="Hastanın çalıştığı lokasyon (opsiyonel)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="locationNote">Not</Label>
-                <Input
-                  id="locationNote"
-                  value={formData.locationNote}
-                  onChange={(e) => handleChange('locationNote', e.target.value)}
-                  placeholder="Ek not (opsiyonel)"
-                />
-              </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="patientNote">Not (Opsiyonel)</Label>
+              <Textarea
+                id="patientNote"
+                placeholder="Ek notlar..."
+                value={formData.patientNote}
+                onChange={(e) => handleChange('patientNote', e.target.value)}
+                rows={2}
+              />
             </div>
           </CardContent>
         </Card>
@@ -696,4 +927,3 @@ const PatientRegistration = () => {
 };
 
 export default PatientRegistration;
-
