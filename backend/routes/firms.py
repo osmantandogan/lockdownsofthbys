@@ -6,13 +6,15 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
-from bson import ObjectId
 import uuid
 
-from database import get_database
+from database import db
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/firms")
+
+# Firms collection
+firms_collection = db.firms
 
 
 class FirmCreate(BaseModel):
@@ -42,9 +44,6 @@ async def get_all_firms(
     current_user: dict = Depends(get_current_user)
 ):
     """Tüm firmaları listele"""
-    db = await get_database()
-    firms_collection = db["firms"]
-    
     query = {}
     if not include_inactive:
         query["is_active"] = True
@@ -71,9 +70,6 @@ async def create_firm(
     current_user: dict = Depends(get_current_user)
 ):
     """Yeni firma ekle"""
-    db = await get_database()
-    firms_collection = db["firms"]
-    
     # Aynı isimde firma var mı kontrol et
     existing = await firms_collection.find_one({"name": firm_data.name})
     if existing:
@@ -111,9 +107,6 @@ async def update_firm(
     current_user: dict = Depends(get_current_user)
 ):
     """Firma bilgilerini güncelle"""
-    db = await get_database()
-    firms_collection = db["firms"]
-    
     firm = await firms_collection.find_one({"_id": firm_id})
     if not firm:
         raise HTTPException(status_code=404, detail="Firma bulunamadı")
@@ -159,9 +152,6 @@ async def delete_firm(
     current_user: dict = Depends(get_current_user)
 ):
     """Firmayı sil"""
-    db = await get_database()
-    firms_collection = db["firms"]
-    
     firm = await firms_collection.find_one({"_id": firm_id})
     if not firm:
         raise HTTPException(status_code=404, detail="Firma bulunamadı")
@@ -169,4 +159,3 @@ async def delete_firm(
     await firms_collection.delete_one({"_id": firm_id})
     
     return {"message": "Firma başarıyla silindi", "id": firm_id}
-
