@@ -22,3 +22,4 @@ async def clear_fcm_tokens():
 if __name__ == "__main__":
     asyncio.run(clear_fcm_tokens())
 
+
