@@ -40,6 +40,15 @@ def initialize_firebase():
         service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
         service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
         
+        # Eğer path belirtilmemişse, backend klasöründe ara
+        if not service_account_path:
+            import glob
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            firebase_files = glob.glob(os.path.join(backend_dir, "*firebase*.json"))
+            if firebase_files:
+                service_account_path = firebase_files[0]
+                logger.info(f"Found Firebase credentials file: {service_account_path}")
+        
         if service_account_path and os.path.exists(service_account_path):
             # Dosyadan yükle
             cred = credentials.Certificate(service_account_path)
