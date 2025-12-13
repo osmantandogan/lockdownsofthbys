@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-// Local development API URL
-const API_URL = 'http://192.168.1.155:8001/api';
+import { API_URL } from '../config/api';
 
 // Create axios instance
 const api = axios.create({

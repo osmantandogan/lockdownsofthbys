@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { shiftsAPI, usersAPI, vehiclesAPI, locationsAPI } from '../api';
+import { API_URL, BACKEND_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
@@ -123,7 +124,7 @@ const ShiftAssignments = () => {
   // Excel şablon indirme
   const handleDownloadTemplate = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/shifts/bulk-upload/template`, {
+      const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload/template`, {
         credentials: 'include'
       });
       
@@ -161,7 +162,7 @@ const ShiftAssignments = () => {
       const formData = new FormData();
       formData.append('file', excelFile);
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/shifts/bulk-upload`, {
+      const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData

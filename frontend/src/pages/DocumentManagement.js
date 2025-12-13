@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -39,7 +40,6 @@ const DocumentManagement = () => {
 
   const loadDocuments = async () => {
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
       const response = await axios.get(`${API_URL}/documents/metadata`, {
         withCredentials: true
       });
@@ -53,7 +53,6 @@ const DocumentManagement = () => {
 
   const handleCreate = async () => {
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
       await axios.post(`${API_URL}/documents/metadata`, formData, {
         withCredentials: true
       });

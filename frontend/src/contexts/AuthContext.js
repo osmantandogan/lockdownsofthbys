@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { setAuthToken, getAuthToken, authAPI } from '../api';
 
 const AuthContext = createContext(null);
-
-const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -55,21 +52,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, name, role) => {
-    const response = await axios.post(`${API_URL}/auth/register`, 
-      { email, password, name, role },
-      { 
-        withCredentials: true,
-        headers: getAuthToken() ? { 'Authorization': `Bearer ${getAuthToken()}` } : {}
+    try {
+      const response = await authAPI.register({ email, password, name, role });
+      
+      // Token'ı kaydet
+      if (response.data.session_token) {
+        setAuthToken(response.data.session_token);
+        console.log('[Auth] Token saved to localStorage after register');
       }
-    );
-    
-    // Token'ı kaydet
-    if (response.data.session_token) {
-      setAuthToken(response.data.session_token);
+      
+      setUser(response.data.user);
+      return response.data;
+    } catch (error) {
+      console.error('[Auth] Register failed:', error);
+      throw error;
     }
-    
-    setUser(response.data.user);
-    return response.data;
   };
 
   const logout = async () => {

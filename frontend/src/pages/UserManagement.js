@@ -12,7 +12,7 @@ import { Plus, Edit, Trash2, Users, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+import { API_URL } from '../config/api';
 
 const UserManagement = ({ embedded = false }) => {
   const { user } = useAuth();

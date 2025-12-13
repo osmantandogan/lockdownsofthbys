@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { settingsAPI, usersAPI, otpAPI, itsAPI } from '../api';
+import { API_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -252,7 +253,6 @@ const Settings = () => {
     
     setSignatureSaving(true);
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
       await axios.post(`${API_URL}/settings/profile/signature`, 
         { signature },
         { withCredentials: true }

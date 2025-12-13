@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI, patientsAPI } from '../api';
+import { BACKEND_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -1414,7 +1415,7 @@ const CaseDetail = () => {
                   }
                   try {
                     toast.info('PDF oluşturuluyor...');
-                    const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const apiUrl = BACKEND_URL;
                     const token = localStorage.getItem('healmedy_session_token');
                     const response = await fetch(
                       `${apiUrl}/api/pdf/case/${id}/with-form-data`, 
@@ -1455,7 +1456,7 @@ const CaseDetail = () => {
                   }
                   try {
                     toast.info('Özel şablon ile PDF oluşturuluyor...');
-                    const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const apiUrl = BACKEND_URL;
                     const token = localStorage.getItem('healmedy_session_token');
                     const response = await fetch(
                       `${apiUrl}/api/pdf-template/case/${id}`, 
@@ -1498,7 +1499,7 @@ const CaseDetail = () => {
                   }
                   try {
                     toast.info('Tüm veriler ile PDF oluşturuluyor...');
-                    const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+                    const apiUrl = BACKEND_URL;
                     const token = localStorage.getItem('healmedy_session_token');
                     const response = await fetch(
                       `${apiUrl}/api/pdf-template/case/${id}/full`, 
