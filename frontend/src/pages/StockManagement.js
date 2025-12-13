@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { stockAPI, vehiclesAPI, itsAPI, stockBarcodeAPI } from '../api';
+import { stockAPI, vehiclesAPI, itsAPI, stockBarcodeAPI, locationsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -116,24 +116,84 @@ const StockManagement = () => {
   // YENİ: Açılmış İlaçlar (Adet Bazlı) State
   const [unitStockItems, setUnitStockItems] = useState([]);
   const [unitStockLoading, setUnitStockLoading] = useState(false);
-  const [unitStockLocationFilter, setUnitStockLocationFilter] = useState('');
+  const [unitStockLocationFilter, setUnitStockLocationFilter] = useState('all');
   
   // YENİ: İtriyat State
   const [itriyatItems, setItriyatItems] = useState([]);
   const [itriyatLoading, setItriyatLoading] = useState(false);
-  const [itriyatLocationFilter, setItriyatLocationFilter] = useState('');
+  const [itriyatLocationFilter, setItriyatLocationFilter] = useState('all');
   
   // YENİ: Sarf Malzeme State
   const [sarfItems, setSarfItems] = useState([]);
   const [sarfLoading, setSarfLoading] = useState(false);
-  const [sarfLocationFilter, setSarfLocationFilter] = useState('');
+  const [sarfLocationFilter, setSarfLocationFilter] = useState('all');
+  
+  // YENİ: Tüm Lokasyonlar (API'den)
+  const [allLocations, setAllLocations] = useState([]);
 
   useEffect(() => {
     loadData();
     loadBarcodeGroups();
     loadStockLocations();
     loadAllStockGroups();
+    loadAllLocationsFromAPI();
   }, []);
+  
+  // Tüm lokasyonları API'den yükle (araçlar + saha noktaları + sabit lokasyonlar)
+  const loadAllLocationsFromAPI = async () => {
+    try {
+      const [vehiclesRes, healmedyRes, fieldRes] = await Promise.all([
+        vehiclesAPI.getAll(),
+        locationsAPI.getHealmedy().catch(() => ({ data: [] })),
+        locationsAPI.getField().catch(() => ({ data: [] }))
+      ]);
+      
+      const locations = [];
+      
+      // Sabit lokasyonlar (Healmedy)
+      const healmedyLocs = healmedyRes.data || [];
+      healmedyLocs.forEach(loc => {
+        locations.push({
+          id: loc.id,
+          name: loc.name,
+          type: 'healmedy',
+          icon: 'building'
+        });
+      });
+      
+      // Merkez Depo ekle (eğer yoksa)
+      if (!locations.find(l => l.id === 'merkez_depo')) {
+        locations.unshift({ id: 'merkez_depo', name: 'Merkez Depo', type: 'depo', icon: 'warehouse' });
+      }
+      
+      // Araçlar
+      const vehicles = vehiclesRes.data || [];
+      vehicles.forEach(v => {
+        locations.push({
+          id: `ambulans_${v.plate?.replace(/\s/g, '_').toLowerCase()}`,
+          name: v.plate,
+          type: 'ambulans',
+          icon: 'truck',
+          vehicleId: v._id || v.id
+        });
+      });
+      
+      // Saha Noktaları
+      const fieldLocs = fieldRes.data || [];
+      fieldLocs.forEach(loc => {
+        locations.push({
+          id: loc.id || loc._id,
+          name: loc.name,
+          type: loc.location_type || 'saha',
+          icon: 'mappin'
+        });
+      });
+      
+      setAllLocations(locations);
+    } catch (error) {
+      console.error('Lokasyonlar yüklenemedi:', error);
+    }
+  };
   
   // Lokasyon filtresi değiştiğinde yeniden yükle
   useEffect(() => {
@@ -253,7 +313,8 @@ const StockManagement = () => {
   const loadUnitStock = async () => {
     setUnitStockLoading(true);
     try {
-      const response = await stockBarcodeAPI.getUnitStock(unitStockLocationFilter || undefined);
+      const locationParam = unitStockLocationFilter === 'all' ? undefined : unitStockLocationFilter;
+      const response = await stockBarcodeAPI.getUnitStock(locationParam);
       setUnitStockItems(response.data.items || []);
     } catch (error) {
       console.error('Açılmış ilaçlar yüklenemedi:', error);
@@ -267,7 +328,8 @@ const StockManagement = () => {
   const loadItriyat = async () => {
     setItriyatLoading(true);
     try {
-      const response = await stockBarcodeAPI.getItriyat(itriyatLocationFilter || undefined);
+      const locationParam = itriyatLocationFilter === 'all' ? undefined : itriyatLocationFilter;
+      const response = await stockBarcodeAPI.getItriyat(locationParam);
       setItriyatItems(response.data.items || []);
     } catch (error) {
       console.error('İtriyat yüklenemedi:', error);
@@ -281,7 +343,8 @@ const StockManagement = () => {
   const loadSarf = async () => {
     setSarfLoading(true);
     try {
-      const response = await stockBarcodeAPI.getSarf(sarfLocationFilter || undefined);
+      const locationParam = sarfLocationFilter === 'all' ? undefined : sarfLocationFilter;
+      const response = await stockBarcodeAPI.getSarf(locationParam);
       setSarfItems(response.data.items || []);
     } catch (error) {
       console.error('Sarf malzeme yüklenemedi:', error);
@@ -1543,16 +1606,15 @@ const StockManagement = () => {
                   Açılmış İlaçlar (Adet Bazlı Stok)
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Select value={unitStockLocationFilter} onValueChange={(v) => { setUnitStockLocationFilter(v); }}>
-                    <SelectTrigger className="w-48">
+                  <Select value={unitStockLocationFilter} onValueChange={(v) => { setUnitStockLocationFilter(v); loadUnitStock(); }}>
+                    <SelectTrigger className="w-56">
                       <SelectValue placeholder="Tüm Lokasyonlar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tüm Lokasyonlar</SelectItem>
-                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
-                      <SelectItem value="ambulans_1">Ambulans 1</SelectItem>
-                      <SelectItem value="ambulans_2">Ambulans 2</SelectItem>
-                      <SelectItem value="saha_ofis_1">Saha Ofisi 1</SelectItem>
+                      <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
+                      {allLocations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="sm" onClick={loadUnitStock}>
@@ -1622,16 +1684,15 @@ const StockManagement = () => {
                   İtriyat Stokları
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Select value={itriyatLocationFilter} onValueChange={(v) => { setItriyatLocationFilter(v); }}>
-                    <SelectTrigger className="w-48">
+                  <Select value={itriyatLocationFilter} onValueChange={(v) => { setItriyatLocationFilter(v); loadItriyat(); }}>
+                    <SelectTrigger className="w-56">
                       <SelectValue placeholder="Tüm Lokasyonlar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tüm Lokasyonlar</SelectItem>
-                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
-                      <SelectItem value="ambulans_1">Ambulans 1</SelectItem>
-                      <SelectItem value="ambulans_2">Ambulans 2</SelectItem>
-                      <SelectItem value="saha_ofis_1">Saha Ofisi 1</SelectItem>
+                      <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
+                      {allLocations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="sm" onClick={loadItriyat}>
@@ -1702,16 +1763,15 @@ const StockManagement = () => {
                   Sarf Malzeme Stokları
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Select value={sarfLocationFilter} onValueChange={(v) => { setSarfLocationFilter(v); }}>
-                    <SelectTrigger className="w-48">
+                  <Select value={sarfLocationFilter} onValueChange={(v) => { setSarfLocationFilter(v); loadSarf(); }}>
+                    <SelectTrigger className="w-56">
                       <SelectValue placeholder="Tüm Lokasyonlar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tüm Lokasyonlar</SelectItem>
-                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
-                      <SelectItem value="ambulans_1">Ambulans 1</SelectItem>
-                      <SelectItem value="ambulans_2">Ambulans 2</SelectItem>
-                      <SelectItem value="saha_ofis_1">Saha Ofisi 1</SelectItem>
+                      <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
+                      {allLocations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="sm" onClick={loadSarf}>
