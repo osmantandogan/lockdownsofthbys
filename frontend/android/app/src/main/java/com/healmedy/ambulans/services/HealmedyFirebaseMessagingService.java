@@ -5,10 +5,18 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -29,6 +37,13 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     public static final String CHANNEL_EMERGENCY = "emergency_channel";
     public static final String CHANNEL_CASE = "case_channel";
     public static final String CHANNEL_GENERAL = "general_channel";
+    
+    // Emergency alarm - static for stopping from receiver
+    private static MediaPlayer emergencyMediaPlayer;
+    private static Vibrator emergencyVibrator;
+    private static int emergencyNotificationId = -1;
+    private static Handler alarmHandler;
+    private static final long ALARM_DURATION_MS = 60000; // 60 saniye
 
     @Override
     public void onCreate() {
@@ -84,26 +99,28 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
 
     private void showNotification(String title, String body, String type, String caseId, String priority) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         
-        // Vaka ID varsa ekle
         if (caseId != null) {
             intent.putExtra("case_id", caseId);
             intent.putExtra("navigate_to", "/dashboard/cases/" + caseId);
         }
 
+        int notificationId = (int) System.currentTimeMillis();
+
         PendingIntent pendingIntent = PendingIntent.getActivity(
-            this, 
-            0, 
-            intent,
+            this, notificationId, intent,
             PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Kanal seç
+        // Kanal ve acil durum belirleme
         String channelId = CHANNEL_GENERAL;
-        if ("emergency".equals(type) || "critical".equals(priority)) {
+        boolean isEmergency = false;
+        
+        if ("emergency".equals(type) || "critical".equals(priority) || "new_case".equals(type)) {
             channelId = CHANNEL_EMERGENCY;
-        } else if ("case".equals(type) || "new_case".equals(type)) {
+            isEmergency = true;
+        } else if ("case".equals(type)) {
             channelId = CHANNEL_CASE;
         }
 
@@ -112,76 +129,135 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
-            .setAutoCancel(true)
+            .setAutoCancel(!isEmergency)
+            .setOngoing(isEmergency) // Acil: kaydırarak kapanmaz
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE);
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+            .setColor(Color.parseColor("#dc2626"));
 
-        // Acil durumlar için özel ayarlar
-        if (CHANNEL_EMERGENCY.equals(channelId)) {
+        if (isEmergency) {
             notificationBuilder
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setVibrate(new long[]{0, 500, 200, 500, 200, 500})
-                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setVibrate(new long[]{0, 1000, 500, 1000, 500, 1000})
+                .setLights(Color.RED, 500, 500)
+                .setFullScreenIntent(pendingIntent, true);
+            
+            // "Anlaşıldı" butonu
+            Intent dismissIntent = new Intent(this, EmergencyDismissReceiver.class);
+            dismissIntent.putExtra("notification_id", notificationId);
+            PendingIntent dismissPendingIntent = PendingIntent.getBroadcast(
+                this, notificationId, dismissIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            notificationBuilder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "✓ ANLAŞILDI", dismissPendingIntent);
+            
+            // Acil alarm başlat
+            startEmergencyAlarm();
+            emergencyNotificationId = notificationId;
+            
         } else if (CHANNEL_CASE.equals(channelId)) {
             notificationBuilder
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVibrate(new long[]{0, 300, 100, 300});
         }
 
-        NotificationManager notificationManager = 
-            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        // Unique ID
-        int notificationId = (int) System.currentTimeMillis();
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(notificationId, notificationBuilder.build());
         
-        Log.d(TAG, "Notification shown: " + title);
+        Log.d(TAG, "Notification shown: " + title + " (emergency: " + isEmergency + ")");
     }
+    
+    private void startEmergencyAlarm() {
+        stopEmergencyAlarm();
+        try {
+            Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (alarmUri == null) alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            
+            emergencyMediaPlayer = new MediaPlayer();
+            emergencyMediaPlayer.setDataSource(this, alarmUri);
+            emergencyMediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+            emergencyMediaPlayer.setLooping(true);
+            
+            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0);
+            
+            emergencyMediaPlayer.prepare();
+            emergencyMediaPlayer.start();
+            startEmergencyVibration();
+            
+            alarmHandler = new Handler(Looper.getMainLooper());
+            alarmHandler.postDelayed(HealmedyFirebaseMessagingService::stopEmergencyAlarm, ALARM_DURATION_MS);
+            Log.d(TAG, "Emergency alarm started");
+        } catch (Exception e) { Log.e(TAG, "Error starting alarm", e); }
+    }
+    
+    private void startEmergencyVibration() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                VibratorManager vm = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                emergencyVibrator = vm.getDefaultVibrator();
+            } else {
+                emergencyVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            }
+            if (emergencyVibrator != null && emergencyVibrator.hasVibrator()) {
+                long[] pattern = {0, 1000, 500, 1000, 500, 1000, 500};
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    emergencyVibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
+                } else {
+                    emergencyVibrator.vibrate(pattern, 0);
+                }
+            }
+        } catch (Exception e) { Log.e(TAG, "Error starting vibration", e); }
+    }
+    
+    public static void stopEmergencyAlarm() {
+        if (emergencyMediaPlayer != null) {
+            try { if (emergencyMediaPlayer.isPlaying()) emergencyMediaPlayer.stop(); emergencyMediaPlayer.release(); } catch (Exception e) {}
+            emergencyMediaPlayer = null;
+        }
+        if (emergencyVibrator != null) {
+            try { emergencyVibrator.cancel(); } catch (Exception e) {}
+            emergencyVibrator = null;
+        }
+        if (alarmHandler != null) { alarmHandler.removeCallbacksAndMessages(null); alarmHandler = null; }
+        Log.d("HealmedyFCM", "Emergency alarm stopped");
+    }
+    
+    public static int getEmergencyNotificationId() { return emergencyNotificationId; }
 
     private void createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager notificationManager = 
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-            // Acil Durum Kanalı
-            NotificationChannel emergencyChannel = new NotificationChannel(
-                CHANNEL_EMERGENCY,
-                "Acil Durumlar",
-                NotificationManager.IMPORTANCE_HIGH
-            );
-            emergencyChannel.setDescription("Acil vaka ve kritik bildirimler");
-            emergencyChannel.enableVibration(true);
-            emergencyChannel.setVibrationPattern(new long[]{0, 500, 200, 500, 200, 500});
-            emergencyChannel.setSound(
-                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-                new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            );
-            emergencyChannel.setBypassDnd(true);
-            notificationManager.createNotificationChannel(emergencyChannel);
+            // 🚨 ACİL DURUM KANALI - EN YÜKSEK ÖNCELİK
+            NotificationChannel emergency = new NotificationChannel(CHANNEL_EMERGENCY, "🚨 Acil Vakalar", NotificationManager.IMPORTANCE_HIGH);
+            emergency.setDescription("Yeni vaka bildirimleri - Yüksek sesli alarm");
+            emergency.enableVibration(true);
+            emergency.setVibrationPattern(new long[]{0, 1000, 500, 1000, 500, 1000});
+            emergency.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
+                new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+            emergency.setBypassDnd(true);
+            emergency.enableLights(true);
+            emergency.setLightColor(Color.RED);
+            emergency.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+            nm.createNotificationChannel(emergency);
 
-            // Vaka Kanalı
-            NotificationChannel caseChannel = new NotificationChannel(
-                CHANNEL_CASE,
-                "Vaka Bildirimleri",
-                NotificationManager.IMPORTANCE_HIGH
-            );
-            caseChannel.setDescription("Yeni vaka atamaları ve güncellemeleri");
+            // 📋 Vaka Kanalı
+            NotificationChannel caseChannel = new NotificationChannel(CHANNEL_CASE, "📋 Vaka Bildirimleri", NotificationManager.IMPORTANCE_HIGH);
+            caseChannel.setDescription("Vaka güncellemeleri");
             caseChannel.enableVibration(true);
-            notificationManager.createNotificationChannel(caseChannel);
+            caseChannel.enableLights(true);
+            caseChannel.setLightColor(Color.BLUE);
+            nm.createNotificationChannel(caseChannel);
 
-            // Genel Kanal
-            NotificationChannel generalChannel = new NotificationChannel(
-                CHANNEL_GENERAL,
-                "Genel Bildirimler",
-                NotificationManager.IMPORTANCE_DEFAULT
-            );
-            generalChannel.setDescription("Genel sistem bildirimleri");
-            notificationManager.createNotificationChannel(generalChannel);
+            // 🔔 Genel Kanal
+            NotificationChannel general = new NotificationChannel(CHANNEL_GENERAL, "🔔 Genel Bildirimler", NotificationManager.IMPORTANCE_DEFAULT);
+            general.setDescription("Genel sistem bildirimleri");
+            nm.createNotificationChannel(general);
 
             Log.d(TAG, "Notification channels created");
         }

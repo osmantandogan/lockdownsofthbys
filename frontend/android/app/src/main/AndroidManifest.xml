@@ -69,6 +69,11 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/colorPrimary" />
 
+        <!-- Emergency Dismiss Receiver -->
+        <receiver
+            android:name=".services.EmergencyDismissReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

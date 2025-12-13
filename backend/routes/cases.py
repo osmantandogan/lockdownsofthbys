@@ -17,6 +17,13 @@ try:
     NOTIFICATIONS_ENABLED = True
 except ImportError:
     NOTIFICATIONS_ENABLED = False
+
+# FCM Bildirim servisi
+try:
+    from services.firebase_service import send_fcm_to_multiple, send_case_notification_fcm
+    FCM_ENABLED = True
+except ImportError:
+    FCM_ENABLED = False
     
 logger = logging.getLogger(__name__)
 
@@ -696,6 +703,50 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
                 logger.info(f"Sent notifications to {len(recipients)} recipients for case {case_id}")
         except Exception as e:
             logger.error(f"Error sending case notifications: {e}")
+    
+    # ========== FCM BİLDİRİMİ - ATT/PARAMEDİK/ŞOFÖR İÇİN ACİL ALARM ==========
+    if FCM_ENABLED:
+        try:
+            case_doc = await cases_collection.find_one({"_id": case_id})
+            patient_info = case_doc.get("patient", {})
+            location_info = case_doc.get("location", {})
+            
+            # Saha personelinin FCM token'larını topla (att, paramedik, şoför)
+            field_personnel_ids = []
+            for key in ["driver_id", "paramedic_id", "att_id"]:
+                if assigned_team.get(key):
+                    field_personnel_ids.append(assigned_team[key])
+            
+            fcm_tokens = []
+            for user_id in field_personnel_ids:
+                user_doc = await users_collection.find_one({"_id": user_id})
+                if user_doc and user_doc.get("fcm_tokens"):
+                    fcm_tokens.extend(user_doc["fcm_tokens"])
+            
+            if fcm_tokens:
+                patient_name = f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş"
+                address = location_info.get("address", "Belirtilmemiş")
+                priority = case_doc.get("priority", "Normal")
+                
+                # Acil/Kritik vakalar için emergency channel kullan
+                notification_type = "new_case"  # Android'de emergency alarm tetikler
+                
+                result = await send_fcm_to_multiple(
+                    tokens=fcm_tokens,
+                    title=f"🚨 YENİ VAKA - {priority.upper()}",
+                    body=f"{patient_name}\n📍 {address}",
+                    data={
+                        "case_id": case_id,
+                        "case_number": case_doc.get("case_number", ""),
+                        "navigate_to": f"/dashboard/cases/{case_id}",
+                        "target_roles": "att,paramedik,sofor"
+                    },
+                    notification_type=notification_type,
+                    priority="high"
+                )
+                logger.info(f"FCM emergency sent to {len(fcm_tokens)} tokens: {result}")
+        except Exception as e:
+            logger.error(f"Error sending FCM notification: {e}")
     
     return {"message": "Team assigned successfully"}
 
