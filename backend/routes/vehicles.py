@@ -388,3 +388,57 @@ async def get_vehicle_km_report(
         "case_details": case_km_data,
         "shift_details": shift_km_data
     }
+
+
+@router.post("/update-station-codes")
+async def update_station_codes(request: Request):
+    """İstasyon kodlarını araçlara ekle (tek seferlik)"""
+    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    import uuid
+    
+    # İstasyon kodları - plaka: istasyon kodu
+    STATION_CODES = {
+        "06 CHZ 142": "9365",
+        "06 CHZ 146": "9370", 
+        "06 CHZ 149": "9375",
+        "34 FTU 336": "9360",
+        "34 KMP 224": "9355",
+        "34 MHA 112": "9356"
+    }
+    
+    results = {"updated": [], "created": [], "errors": []}
+    
+    for plate, station_code in STATION_CODES.items():
+        try:
+            # Önce güncellemeyi dene
+            result = await vehicles_collection.find_one_and_update(
+                {"plate": plate},
+                {"$set": {"station_code": station_code}},
+                return_document=True
+            )
+            
+            if result:
+                results["updated"].append(f"{plate} -> {station_code}")
+            else:
+                # Araç yoksa oluştur
+                new_vehicle = {
+                    "_id": str(uuid.uuid4()),
+                    "plate": plate,
+                    "type": "ambulans",
+                    "status": "musait",
+                    "km": 0,
+                    "station_code": station_code,
+                    "qr_code": str(uuid.uuid4()),
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+                await vehicles_collection.insert_one(new_vehicle)
+                results["created"].append(f"{plate} ({station_code})")
+        except Exception as e:
+            results["errors"].append(f"{plate}: {str(e)}")
+    
+    return {
+        "message": "İstasyon kodları güncellendi",
+        "results": results
+    }
