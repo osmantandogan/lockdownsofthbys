@@ -790,3 +790,93 @@ async def get_vehicle_all_stock(vehicle_id: str, request: Request):
         "total_vehicle_items": len(unique_vehicle_stock),
         "total_carter_items": len(unique_carter_stock)
     }
+
+
+@router.post("/seed-sample-stock")
+async def seed_sample_stock_endpoint(request: Request):
+    """Tum lokasyonlara ornek stok ekle - Test icin"""
+    import random
+    
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    SAMPLE_ITEMS = [
+        {"name": "Parasetamol 500mg", "code": "PAR500", "min_quantity": 10, "category": "ilac"},
+        {"name": "Ibuprofen 400mg", "code": "IBU400", "min_quantity": 10, "category": "ilac"},
+        {"name": "Adrenalin 1mg/ml", "code": "ADR001", "min_quantity": 5, "category": "ilac"},
+        {"name": "Serum Fizyolojik 500ml", "code": "SF500", "min_quantity": 20, "category": "ilac"},
+        {"name": "Midazolam 5mg/ml", "code": "MID005", "min_quantity": 3, "category": "ilac"},
+        {"name": "Aspirin 100mg", "code": "ASP100", "min_quantity": 15, "category": "ilac"},
+        {"name": "Eldiven (M)", "code": "ELD-M", "min_quantity": 50, "category": "itriyat"},
+        {"name": "Eldiven (L)", "code": "ELD-L", "min_quantity": 50, "category": "itriyat"},
+        {"name": "Maske N95", "code": "MSK-N95", "min_quantity": 30, "category": "itriyat"},
+        {"name": "Dezenfektan 500ml", "code": "DEZ500", "min_quantity": 10, "category": "itriyat"},
+        {"name": "Gazli Bez 10x10", "code": "GZB-10", "min_quantity": 100, "category": "diger"},
+        {"name": "Flaster 2.5cm", "code": "FLS-25", "min_quantity": 20, "category": "diger"},
+        {"name": "IV Kateter 18G", "code": "IVK-18", "min_quantity": 50, "category": "diger"},
+        {"name": "Enjektör 5ml", "code": "ENJ-05", "min_quantity": 100, "category": "diger"},
+        {"name": "Serum Seti", "code": "SRM-SET", "min_quantity": 30, "category": "diger"},
+    ]
+    
+    # Onceki stoklari temizle
+    await stock_collection.delete_many({})
+    
+    # Lokasyonlari al
+    locations = await locations_collection.find({"is_active": True}).to_list(100)
+    
+    if len(locations) == 0:
+        from database import vehicles_collection
+        # Lokasyon yoksa olustur
+        await locations_collection.insert_one({
+            "_id": str(uuid.uuid4()), "name": "Merkez Depo", "type": "warehouse",
+            "is_active": True, "created_at": datetime.utcnow()
+        })
+        
+        vehicles = await vehicles_collection.find({}).to_list(100)
+        for v in vehicles:
+            await locations_collection.insert_one({
+                "_id": str(uuid.uuid4()), "name": v.get("plate"), "type": "vehicle",
+                "vehicle_id": v.get("_id"), "is_active": True, "created_at": datetime.utcnow()
+            })
+        
+        locations = await locations_collection.find({"is_active": True}).to_list(100)
+    
+    total_stock = 0
+    
+    for loc in locations:
+        loc_name = loc.get("name")
+        loc_type = loc.get("type", "unknown")
+        
+        # Merkez depoya tum urunleri, digerlerine rastgele
+        if loc_type == "warehouse":
+            items = SAMPLE_ITEMS
+            qty_mult = 5
+        else:
+            items = random.sample(SAMPLE_ITEMS, random.randint(8, 12))
+            qty_mult = 1
+        
+        for item in items:
+            quantity = random.randint(item["min_quantity"], item["min_quantity"] * 3) * qty_mult
+            expiry_days = random.randint(60, 365)
+            
+            await stock_collection.insert_one({
+                "_id": str(uuid.uuid4()),
+                "name": item["name"],
+                "code": item["code"],
+                "quantity": quantity,
+                "min_quantity": item["min_quantity"],
+                "location": loc_name,
+                "category": item["category"],
+                "lot_number": f"LOT{random.randint(10000, 99999)}",
+                "expiry_date": datetime.utcnow() + timedelta(days=expiry_days),
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            })
+            total_stock += 1
+    
+    logger.info(f"Sample stock seeded: {total_stock} items for {len(locations)} locations")
+    
+    return {
+        "message": f"{len(locations)} lokasyona toplam {total_stock} ornek stok eklendi",
+        "locations": len(locations),
+        "total_stock": total_stock
+    }
