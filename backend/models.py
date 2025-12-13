@@ -244,6 +244,9 @@ class Vehicle(BaseModel):
     qr_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
     current_case_id: Optional[str] = None
     
+    # İstasyon kodu (ambulanslar için)
+    station_code: Optional[str] = None  # Örn: 9365, 9370, 9375, 9360, 9355, 9356
+    
     # Lokasyon bilgisi
     healmedy_location_id: Optional[str] = None
     healmedy_location_name: Optional[str] = None
@@ -260,6 +263,7 @@ class VehicleCreate(BaseModel):
     type: VehicleType
     km: int = 0
     fuel_level: Optional[int] = None
+    station_code: Optional[str] = None
     last_inspection_date: Optional[datetime] = None
     next_maintenance_km: Optional[int] = None
 
@@ -268,6 +272,7 @@ class VehicleUpdate(BaseModel):
     status: Optional[VehicleStatus] = None
     km: Optional[int] = None
     fuel_level: Optional[int] = None
+    station_code: Optional[str] = None
     last_inspection_date: Optional[datetime] = None
     next_maintenance_km: Optional[int] = None
 

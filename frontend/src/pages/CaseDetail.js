@@ -234,13 +234,16 @@ const CaseDetail = () => {
     transferType: '',          // İlçe içi/dışı/il dışı
     accidentVehicles: ['', '', '', ''], // Kazaya karışan araç plakaları (4 adet)
     referralSource: '',        // Vakayı veren kurum
+    referralSourceOther: '',   // Vakayı veren kurum (diğer seçildiğinde)
     patientArrivalTime: '',    // Hastaya varış saati
     stationReturnTime: '',     // İstasyona dönüş saati
     materialsUsed: [],         // Kullanılan malzemeler
     stationCode: '',           // İstasyon kodu
     hospitalName: '',          // Nakledilen hastane
     triageCode: '',            // Triyaj kodu (kirmizi, sari, yesil, siyah, sosyal)
-    birthDate: ''              // Doğum tarihi
+    birthDate: '',             // Doğum tarihi
+    startKm: '',               // Başlangıç KM (transfer sekmesinden taşındı)
+    endKm: ''                  // Bitiş KM (transfer sekmesinden taşındı)
   });
   
   // CPR data
@@ -2000,37 +2003,89 @@ const CaseDetail = () => {
                 </div>
                 <div>
                   <Label>İstasyon Kodu</Label>
-                  <Input 
-                    placeholder="Örn: HM-01"
-                    value={extendedForm.stationCode}
-                    onChange={(e) => updateExtendedForm('stationCode', e.target.value)}
+                  <Select 
+                    value={extendedForm.stationCode} 
+                    onValueChange={(v) => updateExtendedForm('stationCode', v)}
                     disabled={!canEditForm}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="İstasyon seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.filter(v => v.type === 'ambulans' && v.station_code).map(v => (
+                        <SelectItem key={v.id} value={v.station_code}>
+                          {v.plate} ({v.station_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Vakayı Veren Kurum</Label>
-                  <Input 
-                    placeholder="Örn: 112, TPOC..."
-                    value={extendedForm.referralSource}
-                    onChange={(e) => updateExtendedForm('referralSource', e.target.value)}
+                  <Select 
+                    value={extendedForm.referralSource} 
+                    onValueChange={(v) => updateExtendedForm('referralSource', v)}
                     disabled={!canEditForm}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kurum seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="112_acil">112 Acil</SelectItem>
+                      <SelectItem value="cagri_merkezi">Çağrı Merkezi</SelectItem>
+                      <SelectItem value="itfaiye">İtfaye</SelectItem>
+                      <SelectItem value="port_kontrol">Port Kontrol</SelectItem>
+                      <SelectItem value="tpoc">TPOC</SelectItem>
+                      <SelectItem value="diger">Diğer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {extendedForm.referralSource === 'diger' && (
+                    <Input 
+                      placeholder="Kurum adını yazın..."
+                      value={extendedForm.referralSourceOther || ''}
+                      onChange={(e) => updateExtendedForm('referralSourceOther', e.target.value)}
+                      disabled={!canEditForm}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
                 <div>
                   <Label>Nakledilen Hastane</Label>
-                  <Input 
-                    placeholder="Hastane adı"
-                    value={extendedForm.hospitalName}
-                    onChange={(e) => updateExtendedForm('hospitalName', e.target.value)}
-                    disabled={!canEditForm}
-                  />
+                  {medicalForm.transfer_hospital ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 p-2 bg-teal-50 border border-teal-200 rounded text-teal-800 text-sm">
+                        {medicalForm.transfer_hospital.name}
+                        {medicalForm.transfer_hospital.province && ` (${medicalForm.transfer_hospital.province})`}
+                      </div>
+                      {canEditForm && (
+                        <Button variant="ghost" size="sm" onClick={() => updateFormField('transfer_hospital', null)} className="text-red-500">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Nakil Hastanesi sekmesinden seçin</p>
+                  )}
                 </div>
               </div>
 
               <div>
                 <Label>Kronik Hastalıklar</Label>
+                {/* Hasta kartından otomatik yükleme göstergesi */}
+                {patientCardData?.chronic_diseases?.length > 0 && (
+                  <div className="mb-2 p-2 bg-purple-50 border border-purple-200 rounded text-sm">
+                    <p className="text-purple-700 font-medium mb-1">Hasta Kartından:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {patientCardData.chronic_diseases.map((d, idx) => (
+                        <Badge key={idx} variant="secondary" className="bg-purple-100 text-purple-800">
+                          {d.name} {d.medications && `(${d.medications})`}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <Textarea 
-                  placeholder="Kronik hastalıkları yazın..."
+                  placeholder="Ek kronik hastalıkları yazın..."
                   value={extendedForm.chronicDiseases}
                   onChange={(e) => updateExtendedForm('chronicDiseases', e.target.value)}
                   disabled={!canEditForm}
@@ -2038,7 +2093,7 @@ const CaseDetail = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Çağrı Tipi</Label>
                   <Select 
@@ -2086,37 +2141,6 @@ const CaseDetail = () => {
                       <SelectItem value="lpg">LPG</SelectItem>
                       <SelectItem value="tedbir">Tedbir</SelectItem>
                       <SelectItem value="protokol">Protokol</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Olay Yeri (Tek Seçim)</Label>
-                  <Select 
-                    value={extendedForm.sceneType} 
-                    onValueChange={(v) => updateExtendedForm('sceneType', v)}
-                    disabled={!canEditForm}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seçiniz" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ev">Ev</SelectItem>
-                      <SelectItem value="yaya">Yaya</SelectItem>
-                      <SelectItem value="aracta">Araçta</SelectItem>
-                      <SelectItem value="sokak">Sokak</SelectItem>
-                      <SelectItem value="fabrika">Fabrika</SelectItem>
-                      <SelectItem value="buro">Büro</SelectItem>
-                      <SelectItem value="suda">Suda</SelectItem>
-                      <SelectItem value="arazi">Arazi</SelectItem>
-                      <SelectItem value="stadyum">Stadyum</SelectItem>
-                      <SelectItem value="huzurevi">Huzurevi</SelectItem>
-                      <SelectItem value="cami">Cami</SelectItem>
-                      <SelectItem value="yurt">Yurt</SelectItem>
-                      <SelectItem value="saglik_kurumu">Sağlık Kurumu</SelectItem>
-                      <SelectItem value="resmi_daire">Resmi Daire</SelectItem>
-                      <SelectItem value="egitim_kurumu">Eğitim Kurumu</SelectItem>
-                      <SelectItem value="spor_salonu">Spor Salonu</SelectItem>
-                      <SelectItem value="liman_santiye">Liman/Şantiye</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2577,64 +2601,23 @@ const CaseDetail = () => {
                 </div>
               )}
               
-              {/* Sonuç ve Transfer Tipi */}
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <Label>Sonuç</Label>
-                  <Select 
-                    value={extendedForm.outcome} 
-                    onValueChange={(v) => updateExtendedForm('outcome', v)}
-                    disabled={!canEditForm}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sonuç seçiniz" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yerinde_mudahale">Yerinde Müdahale</SelectItem>
-                      <SelectItem value="hastaneye_nakil">Hastaneye Nakil</SelectItem>
-                      <SelectItem value="hastaneler_arasi">Hastaneler Arası Nakil</SelectItem>
-                      <SelectItem value="tibbi_tetkik">Tıbbi Tetkik İçin Nakil</SelectItem>
-                      <SelectItem value="eve_nakil">Eve Nakil</SelectItem>
-                      <SelectItem value="ex_terinde">Ex Terinde Bırakıldı</SelectItem>
-                      <SelectItem value="ex_morga">Ex Morga Nakil</SelectItem>
-                      <SelectItem value="nakil_reddi">Nakil Reddi</SelectItem>
-                      <SelectItem value="diger_ulasilan">Diğer Ulaşılan</SelectItem>
-                      <SelectItem value="gorev_iptali">Görev İptali</SelectItem>
-                      <SelectItem value="baska_aracla_nakil">Başka Araçla Nakil</SelectItem>
-                      <SelectItem value="asilsiz_ihbar">Asılsız İhbar</SelectItem>
-                      <SelectItem value="yaralanan_yok">Yaralanan Yok</SelectItem>
-                      <SelectItem value="olay_yerinde_bekleme">Olay Yerinde Bekleme</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Transfer Tipi</Label>
-                  <Select 
-                    value={extendedForm.transferType} 
-                    onValueChange={(v) => updateExtendedForm('transferType', v)}
-                    disabled={!canEditForm}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Transfer tipi seçiniz" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ilce_ici">İlçe İçi</SelectItem>
-                      <SelectItem value="ilce_disi">İlçe Dışı</SelectItem>
-                      <SelectItem value="il_disi">İl Dışı</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {/* Vakayı Veren Kurum */}
+              {/* Transfer Tipi */}
               <div className="mt-4">
-                <Label>Vakayı Veren Kurum</Label>
-                <Input 
-                  placeholder="Kurumu yazınız..."
-                  value={extendedForm.referralSource}
-                  onChange={(e) => updateExtendedForm('referralSource', e.target.value)}
+                <Label>Transfer Tipi</Label>
+                <Select 
+                  value={extendedForm.transferType} 
+                  onValueChange={(v) => updateExtendedForm('transferType', v)}
                   disabled={!canEditForm}
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Transfer tipi seçiniz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ilce_ici">İlçe İçi</SelectItem>
+                    <SelectItem value="ilce_disi">İlçe Dışı</SelectItem>
+                    <SelectItem value="il_disi">İl Dışı</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -3528,13 +3511,78 @@ const CaseDetail = () => {
                 </div>
               </div>
               
+              {/* Sonuç - Nakil Hastanesi sekmesinden taşındı */}
               <div>
-                <Label>Vakayı Veren Kurum Bilgisi</Label>
-                <Input 
-                  value={vehicleInfo.referringInstitution}
-                  onChange={(e) => updateVehicleInfo('referringInstitution', e.target.value)}
+                <Label>Sonuç</Label>
+                <Select 
+                  value={extendedForm.outcome} 
+                  onValueChange={(v) => updateExtendedForm('outcome', v)}
+                  disabled={!canEditForm}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sonuç seçiniz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yerinde_mudahale">Yerinde Müdahale</SelectItem>
+                    <SelectItem value="hastaneye_nakil">Hastaneye Nakil</SelectItem>
+                    <SelectItem value="hastaneler_arasi">Hastaneler Arası Nakil</SelectItem>
+                    <SelectItem value="tibbi_tetkik">Tıbbi Tetkik İçin Nakil</SelectItem>
+                    <SelectItem value="eve_nakil">Eve Nakil</SelectItem>
+                    <SelectItem value="ex_terinde">Ex Terinde Bırakıldı</SelectItem>
+                    <SelectItem value="ex_morga">Ex Morga Nakil</SelectItem>
+                    <SelectItem value="nakil_reddi">Nakil Reddi</SelectItem>
+                    <SelectItem value="diger_ulasilan">Diğer Ulaşılan</SelectItem>
+                    <SelectItem value="gorev_iptali">Görev İptali</SelectItem>
+                    <SelectItem value="baska_aracla_nakil">Başka Araçla Nakil</SelectItem>
+                    <SelectItem value="asilsiz_ihbar">Asılsız İhbar</SelectItem>
+                    <SelectItem value="yaralanan_yok">Yaralanan Yok</SelectItem>
+                    <SelectItem value="olay_yerinde_bekleme">Olay Yerinde Bekleme</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Olay Yeri - Hasta Bilgileri sekmesinden taşındı */}
+              <div>
+                <Label>Olay Yeri (Tek Seçim)</Label>
+                <Select 
+                  value={extendedForm.sceneType} 
+                  onValueChange={(v) => updateExtendedForm('sceneType', v)}
+                  disabled={!canEditForm}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seçiniz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ev">Ev</SelectItem>
+                    <SelectItem value="yaya">Yaya</SelectItem>
+                    <SelectItem value="aracta">Araçta</SelectItem>
+                    <SelectItem value="sokak">Sokak</SelectItem>
+                    <SelectItem value="fabrika">Fabrika</SelectItem>
+                    <SelectItem value="buro">Büro</SelectItem>
+                    <SelectItem value="suda">Suda</SelectItem>
+                    <SelectItem value="arazi">Arazi</SelectItem>
+                    <SelectItem value="stadyum">Stadyum</SelectItem>
+                    <SelectItem value="huzurevi">Huzurevi</SelectItem>
+                    <SelectItem value="cami">Cami</SelectItem>
+                    <SelectItem value="yurt">Yurt</SelectItem>
+                    <SelectItem value="saglik_kurumu">Sağlık Kurumu</SelectItem>
+                    <SelectItem value="resmi_daire">Resmi Daire</SelectItem>
+                    <SelectItem value="egitim_kurumu">Eğitim Kurumu</SelectItem>
+                    <SelectItem value="spor_salonu">Spor Salonu</SelectItem>
+                    <SelectItem value="liman_santiye">Liman/Şantiye</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Adli Vaka - Vitaller sekmesinden taşındı */}
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="forensic-transfer" 
+                  checked={extendedForm.isForensic} 
+                  onCheckedChange={(v) => updateExtendedForm('isForensic', v)}
                   disabled={!canEditForm}
                 />
+                <Label htmlFor="forensic-transfer">Adli Vaka</Label>
               </div>
               
               <div>
