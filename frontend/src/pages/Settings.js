@@ -773,6 +773,90 @@ const Settings = () => {
         </Card>
       )}
 
+      {/* Admin İşlemleri (Sadece yetkili roller için) */}
+      {['operasyon_muduru', 'merkez_ofis'].includes(user?.role) && (
+        <Card className="border-2 border-purple-200">
+          <CardHeader className="bg-purple-50">
+            <CardTitle className="flex items-center space-x-2">
+              <Database className="h-5 w-5 text-purple-600" />
+              <span>Sistem Yönetimi</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-sm text-purple-700">
+                Bu bölüm sadece yetkili yöneticiler tarafından görüntülenebilir.
+                Dikkatli kullanın - işlemler geri alınamaz.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Aralık Vardiya Import */}
+              <div className="p-4 border rounded-lg space-y-3">
+                <h4 className="font-medium">Aralık 2024 Vardiyaları</h4>
+                <p className="text-sm text-gray-500">
+                  6 ambulans için 48+ personel ve vardiya ataması oluşturur.
+                </p>
+                <Button 
+                  onClick={async () => {
+                    try {
+                      toast.loading('Vardiyalar import ediliyor...', { id: 'import-shifts' });
+                      const token = localStorage.getItem('healmedy_session_token');
+                      const res = await fetch(`${API_URL}/shifts/import-december-2024`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        toast.success(`Başarılı! ${data.new_users} yeni kullanıcı, ${data.new_shifts} vardiya oluşturuldu`, { id: 'import-shifts' });
+                      } else {
+                        toast.error(data.detail || 'Hata oluştu', { id: 'import-shifts' });
+                      }
+                    } catch (e) {
+                      toast.error('Import başarısız: ' + e.message, { id: 'import-shifts' });
+                    }
+                  }}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  Aralık Vardiyalarını Import Et
+                </Button>
+              </div>
+
+              {/* Örnek Stok Ekle */}
+              <div className="p-4 border rounded-lg space-y-3">
+                <h4 className="font-medium">Örnek Stok Verisi</h4>
+                <p className="text-sm text-gray-500">
+                  Tüm lokasyonlara örnek ilaç, itriyat ve sarf malzeme ekler.
+                </p>
+                <Button 
+                  onClick={async () => {
+                    try {
+                      toast.loading('Örnek stoklar ekleniyor...', { id: 'seed-stock' });
+                      const token = localStorage.getItem('healmedy_session_token');
+                      const res = await fetch(`${API_URL}/stock/seed-sample-stock`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        toast.success(`Başarılı! ${data.locations} lokasyona ${data.total_stock} stok eklendi`, { id: 'seed-stock' });
+                      } else {
+                        toast.error(data.detail || 'Hata oluştu', { id: 'seed-stock' });
+                      }
+                    } catch (e) {
+                      toast.error('Stok ekleme başarısız: ' + e.message, { id: 'seed-stock' });
+                    }
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  Örnek Stok Ekle
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* System Info */}
       <Card>
         <CardHeader>
