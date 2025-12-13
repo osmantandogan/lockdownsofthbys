@@ -24,10 +24,14 @@ const FirmManagement = () => {
     setLoading(true);
     try {
       const response = await firmsAPI.getAll();
-      setFirms(response.data || []);
+      // API direkt array dönüyor, axios response.data'da sarar
+      const firmsData = Array.isArray(response.data) ? response.data : [];
+      console.log('Firmalar yüklendi:', firmsData);
+      setFirms(firmsData);
     } catch (error) {
       console.error('Firmalar yüklenemedi:', error);
       toast.error('Firmalar yüklenemedi');
+      setFirms([]);
     } finally {
       setLoading(false);
     }

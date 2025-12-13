@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI } from '../api';
+import { casesAPI, vehiclesAPI, firmsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,7 +13,6 @@ import { Phone, MapPin, User, Truck, Building2, Check, RefreshCw, Clock } from '
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { COMPANIES } from '../constants/companies';
 
 // Fix leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -55,6 +54,7 @@ const LocationPicker = ({ position, setPosition }) => {
 const CallCenter = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
+  const [firms, setFirms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [position, setPosition] = useState({ lat: 41.578342, lng: 32.078179 });
   const [isOutsideProject, setIsOutsideProject] = useState(false);
@@ -87,7 +87,20 @@ const CallCenter = () => {
 
   useEffect(() => {
     loadVehicles();
+    loadFirms();
   }, []);
+
+  const loadFirms = async () => {
+    try {
+      const response = await firmsAPI.getAll();
+      // API direkt array dönüyor
+      setFirms(Array.isArray(response.data) ? response.data : (response.data || []));
+    } catch (error) {
+      console.error('Firmalar yüklenemedi:', error);
+      // Fallback olarak boş array
+      setFirms([]);
+    }
+  };
 
   // Firma dropdown dışında tıklandığında kapat
   useEffect(() => {
@@ -243,7 +256,7 @@ const CallCenter = () => {
 
   // Firma arama
   const filteredCompanies = companySearch 
-    ? COMPANIES.filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 5)
+    ? firms.filter(f => f.name.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 5)
     : [];
 
   // İlçeler
