@@ -2,7 +2,7 @@
 Firma (Company) Yönetim Router'ı
 Çağrı merkezi formu için firma listesi yönetimi
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -10,7 +10,7 @@ import uuid
 import logging
 
 from database import firms_collection
-from routes.auth import get_current_user
+from auth_utils import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -19,62 +19,46 @@ router = APIRouter()
 
 class FirmCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = None
-    is_active: bool = True
-
-
-class FirmUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
 
 
 class FirmResponse(BaseModel):
     id: str
     name: str
-    description: Optional[str] = None
     is_active: bool = True
     created_at: datetime
-    updated_at: Optional[datetime] = None
 
 
-@router.get("", response_model=List[FirmResponse])
-async def get_all_firms(
-    include_inactive: bool = False,
-    current_user: dict = Depends(get_current_user)
-):
+@router.get("")
+async def get_all_firms(request: Request):
     """Tüm firmaları listele"""
     try:
-        query = {}
-        if not include_inactive:
-            query["is_active"] = True
+        await get_current_user(request)
         
-        firms = await firms_collection.find(query).sort("name", 1).to_list(1000)
+        firms = await firms_collection.find({"is_active": True}).sort("name", 1).to_list(1000)
     
         result = []
         for firm in firms:
-            result.append(FirmResponse(
-                id=str(firm.get("_id", firm.get("id", ""))),
-                name=firm.get("name", ""),
-                description=firm.get("description"),
-                is_active=firm.get("is_active", True),
-                created_at=firm.get("created_at", datetime.utcnow()),
-                updated_at=firm.get("updated_at")
-            ))
+            result.append({
+                "id": str(firm.get("_id", "")),
+                "_id": str(firm.get("_id", "")),
+                "name": firm.get("name", ""),
+                "is_active": firm.get("is_active", True),
+                "created_at": firm.get("created_at", datetime.utcnow())
+            })
         
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Firmalar yüklenirken hata: {e}")
         raise HTTPException(status_code=500, detail=f"Firmalar yüklenemedi: {str(e)}")
 
 
-@router.post("", response_model=FirmResponse)
-async def create_firm(
-    firm_data: FirmCreate,
-    current_user: dict = Depends(get_current_user)
-):
+@router.post("")
+async def create_firm(request: Request, firm_data: FirmCreate):
     """Yeni firma ekle"""
     try:
+        user = await get_current_user(request)
         
         # Aynı isimde firma var mı kontrol et
         existing = await firms_collection.find_one({"name": firm_data.name})
@@ -87,25 +71,22 @@ async def create_firm(
         new_firm = {
             "_id": firm_id,
             "name": firm_data.name,
-            "description": firm_data.description,
-            "is_active": firm_data.is_active,
+            "is_active": True,
             "created_at": now,
-            "updated_at": None,
-            "created_by": current_user.get("_id")
+            "created_by": user.id
         }
         
         await firms_collection.insert_one(new_firm)
         
         logger.info(f"Yeni firma oluşturuldu: {firm_data.name}")
         
-        return FirmResponse(
-            id=firm_id,
-            name=firm_data.name,
-            description=firm_data.description,
-            is_active=firm_data.is_active,
-            created_at=now,
-            updated_at=None
-        )
+        return {
+            "id": firm_id,
+            "_id": firm_id,
+            "name": firm_data.name,
+            "is_active": True,
+            "created_at": now
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -113,66 +94,11 @@ async def create_firm(
         raise HTTPException(status_code=500, detail=f"Firma oluşturulamadı: {str(e)}")
 
 
-@router.put("/{firm_id}", response_model=FirmResponse)
-async def update_firm(
-    firm_id: str,
-    firm_data: FirmUpdate,
-    current_user: dict = Depends(get_current_user)
-):
-    """Firma bilgilerini güncelle"""
-    try:
-        
-        firm = await firms_collection.find_one({"_id": firm_id})
-        if not firm:
-            raise HTTPException(status_code=404, detail="Firma bulunamadı")
-        
-        update_data = {"updated_at": datetime.utcnow()}
-        
-        if firm_data.name is not None:
-            # Aynı isimde başka firma var mı kontrol et
-            existing = await firms_collection.find_one({
-                "name": firm_data.name,
-                "_id": {"$ne": firm_id}
-            })
-            if existing:
-                raise HTTPException(status_code=400, detail="Bu isimde bir firma zaten mevcut")
-            update_data["name"] = firm_data.name
-        
-        if firm_data.description is not None:
-            update_data["description"] = firm_data.description
-        
-        if firm_data.is_active is not None:
-            update_data["is_active"] = firm_data.is_active
-        
-        await firms_collection.update_one(
-            {"_id": firm_id},
-            {"$set": update_data}
-        )
-        
-        updated_firm = await firms_collection.find_one({"_id": firm_id})
-        
-        return FirmResponse(
-            id=firm_id,
-            name=updated_firm.get("name", ""),
-            description=updated_firm.get("description"),
-            is_active=updated_firm.get("is_active", True),
-            created_at=updated_firm.get("created_at", datetime.utcnow()),
-            updated_at=updated_firm.get("updated_at")
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Firma güncellenirken hata: {e}")
-        raise HTTPException(status_code=500, detail=f"Firma güncellenemedi: {str(e)}")
-
-
 @router.delete("/{firm_id}")
-async def delete_firm(
-    firm_id: str,
-    current_user: dict = Depends(get_current_user)
-):
+async def delete_firm(request: Request, firm_id: str):
     """Firmayı sil"""
     try:
+        await get_current_user(request)
         
         firm = await firms_collection.find_one({"_id": firm_id})
         if not firm:
