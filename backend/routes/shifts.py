@@ -412,6 +412,80 @@ async def admin_start_shift(assignment_id: str, request: Request):
         "location_type": assignment.get("location_type")
     }
 
+
+@router.post("/assignments/{assignment_id}/end")
+async def admin_end_shift(assignment_id: str, request: Request):
+    """Admin can end shift on behalf of user (Operasyon Müdürü, Merkez Ofis, Baş Şoför)"""
+    admin_user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    from database import users_collection
+    
+    # Find the assignment
+    assignment = await shift_assignments_collection.find_one({"_id": assignment_id})
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Atama bulunamadı")
+    
+    if assignment.get("status") != "started":
+        raise HTTPException(status_code=400, detail="Bu vardiya henüz başlatılmamış veya zaten tamamlanmış")
+    
+    # Get the assigned user
+    assigned_user = await users_collection.find_one({"_id": assignment.get("user_id")})
+    if not assigned_user:
+        raise HTTPException(status_code=404, detail="Atanan kullanıcı bulunamadı")
+    
+    # Find the active shift for this user
+    active_shift = await shifts_collection.find_one({
+        "user_id": assignment.get("user_id"),
+        "status": {"$in": ["active", "on_break"]}
+    })
+    
+    if active_shift:
+        # End the shift
+        end_time = get_turkey_time()
+        start_time = active_shift.get("start_time", end_time)
+        duration_minutes = int((end_time - start_time).total_seconds() / 60) if start_time else 0
+        
+        await shifts_collection.update_one(
+            {"_id": active_shift["_id"]},
+            {
+                "$set": {
+                    "status": "completed",
+                    "end_time": end_time,
+                    "duration_minutes": duration_minutes,
+                    "notes": f"{admin_user.name} tarafından manuel olarak bitirildi",
+                    "ended_by_admin": True,
+                    "admin_end_id": admin_user.id
+                }
+            }
+        )
+        
+        # Update vehicle status back to "musait"
+        vehicle_id = assignment.get("vehicle_id")
+        if vehicle_id:
+            await vehicles_collection.update_one(
+                {"_id": vehicle_id},
+                {"$set": {"status": "musait", "updated_at": get_turkey_time()}}
+            )
+    
+    # Update assignment status
+    await shift_assignments_collection.update_one(
+        {"_id": assignment_id},
+        {
+            "$set": {
+                "status": "completed",
+                "completed_at": get_turkey_time(),
+                "ended_by_admin": True,
+                "admin_end_id": admin_user.id
+            }
+        }
+    )
+    
+    return {
+        "message": f"{assigned_user.get('name', 'Kullanıcı')} için vardiya başarıyla bitirildi",
+        "user_name": assigned_user.get("name"),
+        "ended_at": get_turkey_time().isoformat()
+    }
+
 @router.post("/start", response_model=Shift)
 async def start_shift(data: ShiftStart, request: Request):
     """Start shift by scanning vehicle QR code"""

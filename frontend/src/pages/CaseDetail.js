@@ -22,8 +22,9 @@ import {
   Check, X, Search, Building2, Stethoscope, Activity, FileText,
   Heart, Thermometer, Droplet, Brain, AlertCircle, Eye, Syringe,
   Ambulance, ClipboardList, VideoOff, FileSignature, Shield, Scissors, Save,
-  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown, ChevronDown, Layout
+  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown, ChevronDown, ChevronRight, Layout
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,6 +111,13 @@ const CaseDetail = () => {
   const [consentDialogOpen, setConsentDialogOpen] = useState(false);
   
   // Inline Consent/Signature Forms (Nakil İmzaları)
+  const [expandedConsents, setExpandedConsents] = useState({
+    patient_info: false,
+    hospital_rejection: false,
+    patient_rejection: false,
+    delivery_signatures: false
+  });
+  
   const [inlineConsents, setInlineConsents] = useState({
     // HASTA BİLGİLENDİRME ONAYI
     patient_info_consent_name: '',
@@ -3866,177 +3874,225 @@ const CaseDetail = () => {
             </div>
             
             {/* ==================== HASTA BİLGİLENDİRME ONAYI ==================== */}
-            <Card className="border-2 border-blue-200">
-              <CardHeader className="bg-blue-50">
-                <CardTitle className="text-lg text-blue-800">HASTA BİLGİLENDİRME ONAYI</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                  Hastanın nakli sırasında ambulansta bulunmamın ambulans ekibinin görevini zorlaştırdığı gibi personel ve ambulans sürüş güvenliği açısından olumsuz sonuçlar doğurabileceği, meydana gelebilecek bir kazadan ve buna bağlı olarak ortaya çıkabilecek hukuki sorunlardan etkilenebileceğim, ambulansta bulunduğum sürece emniyet kemerini takmam gerektiği konusunda ambulans personeli tarafından ayrıntılı olarak bilgilendirildim. Ambulansa binmem durumunda ortaya çıkabilecek olası riskleri ve hukuki sorunları anladım. Buna rağmen hastanın ambulansla nakli sırasında, Hasta Hakları Yönetmeliği'nin 40. Ve Yataklı Tedavi Kurumları İşletme Yönetmeliği'nin 62. Maddesinde belirtilen Refakatçi kapsamında olmak üzere, kendi hür irademle ambulansta hastama refakatçi olarak ön kabinde bulunmayı, nakil sırasında ortaya çıkabilecek her türlü hukuksal sorunla ilgili, maddi, manevi ve hukuki tüm sorumluluk şahsıma ait olmak üzere kabul ediyorum. Healmedy (MHAcare Sağlık Turizm İnşaat Ticaret A.Ş.) hekimlerinin/ param ediklerinin ve çalışma ekibinin uygulayacağı, hastalığım ın teşhis ve tedavisi için gerekli olan ilaçları, tetkikleri, verilecek anestezi ilaçlarını / transportu bilincim yerinde olarak kabul ediyorum. Sağlık durum um a ilişkin, riskler ve komplikasyonlar tarafıma anlatılmıştır. Bu tedavi yerine uygulanabilecek bir başka yöntem in bulunup bulunmadığı konusunda da sağlık ekibim tarafından bilgilendirildim. Tedavi ya da transport sırasında oluşabilecek olumsuz gelişmelerden haberdar olarak tedavim in/transportum un yapılmasını onaylıyorum.
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="font-semibold">HASTA/HASTA YAKINI* (YASAL TEMSİLCİ)</Label>
-                    <Label className="block mt-2">ADI-SOYADI:</Label>
-                    <Input 
-                      value={inlineConsents.patient_info_consent_name}
-                      onChange={(e) => updateInlineConsent('patient_info_consent_name', e.target.value)}
-                      placeholder="Hasta veya yakınının adı soyadı"
-                      className="mt-1"
-                    />
-                  </div>
-                  <SignaturePad 
-                    label="İMZA"
-                    onSignature={(sig) => updateInlineConsent('patient_info_consent_signature', sig)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <Collapsible 
+              open={expandedConsents.patient_info} 
+              onOpenChange={(open) => setExpandedConsents(prev => ({...prev, patient_info: open}))}
+            >
+              <Card className="border-2 border-blue-200">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors">
+                    <CardTitle className="text-lg text-blue-800 flex items-center justify-between">
+                      <span>HASTA BİLGİLENDİRME ONAYI</span>
+                      {expandedConsents.patient_info ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                      Hastanın nakli sırasında ambulansta bulunmamın ambulans ekibinin görevini zorlaştırdığı gibi personel ve ambulans sürüş güvenliği açısından olumsuz sonuçlar doğurabileceği, meydana gelebilecek bir kazadan ve buna bağlı olarak ortaya çıkabilecek hukuki sorunlardan etkilenebileceğim, ambulansta bulunduğum sürece emniyet kemerini takmam gerektiği konusunda ambulans personeli tarafından ayrıntılı olarak bilgilendirildim. Ambulansa binmem durumunda ortaya çıkabilecek olası riskleri ve hukuki sorunları anladım. Buna rağmen hastanın ambulansla nakli sırasında, Hasta Hakları Yönetmeliği'nin 40. Ve Yataklı Tedavi Kurumları İşletme Yönetmeliği'nin 62. Maddesinde belirtilen Refakatçi kapsamında olmak üzere, kendi hür irademle ambulansta hastama refakatçi olarak ön kabinde bulunmayı, nakil sırasında ortaya çıkabilecek her türlü hukuksal sorunla ilgili, maddi, manevi ve hukuki tüm sorumluluk şahsıma ait olmak üzere kabul ediyorum. Healmedy (MHAcare Sağlık Turizm İnşaat Ticaret A.Ş.) hekimlerinin/ param ediklerinin ve çalışma ekibinin uygulayacağı, hastalığım ın teşhis ve tedavisi için gerekli olan ilaçları, tetkikleri, verilecek anestezi ilaçlarını / transportu bilincim yerinde olarak kabul ediyorum. Sağlık durum um a ilişkin, riskler ve komplikasyonlar tarafıma anlatılmıştır. Bu tedavi yerine uygulanabilecek bir başka yöntem in bulunup bulunmadığı konusunda da sağlık ekibim tarafından bilgilendirildim. Tedavi ya da transport sırasında oluşabilecek olumsuz gelişmelerden haberdar olarak tedavim in/transportum un yapılmasını onaylıyorum.
+                    </p>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="font-semibold">HASTA/HASTA YAKINI* (YASAL TEMSİLCİ)</Label>
+                        <Label className="block mt-2">ADI-SOYADI:</Label>
+                        <Input 
+                          value={inlineConsents.patient_info_consent_name}
+                          onChange={(e) => updateInlineConsent('patient_info_consent_name', e.target.value)}
+                          placeholder="Hasta veya yakınının adı soyadı"
+                          className="mt-1"
+                        />
+                      </div>
+                      <SignaturePad 
+                        label="İMZA"
+                        onSignature={(sig) => updateInlineConsent('patient_info_consent_signature', sig)}
+                      />
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
             {/* ==================== HASTANENİN HASTA REDDİ & HASTANIN HİZMET REDDİ ==================== */}
             <div className="grid gap-4 md:grid-cols-2">
               {/* HASTANENİN HASTA REDDİ */}
-              <Card className="border-2 border-red-200">
-                <CardHeader className="bg-red-50">
-                  <CardTitle className="text-lg text-red-800">HASTANENİN HASTA REDDİ</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3">
-                  <div>
-                    <Input 
-                      value={inlineConsents.hospital_rejection_reason}
-                      onChange={(e) => updateInlineConsent('hospital_rejection_reason', e.target.value)}
-                      placeholder="Ret nedeni..."
-                      className="mb-2"
-                    />
-                    <p className="text-sm text-gray-600">
-                      nedenlerle hastayı hastanemize kabul edemiyorum. Hastanın başka hastaneye nakil için gerekli stabilizasyon sağladım. Şu anda durumu başka bir kuruma nakli için uygundur.
-                    </p>
-                  </div>
-                  <div>
-                    <Label>KURUMUN / HASTANENİN ADI</Label>
-                    <Input 
-                      value={inlineConsents.hospital_rejection_institution}
-                      onChange={(e) => updateInlineConsent('hospital_rejection_institution', e.target.value)}
-                      placeholder="Kurum adı"
-                    />
-                  </div>
-                  <div>
-                    <Label>HEKİMİN ADI SOYADI</Label>
-                    <Input 
-                      value={inlineConsents.hospital_rejection_doctor_name}
-                      onChange={(e) => updateInlineConsent('hospital_rejection_doctor_name', e.target.value)}
-                      placeholder="Hekim adı soyadı"
-                    />
-                  </div>
-                  <SignaturePad 
-                    label="İMZA"
-                    onSignature={(sig) => updateInlineConsent('hospital_rejection_doctor_signature', sig)}
-                  />
-                </CardContent>
-              </Card>
+              <Collapsible 
+                open={expandedConsents.hospital_rejection} 
+                onOpenChange={(open) => setExpandedConsents(prev => ({...prev, hospital_rejection: open}))}
+              >
+                <Card className="border-2 border-red-200">
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="bg-red-50 cursor-pointer hover:bg-red-100 transition-colors">
+                      <CardTitle className="text-lg text-red-800 flex items-center justify-between">
+                        <span>HASTANENİN HASTA REDDİ</span>
+                        {expandedConsents.hospital_rejection ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-4 space-y-3">
+                      <div>
+                        <Input 
+                          value={inlineConsents.hospital_rejection_reason}
+                          onChange={(e) => updateInlineConsent('hospital_rejection_reason', e.target.value)}
+                          placeholder="Ret nedeni..."
+                          className="mb-2"
+                        />
+                        <p className="text-sm text-gray-600">
+                          nedenlerle hastayı hastanemize kabul edemiyorum. Hastanın başka hastaneye nakil için gerekli stabilizasyon sağladım. Şu anda durumu başka bir kuruma nakli için uygundur.
+                        </p>
+                      </div>
+                      <div>
+                        <Label>KURUMUN / HASTANENİN ADI</Label>
+                        <Input 
+                          value={inlineConsents.hospital_rejection_institution}
+                          onChange={(e) => updateInlineConsent('hospital_rejection_institution', e.target.value)}
+                          placeholder="Kurum adı"
+                        />
+                      </div>
+                      <div>
+                        <Label>HEKİMİN ADI SOYADI</Label>
+                        <Input 
+                          value={inlineConsents.hospital_rejection_doctor_name}
+                          onChange={(e) => updateInlineConsent('hospital_rejection_doctor_name', e.target.value)}
+                          placeholder="Hekim adı soyadı"
+                        />
+                      </div>
+                      <SignaturePad 
+                        label="İMZA"
+                        onSignature={(sig) => updateInlineConsent('hospital_rejection_doctor_signature', sig)}
+                      />
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
 
               {/* HASTANIN HİZMET REDDİ */}
-              <Card className="border-2 border-orange-200">
-                <CardHeader className="bg-orange-50">
-                  <CardTitle className="text-lg text-orange-800">HASTANIN HİZMET REDDİ</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3">
-                  <p className="text-sm text-gray-600">
-                    Ambulansla gelen görevli bana hastanın hemen tedavisi / hastaneye nakli gerektiğini, aksi halde kötü sonuçlar doğurabileceğini anlayacağım şekilde ayrıntılı olarak anlattı. Buna rağmen tedaviyi /hasta naklini kabul etmiyorum.
-                  </p>
-                  <div>
-                    <Label>HASTANIN / YAKININ ADI SOYADI</Label>
-                    <Input 
-                      value={inlineConsents.patient_rejection_name}
-                      onChange={(e) => updateInlineConsent('patient_rejection_name', e.target.value)}
-                      placeholder="Hasta veya yakının adı soyadı"
-                    />
-                  </div>
-                  <SignaturePad 
-                    label="İMZA"
-                    onSignature={(sig) => updateInlineConsent('patient_rejection_signature', sig)}
-                  />
-                </CardContent>
-              </Card>
+              <Collapsible 
+                open={expandedConsents.patient_rejection} 
+                onOpenChange={(open) => setExpandedConsents(prev => ({...prev, patient_rejection: open}))}
+              >
+                <Card className="border-2 border-orange-200">
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors">
+                      <CardTitle className="text-lg text-orange-800 flex items-center justify-between">
+                        <span>HASTANIN HİZMET REDDİ</span>
+                        {expandedConsents.patient_rejection ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-4 space-y-3">
+                      <p className="text-sm text-gray-600">
+                        Ambulansla gelen görevli bana hastanın hemen tedavisi / hastaneye nakli gerektiğini, aksi halde kötü sonuçlar doğurabileceğini anlayacağım şekilde ayrıntılı olarak anlattı. Buna rağmen tedaviyi /hasta naklini kabul etmiyorum.
+                      </p>
+                      <div>
+                        <Label>HASTANIN / YAKININ ADI SOYADI</Label>
+                        <Input 
+                          value={inlineConsents.patient_rejection_name}
+                          onChange={(e) => updateInlineConsent('patient_rejection_name', e.target.value)}
+                          placeholder="Hasta veya yakının adı soyadı"
+                        />
+                      </div>
+                      <SignaturePad 
+                        label="İMZA"
+                        onSignature={(sig) => updateInlineConsent('patient_rejection_signature', sig)}
+                      />
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             </div>
 
             {/* ==================== TESLİM İMZALARI ==================== */}
-            <Card className="border-2 border-green-200">
-              <CardHeader className="bg-green-50">
-                <CardTitle className="text-lg text-green-800">TESLİM İMZALARI</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* HASTAYI TESLİM ALAN */}
-                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                    <Label className="font-semibold text-gray-700">HASTAYI TESLİM ALANIN ÜNVANI ADI SOYADI</Label>
-                    <Input 
-                      value={inlineConsents.receiver_title_name}
-                      onChange={(e) => updateInlineConsent('receiver_title_name', e.target.value)}
-                      placeholder="Ünvan, Ad Soyad"
-                    />
-                    <SignaturePad 
-                      label="İMZA"
-                      onSignature={(sig) => updateInlineConsent('receiver_signature', sig)}
-                    />
-                  </div>
+            <Collapsible 
+              open={expandedConsents.delivery_signatures} 
+              onOpenChange={(open) => setExpandedConsents(prev => ({...prev, delivery_signatures: open}))}
+            >
+              <Card className="border-2 border-green-200">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="bg-green-50 cursor-pointer hover:bg-green-100 transition-colors">
+                    <CardTitle className="text-lg text-green-800 flex items-center justify-between">
+                      <span>TESLİM İMZALARI</span>
+                      {expandedConsents.delivery_signatures ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-4">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {/* HASTAYI TESLİM ALAN */}
+                      <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                        <Label className="font-semibold text-gray-700">HASTAYI TESLİM ALANIN ÜNVANI ADI SOYADI</Label>
+                        <Input 
+                          value={inlineConsents.receiver_title_name}
+                          onChange={(e) => updateInlineConsent('receiver_title_name', e.target.value)}
+                          placeholder="Ünvan, Ad Soyad"
+                        />
+                        <SignaturePad 
+                          label="İMZA"
+                          onSignature={(sig) => updateInlineConsent('receiver_signature', sig)}
+                        />
+                      </div>
 
-                  {/* DOKTOR/PARAMEDİK */}
-                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                    <Label className="font-semibold text-gray-700">DOKTOR/PARAMEDİK ADI SOYADI</Label>
-                    <Input 
-                      value={inlineConsents.doctor_paramedic_name || user?.name || ''}
-                      onChange={(e) => updateInlineConsent('doctor_paramedic_name', e.target.value)}
-                      placeholder="Ad Soyad"
-                    />
-                    <SignaturePad 
-                      label="İMZA"
-                      onSignature={(sig) => updateInlineConsent('doctor_paramedic_signature', sig)}
-                    />
-                  </div>
+                      {/* DOKTOR/PARAMEDİK */}
+                      <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                        <Label className="font-semibold text-gray-700">DOKTOR/PARAMEDİK ADI SOYADI</Label>
+                        <Input 
+                          value={inlineConsents.doctor_paramedic_name || user?.name || ''}
+                          onChange={(e) => updateInlineConsent('doctor_paramedic_name', e.target.value)}
+                          placeholder="Ad Soyad"
+                        />
+                        <SignaturePad 
+                          label="İMZA"
+                          onSignature={(sig) => updateInlineConsent('doctor_paramedic_signature', sig)}
+                        />
+                      </div>
 
-                  {/* SAĞLIK PERSONELİ */}
-                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                    <Label className="font-semibold text-gray-700">SAĞLIK PERSONELİ ADI SOYADI</Label>
-                    <Input 
-                      value={inlineConsents.health_personnel_name || user?.name || ''}
-                      onChange={(e) => updateInlineConsent('health_personnel_name', e.target.value)}
-                      placeholder="Ad Soyad"
-                    />
-                    <SignaturePad 
-                      label="İMZA"
-                      onSignature={(sig) => updateInlineConsent('health_personnel_signature', sig)}
-                    />
-                  </div>
+                      {/* SAĞLIK PERSONELİ */}
+                      <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                        <Label className="font-semibold text-gray-700">SAĞLIK PERSONELİ ADI SOYADI</Label>
+                        <Input 
+                          value={inlineConsents.health_personnel_name || user?.name || ''}
+                          onChange={(e) => updateInlineConsent('health_personnel_name', e.target.value)}
+                          placeholder="Ad Soyad"
+                        />
+                        <SignaturePad 
+                          label="İMZA"
+                          onSignature={(sig) => updateInlineConsent('health_personnel_signature', sig)}
+                        />
+                      </div>
 
-                  {/* SÜRÜCÜ/PİLOT */}
-                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                    <Label className="font-semibold text-gray-700">SÜRÜCÜ/PİLOT ADI SOYADI</Label>
-                    <Input 
-                      value={inlineConsents.driver_pilot_name}
-                      onChange={(e) => updateInlineConsent('driver_pilot_name', e.target.value)}
-                      placeholder="Ad Soyad"
-                    />
-                    <SignaturePad 
-                      label="İMZA"
-                      onSignature={(sig) => updateInlineConsent('driver_pilot_signature', sig)}
-                    />
-                  </div>
-                </div>
-                
-                {/* Kaydet Butonu */}
-                <div className="flex justify-end mt-6">
-                  <Button 
-                    onClick={saveInlineConsents}
-                    disabled={savingConsents}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {savingConsents ? 'Kaydediliyor...' : 'Tüm İmzaları Kaydet'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                      {/* SÜRÜCÜ/PİLOT */}
+                      <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                        <Label className="font-semibold text-gray-700">SÜRÜCÜ/PİLOT ADI SOYADI</Label>
+                        <Input 
+                          value={inlineConsents.driver_pilot_name}
+                          onChange={(e) => updateInlineConsent('driver_pilot_name', e.target.value)}
+                          placeholder="Ad Soyad"
+                        />
+                        <SignaturePad 
+                          label="İMZA"
+                          onSignature={(sig) => updateInlineConsent('driver_pilot_signature', sig)}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Kaydet Butonu */}
+                    <div className="flex justify-end mt-6">
+                      <Button 
+                        onClick={saveInlineConsents}
+                        disabled={savingConsents}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        {savingConsents ? 'Kaydediliyor...' : 'Tüm İmzaları Kaydet'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
             {/* ==================== DİĞER ONAM FORMLARI (Mevcut Kartlar) ==================== */}
             <div className="border-t pt-4 mt-6">

@@ -10,7 +10,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building } from 'lucide-react';
+import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building, Square } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ShiftAssignments = () => {
@@ -351,6 +351,19 @@ const ShiftAssignments = () => {
       loadData();
     } catch (error) {
       const errorMessage = error.response?.data?.detail || 'Vardiya başlatılamadı';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleEndShift = async (id, userName) => {
+    if (!confirm(`${userName || 'Bu kişi'} için vardiyayı bitirmek istediğinizden emin misiniz?`)) return;
+    
+    try {
+      const response = await shiftsAPI.endAssignmentByAdmin(id);
+      toast.success(response.data.message || 'Vardiya başarıyla bitirildi');
+      loadData();
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || 'Vardiya bitirilemedi';
       toast.error(errorMessage);
     }
   };
@@ -773,9 +786,20 @@ const ShiftAssignments = () => {
                     </div>
                   )}
                   {assignment.status === 'started' && (
-                    <Badge className="bg-green-100 text-green-700 border-green-200">
-                      Aktif
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge className="bg-green-100 text-green-700 border-green-200">
+                        Aktif
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEndShift(assignment.id, assignment.user_name)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Vardiya Bitir"
+                      >
+                        <Square className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>

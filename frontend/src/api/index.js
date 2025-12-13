@@ -200,6 +200,7 @@ export const shiftsAPI = {
   getTodayAssignments: () => api.get('/shifts/assignments/today'),
   deleteAssignment: (id) => api.delete(`/shifts/assignments/${id}`),
   startAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/start`),
+  endAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/end`),
   
   // Shifts
   start: (data) => api.post('/shifts/start', data),
