@@ -20,16 +20,24 @@ barcode_stock_collection = db["barcode_stock"]
 stock_collection = db["stock"]
 unit_stock_collection = db["unit_stock"]  # Adet bazli stok
 
-# Lokasyonlar
+# Lokasyonlar - Gercek sistem lokasyonlari
 LOCATIONS = [
+    # Sabit Lokasyonlar
     {"id": "merkez_depo", "name": "Merkez Depo", "type": "depo"},
-    {"id": "ambulans_1", "name": "Ambulans 67 ABC 001", "type": "ambulans"},
-    {"id": "ambulans_2", "name": "Ambulans 67 ABC 002", "type": "ambulans"},
-    {"id": "ambulans_3", "name": "Ambulans 67 ABC 003", "type": "ambulans"},
-    {"id": "saha_ofis_1", "name": "Filyos Saha Ofisi", "type": "saha_ofis"},
-    {"id": "saha_ofis_2", "name": "Eregli Saha Ofisi", "type": "saha_ofis"},
-    {"id": "acil_canta_1", "name": "Acil Canta 1", "type": "acil_canta"},
-    {"id": "acil_canta_2", "name": "Acil Canta 2", "type": "acil_canta"},
+    {"id": "saglik_merkezi", "name": "Saglik Merkezi", "type": "saglik_merkezi"},
+    
+    # Araclar (gercek plakalar)
+    {"id": "ambulans_34_mha_112", "name": "34 MHA 112", "type": "ambulans"},
+    {"id": "ambulans_34_ftu_336", "name": "34 FTU 336", "type": "ambulans"},
+    {"id": "ambulans_06_chz_146", "name": "06 CHZ 146", "type": "ambulans"},
+    
+    # Saha Ici Noktalar (Healmedy lokasyonlari)
+    {"id": "osman_gazi_fpu", "name": "Osman Gazi/FPU", "type": "saha"},
+    {"id": "green_zone_ronesans", "name": "Green Zone/Ronesans", "type": "saha"},
+    {"id": "bati_kuzey_isg", "name": "Bati-Kuzey/ISG BINA", "type": "saha"},
+    {"id": "red_zone_kara", "name": "Red Zone/Kara Tesisleri", "type": "saha"},
+    {"id": "dogu_rihtimi", "name": "Dogu Rihtimi", "type": "saha"},
+    {"id": "filyos_saglik_merkezi", "name": "Filyos Saglik Merkezi", "type": "saha"},
 ]
 
 # Ilaclar (Kutu bazli - karekodlu)
