@@ -188,44 +188,22 @@ async def get_all_assignments(request: Request, date: Optional[str] = None):
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
-            target_datetime_start = datetime.combine(target_date, datetime.min.time())
-            target_datetime_end = datetime.combine(target_date, datetime.max.time())
+            target_datetime = datetime.combine(target_date, datetime.min.time())
             
-            # O güne başlayan VEYA o gün devam eden atamaları bul
-            all_assignments = await shift_assignments_collection.find({}).to_list(500)
+            # MongoDB sorgusu ile doğrudan filtrele (çok daha hızlı)
+            query = {
+                "$or": [
+                    # O gün başlayan vardiyalar
+                    {"shift_date": target_datetime},
+                    # O gün devam eden çok günlük vardiyalar
+                    {
+                        "shift_date": {"$lte": target_datetime},
+                        "end_date": {"$gte": target_datetime}
+                    }
+                ]
+            }
             
-            filtered_assignments = []
-            for a in all_assignments:
-                shift_date = a.get("shift_date")
-                end_date = a.get("end_date")
-                
-                # Parse shift_date
-                if isinstance(shift_date, datetime):
-                    s_date = shift_date.date()
-                elif isinstance(shift_date, str):
-                    try:
-                        s_date = datetime.fromisoformat(shift_date.replace('Z', '+00:00')).date()
-                    except:
-                        continue
-                else:
-                    continue
-                
-                # Parse end_date
-                e_date = s_date
-                if end_date:
-                    if isinstance(end_date, datetime):
-                        e_date = end_date.date()
-                    elif isinstance(end_date, str):
-                        try:
-                            e_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
-                        except:
-                            pass
-                
-                # Target date aralıkta mı?
-                if s_date <= target_date <= e_date:
-                    filtered_assignments.append(a)
-            
-            assignments = filtered_assignments
+            assignments = await shift_assignments_collection.find(query).to_list(1000)
             logger.info(f"Tarihe göre atama sorgusu: {date} - {len(assignments)} atama bulundu")
         except ValueError as e:
             logger.error(f"Geçersiz tarih formatı: {date} - {e}")
