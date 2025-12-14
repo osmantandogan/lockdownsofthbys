@@ -681,12 +681,26 @@ async def get_grouped_inventory(
     
     groups = await barcode_stock_collection.aggregate(pipeline).to_list(500)
     
+    # Lokasyon formatını düzelt (ambulans_34_mha_112 -> 34 MHA 112)
+    def format_location(loc):
+        if not loc:
+            return loc
+        # ambulans_ prefix'ini kaldır
+        if loc.startswith("ambulans_"):
+            loc = loc[9:]  # "ambulans_" uzunluğu
+        # merkez_depo gibi değerleri de düzelt
+        loc = loc.replace("_", " ")
+        # İlk harfleri büyük yap (title case)
+        return loc.title() if not any(c.isdigit() for c in loc) else loc.upper()
+    
     # Format sonuçları
     result = []
     total_items = 0
     
     for group in groups:
         total_items += group["count"]
+        # Lokasyonları formatla
+        formatted_locations = [format_location(loc) for loc in group.get("locations", []) if loc]
         result.append({
             "name": group["_id"],
             "count": group["count"],
@@ -694,7 +708,7 @@ async def get_grouped_inventory(
             "manufacturer_name": group.get("manufacturer_name"),
             "earliest_expiry": group.get("earliest_expiry"),
             "latest_expiry": group.get("latest_expiry"),
-            "locations": group.get("locations", []),
+            "locations": formatted_locations,
             "items": group.get("items", [])
         })
     
@@ -724,13 +738,43 @@ async def get_item_qr_details(
         "status": "available"
     }
     
-    if location:
-        query["location"] = location
+    if location and location != "all":
+        # Lokasyon filtresi: farklı formatları destekle
+        import re
+        clean_location = re.sub(r'\s*\(\d+\)\s*$', '', location).strip()
+        location_id = f"ambulans_{clean_location.replace(' ', '_').lower()}"
+        
+        query["$or"] = [
+            {"location": location, "name": decoded_name, "status": "available"},
+            {"location": clean_location, "name": decoded_name, "status": "available"},
+            {"location": location_id, "name": decoded_name, "status": "available"},
+            {"location_detail": location, "name": decoded_name, "status": "available"},
+            {"location_detail": clean_location, "name": decoded_name, "status": "available"}
+        ]
+        # $or kullanıldığında ana sorguyu temizle
+        del query["name"]
+        del query["status"]
     
     items = await barcode_stock_collection.find(query).sort("expiry_date", 1).to_list(500)
     
+    # Lokasyon formatını düzelt (ambulans_34_mha_112 -> 34 MHA 112)
+    def format_location(loc):
+        if not loc:
+            return loc
+        # ambulans_ prefix'ini kaldır
+        if loc.startswith("ambulans_"):
+            loc = loc[9:]  # "ambulans_" uzunluğu
+        # Alt çizgileri boşluğa çevir ve büyük harfe dönüştür
+        loc = loc.replace("_", " ").upper()
+        return loc
+    
     for item in items:
         item["id"] = item.pop("_id")
+        # Lokasyon formatını düzelt
+        if item.get("location"):
+            item["location_display"] = format_location(item["location"])
+        if item.get("location_detail"):
+            item["location_detail_display"] = format_location(item["location_detail"])
         if item.get("expiry_date"):
             days_left = (item["expiry_date"] - datetime.utcnow()).days
             item["days_until_expiry"] = days_left
