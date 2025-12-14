@@ -384,26 +384,111 @@ const FIELD_CATEGORIES = [
   },
   {
     id: 'ilaclar',
-    name: 'Kullanılan İlaçlar',
+    name: 'Kullanılan İlaçlar (Metin)',
     icon: Pill,
     color: 'green',
     fields: [
-      { key: 'medication1', label: '1. İlaç' },
-      { key: 'medication1Dose', label: '1. İlaç Dozu' },
-      { key: 'medication1Route', label: '1. İlaç Yolu' },
-      { key: 'medication2', label: '2. İlaç' },
-      { key: 'medication2Dose', label: '2. İlaç Dozu' },
-      { key: 'medication2Route', label: '2. İlaç Yolu' },
-      { key: 'medicationsList', label: 'İlaç Listesi' }
+      { key: 'medicationsList', label: 'İlaç Listesi (Genel)' }
     ]
   },
   {
-    id: 'malzemeler',
-    name: 'Kullanılan Malzemeler',
+    id: 'checkbox_ilaclar',
+    name: 'İlaçlar (Checkbox)',
+    icon: Pill,
+    color: 'green',
+    isCheckbox: true,
+    fields: [
+      { key: 'med.arveles', label: '☑ Arveles amp.' },
+      { key: 'med.dikloron', label: '☑ Dikloron amp.' },
+      { key: 'med.spazmolitik', label: '☑ Spazmolitik amp.' },
+      { key: 'med.adrenalin_05', label: '☑ Adrenalin 0.5 mg' },
+      { key: 'med.adrenalin_1', label: '☑ Adrenalin 1 mg' },
+      { key: 'med.atropin', label: '☑ Atropin 0.5 mg' },
+      { key: 'med.flumazenil', label: '☑ Flumazenil amp.' },
+      { key: 'med.dopamin', label: '☑ Dopamin amp.' },
+      { key: 'med.citanest', label: '☑ Citanest flk.' },
+      { key: 'med.nahco3', label: '☑ NaHCO3 amp.' },
+      { key: 'med.dizem', label: '☑ Dizem amp.' },
+      { key: 'med.aminocordial', label: '☑ Aminocordial amp.' },
+      { key: 'med.furosemid', label: '☑ Furosemid amp.' },
+      { key: 'med.ca_glukonat', label: '☑ Ca Glukonat %10' },
+      { key: 'med.diltizem', label: '☑ Diltizem 25 mg' },
+      { key: 'med.avil', label: '☑ Avil amp.' },
+      { key: 'med.dekort', label: '☑ Dekort amp.' },
+      { key: 'med.antiepileptik', label: '☑ Antiepileptik amp.' },
+      { key: 'med.prednol', label: '☑ Prednol 40 mg' },
+      { key: 'med.aktif_komur', label: '☑ Aktif Kömür tüp' },
+      { key: 'med.beloc', label: '☑ Beloc amp.' },
+      { key: 'med.salbutamol', label: '☑ Salbutamol (İnhaler/Nebül)' },
+      { key: 'med.aritmal', label: '☑ Aritmal %2' },
+      { key: 'med.isoptin', label: '☑ Isoptin amp.' },
+      { key: 'med.kapril', label: '☑ Kapril 25 mg tab.' },
+      { key: 'med.magnezyum', label: '☑ Magnezyum Sülfat' },
+      { key: 'med.isorid', label: '☑ Isorid 5 mg tab.' },
+      { key: 'med.coraspin', label: '☑ Coraspin 300 mg' },
+      { key: 'med.paracetamol', label: '☑ Paracetamol tab.' },
+      { key: 'med.midazolam', label: '☑ Midazolam amp.' },
+      { key: 'med.dramamine', label: '☑ Dramamine amp.' },
+      { key: 'med.rotapamid', label: '☑ Rotapamid amp.' }
+    ]
+  },
+  {
+    id: 'checkbox_sivi_tedavi',
+    name: 'Sıvı Tedavisi (Checkbox)',
+    icon: Pill,
+    color: 'teal',
+    isCheckbox: true,
+    fields: [
+      { key: 'fluid.nacl_250', label: '☑ %0.9 NaCl 250 cc' },
+      { key: 'fluid.nacl_500', label: '☑ %0.9 NaCl 500 cc' },
+      { key: 'fluid.nacl_100', label: '☑ %0.9 NaCl 100 cc' },
+      { key: 'fluid.dextroz_500', label: '☑ %5 Dekstroz 500 cc' },
+      { key: 'fluid.mannitol', label: '☑ %20 Mannitol 500 cc' },
+      { key: 'fluid.isolyte_p', label: '☑ İsolyte P 500 cc' },
+      { key: 'fluid.isolyte_s', label: '☑ İsolyte S 500 cc' },
+      { key: 'fluid.dengeleyici', label: '☑ %10 Dengeleyici Elektrolit' },
+      { key: 'fluid.laktatli_ringer', label: '☑ Laktatlı Ringer 500 cc' }
+    ]
+  },
+  {
+    id: 'checkbox_malzemeler',
+    name: 'Malzemeler (Checkbox)',
     icon: Package,
     color: 'yellow',
+    isCheckbox: true,
     fields: [
-      { key: 'materialsList', label: 'Malzeme Listesi' }
+      { key: 'mat.enjktor_1_2', label: '☑ Enjektör 1-2 cc' },
+      { key: 'mat.enjktor_5', label: '☑ Enjektör 5 cc' },
+      { key: 'mat.enjktor_10_20', label: '☑ Enjektör 10-20 cc' },
+      { key: 'mat.monitor_pedi', label: '☑ Monitör Pedi (EKG)' },
+      { key: 'mat.iv_katater_14_22', label: '☑ I.V. Kateter (14-22)' },
+      { key: 'mat.iv_katater_24', label: '☑ I.V. Kateter (24)' },
+      { key: 'mat.serum_seti', label: '☑ Serum Seti' },
+      { key: 'mat.steril_eldiven', label: '☑ Steril Eldiven' },
+      { key: 'mat.cerrahi_eldiven', label: '☑ Cerrahi Eldiven' },
+      { key: 'mat.sponc', label: '☑ Sponç' },
+      { key: 'mat.sargi_bezi', label: '☑ Sargı Bezi' },
+      { key: 'mat.idrar_torbasi', label: '☑ İdrar Torbası' },
+      { key: 'mat.bisturi', label: '☑ Bistüri Ucu' },
+      { key: 'mat.entubasyon_balonlu', label: '☑ Entübasyon Tüpü (Balonlu)' },
+      { key: 'mat.entubasyon_balonsuz', label: '☑ Entübasyon Tüpü (Balonsuz)' },
+      { key: 'mat.airway', label: '☑ Airway' },
+      { key: 'mat.foley_sonda', label: '☑ Foley Sonda' },
+      { key: 'mat.ng_sonda', label: '☑ Nazo Gastrik Sonda' },
+      { key: 'mat.ipek_30', label: '☑ Atravmatik İpek 3/0' },
+      { key: 'mat.katkut_30', label: '☑ Atravmatik Kat-küt 3/0' },
+      { key: 'mat.dogum_seti', label: '☑ Doğum Seti' },
+      { key: 'mat.yanik_battaniye', label: '☑ Yanık Battaniyesi' },
+      { key: 'mat.o2_maske_eriskin', label: '☑ O2 Maske Hazneli Erişkin' },
+      { key: 'mat.o2_maske_pediatrik', label: '☑ O2 Maske Hazneli Pediatrik' },
+      { key: 'mat.o2_kanul_eriskin', label: '☑ O2 Kanül Nazal Erişkin' },
+      { key: 'mat.o2_kanul_pediatrik', label: '☑ O2 Kanül Nazal Pediatrik' },
+      { key: 'mat.flaster', label: '☑ Flaster' },
+      { key: 'mat.servikal_collar', label: '☑ Servikal Collar' },
+      { key: 'mat.elastik_bandaj', label: '☑ Elastik Bandaj' },
+      { key: 'mat.etil_chloride', label: '☑ Etil Chloride Sprey' },
+      { key: 'mat.o2_maske_haznesiz_e', label: '☑ O2 Maske Haznesiz Erişkin' },
+      { key: 'mat.o2_maske_haznesiz_p', label: '☑ O2 Maske Haznesiz Pediatrik' }
     ]
   },
   {
@@ -501,18 +586,71 @@ const FIELD_CATEGORIES = [
   },
   {
     id: 'imzalar',
-    name: 'İmzalar',
+    name: 'İmzalar - Ambulans Personeli',
     icon: PenTool,
     color: 'slate',
     fields: [
-      { key: 'patientSignature', label: 'Hasta/Yakını İmzası' },
-      { key: 'patientSignatureName', label: 'Hasta/Yakını Ad Soyad' },
-      { key: 'staffSignature', label: 'Personel İmzası' },
-      { key: 'doctorSignature', label: 'Doktor İmzası' },
-      { key: 'driverSignature', label: 'Şoför İmzası' },
-      { key: 'receiverSignature', label: 'Teslim Alan İmzası' },
-      { key: 'receiverName', label: 'Teslim Alan Ad Soyad' },
-      { key: 'receiverTitle', label: 'Teslim Alan Unvanı' }
+      { key: 'sig.hekim_prm_name', label: 'Hekim/Paramedik Ad Soyad' },
+      { key: 'sig.hekim_prm_imza', label: 'Hekim/Paramedik İmzası' },
+      { key: 'sig.saglik_per_name', label: 'Sağlık Personeli/ATT Ad Soyad' },
+      { key: 'sig.saglik_per_imza', label: 'Sağlık Personeli/ATT İmzası' },
+      { key: 'sig.sofor_name', label: 'Şoför/Teknisyen Ad Soyad' },
+      { key: 'sig.sofor_imza', label: 'Şoför/Teknisyen İmzası' }
+    ]
+  },
+  {
+    id: 'imzalar_teslim',
+    name: 'İmzalar - Teslim Alan',
+    icon: PenTool,
+    color: 'slate',
+    fields: [
+      { key: 'sig.teslim_adi', label: 'Teslim Alan Ad Soyad' },
+      { key: 'sig.teslim_unvan', label: 'Teslim Alan Unvanı' },
+      { key: 'sig.teslim_imza', label: 'Teslim Alan İmzası' },
+      { key: 'sig.teslim_kase', label: 'Teslim Alan Kaşe' }
+    ]
+  },
+  {
+    id: 'imzalar_hasta',
+    name: 'İmzalar - Hasta/Yakını',
+    icon: PenTool,
+    color: 'slate',
+    fields: [
+      { key: 'sig.hasta_adi', label: 'Hasta/Yakını Ad Soyad' },
+      { key: 'sig.hasta_imza', label: 'Hasta/Yakını İmzası' }
+    ]
+  },
+  {
+    id: 'hastane_reddi',
+    name: 'Hastanenin Hasta Reddi',
+    icon: AlertCircle,
+    color: 'red',
+    fields: [
+      { key: 'reject.hastane_neden', label: 'Hastane Red Nedeni' },
+      { key: 'reject.hastane_doktor', label: 'Reddeden Doktor Adı' },
+      { key: 'reject.hastane_imza', label: 'Reddeden Doktor İmzası' }
+    ]
+  },
+  {
+    id: 'hasta_reddi',
+    name: 'Hastanın Hizmet Reddi',
+    icon: AlertCircle,
+    color: 'orange',
+    fields: [
+      { key: 'reject.hasta_aciklama', label: 'Hasta Red Açıklaması' },
+      { key: 'reject.hasta_adi', label: 'Reddeden Hasta/Yakın Adı' },
+      { key: 'reject.hasta_imza', label: 'Reddeden Hasta/Yakın İmzası' }
+    ]
+  },
+  {
+    id: 'refakatci_onayi',
+    name: 'Refakatçi Onayı',
+    icon: FileText,
+    color: 'blue',
+    fields: [
+      { key: 'escort.onay_metni', label: 'Refakatçi Onay Metni' },
+      { key: 'escort.adi', label: 'Refakatçi Ad Soyad' },
+      { key: 'escort.imza', label: 'Refakatçi İmzası' }
     ]
   },
   {
@@ -740,7 +878,9 @@ const ExcelMappingVisualizer = () => {
       green: 'bg-green-100 text-green-700 border-green-300',
       yellow: 'bg-yellow-100 text-yellow-700 border-yellow-300',
       slate: 'bg-slate-100 text-slate-700 border-slate-300',
-      pink: 'bg-pink-100 text-pink-700 border-pink-300'
+      pink: 'bg-pink-100 text-pink-700 border-pink-300',
+      teal: 'bg-teal-100 text-teal-700 border-teal-300',
+      violet: 'bg-violet-100 text-violet-700 border-violet-300'
     };
     return colors[color] || colors.gray;
   };
