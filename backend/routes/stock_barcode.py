@@ -630,10 +630,23 @@ async def get_grouped_inventory(
     match_query = {"status": "available"}
     
     if location and location != "all":
-        # Lokasyon filtresi: location veya location_detail alanlarına bak
+        # Lokasyon filtresi: farklı formatları destekle
+        # Frontend'den gelen format: "34 MHA 112 (9356)" veya "Merkez Depo"
+        # Veritabanındaki format: "ambulans_34_mha_112" veya "merkez_depo" veya "34 MHA 112"
+        
+        # Parantez içindeki kodu çıkar (örn: "34 MHA 112 (9356)" -> "34 MHA 112")
+        import re
+        clean_location = re.sub(r'\s*\(\d+\)\s*$', '', location).strip()
+        
+        # ID formatına çevir (örn: "34 MHA 112" -> "ambulans_34_mha_112")
+        location_id = f"ambulans_{clean_location.replace(' ', '_').lower()}"
+        
         match_query["$or"] = [
             {"location": location},
-            {"location_detail": location}
+            {"location": clean_location},
+            {"location": location_id},
+            {"location_detail": location},
+            {"location_detail": clean_location}
         ]
     
     if search:
@@ -1843,11 +1856,19 @@ async def get_unit_stock(
     
     query = {"status": "opened"}
     if location and location != "all":
-        # Lokasyon filtresi: location, location_name veya location_detail alanlarına bak
+        # Lokasyon filtresi: farklı formatları destekle
+        import re
+        clean_location = re.sub(r'\s*\(\d+\)\s*$', '', location).strip()
+        location_id = f"ambulans_{clean_location.replace(' ', '_').lower()}"
+        
         query["$or"] = [
             {"location": location},
+            {"location": clean_location},
+            {"location": location_id},
             {"location_name": location},
-            {"location_detail": location}
+            {"location_name": clean_location},
+            {"location_detail": location},
+            {"location_detail": clean_location}
         ]
     
     items = await unit_stock_collection.find(query).sort("opened_at", -1).to_list(1000)
@@ -2047,13 +2068,20 @@ async def get_itriyat_stock(
     
     query = {"category": "itriyat"}
     if location and location != "all":
-        # Lokasyon filtresi: location, location_name veya location_detail alanlarına bak
+        # Lokasyon filtresi: farklı formatları destekle
+        import re
+        clean_location = re.sub(r'\s*\(\d+\)\s*$', '', location).strip()
+        location_id = f"ambulans_{clean_location.replace(' ', '_').lower()}"
+        
         query["$or"] = [
             {"location": location, "category": "itriyat"},
+            {"location": clean_location, "category": "itriyat"},
+            {"location": location_id, "category": "itriyat"},
             {"location_name": location, "category": "itriyat"},
-            {"location_detail": location, "category": "itriyat"}
+            {"location_name": clean_location, "category": "itriyat"},
+            {"location_detail": location, "category": "itriyat"},
+            {"location_detail": clean_location, "category": "itriyat"}
         ]
-        # $or kullanıldığında category'yi tekrar belirtmemiz gerekiyor
         del query["category"]
     
     items = await stock_collection.find(query).sort("name", 1).to_list(1000)
@@ -2074,13 +2102,20 @@ async def get_sarf_stock(
     
     query = {"category": "sarf"}
     if location and location != "all":
-        # Lokasyon filtresi: location, location_name veya location_detail alanlarına bak
+        # Lokasyon filtresi: farklı formatları destekle
+        import re
+        clean_location = re.sub(r'\s*\(\d+\)\s*$', '', location).strip()
+        location_id = f"ambulans_{clean_location.replace(' ', '_').lower()}"
+        
         query["$or"] = [
             {"location": location, "category": "sarf"},
+            {"location": clean_location, "category": "sarf"},
+            {"location": location_id, "category": "sarf"},
             {"location_name": location, "category": "sarf"},
-            {"location_detail": location, "category": "sarf"}
+            {"location_name": clean_location, "category": "sarf"},
+            {"location_detail": location, "category": "sarf"},
+            {"location_detail": clean_location, "category": "sarf"}
         ]
-        # $or kullanıldığında category'yi tekrar belirtmemiz gerekiyor
         del query["category"]
     
     items = await stock_collection.find(query).sort("name", 1).to_list(1000)
