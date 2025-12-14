@@ -141,8 +141,8 @@ function App() {
             <Route path="shift-start" element={<ShiftStartNew />} />
             <Route path="shift-end" element={<ShiftEnd />} />
             <Route path="shift-forms" element={<ShiftForms />} />
-            <Route path="shift-approvals" element={<ShiftApprovals />} />
-            <Route path="shift-photos" element={<ShiftApprovals />} />
+            <Route path="shift-approvals" element={<Navigate to="/dashboard/shift-assignments" replace />} />
+            <Route path="shift-photos" element={<Navigate to="/dashboard/shift-assignments" replace />} />
             <Route path="material-requests" element={<MaterialRequests />} />
             <Route path="tickets" element={<Tickets />} />
             <Route path="tickets-approvals" element={<TicketsApprovals />} />

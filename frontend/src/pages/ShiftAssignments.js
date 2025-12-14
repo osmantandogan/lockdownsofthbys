@@ -1,19 +1,23 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { shiftsAPI, usersAPI, vehiclesAPI, locationsAPI } from '../api';
-import { BACKEND_URL } from '../config/api';
+import { API_URL, BACKEND_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Trash2, User, Truck, Calendar, Clock, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building, Square, MapPin, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building, Square, RefreshCw, Check, X, History, Stethoscope, Car, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ShiftAssignments = () => {
   const { user } = useAuth();
+  
+  // Ana sekme
+  const [activeMainTab, setActiveMainTab] = useState('atamalar');
   
   // Seçili tarih - varsayılan bugün
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -25,13 +29,26 @@ const ShiftAssignments = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [healmedyLocations, setHealmedyLocations] = useState([]);
   
-  // Excel toplu yükleme state'leri
+  // Excel toplu yükleme
   const [excelDialogOpen, setExcelDialogOpen] = useState(false);
   const [excelFile, setExcelFile] = useState(null);
   const [excelUploading, setExcelUploading] = useState(false);
   const [excelResults, setExcelResults] = useState(null);
   
-  // Form state - 24 saat vardiya varsayılan
+  // Onaylar için state'ler
+  const [startApprovals, setStartApprovals] = useState([]);
+  const [endApprovals, setEndApprovals] = useState([]);
+  const [pendingHandovers, setPendingHandovers] = useState([]);
+  const [approvalLogs, setApprovalLogs] = useState([]);
+  const [approvalLogsLoading, setApprovalLogsLoading] = useState(false);
+  const [approvalsTab, setApprovalsTab] = useState('start-approvals');
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [showPhotosDialog, setShowPhotosDialog] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState(null);
+  
+  // Form state
   const getDefaultEndDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -52,7 +69,7 @@ const ShiftAssignments = () => {
     shift_type: 'saha_24'
   });
 
-  // İlk yükleme - sadece kullanıcılar, araçlar ve lokasyonlar
+  // İlk yükleme
   useEffect(() => {
     loadBaseData();
   }, []);
@@ -63,8 +80,14 @@ const ShiftAssignments = () => {
       loadAssignments(selectedDate);
     }
   }, [selectedDate, users]);
+  
+  // Onaylar sekmesi aktifse onayları yükle
+  useEffect(() => {
+    if (activeMainTab === 'onaylar') {
+      loadApprovals();
+    }
+  }, [activeMainTab]);
 
-  // Temel verileri yükle (kullanıcılar, araçlar, lokasyonlar)
   const loadBaseData = async () => {
     try {
       const [usersRes, vehiclesRes, locationsRes] = await Promise.all([
@@ -73,9 +96,7 @@ const ShiftAssignments = () => {
         locationsAPI.getHealmedy().catch(() => ({ data: [] }))
       ]);
       
-      if (Array.isArray(locationsRes.data)) {
-        setHealmedyLocations(locationsRes.data);
-      }
+      if (Array.isArray(locationsRes.data)) setHealmedyLocations(locationsRes.data);
       
       const allUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
       const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
@@ -87,7 +108,6 @@ const ShiftAssignments = () => {
       setUsers(fieldUsers);
       setVehicles(ambulances);
       
-      // İlk yüklemede bugünkü atamaları getir
       await loadAssignments(selectedDate);
     } catch (error) {
       console.error('Error loading base data:', error);
@@ -97,13 +117,11 @@ const ShiftAssignments = () => {
     }
   };
 
-  // Belirli bir tarihin atamalarını yükle
   const loadAssignments = useCallback(async (date) => {
     setAssignmentsLoading(true);
     try {
       const response = await shiftsAPI.getAssignmentsByDate(date);
-      const assignmentsData = Array.isArray(response.data) ? response.data : [];
-      setAssignments(assignmentsData);
+      setAssignments(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error loading assignments:', error);
       toast.error('Atamalar yüklenemedi');
@@ -111,27 +129,52 @@ const ShiftAssignments = () => {
       setAssignmentsLoading(false);
     }
   }, []);
+  
+  // Onayları yükle
+  const loadApprovals = async () => {
+    try {
+      const [startRes, endRes, handoverRes] = await Promise.all([
+        shiftsAPI.getPendingStartApprovals().catch(() => ({ data: [] })),
+        shiftsAPI.getPendingShiftApprovals().catch(() => ({ data: [] })),
+        fetch(`${API_URL}/shifts/handover/pending-approvals`, { credentials: 'include' }).then(r => r.json()).catch(() => [])
+      ]);
+      
+      setStartApprovals(startRes.data || []);
+      setEndApprovals((endRes.data || []).filter(a => a.type === 'end'));
+      setPendingHandovers(Array.isArray(handoverRes) ? handoverRes : []);
+    } catch (error) {
+      console.error('Error loading approvals:', error);
+    }
+  };
+  
+  const loadApprovalLogs = async () => {
+    setApprovalLogsLoading(true);
+    try {
+      const [logsRes, handoverLogsRes] = await Promise.all([
+        shiftsAPI.getShiftApprovalLogs({ date: selectedDate, limit: 100 }),
+        fetch(`${API_URL}/shifts/handover/logs?date=${selectedDate}`, { credentials: 'include' }).then(r => r.json()).catch(() => [])
+      ]);
+      setApprovalLogs({ shiftLogs: logsRes.data || [], handoverLogs: handoverLogsRes || [] });
+    } catch (error) {
+      console.error('Error loading logs:', error);
+    } finally {
+      setApprovalLogsLoading(false);
+    }
+  };
 
-  // Tarih değiştirme
   const changeDate = (days) => {
     const current = new Date(selectedDate);
     current.setDate(current.getDate() + days);
     setSelectedDate(current.toISOString().split('T')[0]);
   };
 
-  const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
-  };
+  const goToToday = () => setSelectedDate(new Date().toISOString().split('T')[0]);
 
-  // Excel şablon indirme
+  // Excel
   const handleDownloadTemplate = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload/template`, {
-        credentials: 'include'
-      });
-      
+      const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload/template`, { credentials: 'include' });
       if (!response.ok) throw new Error('Şablon indirilemedi');
-      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -147,645 +190,355 @@ const ShiftAssignments = () => {
     }
   };
 
-  // Excel dosyası yükleme
   const handleExcelUpload = async () => {
-    if (!excelFile) {
-      toast.error('Lütfen bir Excel dosyası seçin');
-      return;
-    }
-
+    if (!excelFile) { toast.error('Lütfen bir Excel dosyası seçin'); return; }
     setExcelUploading(true);
     setExcelResults(null);
-
     try {
       const uploadData = new FormData();
       uploadData.append('file', excelFile);
-
-      const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload`, {
-        method: 'POST',
-        credentials: 'include',
-        body: uploadData
-      });
-
+      const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload`, { method: 'POST', credentials: 'include', body: uploadData });
       const results = await response.json();
-      
       if (response.ok) {
         setExcelResults(results);
-        if (results.successful_count > 0) {
-          toast.success(`${results.successful_count} atama başarıyla oluşturuldu`);
-          loadAssignments(selectedDate);
-        }
-        if (results.error_count > 0) {
-          toast.warning(`${results.error_count} satırda hata oluştu`);
-        }
-      } else {
-        toast.error(results.detail || 'Yükleme başarısız');
-      }
-    } catch (error) {
-      toast.error('Dosya yüklenirken hata oluştu');
-    } finally {
-      setExcelUploading(false);
-    }
+        if (results.successful_count > 0) { toast.success(`${results.successful_count} atama oluşturuldu`); loadAssignments(selectedDate); }
+        if (results.error_count > 0) toast.warning(`${results.error_count} satırda hata`);
+      } else toast.error(results.detail || 'Yükleme başarısız');
+    } catch (error) { toast.error('Dosya yüklenirken hata'); } 
+    finally { setExcelUploading(false); }
   };
 
   const handleCreate = async () => {
-    if (!formData.user_id) {
-      toast.error('Lütfen kullanıcı seçin');
-      return;
-    }
-    if (formData.location_type === 'arac' && !formData.vehicle_id) {
-      toast.error('Lütfen araç seçin');
-      return;
-    }
-
+    if (!formData.user_id) { toast.error('Kullanıcı seçin'); return; }
+    if (formData.location_type === 'arac' && !formData.vehicle_id) { toast.error('Araç seçin'); return; }
     try {
-      const assignmentData = {
-        user_id: formData.user_id.trim(),
-        shift_date: formData.shift_date.trim(),
-        location_type: (formData.location_type || 'arac').trim()
-      };
-      
-      if (formData.location_type === 'arac' && formData.vehicle_id) {
-        assignmentData.vehicle_id = formData.vehicle_id.trim();
-      }
-      
-      if (formData.location_type === 'saglik_merkezi') {
-        assignmentData.health_center_name = 'Sağlık Merkezi';
-      }
-      
+      const assignmentData = { user_id: formData.user_id.trim(), shift_date: formData.shift_date.trim(), location_type: formData.location_type || 'arac' };
+      if (formData.location_type === 'arac' && formData.vehicle_id) assignmentData.vehicle_id = formData.vehicle_id.trim();
+      if (formData.location_type === 'saglik_merkezi') assignmentData.health_center_name = 'Sağlık Merkezi';
       if (formData.start_time) assignmentData.start_time = formData.start_time.trim();
       if (formData.end_time) assignmentData.end_time = formData.end_time.trim();
-      if (formData.end_date && formData.end_date !== formData.shift_date) {
-        assignmentData.end_date = formData.end_date.trim();
-      }
+      if (formData.end_date && formData.end_date !== formData.shift_date) assignmentData.end_date = formData.end_date.trim();
       if (formData.is_driver_duty) assignmentData.is_driver_duty = true;
-      if (formData.healmedy_location_id) {
-        assignmentData.healmedy_location_id = formData.healmedy_location_id.trim();
-      }
+      if (formData.healmedy_location_id) assignmentData.healmedy_location_id = formData.healmedy_location_id.trim();
       
       await shiftsAPI.createAssignment(assignmentData);
       toast.success('Vardiya ataması oluşturuldu');
       setDialogOpen(false);
-      
-      // Formu sıfırla
-      setFormData({
-        user_id: '',
-        vehicle_id: '',
-        location_type: 'arac',
-        health_center_name: '',
-        shift_date: new Date().toISOString().split('T')[0],
-        start_time: '08:00',
-        end_time: '08:00',
-        end_date: getDefaultEndDate(),
-        is_driver_duty: false,
-        healmedy_location_id: '',
-        shift_type: 'saha_24'
-      });
-      
+      setFormData({ user_id: '', vehicle_id: '', location_type: 'arac', health_center_name: '', shift_date: new Date().toISOString().split('T')[0], start_time: '08:00', end_time: '08:00', end_date: getDefaultEndDate(), is_driver_duty: false, healmedy_location_id: '', shift_type: 'saha_24' });
       loadAssignments(selectedDate);
     } catch (error) {
       const detail = error.response?.data?.detail;
-      let errorMessage = 'Atama oluşturulamadı';
-      if (typeof detail === 'string') errorMessage = detail;
-      else if (Array.isArray(detail)) {
-        errorMessage = detail.map(err => err.msg || JSON.stringify(err)).join('; ');
-      }
-      toast.error(errorMessage);
+      toast.error(typeof detail === 'string' ? detail : 'Atama oluşturulamadı');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bu atamayı silmek istediğinizden emin misiniz?')) return;
-    
+  const handleDelete = async (id) => { if (!confirm('Atamayı silmek istiyor musunuz?')) return; try { await shiftsAPI.deleteAssignment(id); toast.success('Atama silindi'); loadAssignments(selectedDate); } catch { toast.error('Silinemedi'); } };
+  const handleStartShift = async (id, userName) => { if (!confirm(`${userName} için vardiyayı başlatmak istiyor musunuz?`)) return; try { await shiftsAPI.startAssignmentByAdmin(id); toast.success('Vardiya başlatıldı'); loadAssignments(selectedDate); } catch (e) { toast.error(e.response?.data?.detail || 'Başlatılamadı'); } };
+  const handleEndShift = async (id, userName) => { if (!confirm(`${userName} için vardiyayı bitirmek istiyor musunuz?`)) return; try { await shiftsAPI.endAssignmentByAdmin(id); toast.success('Vardiya bitirildi'); loadAssignments(selectedDate); } catch (e) { toast.error(e.response?.data?.detail || 'Bitirilemedi'); } };
+
+  // Onay işlemleri
+  const handleApproveStart = async (id) => { try { await shiftsAPI.approveStartApproval(id); toast.success('Onaylandı'); loadApprovals(); } catch { toast.error('Onay başarısız'); } };
+  const handleRejectStart = async (id, reason) => { try { await shiftsAPI.rejectStartApproval(id, reason || 'Belirtilmedi'); toast.success('Reddedildi'); loadApprovals(); } catch { toast.error('Red başarısız'); } };
+  const handleApproveEnd = async (id) => { try { await shiftsAPI.approveShiftApproval(id); toast.success('Onaylandı'); loadApprovals(); } catch { toast.error('Onay başarısız'); } };
+  const handleRejectEnd = async (id, reason) => { try { await shiftsAPI.rejectShiftApproval(id, reason || 'Belirtilmedi'); toast.success('Reddedildi'); loadApprovals(); } catch { toast.error('Red başarısız'); } };
+  const handleApproveHandover = async (sessionId) => {
     try {
-      await shiftsAPI.deleteAssignment(id);
-      toast.success('Atama silindi');
-      loadAssignments(selectedDate);
-    } catch (error) {
-      toast.error('Atama silinemedi');
-    }
+      await fetch(`${API_URL}/shifts/handover/${sessionId}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ approve: true }) });
+      toast.success('Devir teslim onaylandı'); loadApprovals();
+    } catch { toast.error('Onay başarısız'); }
   };
-
-  const handleStartShift = async (id, userName) => {
-    if (!confirm(`${userName || 'Bu kişi'} için vardiyayı başlatmak istediğinizden emin misiniz?`)) return;
-    
+  const handleRejectHandover = async () => {
+    if (!selectedSession) return;
     try {
-      const response = await shiftsAPI.startAssignmentByAdmin(id);
-      toast.success(response.data.message || 'Vardiya başarıyla başlatıldı');
-      loadAssignments(selectedDate);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Vardiya başlatılamadı');
-    }
+      await fetch(`${API_URL}/shifts/handover/${selectedSession.id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ approve: false, rejection_reason: rejectReason }) });
+      toast.success('Devir teslim reddedildi'); setShowRejectDialog(false); setRejectReason(''); setSelectedSession(null); loadApprovals();
+    } catch { toast.error('Red başarısız'); }
   };
-
-  const handleEndShift = async (id, userName) => {
-    if (!confirm(`${userName || 'Bu kişi'} için vardiyayı bitirmek istediğinizden emin misiniz?`)) return;
-    
+  const fetchShiftPhotos = async (shiftId) => {
     try {
-      const response = await shiftsAPI.endAssignmentByAdmin(id);
-      toast.success(response.data.message || 'Vardiya başarıyla bitirildi');
-      loadAssignments(selectedDate);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Vardiya bitirilemedi');
-    }
+      const response = await fetch(`${API_URL}/shifts/photos/${shiftId}`, { credentials: 'include' });
+      if (response.ok) { const data = await response.json(); setSelectedPhotos(data); setShowPhotosDialog(true); }
+    } catch { toast.error('Fotoğraflar yüklenemedi'); }
   };
 
-  const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    started: 'bg-green-100 text-green-800',
-    completed: 'bg-blue-100 text-blue-800',
-    cancelled: 'bg-red-100 text-red-800'
-  };
-
-  const statusLabels = {
-    pending: 'Bekliyor',
-    started: 'Aktif',
-    completed: 'Tamamlandı',
-    cancelled: 'İptal'
-  };
-
-  const roleLabels = {
-    sofor: 'Şoför',
-    bas_sofor: 'Baş Şoför',
-    hemsire: 'Hemşire',
-    doktor: 'Doktor',
-    paramedik: 'Paramedik',
-    att: 'ATT',
-    merkez_ofis: 'Merkez Ofis',
-    operasyon_muduru: 'Op. Müdürü',
-    cagri_merkezi: 'Çağrı Merkezi'
-  };
-
+  const statusColors = { pending: 'bg-yellow-100 text-yellow-800', started: 'bg-green-100 text-green-800', completed: 'bg-blue-100 text-blue-800', cancelled: 'bg-red-100 text-red-800' };
+  const statusLabels = { pending: 'Bekliyor', started: 'Aktif', completed: 'Tamamlandı', cancelled: 'İptal' };
+  const roleLabels = { sofor: 'Şoför', bas_sofor: 'Baş Şoför', hemsire: 'Hemşire', doktor: 'Doktor', paramedik: 'Paramedik', att: 'ATT', merkez_ofis: 'Merkez Ofis', operasyon_muduru: 'Op. Müdürü', cagri_merkezi: 'Çağrı Merkezi' };
   const getRoleLabel = (role) => roleLabels[role] || role;
+  const formatDateTime = (d) => d ? new Date(d).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
 
-  const canManage = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+  const canManage = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'mesul_mudur'].includes(user?.role);
+  if (!canManage) return <Card><CardContent className="py-12 text-center"><p className="text-red-500">Bu sayfayı görüntüleme yetkiniz yok.</p></CardContent></Card>;
+  if (loading) return <div className="flex justify-center py-12"><div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
 
-  if (!canManage) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-red-500">Bu sayfayı görüntüleme yetkiniz yok.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Seçili tarihin bilgileri
-  const selectedDateObj = new Date(selectedDate);
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
-  const dayName = selectedDateObj.toLocaleDateString('tr-TR', { weekday: 'long' });
-  const dateFormatted = selectedDateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  // Atamaları araca göre grupla
-  const groupedAssignments = assignments.reduce((acc, a) => {
-    const key = a.vehicle_plate || a.vehicle_id || a.health_center_name || 'Diğer';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(a);
-    return acc;
-  }, {});
+  const dateFormatted = new Date(selectedDate).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const groupedAssignments = assignments.reduce((acc, a) => { const key = a.vehicle_plate || a.vehicle_id || a.health_center_name || 'Diğer'; if (!acc[key]) acc[key] = []; acc[key].push(a); return acc; }, {});
+  const totalApprovals = startApprovals.length + endApprovals.length + pendingHandovers.length;
 
   return (
-    <div className="space-y-4" data-testid="shift-assignments-page">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Vardiya Yönetimi</h1>
-          <p className="text-gray-500 text-sm">Günlük vardiya atamaları</p>
+          <p className="text-gray-500 text-sm">Atamalar ve onaylar</p>
         </div>
         <div className="flex gap-2">
-          {/* Excel Toplu Yükleme */}
           <Dialog open={excelDialogOpen} onOpenChange={setExcelDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <FileSpreadsheet className="h-4 w-4 mr-1" />
-                Excel
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Excel ile Toplu Vardiya Atama</DialogTitle>
-                <DialogDescription>
-                  Excel dosyası yükleyerek birden fazla vardiya ataması yapabilirsiniz.
-                </DialogDescription>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Excel ile Toplu Atama</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800 mb-2">Önce şablon dosyasını indirin ve doldurun.</p>
-                  <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Şablon İndir
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDownloadTemplate}><Download className="h-4 w-4 mr-2" />Şablon İndir</Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>Excel Dosyası Seçin</Label>
-                  <Input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => {
-                      setExcelFile(e.target.files[0]);
-                      setExcelResults(null);
-                    }}
-                  />
-                </div>
-                {excelFile && (
-                  <Button onClick={handleExcelUpload} disabled={excelUploading} className="w-full">
-                    {excelUploading ? 'Yükleniyor...' : <><Upload className="h-4 w-4 mr-2" />Dosyayı Yükle</>}
-                  </Button>
-                )}
-                {excelResults && (
-                  <div className="space-y-3 mt-4">
-                    <div className="flex gap-4">
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle className="h-5 w-5" />
-                        <span>{excelResults.successful_count} Başarılı</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-red-600">
-                        <AlertCircle className="h-5 w-5" />
-                        <span>{excelResults.error_count} Hatalı</span>
-                      </div>
-                    </div>
-                    {excelResults.errors?.length > 0 && (
-                      <div className="bg-red-50 p-3 rounded-lg max-h-32 overflow-y-auto">
-                        <p className="text-sm font-medium text-red-800 mb-1">Hatalar:</p>
-                        {excelResults.errors.map((e, i) => (
-                          <p key={i} className="text-xs text-red-700">Satır {e.row}: {e.error}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <Input type="file" accept=".xlsx,.xls" onChange={(e) => { setExcelFile(e.target.files[0]); setExcelResults(null); }} />
+                {excelFile && <Button onClick={handleExcelUpload} disabled={excelUploading} className="w-full">{excelUploading ? 'Yükleniyor...' : <><Upload className="h-4 w-4 mr-2" />Yükle</>}</Button>}
+                {excelResults && <div className="flex gap-4"><div className="text-green-600"><CheckCircle className="h-5 w-5 inline" /> {excelResults.successful_count}</div><div className="text-red-600"><AlertCircle className="h-5 w-5 inline" /> {excelResults.error_count}</div></div>}
               </div>
             </DialogContent>
           </Dialog>
-          
-          {/* Yeni Atama */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Yeni Atama
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Yeni Atama</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Vardiya Ataması Oluştur</DialogTitle>
-                <DialogDescription>24 saat vardiya: 08:00 - ertesi gün 08:00</DialogDescription>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Vardiya Ataması</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Kullanıcı *</Label>
-                  <Select value={formData.user_id} onValueChange={(v) => setFormData(prev => ({...prev, user_id: v}))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Kullanıcı seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map(u => (
-                        <SelectItem key={u.id || u._id} value={u.id || u._id}>
-                          {u.name} ({getRoleLabel(u.role)})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
+                <div className="space-y-2"><Label>Kullanıcı *</Label><Select value={formData.user_id} onValueChange={(v) => setFormData(p => ({...p, user_id: v}))}><SelectTrigger><SelectValue placeholder="Kullanıcı seçin" /></SelectTrigger><SelectContent>{users.map(u => <SelectItem key={u.id || u._id} value={u.id || u._id}>{u.name} ({getRoleLabel(u.role)})</SelectItem>)}</SelectContent></Select></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Lokasyon Tipi *</Label>
-                    <Select value={formData.location_type} onValueChange={(v) => {
-                      setFormData(prev => ({
-                        ...prev, 
-                        location_type: v,
-                        vehicle_id: v === 'arac' ? prev.vehicle_id : ''
-                      }));
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="arac">Araç</SelectItem>
-                        <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {formData.location_type === 'arac' && (
-                    <div className="space-y-2">
-                      <Label>Araç *</Label>
-                      <Select value={formData.vehicle_id} onValueChange={(v) => setFormData(prev => ({...prev, vehicle_id: v}))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Araç seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vehicles.map(v => (
-                            <SelectItem key={v.id || v._id} value={v.id || v._id}>
-                              {v.plate}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <div className="space-y-2"><Label>Lokasyon</Label><Select value={formData.location_type} onValueChange={(v) => setFormData(p => ({...p, location_type: v, vehicle_id: v === 'arac' ? p.vehicle_id : ''}))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="arac">Araç</SelectItem><SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem></SelectContent></Select></div>
+                  {formData.location_type === 'arac' && <div className="space-y-2"><Label>Araç *</Label><Select value={formData.vehicle_id} onValueChange={(v) => setFormData(p => ({...p, vehicle_id: v}))}><SelectTrigger><SelectValue placeholder="Araç" /></SelectTrigger><SelectContent>{vehicles.map(v => <SelectItem key={v.id || v._id} value={v.id || v._id}>{v.plate}</SelectItem>)}</SelectContent></Select></div>}
                 </div>
-
-                {healmedyLocations.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1">
-                      <Building className="h-4 w-4" />
-                      Görev Lokasyonu
-                    </Label>
-                    <Select 
-                      value={formData.healmedy_location_id || 'none'} 
-                      onValueChange={(v) => setFormData(prev => ({...prev, healmedy_location_id: v === 'none' ? '' : v}))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Lokasyon seçin (opsiyonel)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Belirtilmemiş</SelectItem>
-                        {healmedyLocations.map(loc => (
-                          <SelectItem key={loc.id} value={loc.id}>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-3 w-3" />
-                              {loc.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Vardiya Tarihi *</Label>
-                    <Input
-                      type="date"
-                      value={formData.shift_date}
-                      onChange={(e) => {
-                        const newDate = e.target.value;
-                        const nextDay = new Date(newDate);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        setFormData(prev => ({
-                          ...prev, 
-                          shift_date: newDate,
-                          end_date: nextDay.toISOString().split('T')[0]
-                        }));
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Bitiş Günü</Label>
-                    <Input
-                      type="date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData(prev => ({...prev, end_date: e.target.value}))}
-                    />
-                  </div>
+                  <div className="space-y-2"><Label>Başlangıç</Label><Input type="date" value={formData.shift_date} onChange={(e) => { const d = e.target.value; const n = new Date(d); n.setDate(n.getDate() + 1); setFormData(p => ({...p, shift_date: d, end_date: n.toISOString().split('T')[0]})); }} /></div>
+                  <div className="space-y-2"><Label>Bitiş Günü</Label><Input type="date" value={formData.end_date} onChange={(e) => setFormData(p => ({...p, end_date: e.target.value}))} /></div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Başlangıç</Label>
-                    <Input
-                      type="time"
-                      value={formData.start_time}
-                      onChange={(e) => setFormData(prev => ({...prev, start_time: e.target.value}))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Bitiş</Label>
-                    <Input
-                      type="time"
-                      value={formData.end_time}
-                      onChange={(e) => setFormData(prev => ({...prev, end_time: e.target.value}))}
-                    />
-                  </div>
+                  <div className="space-y-2"><Label>Saat Başlangıç</Label><Input type="time" value={formData.start_time} onChange={(e) => setFormData(p => ({...p, start_time: e.target.value}))} /></div>
+                  <div className="space-y-2"><Label>Saat Bitiş</Label><Input type="time" value={formData.end_time} onChange={(e) => setFormData(p => ({...p, end_time: e.target.value}))} /></div>
                 </div>
-
-                {/* Şoför Görevi */}
-                {(() => {
-                  const selectedUser = users.find(u => (u.id || u._id) === formData.user_id);
-                  if (selectedUser && ['att', 'paramedik', 'hemsire'].includes(selectedUser.role?.toLowerCase())) {
-                    return (
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="is_driver_duty"
-                            checked={formData.is_driver_duty}
-                            onChange={(e) => setFormData(prev => ({...prev, is_driver_duty: e.target.checked}))}
-                            className="h-4 w-4"
-                          />
-                          <Label htmlFor="is_driver_duty" className="text-sm text-yellow-800">
-                            🚗 Bu vardiyada şoför görevi de var
-                          </Label>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                <Button onClick={handleCreate} className="w-full">Vardiya Ata</Button>
+                <Button onClick={handleCreate} className="w-full">Ata</Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Tarih Seçici */}
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-40"
-                />
-                <div className="hidden sm:block">
-                  <span className={`font-semibold ${isToday ? 'text-green-600' : 'text-gray-900'}`}>
-                    {isToday ? '📍 Bugün - ' : ''}{dayName}, {dateFormatted}
-                  </span>
+      {/* Ana Sekmeler */}
+      <div className="flex gap-1 border-b">
+        <button className={`px-4 py-2 font-medium ${activeMainTab === 'atamalar' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`} onClick={() => setActiveMainTab('atamalar')}>📋 Atamalar</button>
+        <button className={`px-4 py-2 font-medium ${activeMainTab === 'onaylar' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`} onClick={() => setActiveMainTab('onaylar')}>✅ Onaylar {totalApprovals > 0 && <Badge className="ml-1 bg-red-500">{totalApprovals}</Badge>}</button>
+      </div>
+
+      {/* ATAMALAR SEKMESİ */}
+      {activeMainTab === 'atamalar' && (
+        <div className="space-y-4">
+          {/* Tarih Seçici */}
+          <Card className="border-0 shadow-md">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={() => changeDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+                  <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-40" />
+                  <Button variant="outline" size="icon" onClick={() => changeDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+                  {!isToday && <Button variant="ghost" size="sm" onClick={goToToday}>Bugün</Button>}
+                  <span className={`hidden sm:inline font-medium ${isToday ? 'text-green-600' : ''}`}>{isToday ? '📍 ' : ''}{dateFormatted}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={isToday ? 'default' : 'secondary'}>{assignments.length} atama</Badge>
+                  <Button variant="ghost" size="icon" onClick={() => loadAssignments(selectedDate)} disabled={assignmentsLoading}><RefreshCw className={`h-4 w-4 ${assignmentsLoading ? 'animate-spin' : ''}`} /></Button>
                 </div>
               </div>
-              <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              {!isToday && (
-                <Button variant="ghost" size="sm" onClick={goToToday}>
-                  Bugün
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={isToday ? 'default' : 'secondary'} className="text-sm">
-                {assignments.length} atama
-              </Badge>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => loadAssignments(selectedDate)}
-                disabled={assignmentsLoading}
-              >
-                <RefreshCw className={`h-4 w-4 ${assignmentsLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Tablo Görünümü */}
-      <Card className="border-0 shadow-lg">
-        <CardContent className="p-0">
-          {assignmentsLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          {/* Tablo */}
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-0">
+              {assignmentsLoading ? (
+                <div className="flex justify-center py-12"><div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+              ) : assignments.length === 0 ? (
+                <div className="text-center py-12"><Calendar className="h-12 w-12 mx-auto text-gray-300 mb-3" /><p className="text-gray-500">Bu gün için atama yok</p></div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b"><tr>
+                      <th className="text-left p-3 text-sm font-semibold text-gray-600">Araç</th>
+                      <th className="text-left p-3 text-sm font-semibold text-gray-600">Personel</th>
+                      <th className="text-left p-3 text-sm font-semibold text-gray-600">Saat</th>
+                      <th className="text-left p-3 text-sm font-semibold text-gray-600">Durum</th>
+                      <th className="text-right p-3 text-sm font-semibold text-gray-600">İşlem</th>
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {Object.entries(groupedAssignments).map(([vehicle, vas]) => vas.map((a, idx) => (
+                        <tr key={a.id || a._id} className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-t-blue-100' : ''}`}>
+                          {idx === 0 && <td className="p-3 align-top" rowSpan={vas.length}><div className="flex items-center gap-2"><Truck className="h-5 w-5 text-blue-600" /><div><p className="font-bold">{vehicle}</p><p className="text-xs text-gray-500">{vas.length} kişi</p></div></div></td>}
+                          <td className="p-3"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">{(a.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}</div><div><p className="font-medium text-sm">{a.user_name || 'Bilinmiyor'}</p><p className="text-xs text-gray-500">{getRoleLabel(a.user_role)}</p></div></div></td>
+                          <td className="p-3"><div className="flex items-center gap-1 text-sm"><Clock className="h-3 w-3 text-gray-400" /><span>{a.start_time || '08:00'} - {a.end_time || '08:00'}</span>{a.end_date && a.end_date !== a.shift_date && <Badge variant="secondary" className="text-xs ml-1">+1g</Badge>}</div></td>
+                          <td className="p-3"><Badge className={statusColors[a.status]}>{statusLabels[a.status]}</Badge></td>
+                          <td className="p-3 text-right"><div className="flex items-center justify-end gap-1">
+                            {a.status === 'pending' && <><Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => handleStartShift(a.id || a._id, a.user_name)}><Play className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => handleDelete(a.id || a._id)}><Trash2 className="h-4 w-4" /></Button></>}
+                            {a.status === 'started' && <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => handleEndShift(a.id || a._id, a.user_name)}><Square className="h-4 w-4" /></Button>}
+                          </div></td>
+                        </tr>
+                      )))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ONAYLAR SEKMESİ */}
+      {activeMainTab === 'onaylar' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2 border-b overflow-x-auto">
+              <button className={`px-4 py-2 font-medium whitespace-nowrap ${approvalsTab === 'start-approvals' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`} onClick={() => setApprovalsTab('start-approvals')}>🚀 Başlatma ({startApprovals.length})</button>
+              <button className={`px-4 py-2 font-medium whitespace-nowrap ${approvalsTab === 'end-approvals' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`} onClick={() => setApprovalsTab('end-approvals')}>🏁 Bitirme ({endApprovals.length})</button>
+              <button className={`px-4 py-2 font-medium whitespace-nowrap ${approvalsTab === 'handover' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`} onClick={() => setApprovalsTab('handover')}>🔄 Devir Teslim ({pendingHandovers.length})</button>
+              <button className={`px-4 py-2 font-medium whitespace-nowrap ${approvalsTab === 'logs' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-500'}`} onClick={() => { setApprovalsTab('logs'); loadApprovalLogs(); }}><History className="h-4 w-4 inline mr-1" />Loglar</button>
             </div>
-          ) : assignments.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500">Bu gün için atama yok</p>
-              <p className="text-gray-400 text-sm">Yeni atama eklemek için "Yeni Atama" butonunu kullanın</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Araç</th>
-                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Personel</th>
-                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Görev</th>
-                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Saat</th>
-                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Durum</th>
-                    <th className="text-right p-3 text-sm font-semibold text-gray-600">İşlem</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {Object.entries(groupedAssignments).map(([vehicle, vehicleAssignments]) => (
-                    vehicleAssignments.map((a, idx) => (
-                      <tr 
-                        key={a.id || a._id} 
-                        className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-t-blue-100' : ''}`}
-                      >
-                        {/* Araç - sadece ilk satırda göster */}
-                        {idx === 0 ? (
-                          <td className="p-3 align-top" rowSpan={vehicleAssignments.length}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <Truck className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-gray-900">{vehicle}</p>
-                                <p className="text-xs text-gray-500">{vehicleAssignments.length} kişi</p>
-                              </div>
-                            </div>
-                          </td>
-                        ) : null}
-                        
-                        {/* Personel */}
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                              {(a.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900 text-sm">{a.user_name || 'Bilinmiyor'}</p>
-                              <p className="text-xs text-gray-500">{getRoleLabel(a.user_role)}</p>
-                            </div>
-                          </div>
-                        </td>
-                        
-                        {/* Görev Lokasyonu */}
-                        <td className="p-3">
-                          {a.healmedy_location_name ? (
-                            <Badge variant="outline" className="text-xs">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              {a.healmedy_location_name}
-                            </Badge>
-                          ) : (
-                            <span className="text-gray-400 text-sm">-</span>
-                          )}
-                        </td>
-                        
-                        {/* Saat */}
-                        <td className="p-3">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Clock className="h-3 w-3 text-gray-400" />
-                            <span>{a.start_time || '08:00'} - {a.end_time || '08:00'}</span>
-                            {a.end_date && a.end_date !== a.shift_date && (
-                              <Badge variant="secondary" className="text-xs ml-1">+1g</Badge>
-                            )}
-                          </div>
-                        </td>
-                        
-                        {/* Durum */}
-                        <td className="p-3">
-                          <Badge className={statusColors[a.status]}>
-                            {statusLabels[a.status]}
-                          </Badge>
-                        </td>
-                        
-                        {/* İşlemler */}
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {a.status === 'pending' && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-green-600 hover:bg-green-50"
-                                  onClick={() => handleStartShift(a.id || a._id, a.user_name)}
-                                  title="Başlat"
-                                >
-                                  <Play className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-red-600 hover:bg-red-50"
-                                  onClick={() => handleDelete(a.id || a._id)}
-                                  title="Sil"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                            {a.status === 'started' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-red-600 hover:bg-red-50"
-                                onClick={() => handleEndShift(a.id || a._id, a.user_name)}
-                                title="Bitir"
-                              >
-                                <Square className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ))}
-                </tbody>
-              </table>
+            <Button variant="outline" size="sm" onClick={loadApprovals}><RefreshCw className="h-4 w-4 mr-1" />Yenile</Button>
+          </div>
+
+          {/* Vardiya Başlatma Onayları */}
+          {approvalsTab === 'start-approvals' && (
+            <div className="space-y-3">
+              {startApprovals.length === 0 ? (
+                <Card><CardContent className="py-8 text-center text-gray-500"><Check className="h-12 w-12 mx-auto mb-4 text-green-500" /><p>Bekleyen onay yok</p></CardContent></Card>
+              ) : startApprovals.map(a => (
+                <Card key={a.id} className={`border-l-4 ${a.role_type === 'medical' ? 'border-l-blue-500' : 'border-l-amber-500'}`}>
+                  <CardContent className="py-4">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {a.role_type === 'medical' ? <Badge className="bg-blue-100 text-blue-800"><Stethoscope className="h-3 w-3 mr-1" />ATT/Paramedik</Badge> : <Badge className="bg-amber-100 text-amber-800"><Car className="h-3 w-3 mr-1" />Şoför</Badge>}
+                          <span className="font-bold">{a.vehicle_plate}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span><Badge variant="outline">{a.user_role}</Badge></div>
+                        <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="destructive" size="sm" onClick={() => { const r = prompt('Red sebebi:'); handleRejectStart(a.id, r); }}><X className="h-4 w-4" /></Button>
+                        <Button size="sm" className="bg-green-600" onClick={() => handleApproveStart(a.id)}><Check className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+
+          {/* Vardiya Bitirme Onayları */}
+          {approvalsTab === 'end-approvals' && (
+            <div className="space-y-3">
+              {endApprovals.length === 0 ? (
+                <Card><CardContent className="py-8 text-center text-gray-500"><Check className="h-12 w-12 mx-auto mb-4 text-green-500" /><p>Bekleyen onay yok</p></CardContent></Card>
+              ) : endApprovals.map(a => (
+                <Card key={a.id} className={`border-l-4 ${a.role_type === 'medical' ? 'border-l-blue-500' : 'border-l-amber-500'}`}>
+                  <CardContent className="py-4">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive">Bitirme</Badge>
+                          <span className="font-bold">{a.vehicle_plate}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span></div>
+                        <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="destructive" size="sm" onClick={() => { const r = prompt('Red sebebi:'); handleRejectEnd(a.id, r); }}><X className="h-4 w-4" /></Button>
+                        <Button size="sm" className="bg-green-600" onClick={() => handleApproveEnd(a.id)}><Check className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Devir Teslim */}
+          {approvalsTab === 'handover' && (
+            <div className="space-y-3">
+              {pendingHandovers.length === 0 ? (
+                <Card><CardContent className="py-8 text-center text-gray-500"><Check className="h-12 w-12 mx-auto mb-4 text-green-500" /><p>Bekleyen devir teslim yok</p></CardContent></Card>
+              ) : pendingHandovers.map(s => (
+                <Card key={s.id} className="border-l-4 border-l-yellow-500">
+                  <CardContent className="py-4">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2"><Truck className="h-5 w-5 text-blue-600" /><span className="font-bold">{s.vehicle_plate}</span></div>
+                        <div className="text-sm"><span className="text-gray-500">Devreden:</span> <span className="font-medium">{s.giver_name}</span> → <span className="font-medium">{s.receiver_name}</span></div>
+                      </div>
+                      <div className="flex gap-2">
+                        {s.giver_shift_id && <Button variant="outline" size="sm" onClick={() => fetchShiftPhotos(s.giver_shift_id)}><Image className="h-4 w-4" /></Button>}
+                        <Button variant="destructive" size="sm" onClick={() => { setSelectedSession(s); setShowRejectDialog(true); }}><X className="h-4 w-4" /></Button>
+                        <Button size="sm" onClick={() => handleApproveHandover(s.id)}><Check className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Loglar */}
+          {approvalsTab === 'logs' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 justify-center">
+                <Button variant="outline" size="icon" onClick={() => changeDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+                <Input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); loadApprovalLogs(); }} className="w-48" />
+                <Button variant="outline" size="icon" onClick={() => changeDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+              </div>
+              {approvalLogsLoading ? (
+                <div className="text-center py-8"><RefreshCw className="h-8 w-8 animate-spin mx-auto text-blue-600" /></div>
+              ) : (
+                <div className="space-y-3">
+                  {approvalLogs?.shiftLogs?.length > 0 && approvalLogs.shiftLogs.map(log => (
+                    <Card key={log.id} className={`border-l-4 ${log.type === 'start' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                      <CardContent className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Badge className={log.type === 'start' ? 'bg-green-600' : 'bg-red-600'}>{log.type_label}</Badge>
+                          <span className="font-bold">{log.vehicle_plate}</span>
+                          <span className="text-sm">{log.user_name}</span>
+                          <span className="text-xs text-gray-500 ml-auto">{formatDateTime(log.created_at)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {(!approvalLogs?.shiftLogs?.length && !approvalLogs?.handoverLogs?.length) && (
+                    <Card><CardContent className="py-8 text-center text-gray-500"><Calendar className="h-12 w-12 mx-auto mb-4" /><p>Bu tarihte kayıt yok</p></CardContent></Card>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Red Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Devir Teslimi Reddet</DialogTitle></DialogHeader>
+          <div className="py-4"><Label>Red Nedeni</Label><Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Neden..." rows={3} /></div>
+          <DialogFooter><Button variant="outline" onClick={() => setShowRejectDialog(false)}>İptal</Button><Button variant="destructive" onClick={handleRejectHandover}>Reddet</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fotoğraf Dialog */}
+      <Dialog open={showPhotosDialog} onOpenChange={setShowPhotosDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Vardiya Fotoğrafları</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
+            {selectedPhotos?.photos && Object.entries(selectedPhotos.photos).map(([key, value]) => value && (
+              <div key={key} className="space-y-2"><p className="text-sm font-medium">{key}</p><img src={value} alt={key} className="w-full h-40 object-cover rounded border" /></div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
