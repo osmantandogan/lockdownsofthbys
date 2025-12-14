@@ -216,19 +216,38 @@ async def get_all_assignments(request: Request, date: Optional[str] = None):
     user_ids = list(set(a.get("user_id") for a in assignments if a.get("user_id")))
     vehicle_ids = list(set(a.get("vehicle_id") for a in assignments if a.get("vehicle_id")))
     
-    # String user_id'leri ObjectId'ye çevir (import scriptinden gelenler için)
+    # User ID'leri için hem ObjectId hem de string olarak arama yap
     from bson import ObjectId
+    
+    # Farklı formatlardaki ID'leri ayır
     object_user_ids = []
+    string_user_ids = []
+    
     for uid in user_ids:
-        try:
-            if isinstance(uid, str) and len(uid) == 24:
-                object_user_ids.append(ObjectId(uid))
+        if isinstance(uid, str):
+            if len(uid) == 24:
+                # ObjectId formatı olabilir
+                try:
+                    object_user_ids.append(ObjectId(uid))
+                except:
+                    string_user_ids.append(uid)
             else:
-                object_user_ids.append(uid)
-        except:
+                # UUID veya başka string format
+                string_user_ids.append(uid)
+        else:
             object_user_ids.append(uid)
     
-    users_docs = await users_collection.find({"_id": {"$in": object_user_ids}}).to_list(len(object_user_ids))
+    # Hem ObjectId hem string _id'lerle kullanıcıları çek
+    users_docs = []
+    if object_user_ids:
+        docs = await users_collection.find({"_id": {"$in": object_user_ids}}).to_list(1000)
+        users_docs.extend(docs)
+    if string_user_ids:
+        docs = await users_collection.find({"_id": {"$in": string_user_ids}}).to_list(1000)
+        users_docs.extend(docs)
+    
+    logger.info(f"Kullanıcı lookup: {len(user_ids)} ID, {len(users_docs)} kullanıcı bulundu")
+    
     # Map'te hem ObjectId hem string key'leri tut
     users_map = {}
     for u in users_docs:
