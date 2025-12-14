@@ -407,3 +407,209 @@ async def get_vehicles_by_location(location_id: str, request: Request):
     return vehicles
 
 
+# ==================== GPS TRACKING ====================
+
+# GPS konum geçmişi collection
+vehicle_gps_history_collection = db.vehicle_gps_history
+
+
+@router.post("/vehicle/{vehicle_id}/gps")
+async def update_vehicle_gps(vehicle_id: str, request: Request):
+    """Araç GPS konumunu güncelle (gerçek zamanlı tracking)"""
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    # Araç bilgisini al
+    vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
+    # GPS verisi
+    gps_data = {
+        "_id": f"gps_{vehicle_id}_{int(turkey_now.timestamp())}",
+        "vehicle_id": vehicle_id,
+        "vehicle_plate": vehicle.get("plate"),
+        "user_id": body.get("userId") or user.id,
+        "latitude": body.get("latitude"),
+        "longitude": body.get("longitude"),
+        "accuracy": body.get("accuracy"),
+        "altitude": body.get("altitude"),
+        "heading": body.get("heading"),
+        "speed": body.get("speed"),
+        "timestamp": body.get("timestamp") or turkey_now.isoformat(),
+        "created_at": turkey_now
+    }
+    
+    # GPS geçmişine kaydet
+    await vehicle_gps_history_collection.insert_one(gps_data)
+    
+    # Araç güncel konumunu güncelle
+    await vehicle_current_locations_collection.update_one(
+        {"vehicle_id": vehicle_id},
+        {"$set": {
+            "last_gps_latitude": body.get("latitude"),
+            "last_gps_longitude": body.get("longitude"),
+            "last_gps_accuracy": body.get("accuracy"),
+            "last_gps_speed": body.get("speed"),
+            "last_gps_heading": body.get("heading"),
+            "last_gps_update": turkey_now
+        }},
+        upsert=True
+    )
+    
+    logger.debug(f"GPS güncellendi: {vehicle.get('plate')} - {body.get('latitude')}, {body.get('longitude')}")
+    
+    return {"success": True, "message": "GPS konumu güncellendi"}
+
+
+@router.get("/vehicle/{vehicle_id}/gps/history")
+async def get_vehicle_gps_history(
+    vehicle_id: str, 
+    request: Request,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100
+):
+    """Araç GPS geçmişini getir"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi"])(request)
+    
+    query = {"vehicle_id": vehicle_id}
+    
+    # Tarih filtreleri
+    if start_date or end_date:
+        query["created_at"] = {}
+        if start_date:
+            query["created_at"]["$gte"] = datetime.fromisoformat(start_date)
+        if end_date:
+            query["created_at"]["$lte"] = datetime.fromisoformat(end_date)
+    
+    history = await vehicle_gps_history_collection.find(query)\
+        .sort("created_at", -1)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for h in history:
+        h["id"] = h.pop("_id")
+    
+    return history
+
+
+@router.get("/vehicle/{vehicle_id}/gps/latest")
+async def get_vehicle_latest_gps(vehicle_id: str, request: Request):
+    """Araç son GPS konumunu getir"""
+    await get_current_user(request)
+    
+    # Önce güncel lokasyon tablosundan kontrol et
+    current = await vehicle_current_locations_collection.find_one({"vehicle_id": vehicle_id})
+    
+    if current and current.get("last_gps_latitude"):
+        return {
+            "vehicle_id": vehicle_id,
+            "latitude": current.get("last_gps_latitude"),
+            "longitude": current.get("last_gps_longitude"),
+            "accuracy": current.get("last_gps_accuracy"),
+            "speed": current.get("last_gps_speed"),
+            "heading": current.get("last_gps_heading"),
+            "last_update": current.get("last_gps_update")
+        }
+    
+    # GPS geçmişinden son kaydı al
+    latest = await vehicle_gps_history_collection.find_one(
+        {"vehicle_id": vehicle_id},
+        sort=[("created_at", -1)]
+    )
+    
+    if latest:
+        return {
+            "vehicle_id": vehicle_id,
+            "latitude": latest.get("latitude"),
+            "longitude": latest.get("longitude"),
+            "accuracy": latest.get("accuracy"),
+            "speed": latest.get("speed"),
+            "heading": latest.get("heading"),
+            "last_update": latest.get("created_at")
+        }
+    
+    return {"vehicle_id": vehicle_id, "latitude": None, "longitude": None}
+
+
+@router.post("/batch")
+async def save_batch_locations(request: Request):
+    """Toplu GPS konumu kaydet (offline sync için)"""
+    user = await get_current_user(request)
+    body = await request.json()
+    
+    locations = body.get("locations", [])
+    if not locations:
+        raise HTTPException(status_code=400, detail="Konum verisi bulunamadı")
+    
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    saved_count = 0
+    
+    for loc in locations:
+        vehicle_id = loc.get("vehicleId")
+        if not vehicle_id:
+            continue
+        
+        # Araç kontrolü
+        vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+        if not vehicle:
+            continue
+        
+        gps_data = {
+            "_id": f"gps_{vehicle_id}_{loc.get('timestamp', turkey_now.isoformat())}",
+            "vehicle_id": vehicle_id,
+            "vehicle_plate": vehicle.get("plate"),
+            "user_id": loc.get("userId") or user.id,
+            "latitude": loc.get("latitude"),
+            "longitude": loc.get("longitude"),
+            "accuracy": loc.get("accuracy"),
+            "altitude": loc.get("altitude"),
+            "heading": loc.get("heading"),
+            "speed": loc.get("speed"),
+            "timestamp": loc.get("timestamp"),
+            "created_at": turkey_now,
+            "synced_from_offline": True
+        }
+        
+        try:
+            await vehicle_gps_history_collection.insert_one(gps_data)
+            saved_count += 1
+        except Exception as e:
+            # Duplicate key hatası olabilir, devam et
+            logger.warning(f"GPS kayıt hatası: {e}")
+    
+    logger.info(f"Toplu GPS kaydı: {saved_count}/{len(locations)} konum kaydedildi")
+    
+    return {"success": True, "saved_count": saved_count, "total": len(locations)}
+
+
+@router.get("/vehicles/all-gps")
+async def get_all_vehicles_gps(request: Request):
+    """Tüm araçların güncel GPS konumlarını getir (harita için)"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi"])(request)
+    
+    # GPS verisi olan araçları getir
+    vehicles_with_gps = await vehicle_current_locations_collection.find({
+        "last_gps_latitude": {"$exists": True, "$ne": None}
+    }).to_list(500)
+    
+    result = []
+    for v in vehicles_with_gps:
+        result.append({
+            "vehicle_id": v.get("vehicle_id"),
+            "vehicle_plate": v.get("vehicle_plate"),
+            "latitude": v.get("last_gps_latitude"),
+            "longitude": v.get("last_gps_longitude"),
+            "accuracy": v.get("last_gps_accuracy"),
+            "speed": v.get("last_gps_speed"),
+            "heading": v.get("last_gps_heading"),
+            "last_update": v.get("last_gps_update"),
+            "current_location_name": v.get("current_location_name")
+        })
+    
+    return result
+
+

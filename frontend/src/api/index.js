@@ -87,7 +87,9 @@ export const casesAPI = {
   // Excel export - Backend template kullanarak
   exportExcel: (id) => api.get(`/cases/${id}/export-excel`, { responseType: 'blob' }),
   // Dinamik Excel export - Mapping şablonu ile
-  exportExcelWithTemplate: (caseId, templateId) => api.get(`/cases/${caseId}/export-excel-template/${templateId}`, { responseType: 'blob' })
+  exportExcelWithTemplate: (caseId, templateId) => api.get(`/cases/${caseId}/export-excel-template/${templateId}`, { responseType: 'blob' }),
+  // Vaka Form Mapping ile export (Görsel Editör)
+  exportExcelWithMapping: (caseId) => api.get(`/cases/${caseId}/export-excel-mapped`, { responseType: 'blob' })
 };
 
 // Video Call API (Daily.co)
@@ -269,7 +271,14 @@ export const locationsAPI = {
   // Araç Lokasyonu
   getVehicleLocation: (vehicleId) => api.get(`/locations/vehicle/${vehicleId}/current`),
   setVehicleLocation: (vehicleId, data) => api.post(`/locations/vehicle/${vehicleId}/set-location`, data),
-  getVehiclesByLocation: (locationId) => api.get(`/locations/vehicles/by-location/${locationId}`)
+  getVehiclesByLocation: (locationId) => api.get(`/locations/vehicles/by-location/${locationId}`),
+  
+  // GPS Tracking (YENİ)
+  updateVehicleGPS: (vehicleId, data) => api.post(`/locations/vehicle/${vehicleId}/gps`, data),
+  getVehicleGPSHistory: (vehicleId, params) => api.get(`/locations/vehicle/${vehicleId}/gps/history`, { params }),
+  getVehicleLatestGPS: (vehicleId) => api.get(`/locations/vehicle/${vehicleId}/gps/latest`),
+  getAllVehiclesGPS: () => api.get('/locations/vehicles/all-gps'),
+  saveBatchLocations: (data) => api.post('/locations/batch', data)
 };
 
 // Users API

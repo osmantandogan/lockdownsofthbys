@@ -1479,3 +1479,116 @@ async def export_case_with_excel_template(case_id: str, template_id: str, reques
     except Exception as e:
         logger.error(f"Dinamik Excel export hatası: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")
+
+
+# ============================================================================
+# VAKA FORM MAPPING EXPORT - Görsel Editör Mapping'i ile
+# ============================================================================
+
+from services.dynamic_excel_export import get_case_field_value
+
+@router.get("/{case_id}/export-excel-mapped")
+async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
+    """Vakayı Vaka Form Mapping (flat_mappings) kullanarak Excel'e export et"""
+    user = await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    mapping_doc = await db.vaka_form_mappings.find_one({"_id": "default"})
+    if not mapping_doc or not mapping_doc.get("flat_mappings"):
+        raise HTTPException(status_code=404, detail="Vaka form mapping bulunamadı. Önce mapping oluşturun.")
+    
+    flat_mappings = mapping_doc.get("flat_mappings", {})
+    logo_info = mapping_doc.get("logo", {})
+    
+    case_data = {
+        "case_number": case_doc.get("case_number", ""),
+        "created_at": case_doc.get("created_at"),
+        "priority": case_doc.get("priority", ""),
+        "status": case_doc.get("status", ""),
+        "patient": case_doc.get("patient", {}),
+        "caller": case_doc.get("caller", {}),
+        "location": case_doc.get("location", {}),
+        "assigned_team": case_doc.get("assigned_team", {}),
+        "vehicle_info": case_doc.get("vehicle_info", {}),
+        "time_info": case_doc.get("time_info", {}),
+        "company": case_doc.get("company", ""),
+        "call_type": case_doc.get("call_type", ""),
+        "call_reason": case_doc.get("call_reason", ""),
+        "complaint": case_doc.get("complaint", ""),
+        "chronic_diseases": case_doc.get("chronic_diseases", ""),
+        "is_forensic": case_doc.get("is_forensic", False),
+        "case_result": case_doc.get("case_result", ""),
+        "transfer_hospital": case_doc.get("transfer_hospital", ""),
+        "vital_signs": case_doc.get("vital_signs", []),
+        "clinical_observations": case_doc.get("clinical_observations", {}),
+        "procedures": case_doc.get("procedures", []),
+        "medications": case_doc.get("medications", []),
+        "materials": case_doc.get("materials", []),
+        "signatures": case_doc.get("signatures", {}),
+    }
+    
+    try:
+        from openpyxl import Workbook
+        from openpyxl.drawing.image import Image as XLImage
+        import base64
+        import re
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Vaka Formu"
+        
+        # Logo
+        if logo_info.get("url") and logo_info.get("cell"):
+            try:
+                logo_url = logo_info["url"]
+                if logo_url.startswith("data:image"):
+                    header, encoded = logo_url.split(",", 1)
+                    logo_data = base64.b64decode(encoded)
+                    from io import BytesIO
+                    img_buffer = BytesIO(logo_data)
+                    img = XLImage(img_buffer)
+                    img.width = 150
+                    img.height = 60
+                    ws.add_image(img, logo_info["cell"])
+            except Exception as e:
+                logger.warning(f"Logo eklenemedi: {e}")
+        
+        # Mapping'leri uygula
+        for cell_address, field_key in flat_mappings.items():
+            if field_key == "__LOGO__":
+                continue
+            
+            value = get_case_field_value(case_data, field_key)
+            
+            match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
+            if match:
+                col_str = match.group(1)
+                row = int(match.group(2))
+                
+                col = 0
+                for char in col_str:
+                    col = col * 26 + (ord(char) - ord('A') + 1)
+                
+                ws.cell(row=row, column=col, value=value)
+        
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        case_number = case_doc.get("case_number", case_id[:8])
+        date_str = get_turkey_time().strftime("%Y-%m-%d")
+        filename = f"VAKA_FORMU_{case_number}_{date_str}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+        
+    except Exception as e:
+        logger.error(f"Mapped Excel export hatası: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")

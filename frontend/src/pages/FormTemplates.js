@@ -428,6 +428,13 @@ const FormTemplates = () => {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    onClick={() => navigate('/dashboard/form-templates/vaka-form-mapping')}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
+                  >
+                    <Grid3X3 className="h-4 w-4 mr-1" />
+                    📊 Görsel Excel Editörü
+                  </Button>
                   <Button variant="outline" onClick={loadCellMapping} disabled={mappingLoading}>
                     <RefreshCw className={`h-4 w-4 mr-1 ${mappingLoading ? 'animate-spin' : ''}`} />
                     Yenile

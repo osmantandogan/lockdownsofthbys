@@ -3,6 +3,8 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { GPSProvider } from "./contexts/GPSContext";
+import { OfflineProvider } from "./contexts/OfflineContext";
 import { Toaster } from "./components/ui/sonner";
 
 // Pages
@@ -47,6 +49,7 @@ import TableTemplateEditor from "./pages/TableTemplateEditor";
 import ExcelTemplateEditor from "./pages/ExcelTemplateEditor";
 import ExcelMappingVisualizer from "./pages/ExcelMappingVisualizer";
 import ExcelOnlineEditor from "./pages/ExcelOnlineEditor";
+import VakaFormMappingEditor from "./pages/VakaFormMappingEditor";
 import FirmManagement from "./pages/FirmManagement";
 
 // Protected Route Component
@@ -90,8 +93,10 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <NotificationProvider>
-      <BrowserRouter>
+      <OfflineProvider>
+        <GPSProvider>
+          <NotificationProvider>
+            <BrowserRouter>
         <Routes>
           {/* Public Routes */}
           <Route
@@ -138,6 +143,7 @@ function App() {
             <Route path="form-templates/excel/:id" element={<ExcelTemplateEditor />} />
             <Route path="form-templates/excel/:id/mapping" element={<ExcelMappingVisualizer />} />
             <Route path="form-templates/excel/:id/online" element={<ExcelOnlineEditor />} />
+            <Route path="form-templates/vaka-form-mapping" element={<VakaFormMappingEditor />} />
             <Route path="stock" element={<StockManagement />} />
             <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />
@@ -169,9 +175,11 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </BrowserRouter>
-      <Toaster />
-      </NotificationProvider>
+            </BrowserRouter>
+            <Toaster />
+          </NotificationProvider>
+        </GPSProvider>
+      </OfflineProvider>
     </AuthProvider>
   );
 }

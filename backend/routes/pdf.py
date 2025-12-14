@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
+from datetime import datetime
 import os
 import logging
 
@@ -163,6 +164,8 @@ async def get_vaka_form_cell_mapping(request: Request):
         return {
             "cell_mappings": custom_mapping.get("cell_mappings", {}),
             "checkbox_mappings": custom_mapping.get("checkbox_mappings", {}),
+            "flat_mappings": custom_mapping.get("flat_mappings", {}),
+            "logo": custom_mapping.get("logo", {}),
             "total_cells": custom_mapping.get("total_cells", 0),
             "total_checkboxes": custom_mapping.get("total_checkboxes", 0),
             "is_custom": True
@@ -171,6 +174,8 @@ async def get_vaka_form_cell_mapping(request: Request):
     # Varsayılan mapping'i döndür
     result = get_cell_mapping_for_display()
     result["is_custom"] = False
+    result["flat_mappings"] = {}
+    result["logo"] = {}
     return result
 
 
@@ -225,3 +230,45 @@ async def reset_vaka_form_mapping(request: Request):
     await db.vaka_form_mappings.delete_one({"_id": "default"})
     
     return {"message": "Eşlemeler varsayılana sıfırlandı"}
+
+
+@router.put("/vaka-form-mapping/bulk")
+async def bulk_update_vaka_form_mapping(request: Request):
+    """
+    Tüm hücre eşlemelerini toplu güncelle (Görsel Editör için)
+    Body: { mappings: { "A1": "fieldKey", ... }, logo: { url: "...", cell: "A1" } }
+    """
+    user = await get_current_user(request)
+    data = await request.json()
+    
+    mappings = data.get("mappings", {})
+    logo = data.get("logo", {})
+    
+    existing = await db.vaka_form_mappings.find_one({"_id": "default"})
+    
+    if not existing:
+        existing = {
+            "_id": "default",
+            "cell_mappings": {},
+            "checkbox_mappings": {},
+            "total_cells": 0,
+            "total_checkboxes": 0
+        }
+    
+    existing["flat_mappings"] = mappings
+    existing["logo"] = logo
+    existing["total_cells"] = len(mappings)
+    existing["updated_at"] = datetime.now()
+    existing["updated_by"] = user.id
+    
+    await db.vaka_form_mappings.update_one(
+        {"_id": "default"},
+        {"$set": existing},
+        upsert=True
+    )
+    
+    return {
+        "message": "Mapping kaydedildi",
+        "total_mappings": len(mappings),
+        "has_logo": bool(logo.get("url"))
+    }

@@ -1598,6 +1598,32 @@ const CaseDetail = () => {
               <DropdownMenuLabel>📊 Excel Şablonu Seçin</DropdownMenuLabel>
               <DropdownMenuSeparator />
               
+              {/* Görsel Mapping ile (ÖNERİLEN) */}
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    setExcelExporting(true);
+                    toast.info('Excel hazırlanıyor (Görsel Mapping)...');
+                    const response = await casesAPI.exportExcelWithMapping(id);
+                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    saveAs(response.data, fileName);
+                    toast.success('Excel indirildi!');
+                  } catch (error) {
+                    console.error('Excel hatası:', error);
+                    if (error.response?.status === 404) {
+                      toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
+                    } else {
+                      toast.error('Excel oluşturulamadı');
+                    }
+                  } finally {
+                    setExcelExporting(false);
+                  }
+                }}
+              >
+                <FileDown className="h-4 w-4 mr-2 text-amber-600" />
+                ⭐ Görsel Mapping ile (Önerilen)
+              </DropdownMenuItem>
+              
               {/* Varsayılan sistem şablonu */}
               <DropdownMenuItem
                 onClick={async () => {
@@ -1617,7 +1643,7 @@ const CaseDetail = () => {
                 }}
               >
                 <FileDown className="h-4 w-4 mr-2 text-blue-600" />
-                🔧 Sistem Şablonu (Varsayılan)
+                🔧 Sistem Şablonu (Eski)
               </DropdownMenuItem>
               
               {excelTemplates.length > 0 && <DropdownMenuSeparator />}
