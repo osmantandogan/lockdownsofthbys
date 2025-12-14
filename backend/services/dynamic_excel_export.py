@@ -69,22 +69,24 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     field_key'e göre vaka verisinden değer çek
     """
     
-    # Temel alanlar
+    # Temel alanlar (case_data'dan doğrudan erişim)
     basic_mappings = {
         'caseNumber': lambda d: d.get('case_number', ''),
         'caseDate': lambda d: format_date(d.get('created_at')),
-        'caseCode': lambda d: d.get('case_code', '') or d.get('code', ''),
-        'atn_no': lambda d: d.get('atn_no', '') or d.get('atm_no', ''),
-        'vehiclePlate': lambda d: d.get('assigned_team', {}).get('vehicle', '') or d.get('vehicle_info', {}).get('plate', ''),
-        'stationName': lambda d: d.get('station_name', '') or d.get('station', ''),
+        'caseCode': lambda d: d.get('case_code', ''),
+        'atn_no': lambda d: d.get('atn_no', ''),
+        'vehiclePlate': lambda d: d.get('vehicle_plate', '') or d.get('assigned_team', {}).get('vehicle', ''),
+        'stationName': lambda d: d.get('station_name', ''),
         'pickupAddress': lambda d: d.get('location', {}).get('address', ''),
-        'startKm': lambda d: str(d.get('vehicle_info', {}).get('start_km', '') or d.get('start_km', '')),
-        'endKm': lambda d: str(d.get('vehicle_info', {}).get('end_km', '') or d.get('end_km', '')),
-        'totalKm': lambda d: str(d.get('vehicle_info', {}).get('total_km', '') or d.get('total_km', '')),
-        'referringInstitution': lambda d: d.get('referring_institution', '') or d.get('company', '') or d.get('vakayiVerenKurum', ''),
-        # Ön tanı ve açıklama
-        'on_tani': lambda d: d.get('on_tani', '') or d.get('preliminary_diagnosis', '') or d.get('extended_form', {}).get('onTani', ''),
-        'aciklamalar': lambda d: d.get('aciklamalar', '') or d.get('notes', '') or d.get('extended_form', {}).get('aciklamalar', ''),
+        'startKm': lambda d: str(d.get('start_km', '') or d.get('vehicle_info', {}).get('start_km', '')),
+        'endKm': lambda d: str(d.get('end_km', '') or d.get('vehicle_info', {}).get('end_km', '')),
+        'totalKm': lambda d: str(d.get('total_km', '') or d.get('vehicle_info', {}).get('total_km', '')),
+        'referringInstitution': lambda d: d.get('referring_institution', ''),
+        # Ön tanı ve açıklama (doğrudan case_data'dan)
+        'on_tani': lambda d: d.get('on_tani', ''),
+        'aciklamalar': lambda d: d.get('aciklamalar', ''),
+        # Nakledilen hastane
+        'transferHospital': lambda d: d.get('transfer_hospital', ''),
         # Ş.İ. Ambulans Ücreti
         'si_ambulans_ucreti': lambda d: '☑' if d.get('extended_form', {}).get('siAmbulansUcreti') else '☐',
     }
@@ -131,11 +133,17 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'crashVehicle2': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', ''])[1] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 1 else '',
         'crashVehicle3': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', '', ''])[2] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 2 else '',
         'crashVehicle4': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', '', '', ''])[3] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 3 else '',
-        # CPR bilgileri
-        'cprStartTime': lambda d: format_time(d.get('extended_form', {}).get('cprStartTime', '')),
-        'cprStopTime': lambda d: format_time(d.get('extended_form', {}).get('cprStopTime', '')),
-        'cprStopReason': lambda d: d.get('extended_form', {}).get('cprStopReason', ''),
+        # CPR bilgileri - hem cpr_data hem extended_form'dan
+        'cprStartTime': lambda d: format_time(d.get('cpr_data', {}).get('start_time', '') or d.get('extended_form', {}).get('cprStartTime', '')),
+        'cprStopTime': lambda d: format_time(d.get('cpr_data', {}).get('stop_time', '') or d.get('extended_form', {}).get('cprStopTime', '')),
+        'cprStopReason': lambda d: d.get('cpr_data', {}).get('stop_reason', '') or d.get('extended_form', {}).get('cprStopReason', ''),
     }
+    
+    # CPR checkbox
+    if field_key == 'cpr.yapildi':
+        cpr_data = case_data.get('cpr_data', {})
+        extended_form = case_data.get('extended_form', {})
+        return '☑' if cpr_data.get('performed') or extended_form.get('cprYapildi') else '☐'
     
     # İmza bilgileri
     signature_mappings = {
@@ -230,11 +238,14 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     }
     
     # Checkbox alanları - değer varsa ☑, yoksa ☐
-    # Çağrı tipi
+    extended_form = case_data.get('extended_form', {})
+    clinical_obs = case_data.get('clinical_observations', {})
+    
+    # Çağrı tipi - extended_form'dan veya doğrudan
     if field_key.startswith('callType.'):
-        call_type = case_data.get('call_type', '').lower()
+        call_type = (extended_form.get('callType', '') or case_data.get('call_type', '')).lower()
         option = field_key.split('.')[1].lower()
-        return '☑' if call_type == option else '☐'
+        return '☑' if option in call_type or call_type == option else '☐'
     
     # Cinsiyet
     if field_key.startswith('gender.'):
@@ -243,42 +254,87 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         gender_map = {'erkek': 'erkek', 'male': 'erkek', 'kadın': 'kadin', 'kadin': 'kadin', 'female': 'kadin'}
         return '☑' if gender_map.get(gender) == option else '☐'
     
-    # Öncelik/Triyaj
+    # Öncelik/Triyaj - extended_form.priority veya case priority
     if field_key.startswith('priority.'):
-        priority = case_data.get('priority', '').lower()
-        option = field_key.split('.')[1].lower()
+        # extended_form içinde priority object olabilir: {kirmizi_kod: true, sari_kod: false}
+        priority_obj = extended_form.get('priority', {})
+        option = field_key.split('.')[1]  # kirmizi_kod, sari_kod, etc.
+        
+        # Object format kontrolü
+        if isinstance(priority_obj, dict):
+            return '☑' if priority_obj.get(option) else '☐'
+        
+        # String format
+        priority_str = (str(priority_obj) or case_data.get('priority', '')).lower()
+        option_lower = option.lower().replace('_', ' ')
         priority_map = {'critical': 'kirmizi', 'high': 'sari', 'medium': 'yesil', 'low': 'siyah'}
-        return '☑' if priority_map.get(priority, priority) == option else '☐'
+        return '☑' if priority_map.get(priority_str, priority_str) == option.lower().replace('_kod', '') else '☐'
     
-    # Çağrı nedeni
+    # Çağrı nedeni - extended_form.callReasons object veya string
     if field_key.startswith('callReason.'):
-        reason = case_data.get('call_reason', '').lower()
-        option = field_key.split('.')[1].lower()
-        return '☑' if reason == option else '☐'
+        option = field_key.split('.')[1]  # kesici_delici, trafik_kaz, etc.
+        
+        # Object format: {kesici_delici: true, medikal: true}
+        call_reasons = extended_form.get('callReasons', {})
+        if isinstance(call_reasons, dict):
+            return '☑' if call_reasons.get(option) else '☐'
+        
+        # String format
+        reason = (extended_form.get('callReason', '') or case_data.get('call_reason', '')).lower()
+        option_lower = option.lower().replace('_', ' ')
+        return '☑' if option_lower in reason or option in reason else '☐'
     
-    # Pupil
+    # Pupil - clinical_obs veya extended_form
     if field_key.startswith('pupil.'):
-        pupils = case_data.get('clinical_observations', {}).get('pupils', '').lower()
-        option = field_key.split('.')[1].lower()
-        return '☑' if pupils == option else '☐'
+        option = field_key.split('.')[1]
+        
+        # Object format
+        pupils_obj = clinical_obs.get('pupils', {}) or extended_form.get('pupils', {})
+        if isinstance(pupils_obj, dict):
+            return '☑' if pupils_obj.get(option) else '☐'
+        
+        # String format
+        pupils = str(pupils_obj).lower()
+        return '☑' if option.lower() in pupils else '☐'
     
-    # Deri
+    # Deri - clinical_obs veya extended_form
     if field_key.startswith('skin.'):
-        skin = case_data.get('clinical_observations', {}).get('skin', '').lower()
-        option = field_key.split('.')[1].lower()
-        return '☑' if skin == option else '☐'
+        option = field_key.split('.')[1]
+        
+        # Object format
+        skin_obj = clinical_obs.get('skin', {}) or extended_form.get('skin', {})
+        if isinstance(skin_obj, dict):
+            return '☑' if skin_obj.get(option) else '☐'
+        
+        # String format
+        skin = str(skin_obj).lower()
+        return '☑' if option.lower() in skin else '☐'
     
     # Nabız tipi
-    if field_key.startswith('pulseType.'):
-        pulse_type = case_data.get('clinical_observations', {}).get('pulse_type', '').lower()
-        option = field_key.split('.')[1].lower()
-        return '☑' if pulse_type == option else '☐'
+    if field_key.startswith('pulseType.') or field_key.startswith('pulse.'):
+        option = field_key.split('.')[1]
+        
+        # Object format
+        pulse_obj = clinical_obs.get('pulseType', {}) or extended_form.get('pulseType', {})
+        if isinstance(pulse_obj, dict):
+            return '☑' if pulse_obj.get(option) else '☐'
+        
+        # String format
+        pulse_type = str(pulse_obj).lower()
+        return '☑' if option.lower() in pulse_type else '☐'
     
     # Solunum tipi
-    if field_key.startswith('respType.'):
-        resp_type = case_data.get('clinical_observations', {}).get('resp_type', '').lower()
-        option = field_key.split('.')[1].lower()
-        return '☑' if resp_type == option else '☐'
+    if field_key.startswith('respType.') or field_key.startswith('resp.'):
+        option = field_key.split('.')[1]
+        
+        # Object format
+        resp_obj = clinical_obs.get('respType', {}) or extended_form.get('respType', {})
+        if isinstance(resp_obj, dict):
+            return '☑' if resp_obj.get(option) else '☐'
+        
+        # String format
+        resp_type = str(resp_obj).lower()
+        return '☑' if option.lower() in resp_type else '☐'
     
     # GKS Motor/Verbal/Eye
     if field_key.startswith('gcsMotor.'):
@@ -315,13 +371,18 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         option = field_key.split('.')[1].lower()
         return '☑' if option in transfer or transfer == option else '☐'
     
-    # Olay yeri checkboxları - extended_form.sceneType'dan al
+    # Olay yeri checkboxları - extended_form.sceneType veya scene object
     if field_key.startswith('scene.'):
-        extended_form = case_data.get('extended_form', {})
-        scene = extended_form.get('sceneType', '') or case_data.get('scene_type', '')
-        scene = scene.lower() if scene else ''
-        option = field_key.split('.')[1].lower()
-        return '☑' if option in scene or scene == option else '☐'
+        option = field_key.split('.')[1]
+        
+        # Object format: {ev: true, sokak: true}
+        scene_obj = extended_form.get('scene', {}) or extended_form.get('sceneType', {})
+        if isinstance(scene_obj, dict):
+            return '☑' if scene_obj.get(option) else '☐'
+        
+        # String format
+        scene = (str(scene_obj) or case_data.get('scene_type', '')).lower()
+        return '☑' if option.lower() in scene else '☐'
     
     # Adli vaka
     if field_key.startswith('forensic.'):
@@ -491,15 +552,33 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     }
     
     if field_key.startswith('med.'):
-        medications = case_data.get('medications', [])
+        medications = case_data.get('medications', []) or case_data.get('extended_form', {}).get('medications', {})
         parts = field_key.split('.')
         med_key = parts[1].lower() if len(parts) > 1 else ''
         field_type = parts[2] if len(parts) > 2 else 'cb'
         
         possible_names = MEDICATION_NAME_MAPPING.get(med_key, [med_key])
         
+        # medications dict formatında: {"Arveles amp.": {checked: true, adet: 2, tur: "IV"}}
+        if isinstance(medications, dict):
+            for med_name, med_data in medications.items():
+                med_name_lower = med_name.lower()
+                matched = False
+                
+                for possible in possible_names:
+                    if possible.lower() in med_name_lower or med_key.replace('_', ' ') in med_name_lower:
+                        matched = True
+                        break
+                
+                if matched and isinstance(med_data, dict) and med_data.get('checked'):
+                    if field_type == 'adet':
+                        return str(med_data.get('adet', 1))
+                    if field_type == 'tur':
+                        return med_data.get('tur', '') or med_data.get('route', '')
+                    return '☑'
+        
         # medications liste formatında
-        if isinstance(medications, list):
+        elif isinstance(medications, list):
             for med in medications:
                 med_name = (med.get('name', '') or '').lower()
                 med_code = (med.get('code', '') or '').lower()
@@ -507,9 +586,9 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
                 for possible in possible_names:
                     if possible.lower() in med_name or possible.lower() in med_code or med_key in med_name:
                         if field_type == 'adet':
-                            return str(med.get('quantity', med.get('count', 1)))
+                            return str(med.get('quantity', med.get('count', med.get('adet', 1))))
                         if field_type == 'tur':
-                            return med.get('route', med.get('type', ''))
+                            return med.get('route', med.get('type', med.get('tur', '')))
                         return '☑'
         
         return '☐' if field_type == 'cb' else ''

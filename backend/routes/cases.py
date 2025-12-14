@@ -1496,6 +1496,16 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         medical_form = case_doc.get("medical_form", {})
     
     extended_form = medical_form.get("extended_form", {})
+    clinical_obs = medical_form.get("clinical_obs", {})
+    
+    # Vehicle info birleştir
+    vehicle_info = {**case_doc.get("vehicle_info", {}), **medical_form.get("vehicle_info", {})}
+    
+    # Time info birleştir
+    time_info = {**case_doc.get("time_info", {}), **medical_form.get("time_info", {})}
+    
+    # Assigned team
+    assigned_team = case_doc.get("assigned_team", {})
     
     return {
         "case_number": case_doc.get("case_number", ""),
@@ -1505,47 +1515,111 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         "patient": case_doc.get("patient", {}),
         "caller": case_doc.get("caller", {}),
         "location": case_doc.get("location", {}),
-        "assigned_team": case_doc.get("assigned_team", {}),
-        # vehicle_info: hem case hem medical_form'dan
-        "vehicle_info": {**case_doc.get("vehicle_info", {}), **medical_form.get("vehicle_info", {})},
-        # time_info: hem case hem medical_form'dan
-        "time_info": {**case_doc.get("time_info", {}), **medical_form.get("time_info", {})},
+        "assigned_team": assigned_team,
+        
+        # ATN NO - birden fazla yerden kontrol
+        "atn_no": case_doc.get("atn_no", "") or extended_form.get("atnNo", "") or medical_form.get("atn_no", ""),
+        
+        # PLAKA - assigned_team.vehicle veya vehicle_info.plate
+        "vehicle_plate": assigned_team.get("vehicle", "") or vehicle_info.get("plate", "") or extended_form.get("vehiclePlate", ""),
+        
+        # VAKAYI VEREN KURUM
+        "referring_institution": case_doc.get("referring_institution", "") or case_doc.get("company", "") or extended_form.get("referringInstitution", "") or extended_form.get("vakayiVerenKurum", ""),
+        
+        # KM bilgileri
+        "start_km": vehicle_info.get("start_km", "") or extended_form.get("startKm", ""),
+        "end_km": vehicle_info.get("end_km", "") or extended_form.get("endKm", ""),
+        "total_km": vehicle_info.get("total_km", "") or extended_form.get("totalKm", ""),
+        
+        # İstasyon
+        "station_name": case_doc.get("station_name", "") or assigned_team.get("station", "") or extended_form.get("stationName", ""),
+        
+        # Kodu
+        "case_code": case_doc.get("case_code", "") or extended_form.get("caseCode", ""),
+        
+        # vehicle_info ve time_info
+        "vehicle_info": vehicle_info,
+        "time_info": time_info,
         "company": case_doc.get("company", ""),
+        
         # call_type ve call_reason: extended_form içinden de al
         "call_type": case_doc.get("call_type", "") or extended_form.get("callType", ""),
         "call_reason": case_doc.get("call_reason", "") or extended_form.get("callReason", ""),
         "complaint": case_doc.get("complaint", "") or case_doc.get("patient", {}).get("complaint", ""),
-        "chronic_diseases": case_doc.get("chronic_diseases", "") or medical_form.get("chronic_diseases", ""),
+        "chronic_diseases": case_doc.get("chronic_diseases", "") or medical_form.get("chronic_diseases", "") or extended_form.get("chronicDiseases", ""),
         "is_forensic": case_doc.get("is_forensic", False) or extended_form.get("isForensic", False),
         "case_result": case_doc.get("case_result", "") or extended_form.get("outcome", ""),
-        "transfer_hospital": case_doc.get("transfer_hospital", "") or extended_form.get("transferHospital", ""),
-        # Vital signs
-        "vital_signs": case_doc.get("vital_signs", []) or medical_form.get("vital_signs", []),
-        # Clinical observations
-        "clinical_observations": {**case_doc.get("clinical_observations", {}), **medical_form.get("clinical_obs", {})},
-        # Extended form (checkbox'lar için)
+        "transfer_hospital": case_doc.get("transfer_hospital", "") or extended_form.get("transferHospital", "") or extended_form.get("nakledilenHastane", ""),
+        
+        # Vital signs - clinical_obs içinden de al
+        "vital_signs": case_doc.get("vital_signs", []) or medical_form.get("vital_signs", []) or clinical_obs.get("vital_signs", []),
+        
+        # Clinical observations - tüm kaynaklardan birleştir
+        "clinical_observations": {
+            **case_doc.get("clinical_observations", {}), 
+            **clinical_obs,
+            # Ek alanlar
+            "blood_sugar": clinical_obs.get("blood_sugar", "") or extended_form.get("kanSekeri", ""),
+            "temperature": clinical_obs.get("temperature", "") or extended_form.get("ates", ""),
+            "pulseType": clinical_obs.get("pulseType", {}) or extended_form.get("pulseType", {}),
+            "respType": clinical_obs.get("respType", {}) or extended_form.get("respType", {}),
+            "pupils": clinical_obs.get("pupils", {}) or extended_form.get("pupils", {}),
+            "skin": clinical_obs.get("skin", {}) or extended_form.get("skin", {}),
+            "gks": clinical_obs.get("gks", {}) or extended_form.get("gks", {}),
+        },
+        
+        # Ön tanı ve açıklama
+        "on_tani": medical_form.get("on_tani", "") or extended_form.get("onTani", "") or case_doc.get("preliminary_diagnosis", ""),
+        "aciklamalar": medical_form.get("aciklamalar", "") or extended_form.get("aciklamalar", "") or case_doc.get("notes", ""),
+        
+        # Extended form (checkbox'lar için) - tam olarak aktar
         "extended_form": extended_form,
+        
         # PROCEDURES - Dictionary format: {"Muayene (Acil)": {checked: true, adet: 2}}
         "procedures": medical_form.get("procedures", {}),
-        # MEDICATIONS - hem case hem medical_form'dan
-        "medications": case_doc.get("medications", []) or [],
+        
+        # MEDICATIONS - hem case hem medical_form'dan, hem list hem dict format
+        "medications": case_doc.get("medications", []) or medical_form.get("medications", []) or [],
+        
         # MATERIALS - Dictionary format: {"Enjektör 1-2 cc": {checked: true, adet: 5}}
         "materials": medical_form.get("materials", {}),
+        
         # Transfers (nakil bilgileri)
         "transfers": medical_form.get("transfers", {}),
+        
         # Fluids
-        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
-        "signatures": case_doc.get("signatures", {}) or medical_form.get("signatures", {}),
+        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []) or medical_form.get("fluids", []),
+        
+        # İmzalar - hem signatures hem extended_form'dan
+        "signatures": {
+            **case_doc.get("signatures", {}), 
+            **medical_form.get("signatures", {}),
+            # Extended form'dan da al
+            "doctor_name": extended_form.get("hekimAdi", ""),
+            "paramedic_name": extended_form.get("saglikPerAdi", ""),
+            "driver_name": extended_form.get("soforAdi", ""),
+            "receiver_name": extended_form.get("teslimAlanAdi", ""),
+            "receiver_title": extended_form.get("teslimAlanUnvan", ""),
+            "patient_name": extended_form.get("hastaYakiniAdi", ""),
+        },
+        
         "hospital_rejection": case_doc.get("hospital_rejection", {}),
         "patient_rejection": case_doc.get("patient_rejection", {}),
+        
         # CPR data
-        "cpr_data": medical_form.get("cpr_data", {}),
+        "cpr_data": medical_form.get("cpr_data", {}) or extended_form.get("cprData", {}),
+        
         # Isolation
         "isolation": medical_form.get("isolation", {}),
+        
         # Scene type (olay yeri)
-        "scene_type": extended_form.get("sceneType", ""),
+        "scene_type": extended_form.get("sceneType", "") or extended_form.get("scene", {}),
+        
         # Transfer type
         "transfer_type": extended_form.get("transferType", ""),
+        
+        # Kazaya karışan araçlar
+        "crash_vehicles": extended_form.get("crashVehicles", []),
     }
 
 @router.get("/{case_id}/export-excel-mapped")
