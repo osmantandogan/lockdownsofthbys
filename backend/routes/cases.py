@@ -1714,20 +1714,36 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 except Exception as e:
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
         
-        # SAYFA AYARLARI: Tek sayfaya sığdır (A4)
+        # SAYFA AYARLARI: A4 Landscape, tek sayfaya sığdır
         try:
+            from openpyxl.worksheet.properties import PageSetupProperties
+            
             # Sayfa ayarları
             ws.page_setup.orientation = 'landscape'  # Yatay
             ws.page_setup.paperSize = 9  # A4 (9 = A4)
             ws.page_setup.fitToWidth = 1  # 1 sayfa genişliğine sığdır
             ws.page_setup.fitToHeight = 1  # 1 sayfa yüksekliğine sığdır
-            ws.page_setup.scale = 100  # %100 ölçek
+            ws.page_setup.fitToPage = True  # FitToPage modunu etkinleştir
             
-            # Print area: Tüm kullanılan hücreler
-            if ws.max_row > 0 and ws.max_column > 0:
-                from openpyxl.utils import get_column_letter
-                print_area = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
-                ws.print_area = print_area
+            # Sheet properties
+            if ws.sheet_properties.pageSetUpPr is None:
+                ws.sheet_properties.pageSetUpPr = PageSetupProperties()
+            ws.sheet_properties.pageSetUpPr.fitToPage = True
+            
+            # Print area: Sadece veri olan hücreler (79 satır x 20 sütun - şablon boyutu)
+            from openpyxl.utils import get_column_letter
+            max_row = min(ws.max_row, 79) if ws.max_row else 79
+            max_col = min(ws.max_column, 20) if ws.max_column else 20
+            print_area = f"A1:{get_column_letter(max_col)}{max_row}"
+            ws.print_area = print_area
+            
+            # Kenar boşlukları (cm cinsinden, küçük tutuyoruz)
+            ws.page_margins.left = 0.5
+            ws.page_margins.right = 0.5
+            ws.page_margins.top = 0.5
+            ws.page_margins.bottom = 0.5
+            
+            logger.info(f"Sayfa ayarları: A4 Landscape, FitToPage=True, PrintArea={print_area}")
         except Exception as e:
             logger.warning(f"Sayfa ayarları yapılamadı: {e}")
         
@@ -1738,83 +1754,85 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         temp_xlsx = os.path.join(temp_dir, f"case_{case_id}_{uuid.uuid4().hex[:8]}.xlsx")
         wb.save(temp_xlsx)
         
-        # LibreOffice ile PDF'e dönüştür
+        # LibreOffice ile PDF'e dönüştür (A4 tek sayfa)
         try:
-            result = subprocess.run([
-                'libreoffice', '--headless', '--convert-to', 'pdf',
+            # Önce ODS'ye çevir, sonra PDF'e (sayfa ayarları daha iyi korunuyor)
+            # ODS dönüşümü
+            result1 = subprocess.run([
+                'libreoffice', '--headless', '--convert-to', 'ods',
                 '--outdir', temp_dir, temp_xlsx
             ], capture_output=True, timeout=60, text=True)
             
-            pdf_path = temp_xlsx.replace('.xlsx', '.pdf')
+            temp_ods = temp_xlsx.replace('.xlsx', '.ods')
+            
+            # ODS dosyasını aç ve sayfa ayarlarını düzelt
+            if os.path.exists(temp_ods):
+                try:
+                    # ODS dosyasını zipfile olarak aç ve styles.xml'i düzenle
+                    import zipfile
+                    import xml.etree.ElementTree as ET
+                    
+                    # ODS'yi aç
+                    with zipfile.ZipFile(temp_ods, 'r') as zf:
+                        content = {name: zf.read(name) for name in zf.namelist()}
+                    
+                    # styles.xml'i düzenle - A4 landscape ve tek sayfaya sığdır
+                    if 'styles.xml' in content:
+                        styles_xml = content['styles.xml'].decode('utf-8')
+                        
+                        # Sayfa ayarlarını değiştir
+                        # fo:page-width="29.7cm" fo:page-height="21cm" (A4 landscape)
+                        # style:scale-to-pages="1"
+                        if 'fo:page-width' in styles_xml:
+                            import re
+                            # A4 landscape boyutları
+                            styles_xml = re.sub(r'fo:page-width="[^"]*"', 'fo:page-width="29.7cm"', styles_xml)
+                            styles_xml = re.sub(r'fo:page-height="[^"]*"', 'fo:page-height="21cm"', styles_xml)
+                            # Ölçekleme ekle
+                            if 'style:scale-to-pages' not in styles_xml:
+                                styles_xml = styles_xml.replace(
+                                    'style:print-orientation="landscape"',
+                                    'style:print-orientation="landscape" style:scale-to-pages="1"'
+                                )
+                        
+                        content['styles.xml'] = styles_xml.encode('utf-8')
+                    
+                    # Yeni ODS dosyası oluştur
+                    temp_ods_fixed = temp_ods.replace('.ods', '_fixed.ods')
+                    with zipfile.ZipFile(temp_ods_fixed, 'w', zipfile.ZIP_DEFLATED) as zf:
+                        for name, data in content.items():
+                            zf.writestr(name, data)
+                    
+                    # Eski ODS'yi sil, yenisini kullan
+                    os.remove(temp_ods)
+                    os.rename(temp_ods_fixed, temp_ods)
+                    
+                except Exception as e:
+                    logger.warning(f"ODS düzenleme hatası: {e}")
+            
+            # Kaynak dosya (ODS veya XLSX)
+            source_file = temp_ods if os.path.exists(temp_ods) else temp_xlsx
+            
+            # PDF'e dönüştür
+            result2 = subprocess.run([
+                'libreoffice', '--headless', '--convert-to', 'pdf',
+                '--outdir', temp_dir, source_file
+            ], capture_output=True, timeout=60, text=True)
+            
+            pdf_path = source_file.replace('.ods', '.pdf').replace('.xlsx', '.pdf')
             
             if os.path.exists(pdf_path):
                 # PDF'i oku
                 with open(pdf_path, 'rb') as f:
                     pdf_content = f.read()
                 
-                # TEK SAYFAYA SIĞDIR: PyMuPDF (fitz) ile
-                try:
-                    import fitz  # PyMuPDF
-                    
-                    # Orijinal PDF'i aç
-                    src_doc = fitz.open(stream=pdf_content, filetype="pdf")
-                    
-                    if len(src_doc) > 1:
-                        # Yeni tek sayfa PDF oluştur
-                        dst_doc = fitz.open()
-                        
-                        # A4 Landscape boyutu (842 x 595 points)
-                        page_width = 842  # A4 landscape genişlik
-                        page_height = 595  # A4 landscape yükseklik
-                        
-                        # Tek sayfa oluştur
-                        new_page = dst_doc.new_page(width=page_width, height=page_height)
-                        
-                        # Tüm sayfaları dikey olarak sırala ve ölçekle
-                        total_height = sum([p.rect.height for p in src_doc])
-                        total_width = max([p.rect.width for p in src_doc])
-                        
-                        # Ölçek hesapla (tek sayfaya sığdır)
-                        scale_x = page_width / total_width
-                        scale_y = page_height / total_height
-                        scale = min(scale_x, scale_y) * 0.95  # %95 kenar boşluğu
-                        
-                        # Her sayfayı yeni sayfaya ekle
-                        y_offset = 5  # Üst kenar boşluğu
-                        for page in src_doc:
-                            src_rect = page.rect
-                            
-                            # Hedef dikdörtgen hesapla
-                            scaled_height = src_rect.height * scale
-                            scaled_width = src_rect.width * scale
-                            x_offset = (page_width - scaled_width) / 2  # Ortala
-                            
-                            dst_rect = fitz.Rect(
-                                x_offset, y_offset,
-                                x_offset + scaled_width, y_offset + scaled_height
-                            )
-                            
-                            # Sayfayı ekle
-                            new_page.show_pdf_page(dst_rect, src_doc, page.number)
-                            y_offset += scaled_height
-                        
-                        # Yeni PDF'i kaydet
-                        pdf_content = dst_doc.write()
-                        dst_doc.close()
-                    
-                    src_doc.close()
-                    
-                except ImportError:
-                    logger.warning("PyMuPDF yüklü değil, çok sayfalı PDF olarak devam ediliyor")
-                except Exception as e:
-                    logger.warning(f"PDF tek sayfaya sığdırma hatası: {e}")
-                
                 # Temizlik
-                try:
-                    os.remove(temp_xlsx)
-                    os.remove(pdf_path)
-                except:
-                    pass
+                for f_path in [temp_xlsx, temp_ods, pdf_path]:
+                    try:
+                        if os.path.exists(f_path):
+                            os.remove(f_path)
+                    except:
+                        pass
                 
                 case_number = case_doc.get("case_number", case_id[:8])
                 date_str = get_turkey_time().strftime("%Y-%m-%d")
@@ -1827,12 +1845,14 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'}
                 )
             else:
-                error_msg = result.stderr if result.stderr else result.stdout
+                error_msg = result2.stderr if result2.stderr else result2.stdout
                 logger.error(f"PDF oluşturulamadı. LibreOffice çıktısı: {error_msg}")
-                try:
-                    os.remove(temp_xlsx)
-                except:
-                    pass
+                for f_path in [temp_xlsx, temp_ods]:
+                    try:
+                        if os.path.exists(f_path):
+                            os.remove(f_path)
+                    except:
+                        pass
                 raise HTTPException(status_code=500, detail=f"PDF dönüştürme başarısız: {error_msg[:200]}")
                 
         except subprocess.TimeoutExpired:
