@@ -27,15 +27,38 @@ const FIELD_CATEGORIES = [
       { key: 'patientFullName', label: 'Hasta Ad Soyad' },
       { key: 'patientAge', label: 'Yaş' },
       { key: 'patientBirthDate', label: 'Doğum Tarihi' },
-      { key: 'patientGender', label: 'Cinsiyet' },
       { key: 'patientTC', label: 'T.C. Kimlik No' },
       { key: 'patientAddress', label: 'Adres' },
       { key: 'patientPhone', label: 'Telefon' },
       { key: 'patientComplaint', label: 'Şikayet' },
       { key: 'patientDiagnosis', label: 'Ön Tanı' },
       { key: 'chronicDiseases', label: 'Kronik Hastalıklar' },
-      { key: 'allergies', label: 'Alerjiler' },
-      { key: 'patientStatus', label: 'Hasta Durumu' }
+      { key: 'allergies', label: 'Alerjiler' }
+    ]
+  },
+  {
+    id: 'checkbox_cinsiyet',
+    name: 'Cinsiyet (Checkbox)',
+    icon: User,
+    color: 'blue',
+    isCheckbox: true,
+    fields: [
+      { key: 'gender.erkek', label: '☑ Erkek' },
+      { key: 'gender.kadin', label: '☑ Kadın' }
+    ]
+  },
+  {
+    id: 'checkbox_durum',
+    name: 'Hasta Durumu (Checkbox)',
+    icon: AlertCircle,
+    color: 'red',
+    isCheckbox: true,
+    fields: [
+      { key: 'triageCode.kirmizi', label: '☑ Kırmızı Kod' },
+      { key: 'triageCode.sari', label: '☑ Sarı Kod' },
+      { key: 'triageCode.yesil', label: '☑ Yeşil Kod' },
+      { key: 'triageCode.siyah', label: '☑ Siyah Kod' },
+      { key: 'triageCode.sosyal', label: '☑ Sosyal Endikasyon' }
     ]
   },
   {
@@ -44,12 +67,72 @@ const FIELD_CATEGORIES = [
     icon: Phone,
     color: 'purple',
     fields: [
-      { key: 'callType', label: 'Çağrı Tipi' },
-      { key: 'callReason', label: 'Çağrı Nedeni' },
-      { key: 'callReasonDetail', label: 'Çağrı Nedeni Detay' },
-      { key: 'referralSource', label: 'Vakayı Veren Kurum' },
-      { key: 'sceneType', label: 'Olay Yeri Tipi' },
-      { key: 'incidentLocation', label: 'Olay Yeri' }
+      { key: 'referralSource', label: 'Vakayı Veren Kurum' }
+    ]
+  },
+  {
+    id: 'checkbox_cagri_tipi',
+    name: 'Çağrı Tipi (Checkbox)',
+    icon: Phone,
+    color: 'purple',
+    isCheckbox: true,
+    fields: [
+      { key: 'callType.telsiz', label: '☑ Telsiz' },
+      { key: 'callType.telefon', label: '☑ Telefon' },
+      { key: 'callType.diger', label: '☑ Diğer' }
+    ]
+  },
+  {
+    id: 'checkbox_cagri_nedeni',
+    name: 'Çağrı Nedeni (Checkbox)',
+    icon: Phone,
+    color: 'purple',
+    isCheckbox: true,
+    fields: [
+      { key: 'callReason.medikal', label: '☑ Medikal' },
+      { key: 'callReason.trafik_kaza', label: '☑ Trafik Kazası' },
+      { key: 'callReason.diger_kaza', label: '☑ Diğer Kaza' },
+      { key: 'callReason.is_kazasi', label: '☑ İş Kazası' },
+      { key: 'callReason.yangin', label: '☑ Yangın' },
+      { key: 'callReason.intihar', label: '☑ İntihar' },
+      { key: 'callReason.kimyasal', label: '☑ Kimyasal' },
+      { key: 'callReason.elektrik', label: '☑ Elektrik Çarpması' },
+      { key: 'callReason.atesli_silah', label: '☑ Ateşli Silah' },
+      { key: 'callReason.bogulma', label: '☑ Boğulma' },
+      { key: 'callReason.dusme', label: '☑ Düşme' },
+      { key: 'callReason.alkol_ilac', label: '☑ Alkol/İlaç' },
+      { key: 'callReason.kunt_travma', label: '☑ Künt Travma' },
+      { key: 'callReason.lpg', label: '☑ LPG' },
+      { key: 'callReason.tedbir', label: '☑ Tedbir' },
+      { key: 'callReason.protokol', label: '☑ Protokol' },
+      { key: 'callReason.alerji', label: '☑ Alerji' },
+      { key: 'callReason.kesici_delici', label: '☑ Kesici/Delici' },
+      { key: 'callReason.yanik', label: '☑ Yanık' }
+    ]
+  },
+  {
+    id: 'checkbox_olay_yeri',
+    name: 'Olay Yeri (Checkbox)',
+    icon: MapPin,
+    color: 'lime',
+    isCheckbox: true,
+    fields: [
+      { key: 'sceneType.ev', label: '☑ Ev' },
+      { key: 'sceneType.yaya', label: '☑ Yaya' },
+      { key: 'sceneType.suda', label: '☑ Suda' },
+      { key: 'sceneType.arazi', label: '☑ Arazi' },
+      { key: 'sceneType.aracta', label: '☑ Araçta' },
+      { key: 'sceneType.buro', label: '☑ Büro' },
+      { key: 'sceneType.fabrika', label: '☑ Fabrika' },
+      { key: 'sceneType.sokak', label: '☑ Sokak' },
+      { key: 'sceneType.stadyum', label: '☑ Stadyum' },
+      { key: 'sceneType.huzurevi', label: '☑ Huzurevi' },
+      { key: 'sceneType.cami', label: '☑ Cami' },
+      { key: 'sceneType.yurt', label: '☑ Yurt' },
+      { key: 'sceneType.saglik_kurumu', label: '☑ Sağlık Kurumu' },
+      { key: 'sceneType.resmi_daire', label: '☑ Resmi Daire' },
+      { key: 'sceneType.egitim_kurumu', label: '☑ Eğitim Kurumu' },
+      { key: 'sceneType.spor_salonu', label: '☑ Spor Salonu' }
     ]
   },
   {
@@ -101,12 +184,64 @@ const FIELD_CATEGORIES = [
     icon: Eye,
     color: 'indigo',
     fields: [
-      { key: 'consciousStatus', label: 'Bilinç Durumu' },
-      { key: 'emotionalState', label: 'Duygu Durumu' },
-      { key: 'pupil', label: 'Pupil' },
-      { key: 'skin', label: 'Cilt/Deri' },
-      { key: 'respirationType', label: 'Solunum Tipi' },
-      { key: 'pulseType', label: 'Nabız Tipi' }
+      { key: 'bloodSugar', label: 'Kan Şekeri (mg/dL)' },
+      { key: 'bodyTemp', label: 'Vücut Sıcaklığı (°C)' }
+    ]
+  },
+  {
+    id: 'checkbox_pupil',
+    name: 'Pupil (Checkbox)',
+    icon: Eye,
+    color: 'indigo',
+    isCheckbox: true,
+    fields: [
+      { key: 'pupil.normal', label: '☑ Normal' },
+      { key: 'pupil.miyotik', label: '☑ Miyotik' },
+      { key: 'pupil.midriatik', label: '☑ Midriatik' },
+      { key: 'pupil.anizokorik', label: '☑ Anizokorik' },
+      { key: 'pupil.reaksiyon_yok', label: '☑ Reaksiyon Yok' },
+      { key: 'pupil.fiks_dilate', label: '☑ Fiks Dilate' }
+    ]
+  },
+  {
+    id: 'checkbox_deri',
+    name: 'Deri (Checkbox)',
+    icon: Eye,
+    color: 'indigo',
+    isCheckbox: true,
+    fields: [
+      { key: 'skin.normal', label: '☑ Normal' },
+      { key: 'skin.soluk', label: '☑ Soluk' },
+      { key: 'skin.siyanotik', label: '☑ Siyanotik' },
+      { key: 'skin.hiperemik', label: '☑ Hiperemik' },
+      { key: 'skin.ikterik', label: '☑ İkterik' },
+      { key: 'skin.terli', label: '☑ Terli' }
+    ]
+  },
+  {
+    id: 'checkbox_nabiz',
+    name: 'Nabız Tipi (Checkbox)',
+    icon: Heart,
+    color: 'red',
+    isCheckbox: true,
+    fields: [
+      { key: 'pulseType.duzenli', label: '☑ Düzenli' },
+      { key: 'pulseType.ritmik', label: '☑ Ritmik' },
+      { key: 'pulseType.filiform', label: '☑ Filiform' },
+      { key: 'pulseType.alinmiyor', label: '☑ Alınmıyor' }
+    ]
+  },
+  {
+    id: 'checkbox_solunum',
+    name: 'Solunum Tipi (Checkbox)',
+    icon: Heart,
+    color: 'red',
+    isCheckbox: true,
+    fields: [
+      { key: 'respType.duzenli', label: '☑ Düzenli' },
+      { key: 'respType.duzensiz', label: '☑ Düzensiz' },
+      { key: 'respType.dispne', label: '☑ Dispne' },
+      { key: 'respType.yok', label: '☑ Yok' }
     ]
   },
   {
@@ -115,10 +250,49 @@ const FIELD_CATEGORIES = [
     icon: AlertCircle,
     color: 'orange',
     fields: [
-      { key: 'gcsMotor', label: 'Motor Yanıt' },
-      { key: 'gcsVerbal', label: 'Verbal Yanıt' },
-      { key: 'gcsEye', label: 'Göz Açma' },
-      { key: 'gcsTotal', label: 'GKS Toplam' }
+      { key: 'gcsTotal', label: 'GKS Toplam Puan' }
+    ]
+  },
+  {
+    id: 'checkbox_gks_motor',
+    name: 'GKS Motor (Checkbox)',
+    icon: AlertCircle,
+    color: 'orange',
+    isCheckbox: true,
+    fields: [
+      { key: 'gcsMotor.6', label: '☑ 6 - Emre İtaat' },
+      { key: 'gcsMotor.5', label: '☑ 5 - Ağrıyı Lokalize' },
+      { key: 'gcsMotor.4', label: '☑ 4 - Ağrıdan Kaçınma' },
+      { key: 'gcsMotor.3', label: '☑ 3 - Fleksör Yanıt' },
+      { key: 'gcsMotor.2', label: '☑ 2 - Ekstensör Yanıt' },
+      { key: 'gcsMotor.1', label: '☑ 1 - Yanıt Yok' }
+    ]
+  },
+  {
+    id: 'checkbox_gks_verbal',
+    name: 'GKS Verbal (Checkbox)',
+    icon: AlertCircle,
+    color: 'orange',
+    isCheckbox: true,
+    fields: [
+      { key: 'gcsVerbal.5', label: '☑ 5 - Oriente' },
+      { key: 'gcsVerbal.4', label: '☑ 4 - Konfüze' },
+      { key: 'gcsVerbal.3', label: '☑ 3 - Uygunsuz Sözler' },
+      { key: 'gcsVerbal.2', label: '☑ 2 - Anlamsız Bağırma' },
+      { key: 'gcsVerbal.1', label: '☑ 1 - Yanıt Yok' }
+    ]
+  },
+  {
+    id: 'checkbox_gks_goz',
+    name: 'GKS Göz Açma (Checkbox)',
+    icon: AlertCircle,
+    color: 'orange',
+    isCheckbox: true,
+    fields: [
+      { key: 'gcsEye.4', label: '☑ 4 - Spontan' },
+      { key: 'gcsEye.3', label: '☑ 3 - Sesle' },
+      { key: 'gcsEye.2', label: '☑ 2 - Ağrıyla' },
+      { key: 'gcsEye.1', label: '☑ 1 - Yanıt Yok' }
     ]
   },
   {
@@ -145,10 +319,53 @@ const FIELD_CATEGORIES = [
     fields: [
       { key: 'hospitalName', label: 'Nakledilen Hastane' },
       { key: 'hospitalProtocol', label: 'Hastane Protokol No' },
-      { key: 'transferType', label: 'Transfer Tipi' },
-      { key: 'pickupAddress', label: 'Alındığı Adres' },
-      { key: 'isForensic', label: 'Adli Vaka' },
-      { key: 'outcome', label: 'Sonuç' }
+      { key: 'pickupAddress', label: 'Alındığı Adres' }
+    ]
+  },
+  {
+    id: 'checkbox_transfer_tipi',
+    name: 'Transfer Tipi (Checkbox)',
+    icon: MapPin,
+    color: 'lime',
+    isCheckbox: true,
+    fields: [
+      { key: 'transferType.ilce_ici', label: '☑ İlçe İçi' },
+      { key: 'transferType.ilce_disi', label: '☑ İlçe Dışı' },
+      { key: 'transferType.il_disi', label: '☑ İl Dışı' }
+    ]
+  },
+  {
+    id: 'checkbox_sonuc',
+    name: 'Sonuç (Checkbox)',
+    icon: FileText,
+    color: 'green',
+    isCheckbox: true,
+    fields: [
+      { key: 'outcome.yerinde_mudahale', label: '☑ Yerinde Müdahale' },
+      { key: 'outcome.hastaneye_nakil', label: '☑ Hastaneye Nakil' },
+      { key: 'outcome.hastaneler_arasi', label: '☑ Hastaneler Arası Nakil' },
+      { key: 'outcome.tibbi_tetkik', label: '☑ Tıbbi Tetkik İçin Nakil' },
+      { key: 'outcome.eve_nakil', label: '☑ Eve Nakil' },
+      { key: 'outcome.ex_yerinde', label: '☑ Ex Yerinde Bırakıldı' },
+      { key: 'outcome.ex_morga', label: '☑ Ex Morga Nakil' },
+      { key: 'outcome.nakil_reddi', label: '☑ Nakil Reddi' },
+      { key: 'outcome.diger', label: '☑ Diğer/Ulaşılan' },
+      { key: 'outcome.gorev_iptali', label: '☑ Görev İptali' },
+      { key: 'outcome.baska_aracla', label: '☑ Başka Araçla Nakil' },
+      { key: 'outcome.asilsiz_ihbar', label: '☑ Asılsız İhbar' },
+      { key: 'outcome.yaralanan_yok', label: '☑ Yaralanan Yok' },
+      { key: 'outcome.olay_yerinde_bekleme', label: '☑ Olay Yerinde Bekleme' }
+    ]
+  },
+  {
+    id: 'checkbox_adli_vaka',
+    name: 'Adli Vaka (Checkbox)',
+    icon: AlertCircle,
+    color: 'red',
+    isCheckbox: true,
+    fields: [
+      { key: 'isForensic.evet', label: '☑ Evet' },
+      { key: 'isForensic.hayir', label: '☑ Hayır' }
     ]
   },
   {
@@ -186,8 +403,100 @@ const FIELD_CATEGORIES = [
     icon: Package,
     color: 'yellow',
     fields: [
-      { key: 'materialsList', label: 'Malzeme Listesi' },
-      { key: 'proceduresList', label: 'İşlem Listesi' }
+      { key: 'materialsList', label: 'Malzeme Listesi' }
+    ]
+  },
+  {
+    id: 'checkbox_genel_islem',
+    name: 'Genel Müdahale İşlemleri (Checkbox)',
+    icon: Settings,
+    color: 'violet',
+    isCheckbox: true,
+    fields: [
+      { key: 'proc.muayene', label: '☑ Muayene (Acil)' },
+      { key: 'proc.enjeksiyon_im', label: '☑ Enjeksiyon IM' },
+      { key: 'proc.enjeksiyon_iv', label: '☑ Enjeksiyon IV' },
+      { key: 'proc.enjeksiyon_sc', label: '☑ Enjeksiyon SC' },
+      { key: 'proc.iv_ilac', label: '☑ I.V. İlaç Uygulaması' },
+      { key: 'proc.damar_yolu', label: '☑ Damar Yolu Açılması' },
+      { key: 'proc.sutur', label: '☑ Sütür (küçük)' },
+      { key: 'proc.mesane_sondasi', label: '☑ Mesane Sondası' },
+      { key: 'proc.mide_yikama', label: '☑ Mide Yıkanması' },
+      { key: 'proc.pansuman', label: '☑ Pansuman (küçük)' },
+      { key: 'proc.apse', label: '☑ Apse Açmak' },
+      { key: 'proc.yabanci_cisim', label: '☑ Yabancı Cisim Çıkarma' },
+      { key: 'proc.yanik_pansuman', label: '☑ Yanık Pansumanı' },
+      { key: 'proc.ng_sonda', label: '☑ NG Sonda Takma' },
+      { key: 'proc.kulak_buson', label: '☑ Kulaktan Buşon Temizliği' },
+      { key: 'proc.kol_atel', label: '☑ Kol Atel (kısa)' },
+      { key: 'proc.bacak_atel', label: '☑ Bacak Atel (kısa)' },
+      { key: 'proc.cilt_traksiyon', label: '☑ Cilt Traksiyonu' },
+      { key: 'proc.servikal_collar', label: '☑ Servikal Collar' },
+      { key: 'proc.travma_yelegi', label: '☑ Travma Yeleği' },
+      { key: 'proc.vakum_sedye', label: '☑ Vakum Sedye' },
+      { key: 'proc.sirt_tahtasi', label: '☑ Sırt Tahtası' }
+    ]
+  },
+  {
+    id: 'checkbox_hava_yolu',
+    name: 'Hava Yolu İşlemleri (Checkbox)',
+    icon: Settings,
+    color: 'cyan',
+    isCheckbox: true,
+    fields: [
+      { key: 'airway.balon_valf', label: '☑ Balon Valf Maske' },
+      { key: 'airway.aspirasyon', label: '☑ Aspirasyon' },
+      { key: 'airway.orofaringeal', label: '☑ Orofaringeal Tüp' },
+      { key: 'airway.entubasyon', label: '☑ Endotrakeal Entübasyon' },
+      { key: 'airway.mekanik_vent', label: '☑ Mekanik Ventilasyon' },
+      { key: 'airway.oksijen', label: '☑ Oksijen İnhalasyon' }
+    ]
+  },
+  {
+    id: 'checkbox_dolasim',
+    name: 'Dolaşım Desteği (Checkbox)',
+    icon: Heart,
+    color: 'red',
+    isCheckbox: true,
+    fields: [
+      { key: 'circ.cpr', label: '☑ CPR (Resüsitasyon)' },
+      { key: 'circ.ekg', label: '☑ EKG Uygulaması' },
+      { key: 'circ.defibrilasyon', label: '☑ Defibrilasyon' },
+      { key: 'circ.kardiyoversiyon', label: '☑ Kardiyoversiyon' },
+      { key: 'circ.monitorizasyon', label: '☑ Monitörizasyon' },
+      { key: 'circ.kanama_kontrol', label: '☑ Kanama Kontrolü' },
+      { key: 'circ.cut_down', label: '☑ Cut Down' }
+    ]
+  },
+  {
+    id: 'checkbox_diger_islem',
+    name: 'Diğer İşlemler (Checkbox)',
+    icon: Settings,
+    color: 'gray',
+    isCheckbox: true,
+    fields: [
+      { key: 'other.normal_dogum', label: '☑ Normal Doğum' },
+      { key: 'other.kan_sekeri', label: '☑ Kan Şekeri Ölçümü' },
+      { key: 'other.lokal_anestezi', label: '☑ Lokal Anestezi' },
+      { key: 'other.tirnak_avulsiyon', label: '☑ Tırnak Avülsiyonu' },
+      { key: 'other.spo2_olcum', label: '☑ Transkutan PaO2' },
+      { key: 'other.debritman', label: '☑ Debritman' },
+      { key: 'other.sutur_alinmasi', label: '☑ Sütür Alınması' }
+    ]
+  },
+  {
+    id: 'checkbox_yenidogan',
+    name: 'Yenidoğan İşlemleri (Checkbox)',
+    icon: User,
+    color: 'pink',
+    isCheckbox: true,
+    fields: [
+      { key: 'newborn.kuvoz', label: '☑ Transport Küvözi' },
+      { key: 'newborn.canlandirma', label: '☑ Yenidoğan Canlandırma' },
+      { key: 'newborn.im_enjeksiyon', label: '☑ Yenidoğan IM Enjeksiyon' },
+      { key: 'newborn.iv_enjeksiyon', label: '☑ Yenidoğan IV Enjeksiyon' },
+      { key: 'newborn.iv_mayi', label: '☑ Yenidoğan IV Mayi' },
+      { key: 'newborn.entubasyon', label: '☑ Yenidoğan Entübasyon' }
     ]
   },
   {
@@ -238,7 +547,7 @@ const FIELD_CATEGORIES = [
 
 // Tüm alanları düz liste olarak al
 const ALL_FIELDS = FIELD_CATEGORIES.flatMap(cat => 
-  cat.fields.map(f => ({ ...f, category: cat.name, categoryId: cat.id, color: cat.color }))
+  cat.fields.map(f => ({ ...f, category: cat.name, categoryId: cat.id, color: cat.color, isCheckbox: cat.isCheckbox || false }))
 );
 
 const ExcelMappingVisualizer = () => {
@@ -513,11 +822,16 @@ const ExcelMappingVisualizer = () => {
         </span>
       </div>
 
-      {/* Grid Area */}
-      <div className="flex-1 overflow-auto p-4">
+      {{/* Grid Area */}
+      <div className="flex-1 overflow-auto p-4" style={{ overflowX: 'auto', overflowY: 'auto' }}>
         <div 
-          className="inline-block bg-white shadow-lg rounded-lg overflow-hidden"
-          style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left' }}
+          className="bg-white shadow-lg rounded-lg overflow-visible"
+          style={{ 
+            transform: `scale(${zoom / 100})`, 
+            transformOrigin: 'top left',
+            width: 'max-content',
+            minWidth: '100%'
+          }}
         >
           <table className="border-collapse border border-gray-300">
             <thead>
@@ -662,12 +976,14 @@ const ExcelMappingVisualizer = () => {
               if (categoryFields.length === 0) return null;
               
               const IconComponent = category.icon;
+              const isCheckboxCategory = category.isCheckbox;
               
               return (
                 <div key={category.id}>
-                  <div className={`px-3 py-1.5 text-xs font-semibold sticky top-0 flex items-center gap-1.5 ${getColorClass(category.color)}`}>
+                  <div className={`px-3 py-1.5 text-xs font-semibold sticky top-0 flex items-center gap-1.5 ${getColorClass(category.color)} ${isCheckboxCategory ? 'border-l-4 border-l-orange-500' : ''}`}>
                     <IconComponent className="h-3 w-3" />
                     {category.name}
+                    {isCheckboxCategory && <span className="ml-auto text-[10px] opacity-70">CHECKBOX</span>}
                   </div>
                   {categoryFields.map(field => (
                     <div
