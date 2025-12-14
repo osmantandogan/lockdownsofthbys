@@ -1738,9 +1738,8 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         temp_xlsx = os.path.join(temp_dir, f"case_{case_id}_{uuid.uuid4().hex[:8]}.xlsx")
         wb.save(temp_xlsx)
         
-        # LibreOffice ile PDF'e dönüştür (tek sayfaya sığdır)
+        # LibreOffice ile PDF'e dönüştür
         try:
-            # LibreOffice'in basit convert komutu (sayfa ayarları Excel'de yapıldı)
             result = subprocess.run([
                 'libreoffice', '--headless', '--convert-to', 'pdf',
                 '--outdir', temp_dir, temp_xlsx
@@ -1752,6 +1751,63 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 # PDF'i oku
                 with open(pdf_path, 'rb') as f:
                     pdf_content = f.read()
+                
+                # TEK SAYFAYA SIĞDIR: PyMuPDF (fitz) ile
+                try:
+                    import fitz  # PyMuPDF
+                    
+                    # Orijinal PDF'i aç
+                    src_doc = fitz.open(stream=pdf_content, filetype="pdf")
+                    
+                    if len(src_doc) > 1:
+                        # Yeni tek sayfa PDF oluştur
+                        dst_doc = fitz.open()
+                        
+                        # A4 Landscape boyutu (842 x 595 points)
+                        page_width = 842  # A4 landscape genişlik
+                        page_height = 595  # A4 landscape yükseklik
+                        
+                        # Tek sayfa oluştur
+                        new_page = dst_doc.new_page(width=page_width, height=page_height)
+                        
+                        # Tüm sayfaları dikey olarak sırala ve ölçekle
+                        total_height = sum([p.rect.height for p in src_doc])
+                        total_width = max([p.rect.width for p in src_doc])
+                        
+                        # Ölçek hesapla (tek sayfaya sığdır)
+                        scale_x = page_width / total_width
+                        scale_y = page_height / total_height
+                        scale = min(scale_x, scale_y) * 0.95  # %95 kenar boşluğu
+                        
+                        # Her sayfayı yeni sayfaya ekle
+                        y_offset = 5  # Üst kenar boşluğu
+                        for page in src_doc:
+                            src_rect = page.rect
+                            
+                            # Hedef dikdörtgen hesapla
+                            scaled_height = src_rect.height * scale
+                            scaled_width = src_rect.width * scale
+                            x_offset = (page_width - scaled_width) / 2  # Ortala
+                            
+                            dst_rect = fitz.Rect(
+                                x_offset, y_offset,
+                                x_offset + scaled_width, y_offset + scaled_height
+                            )
+                            
+                            # Sayfayı ekle
+                            new_page.show_pdf_page(dst_rect, src_doc, page.number)
+                            y_offset += scaled_height
+                        
+                        # Yeni PDF'i kaydet
+                        pdf_content = dst_doc.write()
+                        dst_doc.close()
+                    
+                    src_doc.close()
+                    
+                except ImportError:
+                    logger.warning("PyMuPDF yüklü değil, çok sayfalı PDF olarak devam ediliyor")
+                except Exception as e:
+                    logger.warning(f"PDF tek sayfaya sığdırma hatası: {e}")
                 
                 # Temizlik
                 try:
@@ -1773,7 +1829,6 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             else:
                 error_msg = result.stderr if result.stderr else result.stdout
                 logger.error(f"PDF oluşturulamadı. LibreOffice çıktısı: {error_msg}")
-                # Fallback: Excel döndür
                 try:
                     os.remove(temp_xlsx)
                 except:
