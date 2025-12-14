@@ -55,6 +55,217 @@ def serialize_assignment(assignment):
     
     return assignment
 
+# Aralık 2025 vardiya programı
+DECEMBER_2025_SCHEDULE = {
+    "merkez_ofis": {
+        "vehicle_plate": None, "location_type": "saglik_merkezi", "health_center_name": "Merkez Ofis", "shift_hours": "08:00-17:00",
+        "personnel": [
+            {"name": "Cansel Petek ŞAHİN", "role": "doktor", "shifts": list(range(1, 32))},
+            {"name": "İrem HODULLAR", "role": "doktor", "shifts": list(range(1, 32))},
+            {"name": "Barış VATANSEVER", "role": "doktor", "shifts": [6, 7, 13, 14, 20, 21, 27, 28]},
+            {"name": "Umutcan ÖZDAL", "role": "hemsire", "shifts": [1,2,5,6,9,10,13,14,17,18,21,22,25,26,29,30]},
+            {"name": "Neşe VERİMCİK", "role": "hemsire", "shifts": [3,4,7,8,11,12,15,16,19,20,23,24,27,28,31]},
+            {"name": "Emine KAÇAR", "role": "hemsire", "shifts": [1,2,5,6,9,10,13,14,17,18,21,22,25,26,29,30]},
+            {"name": "Elif YILDIRIM", "role": "hemsire", "shifts": [3,4,7,8,11,12,15,16,19,20,23,24,27,28,31]},
+            {"name": "İrem ÖZDEDE", "role": "hemsire", "shifts": [1,2,5,6,9,10,13,14,17,18,21,22,25,26,29,30]},
+            {"name": "Muharrem Can ÇETİNKAYA", "role": "hemsire", "shifts": [3,4,7,8,11,12,15,16,19,20,23,24,27,28,31]},
+            {"name": "Merve GİRGİN", "role": "cagri_merkezi", "shifts": list(range(1, 32))},
+            {"name": "Yasemin BAŞTÜRK", "role": "cagri_merkezi", "shifts": list(range(1, 32))},
+            {"name": "Şeniz KANDEMİR", "role": "temizlik", "shifts": list(range(1, 32))},
+            {"name": "Nuri IŞIK", "role": "temizlik", "shifts": list(range(1, 32))},
+        ]
+    },
+    "06_CHZ_142": {
+        "vehicle_plate": "06 CHZ 142", "location_type": "arac", "shift_hours": "08:00-08:00",
+        "personnel": [
+            {"name": "Hatice Acar CANBAZ", "role": "paramedik", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Aleyna ÖZDEMİR", "role": "paramedik", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Hasan GÜNEY", "role": "paramedik", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Mustafa KARAGÖL", "role": "att", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Derya GÖMLEKSİZOĞLU", "role": "att", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Görkem GÜRPÜZER", "role": "sofor", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Mert ÇINAR", "role": "sofor", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Talha Doğukan KARTAL", "role": "sofor", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]
+    },
+    "06_CHZ_146": {
+        "vehicle_plate": "06 CHZ 146", "location_type": "arac", "shift_hours": "08:00-08:00",
+        "personnel": [
+            {"name": "Elif KURBAN", "role": "paramedik", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Burak ILIK", "role": "paramedik", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Büşra Bahtiyar GÜZEL", "role": "paramedik", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Berkecan TÜRPÇÜ", "role": "att", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Rümeysa UZUNAY", "role": "att", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Serkan KAMIT", "role": "att", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Kubilay ELİÇORA", "role": "sofor", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Samet KOCAPINAR", "role": "sofor", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Oktay TÜTÜNCÜOĞLU", "role": "sofor", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]
+    },
+    "06_CHZ_149": {
+        "vehicle_plate": "06 CHZ 149", "location_type": "arac", "shift_hours": "08:00-08:00",
+        "personnel": [
+            {"name": "Ayşegül Beyza YILMAZ", "role": "paramedik", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Uğur VAR", "role": "paramedik", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Mervenur GEDİK", "role": "paramedik", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Efe Talha AKKAŞ", "role": "att", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Mügenur SOYKAN", "role": "att", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Tayfun KOCAMAN", "role": "att", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Kadirhan ALKAN", "role": "sofor", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Emirhan DOĞAN", "role": "sofor", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Melihcan DOĞAN", "role": "sofor", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]
+    },
+    "34_FTU_336": {
+        "vehicle_plate": "34 FTU 336", "location_type": "arac", "shift_hours": "08:00-08:00",
+        "personnel": [
+            {"name": "Nesrin TÜYSÜZ", "role": "paramedik", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Gamze Hande BOZ", "role": "paramedik", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Alican TÜLÜBAŞ", "role": "paramedik", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Muzaffer ÖZCAN", "role": "att", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Fatih MEKİKÇİ", "role": "att", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Ayşegül ORAL", "role": "att", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Serkan Bilal BATTAL", "role": "sofor", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Burak TİRYAKİOĞLU", "role": "sofor", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Feyzi FİDAN", "role": "sofor", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]
+    },
+    "34_KMP_224": {
+        "vehicle_plate": "34 KMP 224", "location_type": "arac", "shift_hours": "08:00-08:00",
+        "personnel": [
+            {"name": "Murat KESER", "role": "paramedik", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Melike KARATEPE", "role": "paramedik", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Burakcan ŞAHİNTÜRK", "role": "paramedik", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Büşra AYDEMİR", "role": "att", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Muhammet BİLİCİ", "role": "att", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Aslı KOÇOĞLU", "role": "att", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Onur YALIN", "role": "sofor", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Mehmetcan SAVLI", "role": "sofor", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Tuğay KÖSE", "role": "sofor", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]
+    },
+    "34_MHA_112": {
+        "vehicle_plate": "34 MHA 112", "location_type": "arac", "shift_hours": "08:00-08:00",
+        "personnel": [
+            {"name": "Kadir ARTAR", "role": "paramedik", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Hamza Tarık ERMİŞ", "role": "paramedik", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Buse TOPÇU", "role": "paramedik", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Şule SATICI", "role": "att", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Ceren YİĞİT", "role": "att", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Cem BALAT", "role": "att", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+            {"name": "Murat GÜLŞEN", "role": "sofor", "shifts": [1,4,7,10,13,16,19,22,25,28,31]},
+            {"name": "Anıl BALCI", "role": "sofor", "shifts": [2,5,8,11,14,17,20,23,26,29]},
+            {"name": "Mesut CİNKAVUK", "role": "sofor", "shifts": [3,6,9,12,15,18,21,24,27,30]},
+        ]
+    },
+}
+
+def normalize_name_for_match(name):
+    """İsimleri karşılaştırma için normalize et"""
+    tr_map = {'ş': 's', 'Ş': 'S', 'ğ': 'g', 'Ğ': 'G', 'ü': 'u', 'Ü': 'U', 'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C'}
+    result = name.lower().strip()
+    for tr, en in tr_map.items():
+        result = result.replace(tr, en.lower())
+    return ' '.join(result.split())
+
+@router.post("/reimport-december-2025")
+async def reimport_december_2025_shifts(request: Request):
+    """Aralık 2025 vardiyalarını sil ve yeniden import et"""
+    try:
+        current_user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    except:
+        pass  # Debug için geçici olarak
+    
+    results = {"deleted": 0, "created": 0, "not_found_users": [], "errors": []}
+    
+    try:
+        # 1. Tüm shift_assignments'ları sil
+        delete_result = await shift_assignments_collection.delete_many({})
+        results["deleted"] = delete_result.deleted_count
+        logger.info(f"Silinen vardiya: {results['deleted']}")
+        
+        # 2. Kullanıcıları ve araçları çek
+        users_cache = await users_collection.find().to_list(1000)
+        vehicles_cache = await vehicles_collection.find().to_list(100)
+        
+        # 3. Vardiyaları oluştur
+        for location_key, location_data in DECEMBER_2025_SCHEDULE.items():
+            vehicle_plate = location_data.get("vehicle_plate")
+            location_type = location_data.get("location_type")
+            health_center_name = location_data.get("health_center_name")
+            shift_hours = location_data.get("shift_hours", "08:00-08:00")
+            
+            # Araç ID bul
+            vehicle_id = None
+            if vehicle_plate:
+                for v in vehicles_cache:
+                    if v.get("plate") == vehicle_plate:
+                        vehicle_id = v.get("_id")
+                        break
+            
+            start_time, end_time = shift_hours.split("-")
+            is_24h = (start_time == "08:00" and end_time == "08:00")
+            
+            for person in location_data["personnel"]:
+                person_name = person["name"]
+                person_role = person["role"]
+                shift_days = person["shifts"]
+                
+                # Kullanıcıyı bul
+                normalized_person = normalize_name_for_match(person_name)
+                user = None
+                for u in users_cache:
+                    normalized_user = normalize_name_for_match(u.get("name", ""))
+                    if normalized_user == normalized_person:
+                        user = u
+                        break
+                    # Benzer isim kontrolü
+                    name_parts = set(normalized_person.split())
+                    user_parts = set(normalized_user.split())
+                    if len(name_parts & user_parts) >= 2:
+                        user = u
+                        break
+                
+                if not user:
+                    results["not_found_users"].append(person_name)
+                    continue
+                
+                user_id = user.get("_id")
+                user_name = user.get("name")
+                
+                # Vardiyaları oluştur
+                for day in shift_days:
+                    shift_date = datetime(2025, 12, day, 8, 0, 0)
+                    end_date = shift_date + timedelta(days=1) if is_24h else shift_date
+                    
+                    assignment = {
+                        "_id": str(uuid.uuid4()),
+                        "user_id": user_id,
+                        "user_name": user_name,
+                        "user_role": person_role,
+                        "vehicle_id": vehicle_id,
+                        "vehicle_plate": vehicle_plate,
+                        "shift_date": shift_date,
+                        "end_date": end_date,
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        "location_type": location_type,
+                        "health_center_name": health_center_name,
+                        "status": "pending",
+                        "created_at": datetime.utcnow()
+                    }
+                    
+                    await shift_assignments_collection.insert_one(assignment)
+                    results["created"] += 1
+        
+        logger.info(f"Oluşturulan vardiya: {results['created']}")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Reimport hatası: {e}")
+        results["errors"].append(str(e))
+        return results
+
 @router.get("/assignments/today")
 async def get_today_assignments(request: Request):
     """Get today's shift assignments - visible to all users"""
