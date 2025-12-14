@@ -310,10 +310,11 @@ const StockManagement = () => {
   };
   
   // YENİ: Açılmış İlaçları Yükle
-  const loadUnitStock = async () => {
+  const loadUnitStock = async (locationOverride) => {
     setUnitStockLoading(true);
     try {
-      const locationParam = unitStockLocationFilter === 'all' ? undefined : unitStockLocationFilter;
+      const loc = locationOverride !== undefined ? locationOverride : unitStockLocationFilter;
+      const locationParam = loc === 'all' ? undefined : loc;
       const response = await stockBarcodeAPI.getUnitStock(locationParam);
       setUnitStockItems(response.data.items || []);
     } catch (error) {
@@ -325,10 +326,11 @@ const StockManagement = () => {
   };
   
   // YENİ: İtriyat Yükle
-  const loadItriyat = async () => {
+  const loadItriyat = async (locationOverride) => {
     setItriyatLoading(true);
     try {
-      const locationParam = itriyatLocationFilter === 'all' ? undefined : itriyatLocationFilter;
+      const loc = locationOverride !== undefined ? locationOverride : itriyatLocationFilter;
+      const locationParam = loc === 'all' ? undefined : loc;
       const response = await stockBarcodeAPI.getItriyat(locationParam);
       setItriyatItems(response.data.items || []);
     } catch (error) {
@@ -340,10 +342,11 @@ const StockManagement = () => {
   };
   
   // YENİ: Sarf Malzeme Yükle
-  const loadSarf = async () => {
+  const loadSarf = async (locationOverride) => {
     setSarfLoading(true);
     try {
-      const locationParam = sarfLocationFilter === 'all' ? undefined : sarfLocationFilter;
+      const loc = locationOverride !== undefined ? locationOverride : sarfLocationFilter;
+      const locationParam = loc === 'all' ? undefined : loc;
       const response = await stockBarcodeAPI.getSarf(locationParam);
       setSarfItems(response.data.items || []);
     } catch (error) {
@@ -1633,7 +1636,7 @@ const StockManagement = () => {
                   Açılmış İlaçlar (Adet Bazlı Stok)
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Select value={unitStockLocationFilter} onValueChange={(v) => { setUnitStockLocationFilter(v); loadUnitStock(); }}>
+                  <Select value={unitStockLocationFilter} onValueChange={(v) => { setUnitStockLocationFilter(v); loadUnitStock(v); }}>
                     <SelectTrigger className="w-56">
                       <SelectValue placeholder="Tüm Lokasyonlar" />
                     </SelectTrigger>
@@ -1717,7 +1720,7 @@ const StockManagement = () => {
                   İtriyat Stokları
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Select value={itriyatLocationFilter} onValueChange={(v) => { setItriyatLocationFilter(v); loadItriyat(); }}>
+                  <Select value={itriyatLocationFilter} onValueChange={(v) => { setItriyatLocationFilter(v); loadItriyat(v); }}>
                     <SelectTrigger className="w-56">
                       <SelectValue placeholder="Tüm Lokasyonlar" />
                     </SelectTrigger>
@@ -1802,7 +1805,7 @@ const StockManagement = () => {
                   Sarf Malzeme Stokları
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Select value={sarfLocationFilter} onValueChange={(v) => { setSarfLocationFilter(v); loadSarf(); }}>
+                  <Select value={sarfLocationFilter} onValueChange={(v) => { setSarfLocationFilter(v); loadSarf(v); }}>
                     <SelectTrigger className="w-56">
                       <SelectValue placeholder="Tüm Lokasyonlar" />
                     </SelectTrigger>
