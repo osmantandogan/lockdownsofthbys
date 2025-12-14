@@ -89,7 +89,9 @@ export const casesAPI = {
   // Dinamik Excel export - Mapping şablonu ile
   exportExcelWithTemplate: (caseId, templateId) => api.get(`/cases/${caseId}/export-excel-template/${templateId}`, { responseType: 'blob' }),
   // Vaka Form Mapping ile export (Görsel Editör)
-  exportExcelWithMapping: (caseId) => api.get(`/cases/${caseId}/export-excel-mapped`, { responseType: 'blob' })
+  exportExcelWithMapping: (caseId) => api.get(`/cases/${caseId}/export-excel-mapped`, { responseType: 'blob' }),
+  // Vaka Form Mapping ile PDF export (Tek Sayfa)
+  exportPdfWithMapping: (caseId) => api.get(`/cases/${caseId}/export-pdf-mapped`, { responseType: 'blob' })
 };
 
 // Video Call API (Daily.co)

@@ -1489,7 +1489,7 @@ from services.dynamic_excel_export import get_case_field_value
 
 @router.get("/{case_id}/export-excel-mapped")
 async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
-    """Vakayı Vaka Form Mapping (flat_mappings) kullanarak Excel'e export et"""
+    """Vakayı Vaka Form Mapping kullanarak Excel'e export et (şablon formatıyla)"""
     user = await get_current_user(request)
     
     case_doc = await cases_collection.find_one({"_id": case_id})
@@ -1527,18 +1527,152 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
         "procedures": case_doc.get("procedures", []),
         "medications": case_doc.get("medications", []),
         "materials": case_doc.get("materials", []),
+        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
         "signatures": case_doc.get("signatures", {}),
+        "hospital_rejection": case_doc.get("hospital_rejection", {}),
+        "patient_rejection": case_doc.get("patient_rejection", {}),
     }
     
     try:
-        from openpyxl import Workbook
+        from openpyxl import load_workbook
         from openpyxl.drawing.image import Image as XLImage
         import base64
         import re
+        import os
         
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Vaka Formu"
+        # VAKA FORMU ŞABLONUNU YÜKLE
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        template_path = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
+        
+        if os.path.exists(template_path):
+            wb = load_workbook(template_path)
+            ws = wb.active
+            logger.info(f"Şablon yüklendi: {template_path}")
+        else:
+            # Şablon yoksa boş workbook
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Vaka Formu"
+            logger.warning(f"Şablon bulunamadı, boş oluşturuluyor: {template_path}")
+        
+        # Logo
+        if logo_info.get("url") and logo_info.get("cell"):
+            try:
+                logo_url = logo_info["url"]
+                if logo_url.startswith("data:image"):
+                    header, encoded = logo_url.split(",", 1)
+                    logo_data = base64.b64decode(encoded)
+                    from io import BytesIO
+                    img_buffer = BytesIO(logo_data)
+                    img = XLImage(img_buffer)
+                    img.width = 150
+                    img.height = 60
+                    ws.add_image(img, logo_info["cell"])
+            except Exception as e:
+                logger.warning(f"Logo eklenemedi: {e}")
+        
+        # Mapping'leri uygula - şablondaki hücrelere değer yaz
+        for cell_address, field_key in flat_mappings.items():
+            if field_key == "__LOGO__":
+                continue
+            
+            value = get_case_field_value(case_data, field_key)
+            
+            match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
+            if match:
+                try:
+                    ws[cell_address] = value
+                except Exception as e:
+                    logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
+        
+        from io import BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        case_number = case_doc.get("case_number", case_id[:8])
+        date_str = get_turkey_time().strftime("%Y-%m-%d")
+        filename = f"VAKA_FORMU_{case_number}_{date_str}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+        
+    except Exception as e:
+        logger.error(f"Mapped Excel export hatası: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")
+
+
+@router.get("/{case_id}/export-pdf-mapped")
+async def export_case_pdf_with_mapping(case_id: str, request: Request):
+    """Vakayı Vaka Form Mapping kullanarak PDF olarak export et (Tek Sayfa)"""
+    user = await get_current_user(request)
+    
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    mapping_doc = await db.vaka_form_mappings.find_one({"_id": "default"})
+    if not mapping_doc or not mapping_doc.get("flat_mappings"):
+        raise HTTPException(status_code=404, detail="Vaka form mapping bulunamadı. Önce mapping oluşturun.")
+    
+    flat_mappings = mapping_doc.get("flat_mappings", {})
+    logo_info = mapping_doc.get("logo", {})
+    
+    case_data = {
+        "case_number": case_doc.get("case_number", ""),
+        "created_at": case_doc.get("created_at"),
+        "priority": case_doc.get("priority", ""),
+        "status": case_doc.get("status", ""),
+        "patient": case_doc.get("patient", {}),
+        "caller": case_doc.get("caller", {}),
+        "location": case_doc.get("location", {}),
+        "assigned_team": case_doc.get("assigned_team", {}),
+        "vehicle_info": case_doc.get("vehicle_info", {}),
+        "time_info": case_doc.get("time_info", {}),
+        "company": case_doc.get("company", ""),
+        "call_type": case_doc.get("call_type", ""),
+        "call_reason": case_doc.get("call_reason", ""),
+        "complaint": case_doc.get("complaint", ""),
+        "chronic_diseases": case_doc.get("chronic_diseases", ""),
+        "is_forensic": case_doc.get("is_forensic", False),
+        "case_result": case_doc.get("case_result", ""),
+        "transfer_hospital": case_doc.get("transfer_hospital", ""),
+        "vital_signs": case_doc.get("vital_signs", []),
+        "clinical_observations": case_doc.get("clinical_observations", {}),
+        "procedures": case_doc.get("procedures", []),
+        "medications": case_doc.get("medications", []),
+        "materials": case_doc.get("materials", []),
+        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
+        "signatures": case_doc.get("signatures", {}),
+        "hospital_rejection": case_doc.get("hospital_rejection", {}),
+        "patient_rejection": case_doc.get("patient_rejection", {}),
+    }
+    
+    try:
+        from openpyxl import load_workbook
+        from openpyxl.drawing.image import Image as XLImage
+        import base64
+        import re
+        import os
+        import subprocess
+        import tempfile
+        import uuid
+        
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        template_path = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
+        
+        if os.path.exists(template_path):
+            wb = load_workbook(template_path)
+            ws = wb.active
+        else:
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Vaka Formu"
         
         # Logo
         if logo_info.get("url") and logo_info.get("cell"):
@@ -1565,30 +1699,75 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
             
             match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
             if match:
-                col_str = match.group(1)
-                row = int(match.group(2))
+                try:
+                    ws[cell_address] = value
+                except Exception as e:
+                    logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
+        
+        # Geçici Excel dosyası oluştur
+        temp_dir = os.path.join(backend_dir, "temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        temp_xlsx = os.path.join(temp_dir, f"case_{case_id}_{uuid.uuid4().hex[:8]}.xlsx")
+        wb.save(temp_xlsx)
+        
+        # LibreOffice ile PDF'e dönüştür
+        try:
+            result = subprocess.run([
+                'libreoffice', '--headless', '--convert-to', 'pdf',
+                '--outdir', temp_dir, temp_xlsx
+            ], capture_output=True, timeout=60)
+            
+            pdf_path = temp_xlsx.replace('.xlsx', '.pdf')
+            
+            if os.path.exists(pdf_path):
+                # PDF'i oku
+                with open(pdf_path, 'rb') as f:
+                    pdf_content = f.read()
                 
-                col = 0
-                for char in col_str:
-                    col = col * 26 + (ord(char) - ord('A') + 1)
+                # Temizlik
+                os.remove(temp_xlsx)
+                os.remove(pdf_path)
                 
-                ws.cell(row=row, column=col, value=value)
+                case_number = case_doc.get("case_number", case_id[:8])
+                date_str = get_turkey_time().strftime("%Y-%m-%d")
+                filename = f"VAKA_FORMU_{case_number}_{date_str}.pdf"
+                
+                from io import BytesIO
+                return StreamingResponse(
+                    BytesIO(pdf_content),
+                    media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+                )
+            else:
+                logger.error(f"PDF oluşturulamadı: {result.stderr.decode()}")
+                # Fallback: Excel döndür
+                os.remove(temp_xlsx)
+                raise HTTPException(status_code=500, detail="PDF dönüştürme başarısız")
+                
+        except subprocess.TimeoutExpired:
+            os.remove(temp_xlsx)
+            raise HTTPException(status_code=500, detail="PDF dönüştürme zaman aşımı")
+        except FileNotFoundError:
+            # LibreOffice yok - Excel döndür
+            logger.warning("LibreOffice bulunamadı, Excel döndürülüyor")
+            with open(temp_xlsx, 'rb') as f:
+                excel_content = f.read()
+            os.remove(temp_xlsx)
+            
+            case_number = case_doc.get("case_number", case_id[:8])
+            date_str = get_turkey_time().strftime("%Y-%m-%d")
+            filename = f"VAKA_FORMU_{case_number}_{date_str}.xlsx"
+            
+            from io import BytesIO
+            return StreamingResponse(
+                BytesIO(excel_content),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            )
         
-        from io import BytesIO
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        case_number = case_doc.get("case_number", case_id[:8])
-        date_str = get_turkey_time().strftime("%Y-%m-%d")
-        filename = f"VAKA_FORMU_{case_number}_{date_str}.xlsx"
-        
-        return StreamingResponse(
-            output,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-        )
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Mapped Excel export hatası: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")
+        logger.error(f"PDF export hatası: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"PDF oluşturma hatası: {str(e)}")

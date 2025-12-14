@@ -1659,7 +1659,35 @@ const CaseDetail = () => {
               <DropdownMenuLabel>📊 Excel Şablonu Seçin</DropdownMenuLabel>
               <DropdownMenuSeparator />
               
-              {/* Görsel Mapping ile (ÖNERİLEN) */}
+              {/* PDF - Görsel Mapping ile (ÖNERİLEN) */}
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    setExcelExporting(true);
+                    toast.info('PDF hazırlanıyor (Tek Sayfa)...');
+                    const response = await casesAPI.exportPdfWithMapping(id);
+                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    saveAs(response.data, fileName);
+                    toast.success('PDF indirildi!');
+                  } catch (error) {
+                    console.error('PDF hatası:', error);
+                    if (error.response?.status === 404) {
+                      toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
+                    } else {
+                      toast.error('PDF oluşturulamadı');
+                    }
+                  } finally {
+                    setExcelExporting(false);
+                  }
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                📄 PDF İndir (Tek Sayfa - ÖNERİLEN)
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {/* Excel - Görsel Mapping ile */}
               <DropdownMenuItem
                 onClick={async () => {
                   try {
@@ -1682,7 +1710,7 @@ const CaseDetail = () => {
                 }}
               >
                 <FileDown className="h-4 w-4 mr-2 text-amber-600" />
-                ⭐ Görsel Mapping ile (Önerilen)
+                📊 Excel İndir (Görsel Mapping)
               </DropdownMenuItem>
               
               {/* Varsayılan sistem şablonu */}
