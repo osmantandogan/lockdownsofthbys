@@ -1715,18 +1715,21 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
         
         # SAYFA AYARLARI: Tek sayfaya sığdır (A4)
-        from openpyxl.worksheet.page import PageSetup
-        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE  # Yatay
-        ws.page_setup.paperSize = ws.PAPERSIZE_A4
-        ws.page_setup.fitToWidth = 1  # 1 sayfa genişliğine sığdır
-        ws.page_setup.fitToHeight = 1  # 1 sayfa yüksekliğine sığdır
-        ws.page_setup.scale = 100  # %100 ölçek
-        
-        # Print area: Tüm kullanılan hücreler
-        if ws.max_row > 0 and ws.max_column > 0:
-            from openpyxl.utils import get_column_letter
-            print_area = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
-            ws.print_area = print_area
+        try:
+            # Sayfa ayarları
+            ws.page_setup.orientation = 'landscape'  # Yatay
+            ws.page_setup.paperSize = 9  # A4 (9 = A4)
+            ws.page_setup.fitToWidth = 1  # 1 sayfa genişliğine sığdır
+            ws.page_setup.fitToHeight = 1  # 1 sayfa yüksekliğine sığdır
+            ws.page_setup.scale = 100  # %100 ölçek
+            
+            # Print area: Tüm kullanılan hücreler
+            if ws.max_row > 0 and ws.max_column > 0:
+                from openpyxl.utils import get_column_letter
+                print_area = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
+                ws.print_area = print_area
+        except Exception as e:
+            logger.warning(f"Sayfa ayarları yapılamadı: {e}")
         
         # Geçici Excel dosyası oluştur
         temp_dir = os.path.join(backend_dir, "temp")
@@ -1741,7 +1744,7 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             result = subprocess.run([
                 'libreoffice', '--headless', '--convert-to', 'pdf',
                 '--outdir', temp_dir, temp_xlsx
-            ], capture_output=True, timeout=60)
+            ], capture_output=True, timeout=60, text=True)
             
             pdf_path = temp_xlsx.replace('.xlsx', '.pdf')
             
@@ -1751,8 +1754,11 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     pdf_content = f.read()
                 
                 # Temizlik
-                os.remove(temp_xlsx)
-                os.remove(pdf_path)
+                try:
+                    os.remove(temp_xlsx)
+                    os.remove(pdf_path)
+                except:
+                    pass
                 
                 case_number = case_doc.get("case_number", case_id[:8])
                 date_str = get_turkey_time().strftime("%Y-%m-%d")
@@ -1765,10 +1771,14 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'}
                 )
             else:
-                logger.error(f"PDF oluşturulamadı: {result.stderr.decode()}")
+                error_msg = result.stderr if result.stderr else result.stdout
+                logger.error(f"PDF oluşturulamadı. LibreOffice çıktısı: {error_msg}")
                 # Fallback: Excel döndür
-                os.remove(temp_xlsx)
-                raise HTTPException(status_code=500, detail="PDF dönüştürme başarısız")
+                try:
+                    os.remove(temp_xlsx)
+                except:
+                    pass
+                raise HTTPException(status_code=500, detail=f"PDF dönüştürme başarısız: {error_msg[:200]}")
                 
         except subprocess.TimeoutExpired:
             os.remove(temp_xlsx)
