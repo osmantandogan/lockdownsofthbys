@@ -11,7 +11,7 @@ from services.vaka_form_mapping import get_cell_mapping_for_display, VAKA_FORM_C
 from auth_utils import get_current_user
 from database import cases_collection, pdf_templates_collection, db
 
-router = APIRouter(prefix="/pdf", tags=["pdf"])
+router = APIRouter(tags=["pdf"])
 logger = logging.getLogger(__name__)
 
 # LibreOffice kurulu mu kontrol et
@@ -263,11 +263,12 @@ async def reset_vaka_form_mapping(request: Request):
     return {"message": "Eşlemeler varsayılana sıfırlandı"}
 
 
-@router.put("/vaka-form-mapping/bulk")
+@router.api_route("/vaka-form-mapping/bulk", methods=["PUT", "POST"])
 async def bulk_update_vaka_form_mapping(request: Request):
     """
     Tüm hücre eşlemelerini toplu güncelle (Görsel Editör için)
     Body: { mappings: { "A1": "fieldKey", ... }, logo: { url: "...", cell: "A1" } }
+    Supports both PUT and POST methods.
     """
     user = await get_current_user(request)
     data = await request.json()

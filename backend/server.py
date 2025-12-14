@@ -78,7 +78,30 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
     
     # Add CORS headers if origin is allowed
-    if origin in allowed_origins:
+    if origin in allowed_origins or origin.endswith('.ldserp.com'):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+# Handle 404 errors with CORS headers
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions (including 404) with CORS headers"""
+    origin = request.headers.get("origin", "")
+    
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+    
+    # Add CORS headers
+    if origin in allowed_origins or origin.endswith('.ldserp.com'):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
@@ -99,7 +122,7 @@ api_router.include_router(shifts.router, prefix="/shifts", tags=["Shifts"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
 api_router.include_router(forms.router, prefix="/forms", tags=["Forms"])
 api_router.include_router(documents.router, prefix="/documents", tags=["Documents"])
-api_router.include_router(reference_data.router, prefix="/reference", tags=["Reference Data"])
+api_router.include_router(reference_data.router, prefix="/reference-data", tags=["Reference Data"])
 api_router.include_router(video_call.router, prefix="/video", tags=["Video Call"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(medications.router, prefix="/medications", tags=["Medications"])
@@ -107,7 +130,7 @@ api_router.include_router(otp.router, prefix="/otp", tags=["OTP"])
 api_router.include_router(its.router, prefix="/its", tags=["İTS - İlaç Takip Sistemi"])
 api_router.include_router(approvals.router, prefix="/approvals", tags=["Approvals - Onay Sistemi"])
 api_router.include_router(patients.router, prefix="/patients", tags=["Patients - Hasta Kartı"])
-api_router.include_router(pdf.router, tags=["PDF - PDF Generation"])
+api_router.include_router(pdf.router, prefix="/pdf", tags=["PDF - PDF Generation"])
 api_router.include_router(stock_barcode.router, prefix="/stock-barcode", tags=["Stock Barcode - Karekod Bazlı Stok"])
 api_router.include_router(material_requests.router, prefix="/material-requests", tags=["Material Requests - Malzeme Talepleri"])
 api_router.include_router(locations.router, prefix="/locations", tags=["Locations - Lokasyon Yönetimi"])

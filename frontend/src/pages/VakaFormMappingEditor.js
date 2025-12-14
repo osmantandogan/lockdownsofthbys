@@ -31,8 +31,9 @@ const VakaFormMappingEditor = () => {
   const searchInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const maxRow = 100;
-  const maxCol = 35;
+  // V3 Excel gerçek boyutları: 79 satır, 20 sütun (A-T)
+  const maxRow = 79;
+  const maxCol = 20;
 
   const fieldCategories = [
     {
@@ -741,221 +742,370 @@ const VakaFormMappingEditor = () => {
     loadMapping();
   }, []);
 
-  // V3 Excel varsayılan hücre konumları
+  // V3 Excel varsayılan hücre konumları (Birleşik hücrelere göre düzeltilmiş)
+  // Excel: 79 satır x 20 sütun (A-T)
   const defaultV3Mappings = {
-    // Logo
-    'A1': '__LOGO__',
-    // ATN ve KM
-    'O1': 'atn_no', 'R1': 'startKm', 'T1': 'endKm',
-    // Temel Bilgiler (Row 7-12)
-    'B7': 'caseNumber', 'D7': 'callTime', 'F7': 'patientName',
-    'B8': 'caseDate', 'D8': 'arrivalSceneTime', 'F8': 'patientHomeAddress',
-    'B9': 'caseCode', 'D9': 'arrivalPatientTime',
-    'B10': 'referringInstitution', 'D10': 'departureSceneTime', 'F10': 'patientPickupAddress',
-    'B11': 'vehiclePlate', 'D11': 'arrivalHospitalTime', 'F11': 'patientTcNo', 'N11': 'patientAge',
-    'D12': 'returnStationTime', 'F12': 'patientPhone',
+    // === ROW 1-5: LOGO VE BAŞLIK ===
+    'A1': '__LOGO__',           // Logo (A1:C5 birleşik)
+    'N1': 'atn_no',             // ATN NO değeri (N3:P5 birleşik)
+    'Q1': 'startKm',            // Başlangıç KM değeri (Q3:R5)
+    'S1': 'endKm',              // Bitiş KM değeri (S3:T5)
+    
+    // === ROW 6-12: İSTASYON, SAATLER, HASTA ===
+    'A7': 'caseNumber',         // PROTOKOL NO değeri
+    'A8': 'caseDate',           // TARİH değeri
+    'A9': 'caseCode',           // KODU değeri
+    'A10': 'referringInstitution', // VAKAYI VEREN KURUM değeri
+    'A11': 'vehiclePlate',      // PLAKA değeri
+    
+    'C7': 'callTime',           // ÇAĞRI SAATİ değeri
+    'C8': 'arrivalSceneTime',   // OLAY YERİNE VARIŞ değeri
+    'C9': 'arrivalPatientTime', // HASTAYA VARIŞ değeri
+    'C10': 'departureSceneTime',// OLAY YERİNDEN AYRILIŞ değeri
+    'C11': 'arrivalHospitalTime', // HASTANEYE VARIŞ değeri
+    'C12': 'returnStationTime', // İSTASYONA DÖNÜŞ değeri
+    
+    'G7': 'patientName',        // ADI SOYADI değeri (G7:L7)
+    'G8': 'patientHomeAddress', // İKAMETGAH ADRESİ değeri (G8:L9)
+    'G10': 'patientPickupAddress', // ALINDIĞI ADRES değeri (G10:L10)
+    'G11': 'patientTcNo',       // TC KİMLİK NO değeri (G11:L11)
+    'G12': 'patientPhone',      // TELEFON değeri (G12:L12)
+    'N11': 'patientAge',        // YAŞ değeri
+    
     // Cinsiyet checkbox
-    'M7': 'gender.erkek', 'M9': 'gender.kadin',
-    // Triyaj checkbox
-    'O7': 'priority.kirmizi_kod', 'O8': 'priority.sari_kod', 'O9': 'priority.yesil_kod',
-    'O10': 'priority.siyah_kod', 'O11': 'priority.sosyal_endikasyon',
+    'M7': 'gender.erkek',       // ERKEK
+    'M9': 'gender.kadin',       // KADIN
+    
+    // Triyaj/Durumu checkbox
+    'O7': 'priority.kirmizi_kod',
+    'O8': 'priority.sari_kod',
+    'O9': 'priority.yesil_kod',
+    'O10': 'priority.siyah_kod',
+    'O11': 'priority.sosyal_endikasyon',
+    
     // Kronik hastalıklar ve şikayet
-    'S6': 'chronicDiseases', 'S9': 'patientComplaint',
-    // Çağrı tipi checkbox (Row 14-16)
-    'A14': 'callType.telsiz', 'A15': 'callType.telefon', 'A16': 'callType.diger',
-    // Çağrı nedeni checkbox
-    'C14': 'callReason.kesici_delici', 'C15': 'callReason.trafik_kaz', 'C16': 'callReason.diger_kaza', 'C17': 'callReason.is_kazasi',
-    'E14': 'callReason.yangin', 'E15': 'callReason.intihar', 'E16': 'callReason.kimyasal', 'E17': 'callReason.medikal',
-    'G14': 'callReason.elektrik_carp', 'G15': 'callReason.atesli_silah', 'G16': 'callReason.bogulma', 'G17': 'callReason.allerji',
-    'I14': 'callReason.dusme', 'I15': 'callReason.alkol_ilac', 'I16': 'callReason.kunt_trav', 'I17': 'callReason.yanik',
-    'K14': 'callReason.lpg', 'K15': 'callReason.tedbir', 'K16': 'callReason.protokol',
-    // Olay yeri checkbox
-    'M14': 'scene.ev', 'M15': 'scene.yaya', 'M16': 'scene.suda', 'M17': 'scene.arazi',
-    'O14': 'scene.aracta', 'O15': 'scene.buro', 'O16': 'scene.fabrika', 'O17': 'scene.sokak',
-    'Q14': 'scene.stadyum', 'Q15': 'scene.huzurevi', 'Q16': 'scene.cami', 'Q17': 'scene.yurt',
-    'S14': 'scene.saglik_kurumu', 'S15': 'scene.resmi_daire', 'S16': 'scene.egitim_kurumu', 'S17': 'scene.spor_salonu',
-    // Pupil checkbox (Row 20-25)
-    'A20': 'pupil.normal', 'A21': 'pupil.miyotik', 'A22': 'pupil.midriatik',
-    'A23': 'pupil.anizokorik', 'A24': 'pupil.reak_yok', 'A25': 'pupil.fiks_dilate',
-    // Deri checkbox
-    'C20': 'skin.normal', 'C21': 'skin.soluk', 'C22': 'skin.siyanotik',
-    'C23': 'skin.hiperemik', 'C24': 'skin.ikterik', 'C25': 'skin.terli',
-    // Vital bulgular
-    'E20': 'vital1.saat', 'F20': 'vital1.nabiz', 'H20': 'vital1.tansiyon', 'J20': 'vital1.solunum',
-    'E21': 'vital2.saat', 'F21': 'vital2.nabiz', 'H21': 'vital2.tansiyon', 'J21': 'vital2.solunum',
-    'H22': 'vital1.spo2', 'H23': 'vital2.spo2',
-    // Nabız tipi checkbox
-    'G22': 'pulse.duzenli', 'G23': 'pulse.ritmik', 'G24': 'pulse.filiform', 'G25': 'pulse.alinmiyor',
-    // Solunum tipi checkbox
-    'K22': 'resp.duzenli', 'K23': 'resp.duzensiz', 'K24': 'resp.dispne', 'K25': 'resp.yok',
+    'R6': 'chronicDiseases',    // KRONİK HASTALIKLAR (R6:T6)
+    'R9': 'patientComplaint',   // HASTANIN ŞİKAYETİ (R9:T9)
+    
+    // === ROW 13-17: ÇAĞRI TİPİ, NEDENİ, OLAY YERİ ===
+    // Çağrı tipi
+    'A14': 'callType.telsiz',
+    'A15': 'callType.telefon',
+    'A16': 'callType.diger',
+    
+    // Çağrı nedeni
+    'C14': 'callReason.kesici_delici',
+    'C15': 'callReason.trafik_kaz',
+    'C16': 'callReason.diger_kaza',
+    'C17': 'callReason.is_kazasi',
+    'E14': 'callReason.yangin',
+    'E15': 'callReason.intihar',
+    'E16': 'callReason.kimyasal',
+    'E17': 'callReason.medikal',
+    'G14': 'callReason.elektrik_carp',
+    'G15': 'callReason.atesli_silah',
+    'G16': 'callReason.bogulma',
+    'G17': 'callReason.allerji',
+    'I14': 'callReason.dusme',
+    'I15': 'callReason.alkol_ilac',
+    'I16': 'callReason.kunt_trav',
+    'I17': 'callReason.yanik',
+    'K14': 'callReason.lpg',
+    'K15': 'callReason.tedbir',
+    'K16': 'callReason.protokol',
+    
+    // Olay yeri
+    'M14': 'scene.ev',
+    'M15': 'scene.yaya',
+    'M16': 'scene.suda',
+    'M17': 'scene.arazi',
+    'O14': 'scene.aracta',
+    'O15': 'scene.buro',
+    'O16': 'scene.fabrika',
+    'O17': 'scene.sokak',
+    'Q14': 'scene.stadyum',
+    'Q15': 'scene.huzurevi',
+    'Q16': 'scene.cami',
+    'Q17': 'scene.yurt',
+    'S14': 'scene.saglik_kurumu',
+    'S15': 'scene.resmi_daire',
+    'S16': 'scene.egitim_kurumu',
+    'S17': 'scene.spor_salonu',
+    
+    // === ROW 18-25: İLK MUAYENE BULGULARI ===
+    // Pupiller
+    'A20': 'pupil.normal',
+    'A21': 'pupil.miyotik',
+    'A22': 'pupil.midriatik',
+    'A23': 'pupil.anizokorik',
+    'A24': 'pupil.reak_yok',
+    'A25': 'pupil.fiks_dilate',
+    
+    // Deri
+    'C20': 'skin.normal',
+    'C21': 'skin.soluk',
+    'C22': 'skin.siyanotik',
+    'C23': 'skin.hiperemik',
+    'C24': 'skin.ikterik',
+    'C25': 'skin.terli',
+    
+    // Vital 1 (Row 20)
+    'E20': 'vital1.saat',
+    'F20': 'vital1.nabiz',
+    'H20': 'vital1.tansiyon',
+    'J20': 'vital1.solunum',
+    
+    // Vital 2 (Row 21)
+    'E21': 'vital2.saat',
+    'F21': 'vital2.nabiz',
+    'H21': 'vital2.tansiyon',
+    'J21': 'vital2.solunum',
+    
+    // SpO2 (Row 22-23)
+    'I22': 'vital1.spo2',
+    'I23': 'vital2.spo2',
+    
+    // Nabız tipi
+    'G22': 'pulse.duzenli',
+    'G23': 'pulse.ritmik',
+    'G24': 'pulse.filiform',
+    'G25': 'pulse.alinmiyor',
+    
+    // Solunum tipi
+    'K22': 'resp.duzenli',
+    'K23': 'resp.duzensiz',
+    'K24': 'resp.dispne',
+    'K25': 'resp.yok',
+    
     // Kan şekeri ve ateş
-    'T20': 'kan_sekeri', 'T22': 'ates',
-    // GKS Motor (Row 20-25)
-    'L20': 'gcsMotor.1', 'L21': 'gcsMotor.2', 'L22': 'gcsMotor.3', 'L23': 'gcsMotor.4', 'L24': 'gcsMotor.5', 'L25': 'gcsMotor.6',
-    // GKS Verbal
-    'O20': 'gcsVerbal.1', 'O21': 'gcsVerbal.2', 'O22': 'gcsVerbal.3', 'O23': 'gcsVerbal.4', 'O24': 'gcsVerbal.5',
-    // GKS Göz
-    'Q20': 'gcsEye.1', 'Q21': 'gcsEye.2', 'Q22': 'gcsEye.3', 'Q23': 'gcsEye.4',
+    'S18': 'kan_sekeri',
+    'S22': 'ates',
+    
+    // GKS Motor (L sütunu, satır numarası = skor)
+    'L20': 'gcsMotor.1',
+    'L21': 'gcsMotor.2',
+    'L22': 'gcsMotor.3',
+    'L23': 'gcsMotor.4',
+    'L24': 'gcsMotor.5',
+    'L25': 'gcsMotor.6',
+    
+    // GKS Verbal (O sütunu)
+    'O20': 'gcsVerbal.1',
+    'O21': 'gcsVerbal.2',
+    'O22': 'gcsVerbal.3',
+    'O23': 'gcsVerbal.4',
+    'O24': 'gcsVerbal.5',
+    
+    // GKS Göz (Q sütunu)
+    'Q20': 'gcsEye.1',
+    'Q21': 'gcsEye.2',
+    'Q22': 'gcsEye.3',
+    'Q23': 'gcsEye.4',
+    
     // GKS toplam
-    'P25': 'gcsTotal',
-    // Ön tanı ve açıklamalar (Row 26)
-    'B26': 'on_tani', 'H26': 'aciklamalar',
-    // Sonuç (Row 27-32)
-    'I27': 'transferHospital',
-    'L28': 'crashVehicle1', 'L29': 'crashVehicle2', 'L30': 'crashVehicle3', 'L31': 'crashVehicle4',
-    'Q28': 'cprStartTime', 'Q29': 'cprStopTime', 'Q30': 'cprStopReason',
+    'O25': 'gcsTotal',
+    
+    // === ROW 26: ÖN TANI VE AÇIKLAMALAR ===
+    'C26': 'on_tani',           // ÖN TANI değeri (C26:F26)
+    'I26': 'aciklamalar',       // AÇIKLAMALAR değeri (I26:T26)
+    
+    // === ROW 27-32: SONUÇ ===
+    'H27': 'transferHospital',  // NAKLEDİLEN HASTANE (H27 birleşik)
+    'L28': 'crashVehicle1',
+    'L29': 'crashVehicle2',
+    'L30': 'crashVehicle3',
+    'L31': 'crashVehicle4',
+    'P27': 'cpr.yapildi',       // CPR YAPILDI İSE
+    'S28': 'cprStartTime',      // BAŞLAMA ZAMANI
+    'S29': 'cprStopTime',       // BIRAKMA ZAMANI
+    'P30': 'cprStopReason',     // BIRAKMA NEDENİ
+    
     // Sonuç checkbox
-    'A28': 'outcome.yerinde_mudahale', 'A29': 'outcome.hastaneye_nakil', 'A30': 'outcome.hastaneler_arasi',
-    'A31': 'outcome.tibbi_tetkik', 'A32': 'outcome.eve_nakil',
-    'C28': 'outcome.ex_terinde_birakildi', 'C29': 'outcome.ex_morga_nakil', 'C30': 'outcome.nakil_reddi',
-    'C31': 'outcome.diger_ulasilan', 'C32': 'outcome.gorev_iptali',
-    'E28': 'outcome.baska_aracla_nakil', 'E29': 'outcome.tlf_bsk_aracla_nakil', 'E30': 'outcome.asilsiz_ihbar',
-    'E31': 'outcome.yaralanan_yok', 'E32': 'outcome.olay_yerinde_bekleme',
+    'A28': 'outcome.yerinde_mudahale',
+    'A29': 'outcome.hastaneye_nakil',
+    'A30': 'outcome.hastaneler_arasi',
+    'A31': 'outcome.tibbi_tetkik',
+    'A32': 'outcome.eve_nakil',
+    'C28': 'outcome.ex_terinde_birakildi',
+    'C29': 'outcome.ex_morga_nakil',
+    'C30': 'outcome.nakil_reddi',
+    'C31': 'outcome.diger_ulasilan',
+    'C32': 'outcome.gorev_iptali',
+    'E28': 'outcome.baska_aracla_nakil',
+    'E29': 'outcome.tlf_bsk_aracla_nakil',
+    'E30': 'outcome.asilsiz_ihbar',
+    'E31': 'outcome.yaralanan_yok',
+    'E32': 'outcome.olay_yerinde_bekleme',
+    
     // Mesafe
-    'H30': 'distance.ilce_ici', 'H31': 'distance.ilce_disi', 'H32': 'distance.il_disi',
+    'H30': 'distance.ilce_ici',
+    'H31': 'distance.ilce_disi',
+    'H32': 'distance.il_disi',
+    
     // Adli vaka
-    'M32': 'forensic.evet', 'O32': 'forensic.hayir',
-    // CPR yapıldı checkbox
-    'P27': 'cpr.yapildi',
-    // Genel müdahale (Row 34-58)
-    'C34': 'proc.muayene_acil.cb', 'D34': 'proc.muayene_acil.adet',
-    'C35': 'ambulance_fee.cb', 'D35': 'ambulance_fee.adet',
-    'C37': 'proc.enjeksiyon_im.cb', 'D37': 'proc.enjeksiyon_im.adet',
-    'C38': 'proc.enjeksiyon_iv.cb', 'D38': 'proc.enjeksiyon_iv.adet',
-    'C39': 'proc.enjeksiyon_sc.cb', 'D39': 'proc.enjeksiyon_sc.adet',
-    'C40': 'proc.iv_ilac.cb', 'D40': 'proc.iv_ilac.adet',
-    'C41': 'proc.damar_yolu.cb', 'D41': 'proc.damar_yolu.adet',
-    'C42': 'proc.sutur.cb', 'D42': 'proc.sutur.adet',
-    'C43': 'proc.mesane_sondasi.cb', 'D43': 'proc.mesane_sondasi.adet',
-    'C44': 'proc.mide_yikama.cb', 'D44': 'proc.mide_yikama.adet',
-    'C45': 'proc.pansuman_kucuk.cb', 'D45': 'proc.pansuman_kucuk.adet',
-    'C46': 'proc.apse.cb', 'D46': 'proc.apse.adet',
-    'C47': 'proc.yabanci_cisim.cb', 'D47': 'proc.yabanci_cisim.adet',
-    'C48': 'proc.yanik_pansuman_kucuk.cb', 'D48': 'proc.yanik_pansuman_kucuk.adet',
-    'C49': 'proc.yanik_pansuman_orta.cb', 'D49': 'proc.yanik_pansuman_orta.adet',
-    'C50': 'proc.ng_sonda.cb', 'D50': 'proc.ng_sonda.adet',
-    'C51': 'proc.kulak_buson.cb', 'D51': 'proc.kulak_buson.adet',
-    'C52': 'proc.kol_atel.cb', 'D52': 'proc.kol_atel.adet',
-    'C53': 'proc.bacak_atel.cb', 'D53': 'proc.bacak_atel.adet',
-    'C54': 'proc.cilt_traksiyon.cb', 'D54': 'proc.cilt_traksiyon.adet',
-    'C55': 'proc.servikal_collar.cb', 'D55': 'proc.servikal_collar.adet',
-    'C56': 'proc.travma_yelegi.cb', 'D56': 'proc.travma_yelegi.adet',
-    'C57': 'proc.vakum_sedye.cb', 'D57': 'proc.vakum_sedye.adet',
-    'C58': 'proc.sirt_tahtasi.cb', 'D58': 'proc.sirt_tahtasi.adet',
-    // Dolaşım desteği (Row 60-66)
-    'C60': 'circ.cpr.cb', 'D60': 'circ.cpr.adet',
-    'C61': 'circ.ekg.cb', 'D61': 'circ.ekg.adet',
-    'C62': 'circ.defibrilasyon.cb', 'D62': 'circ.defibrilasyon.adet',
-    'C63': 'circ.kardiyoversiyon.cb', 'D63': 'circ.kardiyoversiyon.adet',
-    'C64': 'circ.monitorizasyon.cb', 'D64': 'circ.monitorizasyon.adet',
-    'C65': 'circ.kanama_kontrolu.cb', 'D65': 'circ.kanama_kontrolu.adet',
-    'C66': 'circ.cut_down.cb', 'D66': 'circ.cut_down.adet',
-    // Hava yolu (Row 35-40)
-    'G35': 'airway.balon_valf.cb', 'H35': 'airway.balon_valf.adet',
-    'G36': 'airway.aspirasyon.cb', 'H36': 'airway.aspirasyon.adet',
-    'G37': 'airway.orofaringeal.cb', 'H37': 'airway.orofaringeal.adet',
-    'G38': 'airway.entubasyon.cb', 'H38': 'airway.entubasyon.adet',
-    'G39': 'airway.mekanik_vent.cb', 'H39': 'airway.mekanik_vent.adet',
-    'G40': 'airway.oksijen.cb', 'H40': 'airway.oksijen.adet',
-    // Diğer işlemler (Row 42-48)
-    'G42': 'other.normal_dogum.cb', 'H42': 'other.normal_dogum.adet',
-    'G43': 'other.kan_sekeri.cb', 'H43': 'other.kan_sekeri.adet',
-    'G44': 'other.lokal_anestezi.cb', 'H44': 'other.lokal_anestezi.adet',
-    'G45': 'other.tirnak_avulsiyon.cb', 'H45': 'other.tirnak_avulsiyon.adet',
-    'G46': 'other.transkutan_pao2.cb', 'H46': 'other.transkutan_pao2.adet',
-    'G47': 'other.debritman.cb', 'H47': 'other.debritman.adet',
-    'G48': 'other.sutur_alinmasi.cb', 'H48': 'other.sutur_alinmasi.adet',
-    // Yenidoğan işlemleri (Row 50-55)
-    'G50': 'newborn.transport_kuvoz.cb', 'H50': 'newborn.transport_kuvoz.adet',
-    'G51': 'newborn.canlandirma.cb', 'H51': 'newborn.canlandirma.adet',
-    'G52': 'newborn.im_enjeksiyon.cb', 'H52': 'newborn.im_enjeksiyon.adet',
-    'G53': 'newborn.iv_enjeksiyon.cb', 'H53': 'newborn.iv_enjeksiyon.adet',
-    'G54': 'newborn.iv_mayi.cb', 'H54': 'newborn.iv_mayi.adet',
-    'G55': 'newborn.entubasyon.cb', 'H55': 'newborn.entubasyon.adet',
-    // Sıvı tedavisi (Row 57-66)
-    'G57': 'fluid.nacl_250.cb', 'H57': 'fluid.nacl_250.adet',
-    'G58': 'fluid.nacl_500.cb', 'H58': 'fluid.nacl_500.adet',
-    'G59': 'fluid.nacl_100.cb', 'H59': 'fluid.nacl_100.adet',
-    'G60': 'fluid.dextroz_500.cb', 'H60': 'fluid.dextroz_500.adet',
-    'G62': 'fluid.mannitol_500.cb', 'H62': 'fluid.mannitol_500.adet',
-    'G63': 'fluid.isolyte_p.cb', 'H63': 'fluid.isolyte_p.adet',
-    'G64': 'fluid.isolyte_s.cb', 'H64': 'fluid.isolyte_s.adet',
-    'G65': 'fluid.dengeleyici.cb', 'H65': 'fluid.dengeleyici.adet',
-    'G66': 'fluid.ringer_laktat.cb', 'H66': 'fluid.ringer_laktat.adet',
-    // Kullanılan ilaçlar (Row 35-66) - K ve L kolonları
-    'L35': 'med.arveles.cb', 'M35': 'med.arveles.adet', 'N35': 'med.arveles.tur',
-    'L36': 'med.dikloron.cb', 'M36': 'med.dikloron.adet', 'N36': 'med.dikloron.tur',
-    'L37': 'med.spazmolitik.cb', 'M37': 'med.spazmolitik.adet', 'N37': 'med.spazmolitik.tur',
-    'L38': 'med.adrenalin_05.cb', 'M38': 'med.adrenalin_05.adet', 'N38': 'med.adrenalin_05.tur',
-    'L39': 'med.adrenalin_1.cb', 'M39': 'med.adrenalin_1.adet', 'N39': 'med.adrenalin_1.tur',
-    'L40': 'med.atropin.cb', 'M40': 'med.atropin.adet', 'N40': 'med.atropin.tur',
-    'L41': 'med.flumazenil.cb', 'M41': 'med.flumazenil.adet', 'N41': 'med.flumazenil.tur',
-    'L42': 'med.dopamin.cb', 'M42': 'med.dopamin.adet', 'N42': 'med.dopamin.tur',
-    'L43': 'med.citanest.cb', 'M43': 'med.citanest.adet', 'N43': 'med.citanest.tur',
-    'L44': 'med.nahco3.cb', 'M44': 'med.nahco3.adet', 'N44': 'med.nahco3.tur',
-    'L45': 'med.dizem.cb', 'M45': 'med.dizem.adet', 'N45': 'med.dizem.tur',
-    'L46': 'med.aminocordial.cb', 'M46': 'med.aminocordial.adet', 'N46': 'med.aminocordial.tur',
-    'L47': 'med.furosemid.cb', 'M47': 'med.furosemid.adet', 'N47': 'med.furosemid.tur',
-    'L48': 'med.ca_glukonat.cb', 'M48': 'med.ca_glukonat.adet', 'N48': 'med.ca_glukonat.tur',
-    'L49': 'med.diltizem.cb', 'M49': 'med.diltizem.adet', 'N49': 'med.diltizem.tur',
-    'L50': 'med.avil.cb', 'M50': 'med.avil.adet', 'N50': 'med.avil.tur',
-    'L51': 'med.dekort.cb', 'M51': 'med.dekort.adet', 'N51': 'med.dekort.tur',
-    'L52': 'med.antiepileptik.cb', 'M52': 'med.antiepileptik.adet', 'N52': 'med.antiepileptik.tur',
-    'L53': 'med.prednol.cb', 'M53': 'med.prednol.adet', 'N53': 'med.prednol.tur',
-    'L54': 'med.aktif_komur.cb', 'M54': 'med.aktif_komur.adet', 'N54': 'med.aktif_komur.tur',
-    'L55': 'med.beloc.cb', 'M55': 'med.beloc.adet', 'N55': 'med.beloc.tur',
-    'L56': 'med.salbutamol.cb', 'M56': 'med.salbutamol.adet', 'N56': 'med.salbutamol.tur',
-    'L57': 'med.aritmal.cb', 'M57': 'med.aritmal.adet', 'N57': 'med.aritmal.tur',
-    'L58': 'med.isoptin.cb', 'M58': 'med.isoptin.adet', 'N58': 'med.isoptin.tur',
-    'L59': 'med.kapril.cb', 'M59': 'med.kapril.adet', 'N59': 'med.kapril.tur',
-    'L60': 'med.magnezyum.cb', 'M60': 'med.magnezyum.adet', 'N60': 'med.magnezyum.tur',
-    'L61': 'med.isorid.cb', 'M61': 'med.isorid.adet', 'N61': 'med.isorid.tur',
-    'L62': 'med.coraspin.cb', 'M62': 'med.coraspin.adet', 'N62': 'med.coraspin.tur',
-    'L63': 'med.paracetamol.cb', 'M63': 'med.paracetamol.adet', 'N63': 'med.paracetamol.tur',
-    'L64': 'med.midazolam.cb', 'M64': 'med.midazolam.adet', 'N64': 'med.midazolam.tur',
-    'L65': 'med.dramamine.cb', 'M65': 'med.dramamine.adet', 'N65': 'med.dramamine.tur',
-    'L66': 'med.rotapamid.cb', 'M66': 'med.rotapamid.adet', 'N66': 'med.rotapamid.tur',
-    // Kullanılan malzemeler (Row 35-66) - Q ve R kolonları
-    'R35': 'mat.enjektor_1_2.cb', 'S35': 'mat.enjektor_1_2.adet',
-    'R36': 'mat.enjektor_5.cb', 'S36': 'mat.enjektor_5.adet',
-    'R37': 'mat.enjektor_10_20.cb', 'S37': 'mat.enjektor_10_20.adet',
-    'R38': 'mat.monitor_pedi.cb', 'S38': 'mat.monitor_pedi.adet',
-    'R39': 'mat.iv_kateter_14_22.cb', 'S39': 'mat.iv_kateter_14_22.adet',
-    'R40': 'mat.iv_kateter_24.cb', 'S40': 'mat.iv_kateter_24.adet',
-    'R41': 'mat.serum_seti.cb', 'S41': 'mat.serum_seti.adet',
-    'R42': 'mat.steril_eldiven.cb', 'S42': 'mat.steril_eldiven.adet',
-    'R43': 'mat.cerrahi_eldiven.cb', 'S43': 'mat.cerrahi_eldiven.adet',
-    'R44': 'mat.sponc.cb', 'S44': 'mat.sponc.adet',
-    'R45': 'mat.sargi_bezi.cb', 'S45': 'mat.sargi_bezi.adet',
-    'R46': 'mat.idrar_torbasi.cb', 'S46': 'mat.idrar_torbasi.adet',
-    'R47': 'mat.bisturi_ucu.cb', 'S47': 'mat.bisturi_ucu.adet',
-    'R48': 'mat.entubasyon_balonlu.cb', 'S48': 'mat.entubasyon_balonlu.adet',
-    'R49': 'mat.entubasyon_balonsuz.cb', 'S49': 'mat.entubasyon_balonsuz.adet',
-    'R50': 'mat.airway.cb', 'S50': 'mat.airway.adet',
-    'R51': 'mat.foley_sonda.cb', 'S51': 'mat.foley_sonda.adet',
-    'R52': 'mat.ng_sonda.cb', 'S52': 'mat.ng_sonda.adet',
-    'R53': 'mat.atravmatik_ipek.cb', 'S53': 'mat.atravmatik_ipek.adet',
-    'R54': 'mat.atravmatik_katkut.cb', 'S54': 'mat.atravmatik_katkut.adet',
-    'R55': 'mat.dogum_seti.cb', 'S55': 'mat.dogum_seti.adet',
-    'R56': 'mat.yanik_battaniyesi.cb', 'S56': 'mat.yanik_battaniyesi.adet',
-    'R57': 'mat.o2_maskesi_hazneli_eriskin.cb', 'S57': 'mat.o2_maskesi_hazneli_eriskin.adet',
-    'R58': 'mat.o2_maskesi_hazneli_pediatrik.cb', 'S58': 'mat.o2_maskesi_hazneli_pediatrik.adet',
-    'R59': 'mat.o2_kanulu_eriskin.cb', 'S59': 'mat.o2_kanulu_eriskin.adet',
-    'R60': 'mat.o2_kanulu_pediatrik.cb', 'S60': 'mat.o2_kanulu_pediatrik.adet',
-    'R61': 'mat.flaster.cb', 'S61': 'mat.flaster.adet',
-    'R62': 'mat.servikal_collar.cb', 'S62': 'mat.servikal_collar.adet',
-    'R63': 'mat.elastik_bandaj.cb', 'S63': 'mat.elastik_bandaj.adet',
-    'R64': 'mat.etil_chloride.cb', 'S64': 'mat.etil_chloride.adet',
-    'R65': 'mat.o2_maskesi_haznesiz_eriskin.cb', 'S65': 'mat.o2_maskesi_haznesiz_eriskin.adet',
-    'R66': 'mat.o2_maskesi_haznesiz_pediatrik.cb', 'S66': 'mat.o2_maskesi_haznesiz_pediatrik.adet',
-    // Hastane ve hasta reddi (Row 67-68)
-    'B67': 'hospital_rejection.text', 'K67': 'patient_rejection.text',
-    // İmzalar (Row 75-78)
-    'B77': 'sig.teslim_alan_adi', 'E77': 'sig.teslim_alan_kase', 'B78': 'sig.teslim_alan_imza',
-    'I76': 'sig.hekim_prm_name', 'N76': 'sig.hekim_prm_imza',
-    'I77': 'sig.saglik_per_name', 'N77': 'sig.saglik_per_imza',
-    'I78': 'sig.sofor_teknisyen_name', 'N78': 'sig.sofor_teknisyen_imza',
-    'P77': 'sig.hasta_yakin_adi', 'T77': 'sig.hasta_yakin_imza'
+    'K32': 'forensic.label',
+    'M32': 'forensic.evet',
+    'O32': 'forensic.hayir',
+    
+    // === ROW 33-66: İŞLEMLER ===
+    // Genel müdahale (B sütunu işlem adı, D sütunu adet)
+    'B34': 'proc.muayene_acil.cb', 'D34': 'proc.muayene_acil.adet',
+    'B35': 'ambulance_fee.cb', 'D35': 'ambulance_fee.adet',
+    'B37': 'proc.enjeksiyon_im.cb', 'D37': 'proc.enjeksiyon_im.adet',
+    'B38': 'proc.enjeksiyon_iv.cb', 'D38': 'proc.enjeksiyon_iv.adet',
+    'B39': 'proc.enjeksiyon_sc.cb', 'D39': 'proc.enjeksiyon_sc.adet',
+    'B40': 'proc.iv_ilac.cb', 'D40': 'proc.iv_ilac.adet',
+    'B41': 'proc.damar_yolu.cb', 'D41': 'proc.damar_yolu.adet',
+    'B42': 'proc.sutur.cb', 'D42': 'proc.sutur.adet',
+    'B43': 'proc.mesane_sondasi.cb', 'D43': 'proc.mesane_sondasi.adet',
+    'B44': 'proc.mide_yikama.cb', 'D44': 'proc.mide_yikama.adet',
+    'B45': 'proc.pansuman_kucuk.cb', 'D45': 'proc.pansuman_kucuk.adet',
+    'B46': 'proc.apse.cb', 'D46': 'proc.apse.adet',
+    'B47': 'proc.yabanci_cisim.cb', 'D47': 'proc.yabanci_cisim.adet',
+    'B48': 'proc.yanik_pansuman_kucuk.cb', 'D48': 'proc.yanik_pansuman_kucuk.adet',
+    'B49': 'proc.yanik_pansuman_orta.cb', 'D49': 'proc.yanik_pansuman_orta.adet',
+    'B50': 'proc.ng_sonda.cb', 'D50': 'proc.ng_sonda.adet',
+    'B51': 'proc.kulak_buson.cb', 'D51': 'proc.kulak_buson.adet',
+    'B52': 'proc.kol_atel.cb', 'D52': 'proc.kol_atel.adet',
+    'B53': 'proc.bacak_atel.cb', 'D53': 'proc.bacak_atel.adet',
+    'B54': 'proc.cilt_traksiyon.cb', 'D54': 'proc.cilt_traksiyon.adet',
+    'B55': 'proc.servikal_collar.cb', 'D55': 'proc.servikal_collar.adet',
+    'B56': 'proc.travma_yelegi.cb', 'D56': 'proc.travma_yelegi.adet',
+    'B57': 'proc.vakum_sedye.cb', 'D57': 'proc.vakum_sedye.adet',
+    'B58': 'proc.sirt_tahtasi.cb', 'D58': 'proc.sirt_tahtasi.adet',
+    
+    // Dolaşım desteği (Row 59-66)
+    'B60': 'circ.cpr.cb', 'D60': 'circ.cpr.adet',
+    'B61': 'circ.ekg.cb', 'D61': 'circ.ekg.adet',
+    'B62': 'circ.defibrilasyon.cb', 'D62': 'circ.defibrilasyon.adet',
+    'B63': 'circ.kardiyoversiyon.cb', 'D63': 'circ.kardiyoversiyon.adet',
+    'B64': 'circ.monitorizasyon.cb', 'D64': 'circ.monitorizasyon.adet',
+    'B65': 'circ.kanama_kontrolu.cb', 'D65': 'circ.kanama_kontrolu.adet',
+    'B66': 'circ.cut_down.cb', 'D66': 'circ.cut_down.adet',
+    
+    // Hava yolu (F sütunu)
+    'F35': 'airway.balon_valf.cb', 'I35': 'airway.balon_valf.adet',
+    'F36': 'airway.aspirasyon.cb', 'I36': 'airway.aspirasyon.adet',
+    'F37': 'airway.orofaringeal.cb', 'I37': 'airway.orofaringeal.adet',
+    'F38': 'airway.entubasyon.cb', 'I38': 'airway.entubasyon.adet',
+    'F39': 'airway.mekanik_vent.cb', 'I39': 'airway.mekanik_vent.adet',
+    'F40': 'airway.oksijen.cb', 'I40': 'airway.oksijen.adet',
+    
+    // Diğer işlemler (Row 41-48)
+    'F42': 'other.normal_dogum.cb', 'I42': 'other.normal_dogum.adet',
+    'F43': 'other.kan_sekeri.cb', 'I43': 'other.kan_sekeri.adet',
+    'F44': 'other.lokal_anestezi.cb', 'I44': 'other.lokal_anestezi.adet',
+    'F45': 'other.tirnak_avulsiyon.cb', 'I45': 'other.tirnak_avulsiyon.adet',
+    'F46': 'other.transkutan_pao2.cb', 'I46': 'other.transkutan_pao2.adet',
+    'F47': 'other.debritman.cb', 'I47': 'other.debritman.adet',
+    'F48': 'other.sutur_alinmasi.cb', 'I48': 'other.sutur_alinmasi.adet',
+    
+    // Yenidoğan işlemleri (Row 49-55)
+    'F50': 'newborn.transport_kuvoz.cb', 'I50': 'newborn.transport_kuvoz.adet',
+    'F51': 'newborn.canlandirma.cb', 'I51': 'newborn.canlandirma.adet',
+    'F52': 'newborn.im_enjeksiyon.cb', 'I52': 'newborn.im_enjeksiyon.adet',
+    'F53': 'newborn.iv_enjeksiyon.cb', 'I53': 'newborn.iv_enjeksiyon.adet',
+    'F54': 'newborn.iv_mayi.cb', 'I54': 'newborn.iv_mayi.adet',
+    'F55': 'newborn.entubasyon.cb', 'I55': 'newborn.entubasyon.adet',
+    
+    // Sıvı tedavisi (Row 56-66)
+    'F57': 'fluid.nacl_250.cb', 'I57': 'fluid.nacl_250.adet',
+    'F58': 'fluid.nacl_500.cb', 'I58': 'fluid.nacl_500.adet',
+    'F59': 'fluid.nacl_100.cb', 'I59': 'fluid.nacl_100.adet',
+    'F60': 'fluid.dextroz_500.cb', 'I60': 'fluid.dextroz_500.adet',
+    'F62': 'fluid.mannitol_500.cb', 'I62': 'fluid.mannitol_500.adet',
+    'F63': 'fluid.isolyte_p.cb', 'I63': 'fluid.isolyte_p.adet',
+    'F64': 'fluid.isolyte_s.cb', 'I64': 'fluid.isolyte_s.adet',
+    'F65': 'fluid.dengeleyici.cb', 'I65': 'fluid.dengeleyici.adet',
+    'F66': 'fluid.ringer_laktat.cb', 'I66': 'fluid.ringer_laktat.adet',
+    
+    // Kullanılan ilaçlar (K sütunu işlem, N sütunu adet, O sütunu tür)
+    'K35': 'med.arveles.cb', 'N35': 'med.arveles.adet', 'O35': 'med.arveles.tur',
+    'K36': 'med.dikloron.cb', 'N36': 'med.dikloron.adet', 'O36': 'med.dikloron.tur',
+    'K37': 'med.spazmolitik.cb', 'N37': 'med.spazmolitik.adet', 'O37': 'med.spazmolitik.tur',
+    'K38': 'med.adrenalin_05.cb', 'N38': 'med.adrenalin_05.adet', 'O38': 'med.adrenalin_05.tur',
+    'K39': 'med.adrenalin_1.cb', 'N39': 'med.adrenalin_1.adet', 'O39': 'med.adrenalin_1.tur',
+    'K40': 'med.atropin.cb', 'N40': 'med.atropin.adet', 'O40': 'med.atropin.tur',
+    'K41': 'med.flumazenil.cb', 'N41': 'med.flumazenil.adet', 'O41': 'med.flumazenil.tur',
+    'K42': 'med.dopamin.cb', 'N42': 'med.dopamin.adet', 'O42': 'med.dopamin.tur',
+    'K43': 'med.citanest.cb', 'N43': 'med.citanest.adet', 'O43': 'med.citanest.tur',
+    'K44': 'med.nahco3.cb', 'N44': 'med.nahco3.adet', 'O44': 'med.nahco3.tur',
+    'K45': 'med.dizem.cb', 'N45': 'med.dizem.adet', 'O45': 'med.dizem.tur',
+    'K46': 'med.aminocordial.cb', 'N46': 'med.aminocordial.adet', 'O46': 'med.aminocordial.tur',
+    'K47': 'med.furosemid.cb', 'N47': 'med.furosemid.adet', 'O47': 'med.furosemid.tur',
+    'K48': 'med.ca_glukonat.cb', 'N48': 'med.ca_glukonat.adet', 'O48': 'med.ca_glukonat.tur',
+    'K49': 'med.diltizem.cb', 'N49': 'med.diltizem.adet', 'O49': 'med.diltizem.tur',
+    'K50': 'med.avil.cb', 'N50': 'med.avil.adet', 'O50': 'med.avil.tur',
+    'K51': 'med.dekort.cb', 'N51': 'med.dekort.adet', 'O51': 'med.dekort.tur',
+    'K52': 'med.antiepileptik.cb', 'N52': 'med.antiepileptik.adet', 'O52': 'med.antiepileptik.tur',
+    'K53': 'med.prednol.cb', 'N53': 'med.prednol.adet', 'O53': 'med.prednol.tur',
+    'K54': 'med.aktif_komur.cb', 'N54': 'med.aktif_komur.adet', 'O54': 'med.aktif_komur.tur',
+    'K55': 'med.beloc.cb', 'N55': 'med.beloc.adet', 'O55': 'med.beloc.tur',
+    'K56': 'med.salbutamol.cb', 'N56': 'med.salbutamol.adet', 'O56': 'med.salbutamol.tur',
+    'K57': 'med.aritmal.cb', 'N57': 'med.aritmal.adet', 'O57': 'med.aritmal.tur',
+    'K58': 'med.isoptin.cb', 'N58': 'med.isoptin.adet', 'O58': 'med.isoptin.tur',
+    'K59': 'med.kapril.cb', 'N59': 'med.kapril.adet', 'O59': 'med.kapril.tur',
+    'K60': 'med.magnezyum.cb', 'N60': 'med.magnezyum.adet', 'O60': 'med.magnezyum.tur',
+    'K61': 'med.isorid.cb', 'N61': 'med.isorid.adet', 'O61': 'med.isorid.tur',
+    'K62': 'med.coraspin.cb', 'N62': 'med.coraspin.adet', 'O62': 'med.coraspin.tur',
+    'K63': 'med.paracetamol.cb', 'N63': 'med.paracetamol.adet', 'O63': 'med.paracetamol.tur',
+    'K64': 'med.midazolam.cb', 'N64': 'med.midazolam.adet', 'O64': 'med.midazolam.tur',
+    'K65': 'med.dramamine.cb', 'N65': 'med.dramamine.adet', 'O65': 'med.dramamine.tur',
+    'K66': 'med.rotapamid.cb', 'N66': 'med.rotapamid.adet', 'O66': 'med.rotapamid.tur',
+    
+    // Kullanılan malzemeler (Q sütunu işlem, T sütunu adet)
+    'Q35': 'mat.enjektor_1_2.cb', 'T35': 'mat.enjektor_1_2.adet',
+    'Q36': 'mat.enjektor_5.cb', 'T36': 'mat.enjektor_5.adet',
+    'Q37': 'mat.enjektor_10_20.cb', 'T37': 'mat.enjektor_10_20.adet',
+    'Q38': 'mat.monitor_pedi.cb', 'T38': 'mat.monitor_pedi.adet',
+    'Q39': 'mat.iv_kateter_14_22.cb', 'T39': 'mat.iv_kateter_14_22.adet',
+    'Q40': 'mat.iv_kateter_24.cb', 'T40': 'mat.iv_kateter_24.adet',
+    'Q41': 'mat.serum_seti.cb', 'T41': 'mat.serum_seti.adet',
+    'Q42': 'mat.steril_eldiven.cb', 'T42': 'mat.steril_eldiven.adet',
+    'Q43': 'mat.cerrahi_eldiven.cb', 'T43': 'mat.cerrahi_eldiven.adet',
+    'Q44': 'mat.sponc.cb', 'T44': 'mat.sponc.adet',
+    'Q45': 'mat.sargi_bezi.cb', 'T45': 'mat.sargi_bezi.adet',
+    'Q46': 'mat.idrar_torbasi.cb', 'T46': 'mat.idrar_torbasi.adet',
+    'Q47': 'mat.bisturi_ucu.cb', 'T47': 'mat.bisturi_ucu.adet',
+    'Q48': 'mat.entubasyon_balonlu.cb', 'T48': 'mat.entubasyon_balonlu.adet',
+    'Q49': 'mat.entubasyon_balonsuz.cb', 'T49': 'mat.entubasyon_balonsuz.adet',
+    'Q50': 'mat.airway.cb', 'T50': 'mat.airway.adet',
+    'Q51': 'mat.foley_sonda.cb', 'T51': 'mat.foley_sonda.adet',
+    'Q52': 'mat.ng_sonda.cb', 'T52': 'mat.ng_sonda.adet',
+    'Q53': 'mat.atravmatik_ipek.cb', 'T53': 'mat.atravmatik_ipek.adet',
+    'Q54': 'mat.atravmatik_katkut.cb', 'T54': 'mat.atravmatik_katkut.adet',
+    'Q55': 'mat.dogum_seti.cb', 'T55': 'mat.dogum_seti.adet',
+    'Q56': 'mat.yanik_battaniyesi.cb', 'T56': 'mat.yanik_battaniyesi.adet',
+    'Q57': 'mat.o2_maskesi_hazneli_eriskin.cb', 'T57': 'mat.o2_maskesi_hazneli_eriskin.adet',
+    'Q58': 'mat.o2_maskesi_hazneli_pediatrik.cb', 'T58': 'mat.o2_maskesi_hazneli_pediatrik.adet',
+    'Q59': 'mat.o2_kanulu_eriskin.cb', 'T59': 'mat.o2_kanulu_eriskin.adet',
+    'Q60': 'mat.o2_kanulu_pediatrik.cb', 'T60': 'mat.o2_kanulu_pediatrik.adet',
+    'Q61': 'mat.flaster.cb', 'T61': 'mat.flaster.adet',
+    'Q62': 'mat.servikal_collar.cb', 'T62': 'mat.servikal_collar.adet',
+    'Q63': 'mat.elastik_bandaj.cb', 'T63': 'mat.elastik_bandaj.adet',
+    'Q64': 'mat.etil_chloride.cb', 'T64': 'mat.etil_chloride.adet',
+    'Q65': 'mat.o2_maskesi_haznesiz_eriskin.cb', 'T65': 'mat.o2_maskesi_haznesiz_eriskin.adet',
+    'Q66': 'mat.o2_maskesi_haznesiz_pediatrik.cb', 'T66': 'mat.o2_maskesi_haznesiz_pediatrik.adet',
+    
+    // === ROW 67-74: REDLER ===
+    'A67': 'hospital_rejection.text',  // HASTANENİN HASTA REDDİ (A68:I74)
+    'J67': 'patient_rejection.text',   // HASTANIN HİZMET REDDİ (J68:T74)
+    
+    // === ROW 75-78: İMZALAR ===
+    'A75': 'sig.teslim_alan_adi',      // HASTAYI TESLİM ALAN ADI (B77:C77)
+    'D75': 'sig.teslim_alan_unvani',   // UNVANI (D77:G77)
+    'B78': 'sig.teslim_alan_imza',     // İMZA
+    'D77': 'sig.teslim_alan_kase',     // KAŞE
+    
+    'H76': 'sig.hekim_prm_name',       // HEKİM/PRM (I76)
+    'M76': 'sig.hekim_prm_imza',       // İMZA (M76:N76)
+    'H77': 'sig.saglik_per_name',      // SAĞLIK PER./ATT (I77)
+    'M77': 'sig.saglik_per_imza',      // İMZA
+    'H78': 'sig.sofor_teknisyen_name', // SÜR./TEKN. (I78)
+    'M78': 'sig.sofor_teknisyen_imza', // İMZA
+    
+    'O77': 'sig.hasta_yakin_adi',      // Hasta/Hasta Yakını Adı (O77:R77)
+    'S77': 'sig.hasta_yakin_imza'      // İMZASI (S77:T77)
   };
 
   const loadMapping = async () => {
@@ -996,7 +1146,7 @@ const VakaFormMappingEditor = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/pdf/vaka-form-mapping/bulk', {
+      await api.post('/pdf/vaka-form-mapping/bulk', {
         mappings: dataMappings,
         logo: { url: logoUrl, cell: logoCell }
       });

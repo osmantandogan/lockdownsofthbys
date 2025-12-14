@@ -102,6 +102,70 @@ async def debug_data_check(request: Request):
         logger.error(f"Debug endpoint error: {e}")
         return {"error": str(e)}
 
+def _norm(name):
+    tr = {'ş':'s','Ş':'S','ğ':'g','Ğ':'G','ü':'u','Ü':'U','ı':'i','İ':'I','ö':'o','Ö':'O','ç':'c','Ç':'C'}
+    r = name.lower().strip()
+    for a, b in tr.items(): r = r.replace(a, b.lower())
+    return ' '.join(r.split())
+
+_DEC25 = {
+    "merkez": {"plate": None, "loc": "saglik_merkezi", "hc": "Merkez Ofis", "hrs": "08:00-17:00", "p": [
+        {"n": "Cansel Petek SAHİN", "r": "doktor"}, {"n": "Irem HODULLAR", "r": "doktor"},
+        {"n": "Umutcan OZDAL", "r": "hemsire"}, {"n": "Nese VERIMCIK", "r": "hemsire"},
+        {"n": "Merve GIRGIN", "r": "cagri_merkezi"}, {"n": "Yasemin BASTURK", "r": "cagri_merkezi"},
+    ]},
+    "06_CHZ_142": {"plate": "06 CHZ 142", "loc": "arac", "hrs": "08:00-08:00", "p": [
+        {"n": "Hatice Acar CANBAZ", "r": "paramedik"}, {"n": "Aleyna OZDEMIR", "r": "paramedik"}, {"n": "Hasan GUNEY", "r": "paramedik"},
+    ]},
+    "06_CHZ_146": {"plate": "06 CHZ 146", "loc": "arac", "hrs": "08:00-08:00", "p": [
+        {"n": "Elif KURBAN", "r": "paramedik"}, {"n": "Burak ILIK", "r": "paramedik"}, {"n": "Busra Bahtiyar GUZEL", "r": "paramedik"},
+    ]},
+    "06_CHZ_149": {"plate": "06 CHZ 149", "loc": "arac", "hrs": "08:00-08:00", "p": [
+        {"n": "Aysegul Beyza YILMAZ", "r": "paramedik"}, {"n": "Ugur VAR", "r": "paramedik"}, {"n": "Mervenur GEDIK", "r": "paramedik"},
+    ]},
+    "34_FTU_336": {"plate": "34 FTU 336", "loc": "arac", "hrs": "08:00-08:00", "p": [
+        {"n": "Nesrin TUYSUZ", "r": "paramedik"}, {"n": "Gamze Hande BOZ", "r": "paramedik"}, {"n": "Alican TULUBAS", "r": "paramedik"},
+    ]},
+    "34_KMP_224": {"plate": "34 KMP 224", "loc": "arac", "hrs": "08:00-08:00", "p": [
+        {"n": "Murat KESER", "r": "paramedik"}, {"n": "Melike KARATEPE", "r": "paramedik"}, {"n": "Burakcan SAHINTURK", "r": "paramedik"},
+    ]},
+    "34_MHA_112": {"plate": "34 MHA 112", "loc": "arac", "hrs": "08:00-08:00", "p": [
+        {"n": "Kadir ARTAR", "r": "paramedik"}, {"n": "Hamza Tarik ERMIS", "r": "paramedik"}, {"n": "Buse TOPCU", "r": "paramedik"},
+    ]},
+}
+
+@router.post("/reimport-december-2025")
+async def reimport_dec_2025(request: Request):
+    res = {"deleted": 0, "created": 0, "not_found": [], "matched": []}
+    try:
+        del_r = await shift_assignments_collection.delete_many({})
+        res["deleted"] = del_r.deleted_count
+        users = await users_collection.find().to_list(1000)
+        vehicles = await vehicles_collection.find().to_list(100)
+        for lk, d in _DEC25.items():
+            plate, loc, hc, hrs = d.get("plate"), d.get("loc", "arac"), d.get("hc"), d.get("hrs", "08:00-08:00")
+            vid = next((v.get("_id") for v in vehicles if v.get("plate") == plate), None) if plate else None
+            st, et = hrs.split("-")
+            is24 = st == "08:00" and et == "08:00"
+            for p in d["p"]:
+                pn, pr = p["n"], p["r"]
+                np = _norm(pn)
+                user = next((u for u in users if _norm(u.get("name",""))==np or len(set(np.split())&set(_norm(u.get("name","")).split()))>=2), None)
+                if not user: res["not_found"].append(pn); continue
+                uid, un = user.get("_id"), user.get("name")
+                res["matched"].append({"in": pn, "db": un})
+                for day in range(14, 22):
+                    sd = datetime(2025, 12, day, 8, 0, 0)
+                    ed = sd + timedelta(days=1) if is24 else sd
+                    await shift_assignments_collection.insert_one({"_id": str(uuid.uuid4()), "user_id": uid, "user_name": un, "user_role": pr, "vehicle_id": vid, "vehicle_plate": plate, "shift_date": sd, "end_date": ed, "start_time": st, "end_time": et, "location_type": loc, "health_center_name": hc, "status": "pending", "created_at": datetime.utcnow()})
+                    res["created"] += 1
+        logger.info(f"Reimport tamamlandi: {res['created']} vardiya olusturuldu")
+        return res
+    except Exception as e:
+        logger.error(f"Reimport hatasi: {e}")
+        res["error"] = str(e)
+        return res
+
 @router.get("/assignments/today")
 async def get_today_assignments(request: Request):
     """Get today's shift assignments - visible to all users"""

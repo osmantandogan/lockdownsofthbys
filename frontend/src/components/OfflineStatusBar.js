@@ -90,3 +90,4 @@ const OfflineStatusBar = ({ position = 'bottom' }) => {
 
 export default OfflineStatusBar;
 
+
