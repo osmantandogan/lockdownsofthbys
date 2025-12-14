@@ -585,14 +585,32 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         return '☐' if field_type == 'cb' else ''
     
-    # İmzalar
+    # İmzalar (Frontend key'leriyle uyumlu)
     sig_mappings = {
+        # Eski format
         'sig.hekim_prm_name': lambda d: d.get('signatures', {}).get('doctor_name', ''),
         'sig.saglik_per_name': lambda d: d.get('signatures', {}).get('paramedic_name', ''),
         'sig.sofor_name': lambda d: d.get('signatures', {}).get('driver_name', ''),
         'sig.teslim_adi': lambda d: d.get('signatures', {}).get('receiver_name', ''),
         'sig.teslim_unvan': lambda d: d.get('signatures', {}).get('receiver_title', ''),
         'sig.hasta_adi': lambda d: d.get('signatures', {}).get('patient_name', ''),
+        
+        # Yeni format (Frontend'deki key'ler)
+        'sig.teslim_alan_adi': lambda d: d.get('signatures', {}).get('receiver_name', '') or d.get('extended_form', {}).get('teslimAlanAdi', ''),
+        'sig.teslim_alan_unvan': lambda d: d.get('signatures', {}).get('receiver_title', '') or d.get('extended_form', {}).get('teslimAlanUnvan', ''),
+        'sig.teslim_alan_imza': lambda d: '✓' if d.get('signatures', {}).get('receiver_signed') else '',
+        
+        'sig.hekim_prm_adi': lambda d: d.get('signatures', {}).get('doctor_name', '') or d.get('extended_form', {}).get('hekimAdi', ''),
+        'sig.hekim_prm_imza': lambda d: '✓' if d.get('signatures', {}).get('doctor_signed') else '',
+        
+        'sig.saglik_per_adi': lambda d: d.get('signatures', {}).get('paramedic_name', '') or d.get('extended_form', {}).get('saglikPerAdi', ''),
+        'sig.saglik_per_imza': lambda d: '✓' if d.get('signatures', {}).get('paramedic_signed') else '',
+        
+        'sig.sofor_teknisyen_adi': lambda d: d.get('signatures', {}).get('driver_name', '') or d.get('extended_form', {}).get('soforAdi', ''),
+        'sig.sofor_teknisyen_imza': lambda d: '✓' if d.get('signatures', {}).get('driver_signed') else '',
+        
+        'sig.hasta_yakin_adi': lambda d: d.get('signatures', {}).get('patient_name', '') or d.get('extended_form', {}).get('hastaYakiniAdi', ''),
+        'sig.hasta_yakin_imza': lambda d: '✓' if d.get('signatures', {}).get('patient_signed') else '',
     }
     
     # Red formları
