@@ -73,12 +73,20 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     basic_mappings = {
         'caseNumber': lambda d: d.get('case_number', ''),
         'caseDate': lambda d: format_date(d.get('created_at')),
+        'caseCode': lambda d: d.get('case_code', '') or d.get('code', ''),
+        'atn_no': lambda d: d.get('atn_no', '') or d.get('atm_no', ''),
         'vehiclePlate': lambda d: d.get('assigned_team', {}).get('vehicle', '') or d.get('vehicle_info', {}).get('plate', ''),
+        'stationName': lambda d: d.get('station_name', '') or d.get('station', ''),
         'pickupAddress': lambda d: d.get('location', {}).get('address', ''),
-        'startKm': lambda d: d.get('vehicle_info', {}).get('start_km', ''),
-        'endKm': lambda d: d.get('vehicle_info', {}).get('end_km', ''),
-        'totalKm': lambda d: d.get('vehicle_info', {}).get('total_km', ''),
-        'referringInstitution': lambda d: d.get('referring_institution', '') or d.get('company', ''),
+        'startKm': lambda d: str(d.get('vehicle_info', {}).get('start_km', '') or d.get('start_km', '')),
+        'endKm': lambda d: str(d.get('vehicle_info', {}).get('end_km', '') or d.get('end_km', '')),
+        'totalKm': lambda d: str(d.get('vehicle_info', {}).get('total_km', '') or d.get('total_km', '')),
+        'referringInstitution': lambda d: d.get('referring_institution', '') or d.get('company', '') or d.get('vakayiVerenKurum', ''),
+        # Ön tanı ve açıklama
+        'on_tani': lambda d: d.get('on_tani', '') or d.get('preliminary_diagnosis', '') or d.get('extended_form', {}).get('onTani', ''),
+        'aciklamalar': lambda d: d.get('aciklamalar', '') or d.get('notes', '') or d.get('extended_form', {}).get('aciklamalar', ''),
+        # Ş.İ. Ambulans Ücreti
+        'si_ambulans_ucreti': lambda d: '☑' if d.get('extended_form', {}).get('siAmbulansUcreti') else '☐',
     }
     
     # Saat alanları (V3 formatı)
@@ -113,14 +121,52 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     
     # Sonuç/Nakil bilgileri
     result_mappings = {
-        'transferHospital': lambda d: d.get('transfer_hospital', ''),
+        'transferHospital': lambda d: d.get('transfer_hospital', '') or d.get('extended_form', {}).get('nakledilenHastane', ''),
         'transferType': lambda d: d.get('transfer_type', ''),
         'caseResult': lambda d: d.get('case_result', '') or d.get('status', ''),
         'isForensic': lambda d: 'Evet' if d.get('is_forensic') else 'Hayır',
         'priority': lambda d: d.get('priority', ''),
+        # Kazaya karışan araç plakaları
+        'crashVehicle1': lambda d: d.get('extended_form', {}).get('crashVehicles', [''])[0] if d.get('extended_form', {}).get('crashVehicles') else '',
+        'crashVehicle2': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', ''])[1] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 1 else '',
+        'crashVehicle3': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', '', ''])[2] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 2 else '',
+        'crashVehicle4': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', '', '', ''])[3] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 3 else '',
+        # CPR bilgileri
+        'cprStartTime': lambda d: format_time(d.get('extended_form', {}).get('cprStartTime', '')),
+        'cprStopTime': lambda d: format_time(d.get('extended_form', {}).get('cprStopTime', '')),
+        'cprStopReason': lambda d: d.get('extended_form', {}).get('cprStopReason', ''),
     }
     
-    # Vital bulgular (dinamik)
+    # İmza bilgileri
+    signature_mappings = {
+        # Hekim/PRM
+        'hekimAdi': lambda d: d.get('signatures', {}).get('hekim', {}).get('name', '') or d.get('extended_form', {}).get('hekimAdi', ''),
+        'hekimImza': lambda d: '✓' if d.get('signatures', {}).get('hekim', {}).get('signed') else '',
+        # Sağlık Personeli/ATT
+        'saglikPerAdi': lambda d: d.get('signatures', {}).get('saglikPer', {}).get('name', '') or d.get('extended_form', {}).get('saglikPerAdi', ''),
+        'saglikPerImza': lambda d: '✓' if d.get('signatures', {}).get('saglikPer', {}).get('signed') else '',
+        # Şoför/Tekn.
+        'soforAdi': lambda d: d.get('signatures', {}).get('sofor', {}).get('name', '') or d.get('extended_form', {}).get('soforAdi', ''),
+        'soforImza': lambda d: '✓' if d.get('signatures', {}).get('sofor', {}).get('signed') else '',
+        # Hasta/Hasta Yakını
+        'hastaYakiniAdi': lambda d: d.get('signatures', {}).get('hastaYakini', {}).get('name', '') or d.get('extended_form', {}).get('hastaYakiniAdi', ''),
+        'hastaYakiniImza': lambda d: '✓' if d.get('signatures', {}).get('hastaYakini', {}).get('signed') else '',
+        # Hastayı Teslim Alan
+        'teslimAlanAdi': lambda d: d.get('signatures', {}).get('teslimAlan', {}).get('name', '') or d.get('extended_form', {}).get('teslimAlanAdi', ''),
+        'teslimAlanUnvan': lambda d: d.get('signatures', {}).get('teslimAlan', {}).get('unvan', '') or d.get('extended_form', {}).get('teslimAlanUnvan', ''),
+        'teslimAlanImza': lambda d: '✓' if d.get('signatures', {}).get('teslimAlan', {}).get('signed') else '',
+        # Hizmet Reddi
+        'hizmetReddiAdi': lambda d: d.get('signatures', {}).get('hizmetReddi', {}).get('name', '') or d.get('extended_form', {}).get('hizmetReddiAdi', ''),
+        'hizmetReddiImza': lambda d: '✓' if d.get('signatures', {}).get('hizmetReddi', {}).get('signed') else '',
+    }
+    
+    # Kan şekeri ve ateş
+    clinical_extra = {
+        'kan_sekeri': lambda d: str(d.get('clinical_observations', {}).get('blood_sugar', '') or d.get('extended_form', {}).get('kanSekeri', '')),
+        'ates': lambda d: str(d.get('clinical_observations', {}).get('temperature', '') or d.get('extended_form', {}).get('ates', '')),
+    }
+    
+    # Vital bulgular (dinamik) - Format: vitalTime1, vitalBP1, vitalPulse1, etc.
     vital_pattern = re.match(r'vital(Time|BP|Pulse|SpO2|Resp|Temp)(\d+)', field_key)
     if vital_pattern:
         vital_type = vital_pattern.group(1)
@@ -132,13 +178,45 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
             type_map = {
                 'Time': lambda v: format_time(v.get('time')),
                 'BP': lambda v: v.get('blood_pressure', ''),
-                'Pulse': lambda v: v.get('pulse', ''),
-                'SpO2': lambda v: v.get('spo2', ''),
-                'Resp': lambda v: v.get('respiration', ''),
-                'Temp': lambda v: v.get('temperature', ''),
+                'Pulse': lambda v: str(v.get('pulse', '')),
+                'SpO2': lambda v: str(v.get('spo2', '')),
+                'Resp': lambda v: str(v.get('respiration', '')),
+                'Temp': lambda v: str(v.get('temperature', '')),
             }
             return str(type_map.get(vital_type, lambda v: '')(vs))
         return ''
+    
+    # Vital bulgular - Alternatif format: vital1.saat, vital1.nabiz, vital1.tansiyon, vital1.solunum, vital1.spo2
+    vital_alt_pattern = re.match(r'vital(\d+)\.(saat|nabiz|tansiyon|solunum|spo2|ates)', field_key)
+    if vital_alt_pattern:
+        vital_index = int(vital_alt_pattern.group(1)) - 1
+        vital_field = vital_alt_pattern.group(2)
+        vital_signs = case_data.get('vital_signs', [])
+        
+        if vital_index < len(vital_signs):
+            vs = vital_signs[vital_index]
+            field_map = {
+                'saat': lambda v: format_time(v.get('time', '')),
+                'nabiz': lambda v: str(v.get('pulse', '') or v.get('nabiz', '')),
+                'tansiyon': lambda v: str(v.get('blood_pressure', '') or v.get('tansiyon', '')),
+                'solunum': lambda v: str(v.get('respiration', '') or v.get('solunum', '')),
+                'spo2': lambda v: str(v.get('spo2', '')),
+                'ates': lambda v: str(v.get('temperature', '') or v.get('ates', '')),
+            }
+            return field_map.get(vital_field, lambda v: '')(vs)
+        return ''
+    
+    # Nabız tipi checkbox (pulse.duzenli, pulse.ritmik, etc.)
+    if field_key.startswith('pulse.'):
+        pulse_type = case_data.get('clinical_observations', {}).get('pulse_type', '').lower()
+        option = field_key.split('.')[1].lower()
+        return '☑' if pulse_type == option or option in pulse_type else '☐'
+    
+    # Solunum tipi checkbox (resp.duzenli, resp.duzensiz, etc.)
+    if field_key.startswith('resp.'):
+        resp_type = case_data.get('clinical_observations', {}).get('resp_type', '').lower()
+        option = field_key.split('.')[1].lower()
+        return '☑' if resp_type == option or option in resp_type else '☐'
     
     # GKS
     gks_mappings = {
@@ -542,6 +620,8 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         **result_mappings,
         **gks_mappings,
         **clinical_mappings,
+        **clinical_extra,
+        **signature_mappings,
         **sig_mappings,
         **reject_mappings,
         **escort_mappings,
