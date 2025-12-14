@@ -85,7 +85,9 @@ export const casesAPI = {
   // Hasta bilgisi güncelleme
   updatePatientInfo: (id, data) => api.patch(`/cases/${id}/patient`, data),
   // Excel export - Backend template kullanarak
-  exportExcel: (id) => api.get(`/cases/${id}/export-excel`, { responseType: 'blob' })
+  exportExcel: (id) => api.get(`/cases/${id}/export-excel`, { responseType: 'blob' }),
+  // Dinamik Excel export - Mapping şablonu ile
+  exportExcelWithTemplate: (caseId, templateId) => api.get(`/cases/${caseId}/export-excel-template/${templateId}`, { responseType: 'blob' })
 };
 
 // Video Call API (Daily.co)

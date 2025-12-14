@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI, patientsAPI } from '../api';
+import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI, patientsAPI, excelTemplatesAPI } from '../api';
 import { BACKEND_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -227,6 +227,10 @@ const CaseDetail = () => {
     consciousStatus: true
   });
   
+  // Excel şablonları
+  const [excelTemplates, setExcelTemplates] = useState([]);
+  const [excelExporting, setExcelExporting] = useState(false);
+  
   // Excel Form için ek alanlar
   const [extendedForm, setExtendedForm] = useState({
     chronicDiseases: '',       // Kronik hastalıklar
@@ -388,6 +392,11 @@ const CaseDetail = () => {
   useEffect(() => {
     loadData();
     loadHospitalsGrouped();
+    
+    // Excel şablonlarını yükle
+    excelTemplatesAPI.getAll()
+      .then(res => setExcelTemplates(res.data || []))
+      .catch(err => console.error('Excel şablonları yüklenemedi:', err));
     
     // Cleanup on unmount
     return () => {
@@ -1572,57 +1581,80 @@ const CaseDetail = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                toast.info('Excel dosyası hazırlanıyor...');
-                const response = await casesAPI.exportExcel(id);
-                
-                // Response'un gerçekten Excel olup olmadığını kontrol et
-                const contentType = response.headers?.['content-type'] || '';
-                
-                if (!contentType.includes('spreadsheet') && !contentType.includes('octet-stream')) {
-                  // Hata mesajı olabilir, blob'u text olarak oku
-                  const text = await response.data.text();
-                  console.error('Excel API hatası:', text);
+          {/* Excel Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                disabled={excelExporting}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {excelExporting ? 'İndiriliyor...' : 'Excel İndir'}
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>📊 Excel Şablonu Seçin</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              {/* Varsayılan sistem şablonu */}
+              <DropdownMenuItem
+                onClick={async () => {
                   try {
-                    const errorData = JSON.parse(text);
-                    toast.error(errorData.detail || 'Excel oluşturulurken hata oluştu');
-                  } catch {
-                    toast.error('Excel oluşturulurken hata oluştu');
+                    setExcelExporting(true);
+                    toast.info('Excel hazırlanıyor (Sistem Şablonu)...');
+                    const response = await casesAPI.exportExcel(id);
+                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    saveAs(response.data, fileName);
+                    toast.success('Excel indirildi!');
+                  } catch (error) {
+                    console.error('Excel hatası:', error);
+                    toast.error('Excel oluşturulamadı');
+                  } finally {
+                    setExcelExporting(false);
                   }
-                  return;
-                }
-                
-                // Dosya adını oluştur
-                const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.xlsx`;
-                
-                // file-saver ile indir
-                saveAs(response.data, fileName);
-                
-                toast.success(`Excel dosyası indirildi: ${fileName}`);
-              } catch (error) {
-                console.error('Excel oluşturma hatası:', error);
-                // Axios error durumunda response data'yı kontrol et
-                if (error.response?.data) {
-                  try {
-                    const text = await error.response.data.text?.() || '';
-                    const errorData = JSON.parse(text);
-                    toast.error(errorData.detail || 'Excel oluşturulurken hata oluştu');
-                  } catch {
-                    toast.error('Excel oluşturulurken hata oluştu');
-                  }
-                } else {
-                  toast.error('Excel oluşturulurken hata oluştu');
-                }
-              }
-            }}
-            className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            Excel İndir
-          </Button>
+                }}
+              >
+                <FileDown className="h-4 w-4 mr-2 text-blue-600" />
+                🔧 Sistem Şablonu (Varsayılan)
+              </DropdownMenuItem>
+              
+              {excelTemplates.length > 0 && <DropdownMenuSeparator />}
+              
+              {/* Kullanıcı şablonları */}
+              {excelTemplates.map((template) => (
+                <DropdownMenuItem
+                  key={template.id}
+                  onClick={async () => {
+                    try {
+                      setExcelExporting(true);
+                      toast.info(`Excel hazırlanıyor (${template.name})...`);
+                      const response = await casesAPI.exportExcelWithTemplate(id, template.id);
+                      const fileName = `VAKA_${caseData?.case_number || id}_${template.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                      saveAs(response.data, fileName);
+                      toast.success('Excel indirildi!');
+                    } catch (error) {
+                      console.error('Excel hatası:', error);
+                      toast.error('Excel oluşturulamadı');
+                    } finally {
+                      setExcelExporting(false);
+                    }
+                  }}
+                >
+                  <FileDown className="h-4 w-4 mr-2 text-green-600" />
+                  📄 {template.name}
+                  {template.is_default && <span className="ml-2 text-xs text-amber-600">⭐</span>}
+                </DropdownMenuItem>
+              ))}
+              
+              {excelTemplates.length === 0 && (
+                <div className="px-2 py-2 text-xs text-gray-500 text-center">
+                  Özel şablon bulunamadı
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {videoCallActive ? (
             <Button 

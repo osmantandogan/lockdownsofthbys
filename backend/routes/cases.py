@@ -1389,3 +1389,93 @@ async def export_case_excel(case_id: str, request: Request):
     except Exception as e:
         logger.error(f"Excel export hatası: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")
+
+
+# ============================================================================
+# DİNAMİK EXCEL EXPORT - Mapping Kullanan
+# ============================================================================
+
+from services.dynamic_excel_export import export_case_with_template
+
+@router.get("/{case_id}/export-excel-template/{template_id}")
+async def export_case_with_excel_template(case_id: str, template_id: str, request: Request):
+    """
+    Vakayı belirli bir Excel şablonu ve onun data_mappings'i ile doldurarak indir
+    """
+    user = await get_current_user(request)
+    
+    # Vakayı getir
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Excel şablonunu getir
+    excel_templates_collection = db["excel_templates"]
+    template = await excel_templates_collection.find_one({"_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Excel şablonu bulunamadı")
+    
+    # Tüm vaka verilerini hazırla
+    case_data = {
+        "case_number": case_doc.get("case_number", ""),
+        "created_at": case_doc.get("created_at"),
+        "priority": case_doc.get("priority", ""),
+        "status": case_doc.get("status", ""),
+        "patient": case_doc.get("patient", {}),
+        "caller": case_doc.get("caller", {}),
+        "location": case_doc.get("location", {}),
+        "assigned_team": case_doc.get("assigned_team", {}),
+        "vehicle_info": case_doc.get("vehicle_info", {}),
+        "time_info": case_doc.get("time_info", {}),
+        "company": case_doc.get("company", ""),
+        "call_type": case_doc.get("call_type", ""),
+        "call_reason": case_doc.get("call_reason", ""),
+        "complaint": case_doc.get("complaint", case_doc.get("patient", {}).get("complaint", "")),
+        "chronic_diseases": case_doc.get("chronic_diseases", ""),
+        "blood_sugar": case_doc.get("blood_sugar", ""),
+        "body_temperature": case_doc.get("body_temperature", ""),
+        "is_forensic": case_doc.get("is_forensic", False),
+        "case_result": case_doc.get("case_result", ""),
+        "transfer_hospital": case_doc.get("transfer_hospital", ""),
+        "transfer_type": case_doc.get("transfer_type", ""),
+        "referring_institution": case_doc.get("referring_institution", ""),
+        "medical_form": case_doc.get("medical_form", {}),
+        "vital_signs": case_doc.get("vital_signs", []),
+        "clinical_observations": case_doc.get("clinical_observations", {}),
+        "cpr_data": case_doc.get("cpr_data", {}),
+        "procedures": case_doc.get("procedures", []),
+        "medications": case_doc.get("medications", []),
+        "materials": case_doc.get("materials", []),
+        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
+        "signatures": case_doc.get("signatures", {}),
+        "hospital_rejection": case_doc.get("hospital_rejection", {}),
+        "patient_rejection": case_doc.get("patient_rejection", {}),
+        "escort": case_doc.get("escort", {}),
+        "notes": case_doc.get("notes", ""),
+    }
+    
+    try:
+        # Dinamik export
+        excel_buffer = export_case_with_template(template, case_data)
+        
+        # Dosya adı
+        case_number = case_doc.get("case_number", case_id[:8])
+        template_name = template.get("name", "sablon")
+        date_str = get_turkey_time().strftime("%Y-%m-%d")
+        
+        # Türkçe karakterleri temizle
+        safe_name = template_name.replace('ş', 's').replace('Ş', 'S').replace('ı', 'i').replace('İ', 'I')
+        safe_name = safe_name.replace('ğ', 'g').replace('Ğ', 'G').replace('ü', 'u').replace('Ü', 'U')
+        safe_name = safe_name.replace('ö', 'o').replace('Ö', 'O').replace('ç', 'c').replace('Ç', 'C')
+        
+        filename = f"VAKA_{case_number}_{safe_name}_{date_str}.xlsx"
+        
+        return StreamingResponse(
+            excel_buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+        
+    except Exception as e:
+        logger.error(f"Dinamik Excel export hatası: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")
