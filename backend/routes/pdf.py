@@ -152,6 +152,37 @@ async def generate_case_pdf_with_form_data(
 
 # ============== VAKA FORM MAPPING ENDPOINTS ==============
 
+@router.get("/vaka-form-template-cells")
+async def get_vaka_form_template_cells(request: Request):
+    """VAKA_FORMU_TEMPLATE.xlsx şablonundaki hücre değerlerini döndürür"""
+    user = await get_current_user(request)
+    
+    template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'VAKA_FORMU_TEMPLATE.xlsx')
+    
+    if not os.path.exists(template_path):
+        return {"cells": {}, "error": "Şablon dosyası bulunamadı"}
+    
+    try:
+        from openpyxl import load_workbook
+        from openpyxl.utils import get_column_letter
+        
+        wb = load_workbook(template_path, data_only=True)
+        ws = wb.active
+        
+        cells = {}
+        for row in range(1, min(ws.max_row + 1, 101)):  # Max 100 satır
+            for col in range(1, min(ws.max_column + 1, 36)):  # Max 35 sütun
+                cell = ws.cell(row=row, column=col)
+                if cell.value:
+                    address = f"{get_column_letter(col)}{row}"
+                    cells[address] = str(cell.value)
+        
+        return {"cells": cells, "max_row": ws.max_row, "max_column": ws.max_column}
+    except Exception as e:
+        logger.error(f"Şablon okuma hatası: {e}")
+        return {"cells": {}, "error": str(e)}
+
+
 @router.get("/vaka-form-mapping")
 async def get_vaka_form_cell_mapping(request: Request):
     """Vaka formu Excel hücre eşlemelerini döndürür - FormTemplates sayfası için"""

@@ -169,7 +169,8 @@ const CallCenterNew = () => {
       toast.success(`Vaka oluşturuldu: ${response.data.case_number}`);
     } catch (error) {
       console.error('Error creating case:', error);
-      toast.error(error.response?.data?.detail || 'Vaka oluşturulamadı');
+      const { getErrorMessage } = await import('../utils/formHelpers');
+      toast.error(getErrorMessage(error, 'Vaka oluşturulamadı'));
     } finally {
       setLoading(false);
     }
@@ -192,7 +193,8 @@ const CallCenterNew = () => {
       }, 1500);
     } catch (error) {
       console.error('Error sending notification:', error);
-      toast.error(error.response?.data?.detail || 'Bildirim gönderilemedi');
+      const { getErrorMessage } = await import('../utils/formHelpers');
+      toast.error(getErrorMessage(error, 'Bildirim gönderilemedi'));
     } finally {
       setSendingNotification(false);
     }

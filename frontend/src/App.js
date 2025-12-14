@@ -51,6 +51,7 @@ import ExcelMappingVisualizer from "./pages/ExcelMappingVisualizer";
 import ExcelOnlineEditor from "./pages/ExcelOnlineEditor";
 import VakaFormMappingEditor from "./pages/VakaFormMappingEditor";
 import FirmManagement from "./pages/FirmManagement";
+import GPSSettings from "./pages/GPSSettings";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -166,6 +167,7 @@ function App() {
             <Route path="notifications" element={<NotificationSettings />} />
             <Route path="vehicle-km-report" element={<VehicleKmReport />} />
             <Route path="firms" element={<FirmManagement />} />
+            <Route path="gps-settings" element={<GPSSettings />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

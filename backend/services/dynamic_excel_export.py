@@ -234,52 +234,91 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         else:
             return '☑' if not is_forensic else '☐'
     
-    # İşlemler (Prosedürler)
+    # İşlemler (Prosedürler) - proc.islem_adi.cb veya proc.islem_adi.adet
     if field_key.startswith('proc.'):
         procedures = case_data.get('procedures', [])
-        proc_name = field_key.split('.')[1].lower()
+        parts = field_key.split('.')
+        proc_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'  # cb veya adet
+        
         for proc in procedures:
             if proc_name in proc.get('code', '').lower() or proc_name in proc.get('name', '').lower():
+                if field_type == 'adet':
+                    return str(proc.get('count', proc.get('quantity', 1)))
                 return '☑'
-        return '☐'
+        return '☐' if field_type == 'cb' else ''
     
-    # Hava yolu işlemleri
+    # Hava yolu işlemleri - airway.islem_adi.cb veya airway.islem_adi.adet
     if field_key.startswith('airway.'):
         procedures = case_data.get('procedures', [])
-        airway_name = field_key.split('.')[1].lower()
+        parts = field_key.split('.')
+        airway_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
         for proc in procedures:
             if airway_name in proc.get('code', '').lower() or airway_name in proc.get('name', '').lower():
+                if field_type == 'adet':
+                    return str(proc.get('count', proc.get('quantity', 1)))
                 return '☑'
-        return '☐'
+        return '☐' if field_type == 'cb' else ''
     
-    # Dolaşım desteği
+    # Dolaşım desteği - circ.islem_adi.cb veya circ.islem_adi.adet
     if field_key.startswith('circ.'):
         procedures = case_data.get('procedures', [])
-        circ_name = field_key.split('.')[1].lower()
+        parts = field_key.split('.')
+        circ_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
         for proc in procedures:
             if circ_name in proc.get('code', '').lower() or circ_name in proc.get('name', '').lower():
+                if field_type == 'adet':
+                    return str(proc.get('count', proc.get('quantity', 1)))
                 return '☑'
-        return '☐'
+        return '☐' if field_type == 'cb' else ''
     
-    # Diğer işlemler
+    # Diğer işlemler - other.islem_adi.cb veya other.islem_adi.adet
     if field_key.startswith('other.'):
         procedures = case_data.get('procedures', [])
-        other_name = field_key.split('.')[1].lower()
+        parts = field_key.split('.')
+        other_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
         for proc in procedures:
             if other_name in proc.get('code', '').lower() or other_name in proc.get('name', '').lower():
+                if field_type == 'adet':
+                    return str(proc.get('count', proc.get('quantity', 1)))
                 return '☑'
-        return '☐'
+        return '☐' if field_type == 'cb' else ''
     
-    # Yenidoğan işlemleri
+    # Yenidoğan işlemleri - newborn.islem_adi.cb veya newborn.islem_adi.adet
     if field_key.startswith('newborn.'):
         procedures = case_data.get('procedures', [])
-        nb_name = field_key.split('.')[1].lower()
+        parts = field_key.split('.')
+        nb_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
         for proc in procedures:
             if nb_name in proc.get('code', '').lower() or nb_name in proc.get('name', '').lower():
+                if field_type == 'adet':
+                    return str(proc.get('count', proc.get('quantity', 1)))
                 return '☑'
-        return '☐'
+        return '☐' if field_type == 'cb' else ''
     
-    # İlaçlar
+    # İlaçlar - med.ilac_adi.cb veya med.ilac_adi.adet
+    if field_key.startswith('med.'):
+        medications = case_data.get('medications', [])
+        parts = field_key.split('.')
+        med_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
+        for med in medications:
+            if med_name in med.get('name', '').lower() or med_name in med.get('code', '').lower():
+                if field_type == 'adet':
+                    return str(med.get('quantity', med.get('count', 1)))
+                return '☑'
+        return '☐' if field_type == 'cb' else ''
+    
+    # Eski format için de destek - medication.
     if field_key.startswith('medication.'):
         medications = case_data.get('medications', [])
         med_name = field_key.split('.')[1].lower()
@@ -288,7 +327,21 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
                 return med.get('quantity', '☑')
         return ''
     
-    # Malzemeler
+    # Malzemeler - mat.malzeme_adi.cb veya mat.malzeme_adi.adet
+    if field_key.startswith('mat.'):
+        materials = case_data.get('materials', [])
+        parts = field_key.split('.')
+        mat_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
+        for mat in materials:
+            if mat_name in mat.get('name', '').lower() or mat_name in mat.get('code', '').lower():
+                if field_type == 'adet':
+                    return str(mat.get('quantity', mat.get('count', 1)))
+                return '☑'
+        return '☐' if field_type == 'cb' else ''
+    
+    # Eski format için de destek - material.
     if field_key.startswith('material.'):
         materials = case_data.get('materials', [])
         mat_name = field_key.split('.')[1].lower()
@@ -297,14 +350,19 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
                 return mat.get('quantity', '☑')
         return ''
     
-    # Sıvı tedavisi
+    # Sıvı tedavisi - fluid.sivi_adi.cb veya fluid.sivi_adi.adet
     if field_key.startswith('fluid.'):
         fluids = case_data.get('fluids', []) or case_data.get('iv_fluids', [])
-        fluid_name = field_key.split('.')[1].lower()
+        parts = field_key.split('.')
+        fluid_name = parts[1].lower() if len(parts) > 1 else ''
+        field_type = parts[2] if len(parts) > 2 else 'cb'
+        
         for fluid in fluids:
             if fluid_name in fluid.get('name', '').lower():
-                return fluid.get('quantity', '☑')
-        return ''
+                if field_type == 'adet':
+                    return str(fluid.get('quantity', fluid.get('count', 1)))
+                return '☑'
+        return '☐' if field_type == 'cb' else ''
     
     # İmzalar
     sig_mappings = {

@@ -27,6 +27,67 @@ router = APIRouter()
 
 
 # ============================================================================
+# GET ALL MEDICATIONS (For offline caching)
+# ============================================================================
+
+@router.get("")
+async def get_all_medications(request: Request, limit: int = 1000, skip: int = 0):
+    """
+    Tüm ilaçları listele (offline cache için)
+    Stok koleksiyonundan tüm unique ilaçları döndürür
+    """
+    await get_current_user(request)
+    
+    try:
+        # Stok koleksiyonundan unique ilaçları al
+        pipeline = [
+            {"$group": {
+                "_id": "$name",
+                "name": {"$first": "$name"},
+                "category": {"$first": "$category"},
+                "unit": {"$first": "$unit"},
+                "barcode": {"$first": "$barcode"},
+                "gtin": {"$first": "$gtin"}
+            }},
+            {"$project": {
+                "_id": 0,
+                "name": 1,
+                "category": 1,
+                "unit": 1,
+                "barcode": 1,
+                "gtin": 1
+            }},
+            {"$skip": skip},
+            {"$limit": limit}
+        ]
+        
+        medications = await stock_collection.aggregate(pipeline).to_list(length=limit)
+        
+        # Total count
+        total_pipeline = [
+            {"$group": {"_id": "$name"}},
+            {"$count": "total"}
+        ]
+        total_result = await stock_collection.aggregate(total_pipeline).to_list(length=1)
+        total = total_result[0]["total"] if total_result else 0
+        
+        return {
+            "data": medications,
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        # Boş liste döndür hata durumunda
+        return {
+            "data": [],
+            "total": 0,
+            "skip": skip,
+            "limit": limit
+        }
+
+
+# ============================================================================
 # GS1 DATAMATRIX BARCODE PARSER (Türkiye ITS Standardı)
 # ============================================================================
 

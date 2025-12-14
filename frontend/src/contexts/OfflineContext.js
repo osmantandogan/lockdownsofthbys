@@ -168,9 +168,10 @@ export const OfflineProvider = ({ children }) => {
     try {
       // İlaç listesi
       const medsResponse = await api.get('/medications', { params: { limit: 1000 } });
-      if (medsResponse.data) {
-        await OfflineStorage.cacheMedications(medsResponse.data);
-        console.log('[Offline] Medications cached');
+      const medsData = medsResponse.data?.data || medsResponse.data || [];
+      if (medsData && medsData.length > 0) {
+        await OfflineStorage.cacheMedications(medsData);
+        console.log('[Offline] Medications cached:', medsData.length);
       }
       
       // Hastane listesi

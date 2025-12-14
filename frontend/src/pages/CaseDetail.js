@@ -22,7 +22,8 @@ import {
   Check, X, Search, Building2, Stethoscope, Activity, FileText,
   Heart, Thermometer, Droplet, Brain, AlertCircle, Eye, Syringe,
   Ambulance, ClipboardList, VideoOff, FileSignature, Shield, Scissors, Save,
-  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown, ChevronDown, ChevronRight, Layout
+  Package, QrCode, Trash2, Plus, Pill, Camera, FileDown, ChevronDown, ChevronRight, Layout,
+  Wind, Baby, Settings
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import {
@@ -315,42 +316,102 @@ const CaseDetail = () => {
   // Polling interval ref
   const pollInterval = useRef(null);
   
-  // Procedure list (33 items)
-  const proceduresList = [
-    'Maske ile hava yolu desteği',
-    'Airway ile hava yolu desteği',
-    'Entübasyon uygulaması',
-    'Nazal Entübasyon uygulaması',
-    'LMA uygulaması',
-    'Combi tüp uygulaması',
-    'Acil trakeotomi açılması',
-    'Mekanik ventilasyon',
-    'Nebulizatör ile ilaç uygulama',
-    'Oksijen inhalasyon tedavisi 1 Saat',
-    'Aspirasyon uygulaması',
-    'Ventilatör ile takip (CPAP BİPAP dahil)',
-    'Balon valf maske uygulaması',
-    'CPR uygulaması',
-    'Defibrilasyon',
-    'Kardiyoversiyon',
-    'Monitörizasyon',
-    'İnfüzyon pompası',
-    'Kanama kontrolü',
-    'Çubuk atel uygulaması',
-    'Vakum atel uygulaması',
-    'Şişme atel uygulaması',
-    'U atel uygulaması',
-    'Traksiyon atel uygulaması',
-    'Pelvis kemeri uygulaması',
-    'Sekiz bandaj uygulaması',
-    'Elastik bandaj (velpa)',
-    'Femur(vücut) traksiyonu',
-    'Eklem çıkığı kapalı redüksiyonu',
-    'Servical collar uygulama',
-    'Travma yeleği',
-    'Sırt tahtası uygulaması',
-    'Vakum sedye uygulaması'
+  // ==================== PDF ŞABLONUNDAN İŞLEMLER ====================
+  
+  // Genel Müdahale İşlemleri
+  const genelMudahaleList = [
+    'Muayene (Acil)', 'Enjeksiyon IM', 'Enjeksiyon IV', 'Enjeksiyon SC',
+    'I.V. İlaç uygulaması', 'Damar yolu açılması', 'Sütür (küçük)',
+    'Mesane sondası takılması', 'Mide yıkanması', 'Pansuman (küçük)',
+    'Apse açmak', 'Yabancı cisim çıkartılması', 'Yanık pansumanı (küçük)',
+    'Yanık pansumanı (orta)', 'NG sonda takma', 'Kulaktan buşon temizliği',
+    'Kol atel (kısa)', 'Bacak atel (kısa)', 'Cilt traksiyonu uygulaması',
+    'Servikal collar uygulaması', 'Travma yeleği', 'Vakum sedye uygulaması',
+    'Sırt tahtası uygulaması'
   ];
+  
+  // Dolaşım Desteği
+  const dolasimDestegiList = [
+    'CPR (Resüsitasyon)', 'EKG Uygulaması', 'Defibrilasyon (CPR)',
+    'Kardiyoversiyon', 'Monitörizasyon', 'Kanama kontrolü', 'Cut down'
+  ];
+  
+  // Hava Yolu İşlemleri
+  const havaYoluList = [
+    'Balon Valf Maske', 'Aspirasyon uygulaması', 'Orofaringeal tüp uygulaması',
+    'Endotrakeal entübasyon', 'Mekanik ventilasyon (CPAP–BIPAP dahil)',
+    'Oksijen inhalasyon tedavisi'
+  ];
+  
+  // Diğer İşlemler
+  const digerIslemlerList = [
+    'Normal doğum', 'Kan şekeri ölçümü', 'Lokal anestezi',
+    'Tırnak avülsiyonu', 'Transkutan PaO2 ölçümü', 'Debritman alınması',
+    'Sütür alınması'
+  ];
+  
+  // Yenidoğan İşlemleri
+  const yenidoganList = [
+    'Transport küvözi ile nakil', 'Yenidoğan canlandırma',
+    'Yenidoğan I.M. enjeksiyon', 'Yenidoğan I.V. enjeksiyon',
+    'Yenidoğan I.V. mayi takılması', 'Yenidoğan entübasyonu'
+  ];
+  
+  // Sıvı Tedavisi
+  const siviTedavisiList = [
+    '%0.9 NaCl 250 cc', '%0.9 NaCl 500 cc', '%0.9 NaCl 100 cc',
+    '%5 Dextroz 500 cc', '%20 Mannitol 500 cc', 'İsolyte P 500 cc',
+    'İsolyte S 500 cc', '%10 Dengeleyici Elektrolit 500 cc', 'Laktatlı Ringer 500 cc'
+  ];
+  
+  // Tüm işlemler birleştirilmiş (eski uyumluluk için)
+  const proceduresList = [
+    ...genelMudahaleList,
+    ...dolasimDestegiList,
+    ...havaYoluList,
+    ...digerIslemlerList,
+    ...yenidoganList,
+    ...siviTedavisiList
+  ];
+  
+  // ==================== PDF ŞABLONUNDAN İLAÇLAR ====================
+  const pdfMedicationsList = [
+    { name: 'Arveles amp.', code: 'arveles' },
+    { name: 'Dikloron amp.', code: 'dikloron' },
+    { name: 'Spazmolitik amp.', code: 'spazmolitik' },
+    { name: 'Adrenalin 0,5 mg amp.', code: 'adrenalin_05' },
+    { name: 'Adrenalin 1 mg amp.', code: 'adrenalin_1' },
+    { name: 'Atropin 0,5 mg amp.', code: 'atropin' },
+    { name: 'Flumazenil amp.', code: 'flumazenil' },
+    { name: 'Dopamin amp.', code: 'dopamin' },
+    { name: 'Citanest flk. (Priloc)', code: 'citanest' },
+    { name: 'NaHCO3 amp.', code: 'nahco3' },
+    { name: 'Dizem amp.', code: 'dizem' },
+    { name: 'Aminocordial amp.', code: 'aminocordial' },
+    { name: 'Furosemid amp.', code: 'furosemid' },
+    { name: 'Ca Glukonat %10 amp.', code: 'ca_glukonat' },
+    { name: 'Diltizem Ampul 25 mg', code: 'diltizem' },
+    { name: 'Avil amp.', code: 'avil' },
+    { name: 'Dekort amp.', code: 'dekort' },
+    { name: 'Antiepileptik amp.', code: 'antiepileptik' },
+    { name: 'Prednol 40 mg amp.', code: 'prednol' },
+    { name: 'Aktif kömür tüp', code: 'aktif_komur' },
+    { name: 'Beloc amp.', code: 'beloc' },
+    { name: 'Salbutamol (İnhaler/Nebül)', code: 'salbutamol' },
+    { name: 'Aritmal amp. %2', code: 'aritmal' },
+    { name: 'Isoptin amp.', code: 'isoptin' },
+    { name: 'Kapril 25 mg tab.', code: 'kapril' },
+    { name: 'Magnezyum Sülfat amp.', code: 'magnezyum_sulfat' },
+    { name: 'Isorid 5 mg tab.', code: 'isorid' },
+    { name: 'Coraspin 300 mg tab.', code: 'coraspin' },
+    { name: 'Paracetamol Tablet', code: 'paracetamol' },
+    { name: 'Midazolam Ampul', code: 'midazolam' },
+    { name: 'Dramamine ampul', code: 'dramamine' },
+    { name: 'Rotapamid amp.', code: 'rotapamid' }
+  ];
+  
+  // PDF ilaçları için state
+  const [pdfMedications, setPdfMedications] = useState({});
   
   // Transfer list (14 items)
   const transferList = [
@@ -3020,33 +3081,163 @@ const CaseDetail = () => {
 
         {/* TAB 3: Yapılan Uygulamalar */}
         <TabsContent value="procedures" className="space-y-4">
+          
+          {/* Genel Müdahale */}
           <Card>
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-t-lg">
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <Syringe className="h-5 w-5" />
-                <span>Yapılan Uygulamalar ve İşlemler</span>
+            <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-t-lg py-2">
+              <CardTitle className="flex items-center space-x-2 text-base">
+                <Syringe className="h-4 w-4" />
+                <span>Genel Müdahale İşlemleri</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                {proceduresList.map((proc, index) => (
-                  <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
+            <CardContent className="pt-3">
+              <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
+                {genelMudahaleList.map((proc, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-violet-50 p-1.5 rounded text-xs">
+                    <Checkbox id={`gm-${index}`} checked={isProcedureChecked(proc)} onCheckedChange={() => toggleProcedure(proc)} disabled={!canEditForm} className="h-4 w-4" />
+                    <Label htmlFor={`gm-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                    {isProcedureChecked(proc) && <Input type="number" min="1" max="99" className="w-12 h-6 text-xs text-center" value={getProcedureAdet(proc)} onChange={(e) => updateProcedureAdet(proc, e.target.value)} disabled={!canEditForm} />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Dolaşım Desteği */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-t-lg py-2">
+              <CardTitle className="flex items-center space-x-2 text-base">
+                <Heart className="h-4 w-4" />
+                <span>Dolaşım Desteği</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
+                {dolasimDestegiList.map((proc, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-red-50 p-1.5 rounded text-xs">
+                    <Checkbox id={`dd-${index}`} checked={isProcedureChecked(proc)} onCheckedChange={() => toggleProcedure(proc)} disabled={!canEditForm} className="h-4 w-4" />
+                    <Label htmlFor={`dd-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                    {isProcedureChecked(proc) && <Input type="number" min="1" max="99" className="w-12 h-6 text-xs text-center" value={getProcedureAdet(proc)} onChange={(e) => updateProcedureAdet(proc, e.target.value)} disabled={!canEditForm} />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Hava Yolu */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-cyan-500 to-sky-500 text-white rounded-t-lg py-2">
+              <CardTitle className="flex items-center space-x-2 text-base">
+                <Wind className="h-4 w-4" />
+                <span>Hava Yolu İşlemleri</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
+                {havaYoluList.map((proc, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-cyan-50 p-1.5 rounded text-xs">
+                    <Checkbox id={`hy-${index}`} checked={isProcedureChecked(proc)} onCheckedChange={() => toggleProcedure(proc)} disabled={!canEditForm} className="h-4 w-4" />
+                    <Label htmlFor={`hy-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                    {isProcedureChecked(proc) && <Input type="number" min="1" max="99" className="w-12 h-6 text-xs text-center" value={getProcedureAdet(proc)} onChange={(e) => updateProcedureAdet(proc, e.target.value)} disabled={!canEditForm} />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Diğer İşlemler + Yenidoğan */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-gray-500 to-slate-500 text-white rounded-t-lg py-2">
+                <CardTitle className="flex items-center space-x-2 text-base">
+                  <Settings className="h-4 w-4" />
+                  <span>Diğer İşlemler</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="grid gap-1">
+                  {digerIslemlerList.map((proc, index) => (
+                    <div key={index} className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded text-xs">
+                      <Checkbox id={`di-${index}`} checked={isProcedureChecked(proc)} onCheckedChange={() => toggleProcedure(proc)} disabled={!canEditForm} className="h-4 w-4" />
+                      <Label htmlFor={`di-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                      {isProcedureChecked(proc) && <Input type="number" min="1" max="99" className="w-12 h-6 text-xs text-center" value={getProcedureAdet(proc)} onChange={(e) => updateProcedureAdet(proc, e.target.value)} disabled={!canEditForm} />}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-pink-500 to-rose-400 text-white rounded-t-lg py-2">
+                <CardTitle className="flex items-center space-x-2 text-base">
+                  <Baby className="h-4 w-4" />
+                  <span>Yenidoğan İşlemleri</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-3">
+                <div className="grid gap-1">
+                  {yenidoganList.map((proc, index) => (
+                    <div key={index} className="flex items-center space-x-2 bg-pink-50 p-1.5 rounded text-xs">
+                      <Checkbox id={`yd-${index}`} checked={isProcedureChecked(proc)} onCheckedChange={() => toggleProcedure(proc)} disabled={!canEditForm} className="h-4 w-4" />
+                      <Label htmlFor={`yd-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                      {isProcedureChecked(proc) && <Input type="number" min="1" max="99" className="w-12 h-6 text-xs text-center" value={getProcedureAdet(proc)} onChange={(e) => updateProcedureAdet(proc, e.target.value)} disabled={!canEditForm} />}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Sıvı Tedavisi */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-t-lg py-2">
+              <CardTitle className="flex items-center space-x-2 text-base">
+                <Droplet className="h-4 w-4" />
+                <span>Sıvı Tedavisi</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
+                {siviTedavisiList.map((proc, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-blue-50 p-1.5 rounded text-xs">
+                    <Checkbox id={`st-${index}`} checked={isProcedureChecked(proc)} onCheckedChange={() => toggleProcedure(proc)} disabled={!canEditForm} className="h-4 w-4" />
+                    <Label htmlFor={`st-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
+                    {isProcedureChecked(proc) && <Input type="number" min="1" max="99" className="w-12 h-6 text-xs text-center" value={getProcedureAdet(proc)} onChange={(e) => updateProcedureAdet(proc, e.target.value)} disabled={!canEditForm} />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* PDF İlaçlar Listesi */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-lg py-2">
+              <CardTitle className="flex items-center space-x-2 text-base">
+                <Pill className="h-4 w-4" />
+                <span>Kullanılan İlaçlar (PDF Şablonu)</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3">
+              <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
+                {pdfMedicationsList.map((med, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-green-50 p-1.5 rounded text-xs">
                     <Checkbox 
-                      id={`proc-${index}`}
-                      checked={isProcedureChecked(proc)}
-                      onCheckedChange={() => toggleProcedure(proc)}
-                      disabled={!canEditForm}
+                      id={`pdfmed-${index}`} 
+                      checked={pdfMedications[med.code]?.checked || false} 
+                      onCheckedChange={(checked) => setPdfMedications(prev => ({ ...prev, [med.code]: { ...prev[med.code], checked, adet: prev[med.code]?.adet || 1 } }))} 
+                      disabled={!canEditForm} 
+                      className="h-4 w-4" 
                     />
-                    <Label htmlFor={`proc-${index}`} className="text-xs font-normal cursor-pointer flex-1">{proc}</Label>
-                    {isProcedureChecked(proc) && (
-                      <Input
-                        type="number"
-                        min="1"
-                        max="99"
-                        className="w-14 h-7 text-xs text-center"
-                        value={getProcedureAdet(proc)}
-                        onChange={(e) => updateProcedureAdet(proc, e.target.value)}
-                        disabled={!canEditForm}
+                    <Label htmlFor={`pdfmed-${index}`} className="text-xs font-normal cursor-pointer flex-1">{med.name}</Label>
+                    {pdfMedications[med.code]?.checked && (
+                      <Input 
+                        type="number" 
+                        min="1" 
+                        max="99" 
+                        className="w-12 h-6 text-xs text-center" 
+                        value={pdfMedications[med.code]?.adet || 1} 
+                        onChange={(e) => setPdfMedications(prev => ({ ...prev, [med.code]: { ...prev[med.code], adet: parseInt(e.target.value) || 1 } }))} 
+                        disabled={!canEditForm} 
                       />
                     )}
                   </div>

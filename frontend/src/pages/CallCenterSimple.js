@@ -150,7 +150,8 @@ const CallCenterSimple = () => {
       }
     } catch (error) {
       console.error('Vaka oluşturma hatası:', error);
-      toast.error(error.response?.data?.detail || 'Vaka oluşturulamadı');
+      const { getErrorMessage } = await import('../utils/formHelpers');
+      toast.error(getErrorMessage(error, 'Vaka oluşturulamadı'));
     } finally {
       setLoading(false);
     }

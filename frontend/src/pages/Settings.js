@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { User, Info, PenTool, Camera, Trash2, Upload, Smartphone, Shield, CheckCircle, RefreshCw, Copy, Eye, EyeOff, Pill, Database, Loader2 } from 'lucide-react';
 import SignaturePad from '../components/SignaturePad';
+import SecuritySettings from '../components/SecuritySettings';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -856,6 +857,9 @@ const Settings = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Güvenlik Ayarları */}
+      <SecuritySettings />
 
       {/* System Info */}
       <Card>

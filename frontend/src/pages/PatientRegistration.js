@@ -387,7 +387,8 @@ const PatientRegistration = () => {
       
     } catch (error) {
       console.error('Error creating patient registration:', error);
-      toast.error(error.response?.data?.detail || 'Hasta kaydı oluşturulamadı');
+      const { getErrorMessage } = await import('../utils/formHelpers');
+      toast.error(getErrorMessage(error, 'Hasta kaydı oluşturulamadı'));
     } finally {
       setLoading(false);
     }

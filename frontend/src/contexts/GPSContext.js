@@ -45,7 +45,16 @@ export const GPSProvider = ({ children }) => {
     try {
       // Bugünün vardiya atamasını kontrol et
       const response = await shiftsAPI.getTodayAssignments();
-      const assignments = response.data || [];
+      
+      // Data format kontrolü - array olabilir veya {data: [...]} formatında olabilir
+      let assignments = [];
+      if (Array.isArray(response.data)) {
+        assignments = response.data;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        assignments = response.data.data;
+      } else if (Array.isArray(response)) {
+        assignments = response;
+      }
       
       // Kullanıcının atamasını bul
       const myAssignment = assignments.find(a => 

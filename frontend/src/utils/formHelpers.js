@@ -1,6 +1,34 @@
 import { formsAPI } from '../api';
 import { toast } from 'sonner';
 
+/**
+ * API hata mesajını düzgün string'e çevirir
+ * FastAPI validation hataları array veya object olarak gelebilir
+ */
+export const getErrorMessage = (error, defaultMessage = 'Bir hata oluştu') => {
+  const detail = error.response?.data?.detail;
+  
+  if (!detail) return defaultMessage;
+  
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  
+  if (Array.isArray(detail)) {
+    // FastAPI validation error formatı: [{loc: [...], msg: "...", type: "..."}]
+    return detail.map(e => {
+      if (typeof e === 'string') return e;
+      return e.msg || e.message || JSON.stringify(e);
+    }).join(', ');
+  }
+  
+  if (typeof detail === 'object') {
+    return detail.msg || detail.message || JSON.stringify(detail);
+  }
+  
+  return defaultMessage;
+};
+
 export const saveFormSubmission = async (formType, formData, extraData = {}) => {
   try {
     // formData içinden caseId'yi çıkar (eğer varsa)

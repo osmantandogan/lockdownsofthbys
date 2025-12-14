@@ -1,20 +1,37 @@
+/**
+ * PhotoCapture - Fotoğraf Çekme Bileşeni
+ * Capacitor Camera plugin ile native kamera desteği
+ * Web fallback ile tam uyumluluk
+ */
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Camera, X, Check, Upload, AlertCircle, Smartphone } from 'lucide-react';
+import { Camera, X, Check, Upload, AlertCircle, Smartphone, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import NativeBridge from '../native';
 
-const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = null }) => {
+const PhotoCapture = ({ 
+  title, 
+  onPhotoCapture, 
+  required = false, 
+  initialPhoto = null,
+  quality = 80,
+  maxWidth = 1280,
+  maxHeight = 1280
+}) => {
   const [photo, setPhoto] = useState(initialPhoto);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [cameraLoading, setCameraLoading] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null); // Mobil için doğrudan kamera açan input
+  const cameraInputRef = useRef(null);
 
-  // Mobil cihaz kontrolü
+  // Platform kontrolü
+  const isNative = NativeBridge.isNativeApp();
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // Cleanup camera on unmount
@@ -33,24 +50,141 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
     }
   }, [initialPhoto]);
 
+  // İzin durumunu kontrol et
+  useEffect(() => {
+    const checkPermission = async () => {
+      const status = await NativeBridge.checkCameraPermission();
+      setPermissionStatus(status);
+    };
+    checkPermission();
+  }, []);
+
+  // Native kamera ile fotoğraf çek (Capacitor)
+  const takeNativePhoto = async () => {
+    setCameraLoading(true);
+    setCameraError(null);
+
+    try {
+      // İzin kontrolü
+      let permission = await NativeBridge.checkCameraPermission();
+      
+      if (!permission.granted) {
+        permission = await NativeBridge.requestCameraPermission();
+        if (!permission.granted) {
+          setCameraError('Kamera izni verilmedi. Lütfen ayarlardan izin verin.');
+          toast.error('Kamera izni gerekli');
+          return;
+        }
+      }
+
+      // Native kamera ile fotoğraf çek
+      const result = await NativeBridge.takePhoto({
+        quality,
+        allowEditing: false,
+        saveToGallery: false
+      });
+
+      if (result && result.dataUrl) {
+        // Resmi yeniden boyutlandır
+        const resizedImage = await resizeImage(result.dataUrl, maxWidth, maxHeight, quality);
+        setPhoto(resizedImage);
+        onPhotoCapture(resizedImage);
+        toast.success('Fotoğraf çekildi!');
+      }
+    } catch (error) {
+      console.error('Native camera error:', error);
+      
+      if (error.message?.includes('cancelled') || error.message?.includes('User cancelled')) {
+        // Kullanıcı iptal etti, hata gösterme
+        return;
+      }
+      
+      setCameraError('Kamera açılamadı. Dosya yükleyebilirsiniz.');
+      toast.error('Kamera hatası: ' + (error.message || 'Bilinmeyen hata'));
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  // Galeriden fotoğraf seç (Native)
+  const pickNativeImage = async () => {
+    setCameraLoading(true);
+    setCameraError(null);
+
+    try {
+      const result = await NativeBridge.pickImage({
+        quality
+      });
+
+      if (result && result.dataUrl) {
+        const resizedImage = await resizeImage(result.dataUrl, maxWidth, maxHeight, quality);
+        setPhoto(resizedImage);
+        onPhotoCapture(resizedImage);
+        toast.success('Fotoğraf seçildi!');
+      }
+    } catch (error) {
+      console.error('Pick image error:', error);
+      
+      if (error.message?.includes('cancelled') || error.message?.includes('User cancelled')) {
+        return;
+      }
+      
+      // Fallback to file input
+      fileInputRef.current?.click();
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  // Resmi yeniden boyutlandır
+  const resizeImage = (dataUrl, maxW, maxH, q) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        
+        // Oranı koru
+        if (width > maxW) {
+          height = (height * maxW) / width;
+          width = maxW;
+        }
+        if (height > maxH) {
+          width = (width * maxH) / height;
+          height = maxH;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        resolve(canvas.toDataURL('image/jpeg', q / 100));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
+  // Web kamera desteği (fallback)
   const checkCameraSupport = () => {
-    // Check if we're on HTTPS or localhost
     const isSecure = window.location.protocol === 'https:' || 
                      window.location.hostname === 'localhost' || 
                      window.location.hostname === '127.0.0.1';
     
     if (!isSecure) {
-      return { supported: false, reason: 'Kamera için HTTPS bağlantısı gerekli. Dosya yükleyebilirsiniz.' };
+      return { supported: false, reason: 'Kamera için HTTPS bağlantısı gerekli.' };
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return { supported: false, reason: 'Tarayıcınız kamera erişimini desteklemiyor. Dosya yükleyebilirsiniz.' };
+      return { supported: false, reason: 'Tarayıcınız kamera erişimini desteklemiyor.' };
     }
 
     return { supported: true };
   };
 
-  const startCamera = async () => {
+  const startWebCamera = async () => {
     const check = checkCameraSupport();
     if (!check.supported) {
       setCameraError(check.reason);
@@ -60,15 +194,11 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
 
     setCameraLoading(true);
     setCameraError(null);
-    
-    // Önce showCamera'yı true yap ki video element DOM'a eklensin
     setShowCamera(true);
 
-    // Video element'in DOM'a eklenmesi için küçük bir bekle
     await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
-      // Try back camera first, then any camera
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -79,77 +209,61 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
           }
         });
       } catch (e) {
-        console.log('Back camera failed, trying any camera:', e);
-        // Fallback to any available camera
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
 
       streamRef.current = stream;
       
-      // Video ref kontrolü
       if (!videoRef.current) {
-        console.error('Video ref is null!');
         throw new Error('Video element bulunamadı');
       }
       
       videoRef.current.srcObject = stream;
       
-      // Wait for video to be ready with proper error handling
-      try {
-        await new Promise((resolve, reject) => {
-          const video = videoRef.current;
-          if (!video) {
-            reject(new Error('Video element kayboldu'));
-            return;
-          }
-          
-          const onLoaded = () => {
-            video.removeEventListener('loadedmetadata', onLoaded);
-            video.removeEventListener('error', onError);
-            resolve();
-          };
-          
-          const onError = (e) => {
-            video.removeEventListener('loadedmetadata', onLoaded);
-            video.removeEventListener('error', onError);
-            reject(e);
-          };
-          
-          video.addEventListener('loadedmetadata', onLoaded);
-          video.addEventListener('error', onError);
-          
-          // Timeout
-          setTimeout(() => {
-            video.removeEventListener('loadedmetadata', onLoaded);
-            video.removeEventListener('error', onError);
-            reject(new Error('Video yüklenme zaman aşımı'));
-          }, 10000);
-        });
+      await new Promise((resolve, reject) => {
+        const video = videoRef.current;
+        if (!video) {
+          reject(new Error('Video element kayboldu'));
+          return;
+        }
         
-        await videoRef.current.play();
-        console.log('Camera started successfully');
-      } catch (videoError) {
-        console.error('Video playback error:', videoError);
-        throw videoError;
-      }
+        const onLoaded = () => {
+          video.removeEventListener('loadedmetadata', onLoaded);
+          video.removeEventListener('error', onError);
+          resolve();
+        };
+        
+        const onError = (e) => {
+          video.removeEventListener('loadedmetadata', onLoaded);
+          video.removeEventListener('error', onError);
+          reject(e);
+        };
+        
+        video.addEventListener('loadedmetadata', onLoaded);
+        video.addEventListener('error', onError);
+        
+        setTimeout(() => {
+          video.removeEventListener('loadedmetadata', onLoaded);
+          video.removeEventListener('error', onError);
+          reject(new Error('Video yüklenme zaman aşımı'));
+        }, 10000);
+      });
+      
+      await videoRef.current.play();
       
     } catch (error) {
-      console.error('Camera error:', error);
+      console.error('Web camera error:', error);
       
       let errorMessage = 'Kamera açılamadı. ';
       
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage += 'Kamera izni reddedildi. Tarayıcı ayarlarından izin verin veya dosya yükleyin.';
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage += 'Kamera bulunamadı. Dosya yükleyebilirsiniz.';
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage += 'Kamera başka bir uygulama tarafından kullanılıyor olabilir.';
-      } else if (error.name === 'OverconstrainedError') {
-        errorMessage += 'Kamera gereksinimleri karşılanamadı.';
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Kamera izni reddedildi.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'Kamera bulunamadı.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage += 'Kamera başka uygulama tarafından kullanılıyor.';
       } else {
-        errorMessage += error.message || 'Dosya yükleyerek devam edebilirsiniz.';
+        errorMessage += error.message || 'Dosya yükleyebilirsiniz.';
       }
       
       setCameraError(errorMessage);
@@ -161,18 +275,14 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
   };
 
   const stopCamera = () => {
-    console.log('Stopping camera...');
     try {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log('Track stopped:', track.kind);
-        });
+        streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
       if (videoRef.current) {
         videoRef.current.srcObject = null;
-        videoRef.current.load(); // Reset video element
+        videoRef.current.load();
       }
     } catch (e) {
       console.error('Error stopping camera:', e);
@@ -181,12 +291,11 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
     setCameraLoading(false);
   };
 
-  const capturePhoto = () => {
+  const captureFromVideo = () => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
       
-      // Ensure video has dimensions
       if (video.videoWidth === 0 || video.videoHeight === 0) {
         toast.error('Video henüz hazır değil, lütfen tekrar deneyin');
         return;
@@ -198,36 +307,38 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0);
       
-      const photoData = canvas.toDataURL('image/jpeg', 0.7);
-      setPhoto(photoData);
-      onPhotoCapture(photoData);
-      stopCamera();
-      toast.success('Fotoğraf çekildi!');
+      const photoData = canvas.toDataURL('image/jpeg', quality / 100);
+      
+      resizeImage(photoData, maxWidth, maxHeight, quality).then((resized) => {
+        setPhoto(resized);
+        onPhotoCapture(resized);
+        stopCamera();
+        toast.success('Fotoğraf çekildi!');
+      });
     }
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file type
     if (!file.type.startsWith('image/')) {
       toast.error('Lütfen bir resim dosyası seçin');
       return;
     }
 
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Dosya boyutu 10MB\'dan küçük olmalıdır');
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Dosya boyutu 15MB\'dan küçük olmalıdır');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const photoData = e.target?.result;
       if (photoData) {
-        setPhoto(photoData);
-        onPhotoCapture(photoData);
+        const resized = await resizeImage(photoData, maxWidth, maxHeight, quality);
+        setPhoto(resized);
+        onPhotoCapture(resized);
         toast.success('Fotoğraf yüklendi!');
       }
     };
@@ -236,7 +347,6 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
     };
     reader.readAsDataURL(file);
     
-    // Reset input
     event.target.value = '';
   };
 
@@ -245,22 +355,26 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
     onPhotoCapture(null);
   };
 
-  const openFileDialog = () => {
-    fileInputRef.current?.click();
-  };
-
-  const openCameraDialog = () => {
-    cameraInputRef.current?.click();
-  };
-
-  // Mobil için doğrudan kamera açma
-  const handleMobileCameraClick = () => {
-    if (isMobile) {
-      // Mobilde doğrudan kamera input'unu aç
-      openCameraDialog();
+  // Ana kamera butonuna tıklama
+  const handleCameraClick = () => {
+    if (isNative) {
+      // Native platformda Capacitor Camera kullan
+      takeNativePhoto();
+    } else if (isMobile) {
+      // Mobil web'de doğrudan kamera input'unu aç
+      cameraInputRef.current?.click();
     } else {
       // Desktop'ta web kamerasını başlat
-      startCamera();
+      startWebCamera();
+    }
+  };
+
+  // Galeri butonuna tıklama
+  const handleGalleryClick = () => {
+    if (isNative) {
+      pickNativeImage();
+    } else {
+      fileInputRef.current?.click();
     }
   };
 
@@ -285,7 +399,7 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
         )}
       </div>
       
-      {/* Hidden file input for gallery */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
@@ -293,8 +407,6 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
         onChange={handleFileUpload}
         className="hidden"
       />
-      
-      {/* Hidden camera input for mobile - directly opens camera */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -316,40 +428,44 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
               )}
               
               <div className="flex gap-2">
-                {/* Ana kamera butonu - mobilde doğrudan kamera açar */}
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleMobileCameraClick}
+                  onClick={handleCameraClick}
                   className="flex-1"
                   disabled={cameraLoading}
                 >
                   {cameraLoading ? (
                     <>
                       <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Kamera Açılıyor...
+                      Açılıyor...
                     </>
                   ) : (
                     <>
-                      {isMobile ? <Smartphone className="h-4 w-4 mr-2" /> : <Camera className="h-4 w-4 mr-2" />}
-                      {isMobile ? 'Kamerayla Çek' : 'Fotoğraf Çek'}
+                      {isNative || isMobile ? (
+                        <Smartphone className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Camera className="h-4 w-4 mr-2" />
+                      )}
+                      Fotoğraf Çek
                     </>
                   )}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={openFileDialog}
+                  onClick={handleGalleryClick}
+                  disabled={cameraLoading}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Yükle
+                  Galeri
                 </Button>
               </div>
               
-              {/* Mobil için alternatif butonlar */}
-              {isMobile && (
-                <p className="text-xs text-gray-500 text-center">
-                  📱 Kamera açılmazsa "Yükle" butonuyla galeriden seçebilirsiniz
+              {/* Platform bilgisi */}
+              {isNative && (
+                <p className="text-xs text-green-600 text-center">
+                  📱 Native kamera kullanılıyor
                 </p>
               )}
             </div>
@@ -372,7 +488,7 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
               <div className="flex space-x-2">
                 <Button
                   type="button"
-                  onClick={capturePhoto}
+                  onClick={captureFromVideo}
                   className="flex-1 bg-green-600 hover:bg-green-700"
                   disabled={cameraLoading}
                 >
@@ -395,8 +511,18 @@ const PhotoCapture = ({ title, onPhotoCapture, required = false, initialPhoto = 
           <img src={photo} alt={title} className="w-full h-48 object-cover" />
           <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center">
             <Check className="h-3 w-3 mr-1" />
-            Çekildi
+            Hazır
           </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => { setPhoto(null); handleCameraClick(); }}
+            className="absolute bottom-2 right-2"
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            Yeniden Çek
+          </Button>
         </div>
       )}
       
