@@ -174,23 +174,92 @@ async def get_my_assignments(request: Request):
     return result
 
 @router.get("/assignments")
-async def get_all_assignments(request: Request):
-    """Get all shift assignments (Admin only)"""
+async def get_all_assignments(request: Request, date: Optional[str] = None):
+    """
+    Get shift assignments (Admin only)
+    - date parametresi verilirse sadece o güne ait atamaları döner (çok hızlı)
+    - date verilmezse tüm atamaları döner (yavaş - sadece gerektiğinde kullanın)
+    """
     current_user = await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
     
     from database import users_collection
     
-    assignments = await shift_assignments_collection.find({}).sort("shift_date", -1).to_list(1000)
+    # Tarihe göre filtre
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            target_datetime_start = datetime.combine(target_date, datetime.min.time())
+            target_datetime_end = datetime.combine(target_date, datetime.max.time())
+            
+            # O güne başlayan VEYA o gün devam eden atamaları bul
+            all_assignments = await shift_assignments_collection.find({}).to_list(500)
+            
+            filtered_assignments = []
+            for a in all_assignments:
+                shift_date = a.get("shift_date")
+                end_date = a.get("end_date")
+                
+                # Parse shift_date
+                if isinstance(shift_date, datetime):
+                    s_date = shift_date.date()
+                elif isinstance(shift_date, str):
+                    try:
+                        s_date = datetime.fromisoformat(shift_date.replace('Z', '+00:00')).date()
+                    except:
+                        continue
+                else:
+                    continue
+                
+                # Parse end_date
+                e_date = s_date
+                if end_date:
+                    if isinstance(end_date, datetime):
+                        e_date = end_date.date()
+                    elif isinstance(end_date, str):
+                        try:
+                            e_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
+                        except:
+                            pass
+                
+                # Target date aralıkta mı?
+                if s_date <= target_date <= e_date:
+                    filtered_assignments.append(a)
+            
+            assignments = filtered_assignments
+            logger.info(f"Tarihe göre atama sorgusu: {date} - {len(assignments)} atama bulundu")
+        except ValueError as e:
+            logger.error(f"Geçersiz tarih formatı: {date} - {e}")
+            raise HTTPException(status_code=400, detail="Geçersiz tarih formatı. YYYY-MM-DD kullanın.")
+    else:
+        # Tüm atamaları getir (yavaş)
+        assignments = await shift_assignments_collection.find({}).sort("shift_date", -1).to_list(1000)
+    
+    # Kullanıcı ve araç bilgilerini toplu çek (performans için)
+    user_ids = list(set(a.get("user_id") for a in assignments if a.get("user_id")))
+    vehicle_ids = list(set(a.get("vehicle_id") for a in assignments if a.get("vehicle_id")))
+    
+    users_docs = await users_collection.find({"_id": {"$in": user_ids}}).to_list(len(user_ids))
+    users_map = {u["_id"]: u for u in users_docs}
+    
+    vehicles_docs = await vehicles_collection.find({"_id": {"$in": vehicle_ids}}).to_list(len(vehicle_ids))
+    vehicles_map = {v["_id"]: v for v in vehicles_docs}
     
     result = []
     for a in assignments:
         serialized = serialize_assignment(a)
+        
         # Kullanıcı bilgilerini ekle
-        user_doc = await users_collection.find_one({"_id": a.get("user_id")})
+        user_doc = users_map.get(a.get("user_id"))
         if user_doc:
             serialized["user_name"] = user_doc.get("name", "Bilinmiyor")
             serialized["user_role"] = user_doc.get("role", "-")
             serialized["profile_photo"] = user_doc.get("profile_photo")
+        
+        # Araç bilgilerini ekle
+        vehicle_doc = vehicles_map.get(a.get("vehicle_id"))
+        if vehicle_doc:
+            serialized["vehicle_plate"] = vehicle_doc.get("plate", "")
+        
         result.append(serialized)
     
     return result

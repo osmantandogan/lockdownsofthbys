@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { shiftsAPI, usersAPI, vehiclesAPI, locationsAPI } from '../api';
-import { API_URL, BACKEND_URL } from '../config/api';
+import { BACKEND_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
@@ -8,24 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Trash2, User, Truck, Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building, Square } from 'lucide-react';
+import { Plus, Trash2, User, Truck, Calendar, Clock, ChevronLeft, ChevronRight, Play, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, Building, Square, MapPin, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ShiftAssignments = () => {
   const { user } = useAuth();
+  
+  // Seçili tarih - varsayılan bugün
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [assignments, setAssignments] = useState([]);
   const [users, setUsers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dayDetailOpen, setDayDetailOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [ganttDate, setGanttDate] = useState(new Date());
-  // Varsayılan vardiya: 24 saat (08:00 - ertesi gün 08:00)
+  const [healmedyLocations, setHealmedyLocations] = useState([]);
+  
+  // Excel toplu yükleme state'leri
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelUploading, setExcelUploading] = useState(false);
+  const [excelResults, setExcelResults] = useState(null);
+  
+  // Form state - 24 saat vardiya varsayılan
   const getDefaultEndDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -39,94 +45,82 @@ const ShiftAssignments = () => {
     health_center_name: '',
     shift_date: new Date().toISOString().split('T')[0],
     start_time: '08:00',
-    end_time: '08:00',  // 24 saat vardiya: 08:00 - 08:00
-    end_date: getDefaultEndDate(),  // Ertesi gün
-    is_driver_duty: false,  // Şoför görevi var mı? (ATT/Paramedik için)
-    healmedy_location_id: '',  // YENİ: Healmedy lokasyonu
-    shift_type: 'saha_24'  // Varsayılan: 24 saat saha vardiyası
+    end_time: '08:00',
+    end_date: getDefaultEndDate(),
+    is_driver_duty: false,
+    healmedy_location_id: '',
+    shift_type: 'saha_24'
   });
-  
-  // Healmedy lokasyonları
-  const [healmedyLocations, setHealmedyLocations] = useState([]);
-  
-  // Excel toplu yükleme state'leri
-  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
-  const [excelFile, setExcelFile] = useState(null);
-  const [excelUploading, setExcelUploading] = useState(false);
-  const [excelResults, setExcelResults] = useState(null);
 
+  // İlk yükleme - sadece kullanıcılar, araçlar ve lokasyonlar
   useEffect(() => {
-    loadData();
+    loadBaseData();
   }, []);
+  
+  // Tarih değiştiğinde atamaları yükle
+  useEffect(() => {
+    if (users.length > 0) {
+      loadAssignments(selectedDate);
+    }
+  }, [selectedDate, users]);
 
-  const loadData = async () => {
+  // Temel verileri yükle (kullanıcılar, araçlar, lokasyonlar)
+  const loadBaseData = async () => {
     try {
-      const [assignmentsRes, usersRes, vehiclesRes, locationsRes] = await Promise.all([
-        shiftsAPI.getAllAssignments(),
+      const [usersRes, vehiclesRes, locationsRes] = await Promise.all([
         usersAPI.getAll(),
         vehiclesAPI.getAll(),
-        locationsAPI.getHealmedy().catch(() => ({ data: [] }))  // Healmedy lokasyonları
+        locationsAPI.getHealmedy().catch(() => ({ data: [] }))
       ]);
       
-      // Healmedy lokasyonlarını ayarla
       if (Array.isArray(locationsRes.data)) {
         setHealmedyLocations(locationsRes.data);
       }
       
       const allUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
       const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
-      // Sadece ambulans tipindeki araçları göster
       const ambulances = allVehicles.filter(v => v.type === 'ambulans');
-      const assignmentsData = Array.isArray(assignmentsRes.data) ? assignmentsRes.data : [];
-      
-      // Enrich assignments
-      const enrichedAssignments = assignmentsData.map(assignment => {
-        // Ensure assignment is an object
-        if (!assignment || typeof assignment !== 'object') {
-          console.warn('Invalid assignment data:', assignment);
-          return null;
-        }
-        
-        const assignedUser = allUsers.find(u => (u.id || u._id) === assignment.user_id);
-        const assignedVehicle = assignment.vehicle_id ? allVehicles.find(v => (v.id || v._id) === assignment.vehicle_id) : null;
-        
-        return {
-          ...assignment,
-          user_name: assignedUser?.name || 'Bilinmiyor',
-          user_role: assignedUser?.role || '-',
-          vehicle_plate: assignedVehicle?.plate || null
-        };
-      }).filter(Boolean); // Remove null entries
-      
-      setAssignments(enrichedAssignments);
       
       const fieldUsers = allUsers.filter(u => 
         ['sofor', 'bas_sofor', 'paramedik', 'att', 'hemsire', 'doktor'].includes(u.role)
       );
       setUsers(fieldUsers);
       setVehicles(ambulances);
+      
+      // İlk yüklemede bugünkü atamaları getir
+      await loadAssignments(selectedDate);
     } catch (error) {
-      console.error('Error loading data:', error);
-      
-      // Safe error message extraction
-      let errorMsg = 'Veriler yüklenemedi';
-      if (error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        if (typeof detail === 'string') {
-          errorMsg = detail;
-        } else if (Array.isArray(detail)) {
-          errorMsg = detail.map(err => typeof err === 'string' ? err : (err.msg || JSON.stringify(err))).join(', ');
-        } else if (typeof detail === 'object') {
-          errorMsg = detail.msg || detail.message || JSON.stringify(detail);
-        }
-      } else if (error.message && typeof error.message === 'string') {
-        errorMsg = error.message;
-      }
-      
-      toast.error(errorMsg);
+      console.error('Error loading base data:', error);
+      toast.error('Veriler yüklenemedi');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Belirli bir tarihin atamalarını yükle
+  const loadAssignments = useCallback(async (date) => {
+    setAssignmentsLoading(true);
+    try {
+      const response = await shiftsAPI.getAssignmentsByDate(date);
+      const assignmentsData = Array.isArray(response.data) ? response.data : [];
+      setAssignments(assignmentsData);
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+      toast.error('Atamalar yüklenemedi');
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  }, []);
+
+  // Tarih değiştirme
+  const changeDate = (days) => {
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() + days);
+    setSelectedDate(current.toISOString().split('T')[0]);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
   // Excel şablon indirme
@@ -136,9 +130,7 @@ const ShiftAssignments = () => {
         credentials: 'include'
       });
       
-      if (!response.ok) {
-        throw new Error('Şablon indirilemedi');
-      }
+      if (!response.ok) throw new Error('Şablon indirilemedi');
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -151,7 +143,6 @@ const ShiftAssignments = () => {
       document.body.removeChild(a);
       toast.success('Şablon indirildi');
     } catch (error) {
-      console.error('Template download error:', error);
       toast.error('Şablon indirilemedi');
     }
   };
@@ -167,13 +158,13 @@ const ShiftAssignments = () => {
     setExcelResults(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', excelFile);
+      const uploadData = new FormData();
+      uploadData.append('file', excelFile);
 
       const response = await fetch(`${BACKEND_URL}/api/shifts/bulk-upload`, {
         method: 'POST',
         credentials: 'include',
-        body: formData
+        body: uploadData
       });
 
       const results = await response.json();
@@ -182,7 +173,7 @@ const ShiftAssignments = () => {
         setExcelResults(results);
         if (results.successful_count > 0) {
           toast.success(`${results.successful_count} atama başarıyla oluşturuldu`);
-          loadData();
+          loadAssignments(selectedDate);
         }
         if (results.error_count > 0) {
           toast.warning(`${results.error_count} satırda hata oluştu`);
@@ -191,7 +182,6 @@ const ShiftAssignments = () => {
         toast.error(results.detail || 'Yükleme başarısız');
       }
     } catch (error) {
-      console.error('Excel upload error:', error);
       toast.error('Dosya yüklenirken hata oluştu');
     } finally {
       setExcelUploading(false);
@@ -209,31 +199,13 @@ const ShiftAssignments = () => {
     }
 
     try {
-      // If end_date is same as shift_date, don't send it (or send null)
-      const endDate = formData.end_date && formData.end_date !== formData.shift_date 
-        ? formData.end_date 
-        : undefined;
-      
-      // Validate required fields
-      if (!formData.user_id || formData.user_id.trim() === '') {
-        toast.error('Lütfen kullanıcı seçin');
-        return;
-      }
-      
-      if (!formData.shift_date || formData.shift_date.trim() === '') {
-        toast.error('Lütfen vardiya tarihi seçin');
-        return;
-      }
-      
-      // Build assignment data - only include fields that have values
       const assignmentData = {
         user_id: formData.user_id.trim(),
         shift_date: formData.shift_date.trim(),
         location_type: (formData.location_type || 'arac').trim()
       };
       
-      // Only add optional fields if they have values
-      if (formData.location_type === 'arac' && formData.vehicle_id && formData.vehicle_id.trim() !== '') {
+      if (formData.location_type === 'arac' && formData.vehicle_id) {
         assignmentData.vehicle_id = formData.vehicle_id.trim();
       }
       
@@ -241,39 +213,21 @@ const ShiftAssignments = () => {
         assignmentData.health_center_name = 'Sağlık Merkezi';
       }
       
-      if (formData.start_time && formData.start_time.trim() !== '') {
-        assignmentData.start_time = formData.start_time.trim();
+      if (formData.start_time) assignmentData.start_time = formData.start_time.trim();
+      if (formData.end_time) assignmentData.end_time = formData.end_time.trim();
+      if (formData.end_date && formData.end_date !== formData.shift_date) {
+        assignmentData.end_date = formData.end_date.trim();
       }
-      
-      if (formData.end_time && formData.end_time.trim() !== '') {
-        assignmentData.end_time = formData.end_time.trim();
-      }
-      
-      if (endDate && endDate.trim() !== '') {
-        assignmentData.end_date = endDate.trim();
-      }
-      
-      // Şoför görevi (ATT/Paramedik/Hemşire için)
-      if (formData.is_driver_duty) {
-        assignmentData.is_driver_duty = true;
-      }
-      
-      // Healmedy lokasyonu
-      if (formData.healmedy_location_id && formData.healmedy_location_id.trim() !== '') {
+      if (formData.is_driver_duty) assignmentData.is_driver_duty = true;
+      if (formData.healmedy_location_id) {
         assignmentData.healmedy_location_id = formData.healmedy_location_id.trim();
       }
       
-      // Remove undefined values to avoid sending them
-      Object.keys(assignmentData).forEach(key => {
-        if (assignmentData[key] === undefined || assignmentData[key] === null) {
-          delete assignmentData[key];
-        }
-      });
-      
-      console.log('Gönderilen atama verisi:', JSON.stringify(assignmentData, null, 2));
       await shiftsAPI.createAssignment(assignmentData);
       toast.success('Vardiya ataması oluşturuldu');
       setDialogOpen(false);
+      
+      // Formu sıfırla
       setFormData({
         user_id: '',
         vehicle_id: '',
@@ -281,60 +235,21 @@ const ShiftAssignments = () => {
         health_center_name: '',
         shift_date: new Date().toISOString().split('T')[0],
         start_time: '08:00',
-        end_time: '08:00',  // 24 saat vardiya
-        end_date: getDefaultEndDate(),  // Ertesi gün
+        end_time: '08:00',
+        end_date: getDefaultEndDate(),
         is_driver_duty: false,
         healmedy_location_id: '',
         shift_type: 'saha_24'
       });
-      loadData();
+      
+      loadAssignments(selectedDate);
     } catch (error) {
-      console.error('Atama hatası - Tam detay:', error);
-      console.error('Atama hatası - Response:', error.response);
-      console.error('Atama hatası - Data:', error.response?.data);
-      console.error('Atama hatası - Tam hata:', error);
-      console.error('Atama hatası - Detail:', JSON.stringify(error.response?.data?.detail, null, 2));
-      console.error('Atama hatası - Detail Array:', error.response?.data?.detail);
-      console.error('Atama hatası - Status:', error.response?.status);
-      
-      let errorMessage = 'Atama oluşturulamadı';
-      
-      // Handle Pydantic validation errors (can be array of objects)
       const detail = error.response?.data?.detail;
-      console.log('Detail type:', typeof detail, 'Is array?', Array.isArray(detail));
-      if (detail) {
-        if (typeof detail === 'string') {
-          errorMessage = detail;
-        } else if (Array.isArray(detail)) {
-          // Pydantic validation errors come as array of objects
-          console.log('Validation errors detail:', detail);
-          errorMessage = detail.map(err => {
-            if (typeof err === 'string') return err;
-            // Format: {type, loc, msg, input}
-            const field = err.loc && err.loc.length > 0 ? err.loc.join('.') : 'unknown';
-            const msg = err.msg || err.message || 'Field error';
-            return `${field}: ${msg}`;
-          }).join('; ');
-        } else if (typeof detail === 'object') {
-          // Single validation error object
-          if (detail.msg) {
-            errorMessage = detail.msg;
-          } else if (detail.message) {
-            errorMessage = detail.message;
-          } else {
-            errorMessage = JSON.stringify(detail);
-          }
-        }
-      } else if (error.response?.data?.message) {
-        errorMessage = typeof error.response.data.message === 'string' 
-          ? error.response.data.message 
-          : JSON.stringify(error.response.data.message);
-      } else if (error.message) {
-        errorMessage = typeof error.message === 'string' 
-          ? error.message 
-          : JSON.stringify(error.message);
+      let errorMessage = 'Atama oluşturulamadı';
+      if (typeof detail === 'string') errorMessage = detail;
+      else if (Array.isArray(detail)) {
+        errorMessage = detail.map(err => err.msg || JSON.stringify(err)).join('; ');
       }
-      
       toast.error(errorMessage);
     }
   };
@@ -345,7 +260,7 @@ const ShiftAssignments = () => {
     try {
       await shiftsAPI.deleteAssignment(id);
       toast.success('Atama silindi');
-      loadData();
+      loadAssignments(selectedDate);
     } catch (error) {
       toast.error('Atama silinemedi');
     }
@@ -357,10 +272,9 @@ const ShiftAssignments = () => {
     try {
       const response = await shiftsAPI.startAssignmentByAdmin(id);
       toast.success(response.data.message || 'Vardiya başarıyla başlatıldı');
-      loadData();
+      loadAssignments(selectedDate);
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Vardiya başlatılamadı';
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.detail || 'Vardiya başlatılamadı');
     }
   };
 
@@ -370,28 +284,26 @@ const ShiftAssignments = () => {
     try {
       const response = await shiftsAPI.endAssignmentByAdmin(id);
       toast.success(response.data.message || 'Vardiya başarıyla bitirildi');
-      loadData();
+      loadAssignments(selectedDate);
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Vardiya bitirilemedi';
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.detail || 'Vardiya bitirilemedi');
     }
   };
 
   const statusColors = {
     pending: 'bg-yellow-100 text-yellow-800',
-    started: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
+    started: 'bg-green-100 text-green-800',
+    completed: 'bg-blue-100 text-blue-800',
     cancelled: 'bg-red-100 text-red-800'
   };
 
   const statusLabels = {
     pending: 'Bekliyor',
-    started: 'Başladı',
+    started: 'Aktif',
     completed: 'Tamamlandı',
     cancelled: 'İptal'
   };
 
-  // Rol isimlerini Türkçeleştirme
   const roleLabels = {
     sofor: 'Şoför',
     bas_sofor: 'Baş Şoför',
@@ -400,122 +312,13 @@ const ShiftAssignments = () => {
     paramedik: 'Paramedik',
     att: 'ATT',
     merkez_ofis: 'Merkez Ofis',
-    operasyon_muduru: 'Operasyon Müdürü',
+    operasyon_muduru: 'Op. Müdürü',
     cagri_merkezi: 'Çağrı Merkezi'
   };
 
-  // Rol ismini Türkçe olarak döndür
-  const getRoleLabel = (role) => {
-    return roleLabels[role] || role;
-  };
-
-  // Gün farkını hesapla
-  const calculateDayDiff = (startDate, endDate) => {
-    if (!endDate || endDate === startDate) return null;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = end.getTime() - start.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : null;
-  };
+  const getRoleLabel = (role) => roleLabels[role] || role;
 
   const canManage = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
-
-  // Bugünün tarihini al
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Atamaları sırala: Bugün > Gelecek > Geçmiş, sonra lokasyona göre grupla
-  const sortedAssignments = React.useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    
-    return [...assignments].sort((a, b) => {
-      const dateA = new Date(a.shift_date);
-      const dateB = new Date(b.shift_date);
-      dateA.setHours(0, 0, 0, 0);
-      dateB.setHours(0, 0, 0, 0);
-      
-      const isToday_A = dateA.getTime() === now.getTime();
-      const isToday_B = dateB.getTime() === now.getTime();
-      const isFuture_A = dateA > now;
-      const isFuture_B = dateB > now;
-      
-      // Bugün olanlar en önce
-      if (isToday_A && !isToday_B) return -1;
-      if (!isToday_A && isToday_B) return 1;
-      
-      // İkisi de bugünse lokasyona göre sırala
-      if (isToday_A && isToday_B) {
-        const locA = a.vehicle_plate || a.vehicle_id || a.health_center_name || '';
-        const locB = b.vehicle_plate || b.vehicle_id || b.health_center_name || '';
-        return locA.localeCompare(locB);
-      }
-      
-      // Gelecek olanlar geçmişten önce
-      if (isFuture_A && !isFuture_B) return -1;
-      if (!isFuture_A && isFuture_B) return 1;
-      
-      // Aynı kategorideyse tarihe göre
-      return dateA - dateB;
-    });
-  }, [assignments]);
-
-  // Atamaları lokasyona göre grupla (sadece bugün için)
-  const groupedTodayAssignments = React.useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    
-    const todayAssignments = sortedAssignments.filter(a => {
-      const assignDate = new Date(a.shift_date);
-      assignDate.setHours(0, 0, 0, 0);
-      
-      // Bugün başlayan veya bugün devam eden
-      if (assignDate.getTime() === now.getTime()) return true;
-      
-      // Multi-day: end_date varsa ve bugün aralıkta mı?
-      if (a.end_date) {
-        const endDate = new Date(a.end_date);
-        endDate.setHours(0, 0, 0, 0);
-        return assignDate <= now && now <= endDate;
-      }
-      return false;
-    });
-    
-    // Lokasyona göre grupla
-    const groups = {};
-    todayAssignments.forEach(a => {
-      const locationKey = a.vehicle_plate || a.vehicle_id || a.health_center_name || 'Diğer';
-      if (!groups[locationKey]) {
-        groups[locationKey] = [];
-      }
-      groups[locationKey].push(a);
-    });
-    
-    return groups;
-  }, [sortedAssignments]);
-
-  // Diğer günlerin atamaları
-  const otherDayAssignments = React.useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    
-    return sortedAssignments.filter(a => {
-      const assignDate = new Date(a.shift_date);
-      assignDate.setHours(0, 0, 0, 0);
-      
-      // Bugün olanları hariç tut
-      if (assignDate.getTime() === now.getTime()) return false;
-      
-      // Multi-day kontrolü
-      if (a.end_date) {
-        const endDate = new Date(a.end_date);
-        endDate.setHours(0, 0, 0, 0);
-        if (assignDate <= now && now <= endDate) return false;
-      }
-      return true;
-    });
-  }, [sortedAssignments]);
 
   if (!canManage) {
     return (
@@ -535,30 +338,35 @@ const ShiftAssignments = () => {
     );
   }
 
-  const getUserName = (userId) => {
-    const u = users.find(user => user.id === userId);
-    return u ? u.name : userId;
-  };
+  // Seçili tarihin bilgileri
+  const selectedDateObj = new Date(selectedDate);
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const dayName = selectedDateObj.toLocaleDateString('tr-TR', { weekday: 'long' });
+  const dateFormatted = selectedDateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const getVehiclePlate = (vehicleId) => {
-    const v = vehicles.find(vehicle => vehicle.id === vehicleId);
-    return v ? v.plate : vehicleId;
-  };
+  // Atamaları araca göre grupla
+  const groupedAssignments = assignments.reduce((acc, a) => {
+    const key = a.vehicle_plate || a.vehicle_id || a.health_center_name || 'Diğer';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(a);
+    return acc;
+  }, {});
 
   return (
-    <div className="space-y-6" data-testid="shift-assignments-page">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4" data-testid="shift-assignments-page">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Vardiya Yönetimi</h1>
-          <p className="text-gray-500">Vardiya atamaları ve aylık planlama</p>
+          <h1 className="text-2xl font-bold">Vardiya Yönetimi</h1>
+          <p className="text-gray-500 text-sm">Günlük vardiya atamaları</p>
         </div>
         <div className="flex gap-2">
           {/* Excel Toplu Yükleme */}
           <Dialog open={excelDialogOpen} onOpenChange={setExcelDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Excel ile Toplu Atama
+              <Button variant="outline" size="sm">
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                Excel
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
@@ -570,9 +378,7 @@ const ShiftAssignments = () => {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800 mb-2">
-                    Önce şablon dosyasını indirin ve doldurun.
-                  </p>
+                  <p className="text-sm text-blue-800 mb-2">Önce şablon dosyasını indirin ve doldurun.</p>
                   <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
                     <Download className="h-4 w-4 mr-2" />
                     Şablon İndir
@@ -620,858 +426,366 @@ const ShiftAssignments = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Tek Tek Atama */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="new-assignment-button">
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Atama
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Vardiya Ataması Oluştur</DialogTitle>
-              <DialogDescription>
-                Yeni bir vardiya ataması oluşturun. Tüm zorunlu alanları doldurun.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Kullanıcı *</Label>
-                <Select value={formData.user_id} onValueChange={(v) => setFormData(prev => ({...prev, user_id: v}))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kullanıcı seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(u => {
-                      const userId = u.id || u._id;
-                      return (
-                        <SelectItem key={userId} value={userId}>
-                          {u.name} ({u.role})
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Lokasyon Tipi *</Label>
-                <Select value={formData.location_type} onValueChange={(v) => {
-                  setFormData(prev => ({
-                    ...prev, 
-                    location_type: v,
-                    health_center_name: v === 'saglik_merkezi' ? 'Sağlık Merkezi' : prev.health_center_name,
-                    vehicle_id: v === 'arac' ? prev.vehicle_id : ''
-                  }));
-                }}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="arac">Araç</SelectItem>
-                    <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.location_type === 'arac' && (
+          {/* Yeni Atama */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Yeni Atama
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Vardiya Ataması Oluştur</DialogTitle>
+                <DialogDescription>24 saat vardiya: 08:00 - ertesi gün 08:00</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Araç *</Label>
-                  <Select value={formData.vehicle_id} onValueChange={(v) => setFormData(prev => ({...prev, vehicle_id: v}))}>
+                  <Label>Kullanıcı *</Label>
+                  <Select value={formData.user_id} onValueChange={(v) => setFormData(prev => ({...prev, user_id: v}))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Araç seçin" />
+                      <SelectValue placeholder="Kullanıcı seçin" />
                     </SelectTrigger>
                     <SelectContent>
-                      {vehicles.map(v => {
-                        const vehicleId = v.id || v._id;
-                        return (
-                          <SelectItem key={vehicleId} value={vehicleId}>
-                            {v.plate}
-                          </SelectItem>
-                        );
-                      })}
+                      {users.map(u => (
+                        <SelectItem key={u.id || u._id} value={u.id || u._id}>
+                          {u.name} ({getRoleLabel(u.role)})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
 
-              {/* YENİ: Healmedy Lokasyonu Seçimi */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">
-                  <Building className="h-4 w-4" />
-                  Görev Lokasyonu
-                </Label>
-                <Select 
-                  value={formData.healmedy_location_id || 'none'} 
-                  onValueChange={(v) => setFormData(prev => ({...prev, healmedy_location_id: v === 'none' ? '' : v}))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Lokasyon seçin (opsiyonel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Belirtilmemiş</SelectItem>
-                    {healmedyLocations.map(loc => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3" />
-                          {loc.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">
-                  Aracın görev yapacağı saha lokasyonu (örn: Green Zone, Osman Gazi/FPU)
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Vardiya Tarihi *</Label>
-                <Input
-                  type="date"
-                  value={formData.shift_date}
-                  onChange={(e) => setFormData(prev => ({...prev, shift_date: e.target.value}))}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Başlangıç Saati *</Label>
-                  <Input
-                    type="time"
-                    value={formData.start_time}
-                    onChange={(e) => setFormData(prev => ({...prev, start_time: e.target.value}))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bitiş Saati *</Label>
-                  <Input
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData(prev => ({...prev, end_time: e.target.value}))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Bitiş Günü</Label>
-                <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData(prev => ({...prev, end_date: e.target.value}))}
-                />
-                <p className="text-xs text-gray-500">Gece vardiyaları için ertesi gün seçin</p>
-              </div>
-
-              {/* Şoför Görevi - Sadece ATT/Paramedik/Hemşire için */}
-              {(() => {
-                const selectedUser = users.find(u => (u.id || u._id) === formData.user_id);
-                if (selectedUser && ['att', 'paramedik', 'hemsire'].includes(selectedUser.role?.toLowerCase())) {
-                  return (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="is_driver_duty"
-                          checked={formData.is_driver_duty}
-                          onChange={(e) => setFormData(prev => ({...prev, is_driver_duty: e.target.checked}))}
-                          className="h-4 w-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
-                        />
-                        <Label htmlFor="is_driver_duty" className="font-medium text-yellow-800">
-                          🚗 Bu vardiyada şoför görevi de var mı?
-                        </Label>
-                      </div>
-                      <p className="text-xs text-yellow-700 pl-6">
-                        İşaretlenirse: Araç Devir Formu + Günlük Kontrol Formu doldurulacak
-                      </p>
-                      <p className="text-xs text-yellow-700 pl-6">
-                        İşaretlenmezse: Sadece Günlük Kontrol Formu doldurulacak
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-              <Button onClick={handleCreate} className="w-full">Vardiya Ata</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        </div>
-      </div>
-
-      <Tabs defaultValue="atamalar" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="atamalar">Vardiya Atama</TabsTrigger>
-          <TabsTrigger value="aylik">Aylık Vardiya</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="atamalar" className="space-y-6 mt-6">
-          {assignments.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-gray-500">Henüz atama yapılmamış</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {/* BUGÜN - Lokasyona göre gruplu */}
-              {Object.keys(groupedTodayAssignments).length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <h2 className="text-lg font-bold text-green-700">Bugün - {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
-                    <Badge className="bg-green-100 text-green-700">{Object.values(groupedTodayAssignments).flat().length} atama</Badge>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Lokasyon Tipi *</Label>
+                    <Select value={formData.location_type} onValueChange={(v) => {
+                      setFormData(prev => ({
+                        ...prev, 
+                        location_type: v,
+                        vehicle_id: v === 'arac' ? prev.vehicle_id : ''
+                      }));
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="arac">Araç</SelectItem>
+                        <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {Object.entries(groupedTodayAssignments).map(([location, locationAssignments]) => (
-                      <Card key={location} className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-shadow">
-                        <CardHeader className="py-3 px-4 bg-gradient-to-r from-blue-50 to-white">
-                          <CardTitle className="flex items-center gap-2 text-base">
-                            <Truck className="h-5 w-5 text-blue-600" />
-                            <span className="font-bold text-blue-800">{location}</span>
-                            <Badge variant="secondary" className="ml-auto">{locationAssignments.length} kişi</Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-3 space-y-2">
-                          {locationAssignments.map((assignment) => (
-                            <div 
-                              key={assignment.id} 
-                              className={`flex items-center justify-between p-2 rounded-lg ${
-                                assignment.status === 'started' ? 'bg-green-50 border border-green-200' : 
-                                assignment.status === 'pending' ? 'bg-yellow-50 border border-yellow-200' : 
-                                'bg-gray-50 border border-gray-200'
-                              }`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                  <span className="font-medium text-sm truncate">{assignment.user_name || getUserName(assignment.user_id)}</span>
-                                  <Badge variant="outline" className="text-xs flex-shrink-0">
-                                    {getRoleLabel(assignment.user_role || users.find(u => (u.id || u._id) === assignment.user_id)?.role || '-')}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{assignment.start_time || '08:00'} - {assignment.end_time || '08:00'}</span>
-                                  {assignment.end_date && assignment.end_date !== assignment.shift_date && (
-                                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700">24 saat</Badge>
-                                  )}
-                                  <Badge className={`ml-auto text-xs ${statusColors[assignment.status]}`}>
-                                    {statusLabels[assignment.status]}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                                {assignment.status === 'pending' && (
-                                  <>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600 hover:bg-green-100"
-                                      onClick={() => handleStartShift(assignment.id, assignment.user_name)} title="Başlat">
-                                      <Play className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
-                                      onClick={() => handleDelete(assignment.id)} title="Sil">
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </>
-                                )}
-                                {assignment.status === 'started' && (
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
-                                    onClick={() => handleEndShift(assignment.id, assignment.user_name)} title="Bitir">
-                                    <Square className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
+
+                  {formData.location_type === 'arac' && (
+                    <div className="space-y-2">
+                      <Label>Araç *</Label>
+                      <Select value={formData.vehicle_id} onValueChange={(v) => setFormData(prev => ({...prev, vehicle_id: v}))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Araç seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vehicles.map(v => (
+                            <SelectItem key={v.id || v._id} value={v.id || v._id}>
+                              {v.plate}
+                            </SelectItem>
                           ))}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* DİĞER GÜNLER */}
-              {otherDayAssignments.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-t pt-4">
-                    <Calendar className="h-5 w-5 text-gray-500" />
-                    <h2 className="text-lg font-semibold text-gray-700">Diğer Günler</h2>
-                    <Badge variant="outline">{otherDayAssignments.length} atama</Badge>
-                  </div>
-                  
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {otherDayAssignments.slice(0, 30).map((assignment) => (
-                      <Card key={assignment.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-1.5 flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge className={statusColors[assignment.status]}>
-                                  {statusLabels[assignment.status]}
-                                </Badge>
-                                <span className="text-sm text-gray-500">
-                                  {new Date(assignment.shift_date).toLocaleDateString('tr-TR')}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                <span className="font-medium text-sm truncate">{assignment.user_name || getUserName(assignment.user_id)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Truck className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                <span className="text-sm truncate">{assignment.vehicle_plate || getVehiclePlate(assignment.vehicle_id) || assignment.health_center_name}</span>
-                              </div>
-                            </div>
-                            {assignment.status === 'pending' && (
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600"
-                                onClick={() => handleDelete(assignment.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                  {otherDayAssignments.length > 30 && (
-                    <p className="text-center text-gray-500 text-sm">
-                      +{otherDayAssignments.length - 30} daha fazla atama var
-                    </p>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
 
-        <TabsContent value="aylik" className="mt-6 space-y-6">
-          {/* Günlük Gantt Chart - Modern Tasarım */}
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center space-x-3">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-xl font-bold">Günlük Vardiya Planı</span>
-                    <p className="text-blue-100 text-sm font-normal mt-1">
-                      {ganttDate.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                </CardTitle>
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0"
-                    onClick={() => {
-                      const prevDay = new Date(ganttDate);
-                      prevDay.setDate(prevDay.getDate() - 1);
-                      setGanttDate(prevDay);
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0 px-4"
-                    onClick={() => setGanttDate(new Date())}
-                  >
-                    Bugün
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0"
-                    onClick={() => {
-                      const nextDay = new Date(ganttDate);
-                      nextDay.setDate(nextDay.getDate() + 1);
-                      setGanttDate(nextDay);
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {(() => {
-                const ganttDateOnly = new Date(ganttDate.getFullYear(), ganttDate.getMonth(), ganttDate.getDate());
-                
-                // Get assignments for this day (including multi-day assignments)
-                const dayAssignments = assignments.filter(a => {
-                  const assignDate = new Date(a.shift_date);
-                  const assignDateOnly = new Date(assignDate.getFullYear(), assignDate.getMonth(), assignDate.getDate());
-                  
-                  if (assignDateOnly.getTime() === ganttDateOnly.getTime()) return true;
-                  
-                  if (a.end_date) {
-                    const endDate = new Date(a.end_date);
-                    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-                    if (ganttDateOnly >= assignDateOnly && ganttDateOnly <= endDateOnly) return true;
-                  }
-                  return false;
-                });
-                
-                if (dayAssignments.length === 0) {
-                  return (
-                    <div className="text-center py-16">
-                      <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Calendar className="h-10 w-10 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500 text-lg">Bu gün için atama yok</p>
-                      <p className="text-gray-400 text-sm mt-1">Yeni atama eklemek için "Yeni Atama" butonunu kullanın</p>
-                    </div>
-                  );
-                }
-                
-                const timeToMinutes = (timeStr) => {
-                  if (!timeStr) return 0;
-                  const [hours, minutes] = timeStr.split(':').map(Number);
-                  return hours * 60 + minutes;
-                };
-                
-                // Fixed 24-hour range for consistent display
-                const minTime = 0; // 00:00
-                const maxTime = 24 * 60; // 24:00
-                const timeRange = maxTime - minTime;
-                
-                // Hour markers every 2 hours
-                const hourMarkers = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24].map(h => h * 60);
-                
-                // Color palette for different users
-                const colors = [
-                  'bg-gradient-to-r from-blue-500 to-blue-600',
-                  'bg-gradient-to-r from-emerald-500 to-emerald-600',
-                  'bg-gradient-to-r from-violet-500 to-violet-600',
-                  'bg-gradient-to-r from-amber-500 to-amber-600',
-                  'bg-gradient-to-r from-rose-500 to-rose-600',
-                  'bg-gradient-to-r from-cyan-500 to-cyan-600',
-                ];
-                
-                return (
-                  <div className="space-y-4">
-                    {/* Time header */}
-                    <div className="flex items-center">
-                      <div className="w-44 flex-shrink-0"></div>
-                      <div className="flex-1 relative h-8 border-b border-gray-200">
-                        {hourMarkers.map((hourMinutes, i) => {
-                          const position = (hourMinutes / timeRange) * 100;
-                          const hour = hourMinutes / 60;
-                          return (
-                            <div 
-                              key={hourMinutes}
-                              className="absolute flex flex-col items-center"
-                              style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
-                            >
-                              <span className="text-xs font-medium text-gray-500">
-                                {String(hour).padStart(2, '0')}:00
-                              </span>
-                              <div className="w-px h-2 bg-gray-300 mt-1"></div>
+                {healmedyLocations.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      <Building className="h-4 w-4" />
+                      Görev Lokasyonu
+                    </Label>
+                    <Select 
+                      value={formData.healmedy_location_id || 'none'} 
+                      onValueChange={(v) => setFormData(prev => ({...prev, healmedy_location_id: v === 'none' ? '' : v}))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Lokasyon seçin (opsiyonel)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Belirtilmemiş</SelectItem>
+                        {healmedyLocations.map(loc => (
+                          <SelectItem key={loc.id} value={loc.id}>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3 w-3" />
+                              {loc.name}
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    
-                    {/* Gantt bars */}
-                    <div className="space-y-3">
-                      {dayAssignments
-                        .sort((a, b) => (a.start_time || '08:00').localeCompare(b.start_time || '08:00'))
-                        .map((assignment, idx) => {
-                          const startMinutes = timeToMinutes(assignment.start_time || '08:00');
-                          const endMinutes = timeToMinutes(assignment.end_time || '16:00');
-                          const duration = endMinutes - startMinutes;
-                          const left = (startMinutes / timeRange) * 100;
-                          const width = (duration / timeRange) * 100;
-                          
-                          const userName = assignment.user_name || users.find(u => (u.id || u._id) === assignment.user_id)?.name || 'Kullanıcı';
-                          const userRole = assignment.user_role || users.find(u => (u.id || u._id) === assignment.user_id)?.role || '-';
-                          const location = assignment.location_type === 'arac' 
-                            ? (assignment.vehicle_plate || vehicles.find(v => (v.id || v._id) === assignment.vehicle_id)?.plate || 'Araç')
-                            : '🏥 Sağlık Merkezi';
-                          
-                          return (
-                            <div key={idx} className="flex items-center group">
-                              {/* User info */}
-                              <div className="w-44 flex-shrink-0 pr-4">
-                                <div className="flex items-center space-x-3">
-                                  {assignment.profile_photo ? (
-                                    <img src={assignment.profile_photo} alt={userName} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md" />
-                                  ) : (
-                                    <div className={`w-10 h-10 rounded-full ${colors[idx % colors.length]} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
-                                      {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                    </div>
-                                  )}
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-gray-900 truncate text-sm">{userName}</p>
-                                    <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {/* Timeline bar */}
-                              <div className="flex-1 relative h-12 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                                {/* Grid lines */}
-                                {hourMarkers.map(hourMinutes => (
-                                  <div 
-                                    key={hourMinutes}
-                                    className="absolute top-0 bottom-0 w-px bg-gray-100"
-                                    style={{ left: `${(hourMinutes / timeRange) * 100}%` }}
-                                  />
-                                ))}
-                                
-                                {/* Assignment bar */}
-                                <div
-                                  className={`absolute top-1 bottom-1 ${colors[idx % colors.length]} rounded-md shadow-sm flex items-center justify-center text-white transition-all duration-200 group-hover:shadow-lg group-hover:scale-[1.02]`}
-                                  style={{
-                                    left: `${left}%`,
-                                    width: `${Math.max(width, 5)}%`,
-                                  }}
-                                >
-                                  <div className="text-center px-2 truncate">
-                                    <div className="text-xs font-semibold">
-                                      {assignment.start_time || '08:00'} - {assignment.end_time || '16:00'}
-                                    </div>
-                                    <div className="text-xs opacity-90 truncate">{location}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                    
-                    {/* Legend */}
-                    <div className="flex justify-end pt-4 border-t border-gray-100">
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span className="flex items-center">
-                          <div className="w-3 h-3 rounded-full bg-blue-500 mr-1.5"></div>
-                          Toplam {dayAssignments.length} atama
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-
-          {/* Aylık Takvim - Modern Tasarım */}
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center space-x-3">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-xl font-bold">Aylık Vardiya Takvimi</span>
-                    <p className="text-emerald-100 text-sm font-normal mt-1">
-                      {new Date(currentYear, currentMonth).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                </CardTitle>
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0"
-                    onClick={() => {
-                      if (currentMonth === 0) {
-                        setCurrentMonth(11);
-                        setCurrentYear(currentYear - 1);
-                      } else {
-                        setCurrentMonth(currentMonth - 1);
-                      }
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0 px-4"
-                    onClick={() => {
-                      setCurrentMonth(new Date().getMonth());
-                      setCurrentYear(new Date().getFullYear());
-                    }}
-                  >
-                    Bu Ay
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0"
-                    onClick={() => {
-                      if (currentMonth === 11) {
-                        setCurrentMonth(0);
-                        setCurrentYear(currentYear + 1);
-                      } else {
-                        setCurrentMonth(currentMonth + 1);
-                      }
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-7 gap-2">
-                {/* Day headers */}
-                {[
-                  { short: 'Pzt', full: 'Pazartesi' },
-                  { short: 'Sal', full: 'Salı' },
-                  { short: 'Çar', full: 'Çarşamba' },
-                  { short: 'Per', full: 'Perşembe' },
-                  { short: 'Cum', full: 'Cuma' },
-                  { short: 'Cmt', full: 'Cumartesi' },
-                  { short: 'Paz', full: 'Pazar' }
-                ].map((day, i) => (
-                  <div 
-                    key={day.short} 
-                    className={`p-3 text-center font-semibold rounded-lg ${
-                      i >= 5 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-700'
-                    }`}
-                  >
-                    <span className="hidden sm:inline">{day.full}</span>
-                    <span className="sm:hidden">{day.short}</span>
-                  </div>
-                ))}
-                {(() => {
-                  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-                  const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-                  const today = new Date();
-                  const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
-                  
-                  // Empty cells
-                  const emptyCells = Array.from({ length: adjustedFirstDay }, (_, i) => (
-                    <div key={`empty-${i}`} className="p-2 min-h-[100px] bg-gray-25 rounded-lg border border-dashed border-gray-200"></div>
-                  ));
-                  
-                  // Day cells
-                  const dayCells = Array.from({length: daysInMonth}, (_, i) => {
-                    const day = i + 1;
-                    const dayOfWeek = (adjustedFirstDay + i) % 7;
-                    const isWeekend = dayOfWeek >= 5;
-                    const isToday = isCurrentMonth && today.getDate() === day;
-                    
-                    const dayAssignments = assignments.filter(a => {
-                      const assignDate = new Date(a.shift_date);
-                      const assignDateOnly = new Date(assignDate.getFullYear(), assignDate.getMonth(), assignDate.getDate());
-                      const currentDateOnly = new Date(currentYear, currentMonth, day);
-                      
-                      if (assignDateOnly.getTime() === currentDateOnly.getTime()) return true;
-                      
-                      if (a.end_date) {
-                        const endDate = new Date(a.end_date);
-                        const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-                        if (currentDateOnly >= assignDateOnly && currentDateOnly <= endDateOnly) return true;
-                      }
-                      return false;
-                    });
-                    
-                    const hasAssignments = dayAssignments.length > 0;
-                    
-                    return (
-                      <div 
-                        key={day}
-                        onClick={() => {
-                          setSelectedDay({ day, month: currentMonth, year: currentYear, assignments: dayAssignments });
-                          setDayDetailOpen(true);
-                          setGanttDate(new Date(currentYear, currentMonth, day));
-                        }}
-                        className={`
-                          relative p-2 min-h-[100px] rounded-lg border-2 transition-all duration-200 cursor-pointer
-                          ${isToday ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-transparent'}
-                          ${hasAssignments && !isToday ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-400' : ''}
-                          ${!hasAssignments && !isToday ? 'bg-white hover:bg-gray-50 border-gray-100 hover:border-gray-300' : ''}
-                          ${isWeekend && !hasAssignments && !isToday ? 'bg-red-25' : ''}
-                        `}
-                      >
-                        {/* Day number */}
-                        <div className={`
-                          inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold mb-2
-                          ${isToday ? 'bg-blue-600 text-white' : ''}
-                          ${isWeekend && !isToday ? 'text-red-500' : ''}
-                          ${!isWeekend && !isToday ? 'text-gray-700' : ''}
-                        `}>
-                          {day}
-                        </div>
-                        
-                        {/* Assignments preview */}
-                        <div className="space-y-1">
-                          {hasAssignments ? (
-                            <>
-                              {dayAssignments.slice(0, 2).map((a, idx) => {
-                                const userName = a.user_name || users.find(u => (u.id || u._id) === a.user_id)?.name || '?';
-                                return (
-                                  <div 
-                                    key={idx}
-                                    className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 truncate font-medium"
-                                  >
-                                    {userName.split(' ')[0]}
-                                  </div>
-                                );
-                              })}
-                              {dayAssignments.length > 2 && (
-                                <div className="text-xs px-2 py-0.5 text-emerald-600 font-semibold">
-                                  +{dayAssignments.length - 2} daha
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-xs text-gray-300 text-center py-2">-</div>
-                          )}
-                        </div>
-                        
-                        {/* Assignment count badge */}
-                        {hasAssignments && (
-                          <div className="absolute top-1 right-1">
-                            <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-emerald-500 text-white rounded-full">
-                              {dayAssignments.length}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                  
-                  return [...emptyCells, ...dayCells];
-                })()}
-              </div>
-              
-              {/* Summary */}
-              <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center text-sm text-gray-500">
-                <div className="flex items-center space-x-4">
-                  <span className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></div>
-                    Atama var
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-blue-500 mr-1.5"></div>
-                    Bugün
-                  </span>
-                </div>
-                <span>
-                  Toplam {assignments.filter(a => {
-                    const date = new Date(a.shift_date);
-                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-                  }).length} atama
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Gün Detay Dialog - Modern Tasarım */}
-          <Dialog open={dayDetailOpen} onOpenChange={setDayDetailOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader className="border-b pb-4">
-                <DialogTitle className="flex items-center space-x-3 text-xl">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    {selectedDay && (
-                      <>
-                        <span className="font-bold">
-                          {new Date(selectedDay.year, selectedDay.month, selectedDay.day).toLocaleDateString('tr-TR', { 
-                            weekday: 'long', 
-                            day: 'numeric', 
-                            month: 'long', 
-                            year: 'numeric' 
-                          })}
-                        </span>
-                        <p className="text-sm text-gray-500 font-normal">
-                          {selectedDay.assignments?.length || 0} vardiya ataması
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                {selectedDay && selectedDay.assignments.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedDay.assignments
-                      .sort((a, b) => (a.start_time || '08:00').localeCompare(b.start_time || '08:00'))
-                      .map((assignment, idx) => {
-                        const userName = assignment.user_name || users.find(u => (u.id || u._id) === assignment.user_id)?.name || 'Kullanıcı';
-                        const userRole = assignment.user_role || users.find(u => (u.id || u._id) === assignment.user_id)?.role || '-';
-                        const location = assignment.location_type === 'arac'
-                          ? (assignment.vehicle_plate || vehicles.find(v => (v.id || v._id) === assignment.vehicle_id)?.plate || 'Araç')
-                          : (assignment.health_center_name || 'Sağlık Merkezi');
-                        const isHealthCenter = assignment.location_type !== 'arac';
-                        const dayDiff = calculateDayDiff(assignment.shift_date, assignment.end_date);
-                        
-                        // Color based on index
-                        const colors = ['blue', 'emerald', 'violet', 'amber', 'rose'];
-                        const color = colors[idx % colors.length];
-                        
-                        return (
-                          <div 
-                            key={idx} 
-                            className={`p-4 rounded-xl border-l-4 border-${color}-500 bg-gradient-to-r from-${color}-50 to-white shadow-sm hover:shadow-md transition-shadow`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex items-start space-x-3">
-                                {assignment.profile_photo ? (
-                                  <img src={assignment.profile_photo} alt={userName} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md" />
-                                ) : (
-                                  <div className={`w-12 h-12 rounded-full bg-${color}-500 flex items-center justify-center text-white font-bold shadow-md`}>
-                                    {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="font-bold text-gray-900 text-lg">{userName}</p>
-                                  <Badge variant="outline" className="mt-1 text-xs">
-                                    {getRoleLabel(userRole)}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="text-right space-y-1">
-                                <div className="flex items-center justify-end space-x-2">
-                                  {isHealthCenter ? (
-                                    <Badge className="bg-pink-100 text-pink-700">🏥 {location}</Badge>
-                                  ) : (
-                                    <Badge className="bg-blue-100 text-blue-700">🚑 {location}</Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm font-semibold text-gray-700">
-                                  🕐 {assignment.start_time || '08:00'} - {assignment.end_time || '16:00'}
-                                </p>
-                                {dayDiff && (
-                                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
-                                    +{dayDiff} gün ({new Date(assignment.end_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })})
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                      <Calendar className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 text-lg">Bu gün için atama yok</p>
-                    <p className="text-gray-400 text-sm mt-1">Yeni atama eklemek için "Yeni Atama" butonunu kullanın</p>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Vardiya Tarihi *</Label>
+                    <Input
+                      type="date"
+                      value={formData.shift_date}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        const nextDay = new Date(newDate);
+                        nextDay.setDate(nextDay.getDate() + 1);
+                        setFormData(prev => ({
+                          ...prev, 
+                          shift_date: newDate,
+                          end_date: nextDay.toISOString().split('T')[0]
+                        }));
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bitiş Günü</Label>
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData(prev => ({...prev, end_date: e.target.value}))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Başlangıç</Label>
+                    <Input
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) => setFormData(prev => ({...prev, start_time: e.target.value}))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bitiş</Label>
+                    <Input
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData(prev => ({...prev, end_time: e.target.value}))}
+                    />
+                  </div>
+                </div>
+
+                {/* Şoför Görevi */}
+                {(() => {
+                  const selectedUser = users.find(u => (u.id || u._id) === formData.user_id);
+                  if (selectedUser && ['att', 'paramedik', 'hemsire'].includes(selectedUser.role?.toLowerCase())) {
+                    return (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="is_driver_duty"
+                            checked={formData.is_driver_duty}
+                            onChange={(e) => setFormData(prev => ({...prev, is_driver_duty: e.target.checked}))}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="is_driver_duty" className="text-sm text-yellow-800">
+                            🚗 Bu vardiyada şoför görevi de var
+                          </Label>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <Button onClick={handleCreate} className="w-full">Vardiya Ata</Button>
               </div>
             </DialogContent>
           </Dialog>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
+
+      {/* Tarih Seçici */}
+      <Card className="border-0 shadow-md">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-40"
+                />
+                <div className="hidden sm:block">
+                  <span className={`font-semibold ${isToday ? 'text-green-600' : 'text-gray-900'}`}>
+                    {isToday ? '📍 Bugün - ' : ''}{dayName}, {dateFormatted}
+                  </span>
+                </div>
+              </div>
+              <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {!isToday && (
+                <Button variant="ghost" size="sm" onClick={goToToday}>
+                  Bugün
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={isToday ? 'default' : 'secondary'} className="text-sm">
+                {assignments.length} atama
+              </Badge>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => loadAssignments(selectedDate)}
+                disabled={assignmentsLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${assignmentsLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tablo Görünümü */}
+      <Card className="border-0 shadow-lg">
+        <CardContent className="p-0">
+          {assignmentsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : assignments.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500">Bu gün için atama yok</p>
+              <p className="text-gray-400 text-sm">Yeni atama eklemek için "Yeni Atama" butonunu kullanın</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Araç</th>
+                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Personel</th>
+                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Görev</th>
+                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Saat</th>
+                    <th className="text-left p-3 text-sm font-semibold text-gray-600">Durum</th>
+                    <th className="text-right p-3 text-sm font-semibold text-gray-600">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {Object.entries(groupedAssignments).map(([vehicle, vehicleAssignments]) => (
+                    vehicleAssignments.map((a, idx) => (
+                      <tr 
+                        key={a.id || a._id} 
+                        className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-t-blue-100' : ''}`}
+                      >
+                        {/* Araç - sadece ilk satırda göster */}
+                        {idx === 0 ? (
+                          <td className="p-3 align-top" rowSpan={vehicleAssignments.length}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <Truck className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-900">{vehicle}</p>
+                                <p className="text-xs text-gray-500">{vehicleAssignments.length} kişi</p>
+                              </div>
+                            </div>
+                          </td>
+                        ) : null}
+                        
+                        {/* Personel */}
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                              {(a.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 text-sm">{a.user_name || 'Bilinmiyor'}</p>
+                              <p className="text-xs text-gray-500">{getRoleLabel(a.user_role)}</p>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* Görev Lokasyonu */}
+                        <td className="p-3">
+                          {a.healmedy_location_name ? (
+                            <Badge variant="outline" className="text-xs">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {a.healmedy_location_name}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
+                        </td>
+                        
+                        {/* Saat */}
+                        <td className="p-3">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Clock className="h-3 w-3 text-gray-400" />
+                            <span>{a.start_time || '08:00'} - {a.end_time || '08:00'}</span>
+                            {a.end_date && a.end_date !== a.shift_date && (
+                              <Badge variant="secondary" className="text-xs ml-1">+1g</Badge>
+                            )}
+                          </div>
+                        </td>
+                        
+                        {/* Durum */}
+                        <td className="p-3">
+                          <Badge className={statusColors[a.status]}>
+                            {statusLabels[a.status]}
+                          </Badge>
+                        </td>
+                        
+                        {/* İşlemler */}
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {a.status === 'pending' && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-green-600 hover:bg-green-50"
+                                  onClick={() => handleStartShift(a.id || a._id, a.user_name)}
+                                  title="Başlat"
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:bg-red-50"
+                                  onClick={() => handleDelete(a.id || a._id)}
+                                  title="Sil"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            {a.status === 'started' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:bg-red-50"
+                                onClick={() => handleEndShift(a.id || a._id, a.user_name)}
+                                title="Bitir"
+                              >
+                                <Square className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

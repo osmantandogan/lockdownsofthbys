@@ -197,6 +197,7 @@ export const shiftsAPI = {
   createAssignment: (data) => api.post('/shifts/create-assignment-v2', data),
   getMyAssignments: () => api.get('/shifts/assignments/my'),
   getAllAssignments: () => api.get('/shifts/assignments'),
+  getAssignmentsByDate: (date) => api.get('/shifts/assignments', { params: { date } }),
   getTodayAssignments: () => api.get('/shifts/assignments/today'),
   deleteAssignment: (id) => api.delete(`/shifts/assignments/${id}`),
   startAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/start`),
