@@ -1838,8 +1838,13 @@ async def get_unit_stock(
     await get_current_user(request)
     
     query = {"status": "opened"}
-    if location:
-        query["location"] = location
+    if location and location != "all":
+        # Lokasyon filtresi: location, location_name veya location_detail alanlarına bak
+        query["$or"] = [
+            {"location": location},
+            {"location_name": location},
+            {"location_detail": location}
+        ]
     
     items = await unit_stock_collection.find(query).sort("opened_at", -1).to_list(1000)
     
@@ -2037,8 +2042,15 @@ async def get_itriyat_stock(
     await get_current_user(request)
     
     query = {"category": "itriyat"}
-    if location:
-        query["location"] = location
+    if location and location != "all":
+        # Lokasyon filtresi: location, location_name veya location_detail alanlarına bak
+        query["$or"] = [
+            {"location": location, "category": "itriyat"},
+            {"location_name": location, "category": "itriyat"},
+            {"location_detail": location, "category": "itriyat"}
+        ]
+        # $or kullanıldığında category'yi tekrar belirtmemiz gerekiyor
+        del query["category"]
     
     items = await stock_collection.find(query).sort("name", 1).to_list(1000)
     
@@ -2057,8 +2069,15 @@ async def get_sarf_stock(
     await get_current_user(request)
     
     query = {"category": "sarf"}
-    if location:
-        query["location"] = location
+    if location and location != "all":
+        # Lokasyon filtresi: location, location_name veya location_detail alanlarına bak
+        query["$or"] = [
+            {"location": location, "category": "sarf"},
+            {"location_name": location, "category": "sarf"},
+            {"location_detail": location, "category": "sarf"}
+        ]
+        # $or kullanıldığında category'yi tekrar belirtmemiz gerekiyor
+        del query["category"]
     
     items = await stock_collection.find(query).sort("name", 1).to_list(1000)
     
