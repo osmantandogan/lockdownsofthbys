@@ -1714,12 +1714,12 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 except Exception as e:
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
         
-        # SAYFA AYARLARI: A4 Landscape, tek sayfaya sığdır
+        # SAYFA AYARLARI: A4 Dikey (Portrait), tek sayfaya sığdır, tam sayfa kullan
         try:
             from openpyxl.worksheet.properties import PageSetupProperties
             
             # Sayfa ayarları
-            ws.page_setup.orientation = 'landscape'  # Yatay
+            ws.page_setup.orientation = 'portrait'  # Dikey
             ws.page_setup.paperSize = 9  # A4 (9 = A4)
             ws.page_setup.fitToWidth = 1  # 1 sayfa genişliğine sığdır
             ws.page_setup.fitToHeight = 1  # 1 sayfa yüksekliğine sığdır
@@ -1737,13 +1737,15 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             print_area = f"A1:{get_column_letter(max_col)}{max_row}"
             ws.print_area = print_area
             
-            # Kenar boşlukları (cm cinsinden, küçük tutuyoruz)
-            ws.page_margins.left = 0.5
-            ws.page_margins.right = 0.5
-            ws.page_margins.top = 0.5
-            ws.page_margins.bottom = 0.5
+            # Kenar boşlukları - minimum (inç cinsinden, sayfanın tamamını kullan)
+            ws.page_margins.left = 0.2
+            ws.page_margins.right = 0.2
+            ws.page_margins.top = 0.2
+            ws.page_margins.bottom = 0.2
+            ws.page_margins.header = 0
+            ws.page_margins.footer = 0
             
-            logger.info(f"Sayfa ayarları: A4 Landscape, FitToPage=True, PrintArea={print_area}")
+            logger.info(f"Sayfa ayarları: A4 Portrait, FitToPage=True, PrintArea={print_area}")
         except Exception as e:
             logger.warning(f"Sayfa ayarları yapılamadı: {e}")
         
@@ -1776,24 +1778,34 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     with zipfile.ZipFile(temp_ods, 'r') as zf:
                         content = {name: zf.read(name) for name in zf.namelist()}
                     
-                    # styles.xml'i düzenle - A4 landscape ve tek sayfaya sığdır
+                    # styles.xml'i düzenle - A4 Dikey (Portrait) ve tek sayfaya sığdır
                     if 'styles.xml' in content:
                         styles_xml = content['styles.xml'].decode('utf-8')
                         
                         # Sayfa ayarlarını değiştir
-                        # fo:page-width="29.7cm" fo:page-height="21cm" (A4 landscape)
+                        # fo:page-width="21cm" fo:page-height="29.7cm" (A4 portrait)
                         # style:scale-to-pages="1"
-                        if 'fo:page-width' in styles_xml:
-                            import re
-                            # A4 landscape boyutları
-                            styles_xml = re.sub(r'fo:page-width="[^"]*"', 'fo:page-width="29.7cm"', styles_xml)
-                            styles_xml = re.sub(r'fo:page-height="[^"]*"', 'fo:page-height="21cm"', styles_xml)
-                            # Ölçekleme ekle
-                            if 'style:scale-to-pages' not in styles_xml:
-                                styles_xml = styles_xml.replace(
-                                    'style:print-orientation="landscape"',
-                                    'style:print-orientation="landscape" style:scale-to-pages="1"'
-                                )
+                        import re
+                        
+                        # A4 portrait boyutları
+                        styles_xml = re.sub(r'fo:page-width="[^"]*"', 'fo:page-width="21cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:page-height="[^"]*"', 'fo:page-height="29.7cm"', styles_xml)
+                        
+                        # Orientation'ı portrait yap
+                        styles_xml = re.sub(r'style:print-orientation="[^"]*"', 'style:print-orientation="portrait"', styles_xml)
+                        
+                        # Kenar boşluklarını minimize et
+                        styles_xml = re.sub(r'fo:margin-top="[^"]*"', 'fo:margin-top="0.5cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-bottom="[^"]*"', 'fo:margin-bottom="0.5cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-left="[^"]*"', 'fo:margin-left="0.5cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-right="[^"]*"', 'fo:margin-right="0.5cm"', styles_xml)
+                        
+                        # Ölçekleme ekle
+                        if 'style:scale-to-pages' not in styles_xml:
+                            styles_xml = styles_xml.replace(
+                                'style:print-orientation="portrait"',
+                                'style:print-orientation="portrait" style:scale-to-pages="1"'
+                            )
                         
                         content['styles.xml'] = styles_xml.encode('utf-8')
                     
