@@ -1518,24 +1518,27 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         "assigned_team": assigned_team,
         
         # ATN NO - birden fazla yerden kontrol
-        "atn_no": case_doc.get("atn_no", "") or extended_form.get("atnNo", "") or medical_form.get("atn_no", ""),
+        "atn_no": case_doc.get("atn_no", "") or extended_form.get("atnNo", "") or medical_form.get("atn_no", "") or vehicle_info.get("atn_no", ""),
         
         # PLAKA - assigned_team.vehicle veya vehicle_info.plate
-        "vehicle_plate": assigned_team.get("vehicle", "") or vehicle_info.get("plate", "") or extended_form.get("vehiclePlate", ""),
+        "vehicle_plate": assigned_team.get("vehicle", "") or vehicle_info.get("plate", "") or extended_form.get("vehiclePlate", "") or vehicle_info.get("plaka", ""),
         
-        # VAKAYI VEREN KURUM
-        "referring_institution": case_doc.get("referring_institution", "") or case_doc.get("company", "") or extended_form.get("referringInstitution", "") or extended_form.get("vakayiVerenKurum", ""),
+        # VAKAYI VEREN KURUM - frontend'de referralSource olarak kaydediliyor
+        "referring_institution": case_doc.get("referring_institution", "") or case_doc.get("company", "") or extended_form.get("referralSource", "") or extended_form.get("referringInstitution", "") or extended_form.get("vakayiVerenKurum", ""),
         
         # KM bilgileri
-        "start_km": vehicle_info.get("start_km", "") or extended_form.get("startKm", ""),
-        "end_km": vehicle_info.get("end_km", "") or extended_form.get("endKm", ""),
-        "total_km": vehicle_info.get("total_km", "") or extended_form.get("totalKm", ""),
+        "start_km": vehicle_info.get("start_km", "") or vehicle_info.get("baslangic_km", "") or extended_form.get("startKm", ""),
+        "end_km": vehicle_info.get("end_km", "") or vehicle_info.get("bitis_km", "") or extended_form.get("endKm", ""),
+        "total_km": vehicle_info.get("total_km", "") or vehicle_info.get("toplam_km", "") or extended_form.get("totalKm", ""),
         
-        # İstasyon
-        "station_name": case_doc.get("station_name", "") or assigned_team.get("station", "") or extended_form.get("stationName", ""),
+        # İstasyon - frontend'de stationCode olarak kaydediliyor
+        "station_name": case_doc.get("station_name", "") or assigned_team.get("station", "") or extended_form.get("stationCode", "") or extended_form.get("stationName", ""),
         
         # Kodu
-        "case_code": case_doc.get("case_code", "") or extended_form.get("caseCode", ""),
+        "case_code": case_doc.get("case_code", "") or extended_form.get("caseCode", "") or case_doc.get("code", ""),
+        
+        # TRİYAJ KODU - frontend'de triageCode olarak kaydediliyor
+        "triage_code": extended_form.get("triageCode", "") or case_doc.get("priority", ""),
         
         # vehicle_info ve time_info
         "vehicle_info": vehicle_info,

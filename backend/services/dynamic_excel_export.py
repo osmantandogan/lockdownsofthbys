@@ -110,15 +110,15 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     # Hasta bilgileri (V3 formatı)
     patient_mappings = {
         'patientName': lambda d: f"{d.get('patient', {}).get('name', '')} {d.get('patient', {}).get('surname', '')}".strip(),
-        'patientTcNo': lambda d: d.get('patient', {}).get('tc_no', '') or d.get('patient', {}).get('tcNo', ''),
+        'patientTcNo': lambda d: str(d.get('patient', {}).get('tc_no', '') or d.get('patient', {}).get('tcNo', '') or d.get('patient', {}).get('tc', '') or ''),
         'patientAge': lambda d: str(d.get('patient', {}).get('age', '')) if d.get('patient', {}).get('age') else '',
         'patientGender': lambda d: d.get('patient', {}).get('gender', ''),
-        'patientPhone': lambda d: d.get('caller', {}).get('phone', '') or d.get('patient', {}).get('phone', ''),
+        'patientPhone': lambda d: str(d.get('patient', {}).get('phone', '') or d.get('caller', {}).get('phone', '') or ''),
         'patientAddress': lambda d: d.get('patient', {}).get('address', '') or d.get('location', {}).get('address', ''),
         'patientHomeAddress': lambda d: d.get('location', {}).get('address', '') or d.get('patient', {}).get('address', ''),
-        'patientPickupAddress': lambda d: d.get('location', {}).get('pickup_location', '') or d.get('location', {}).get('address_description', ''),
+        'patientPickupAddress': lambda d: d.get('location', {}).get('pickup_location', '') or d.get('location', {}).get('address_description', '') or d.get('location', {}).get('address', ''),
         'patientComplaint': lambda d: d.get('patient', {}).get('complaint', '') or d.get('complaint', ''),
-        'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('extended_form', {}).get('chronicDiseases', ''),
+        'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('extended_form', {}).get('chronicDiseases', '') or '',
     }
     
     # Sonuç/Nakil bilgileri
@@ -183,13 +183,14 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         if vital_index < len(vital_signs):
             vs = vital_signs[vital_index]
+            # Frontend'de: time, bp, pulse, spo2, respiration, temp
             type_map = {
-                'Time': lambda v: format_time(v.get('time')),
-                'BP': lambda v: v.get('blood_pressure', ''),
+                'Time': lambda v: format_time(v.get('time', '')),
+                'BP': lambda v: str(v.get('bp', '') or v.get('blood_pressure', '')),
                 'Pulse': lambda v: str(v.get('pulse', '')),
                 'SpO2': lambda v: str(v.get('spo2', '')),
                 'Resp': lambda v: str(v.get('respiration', '')),
-                'Temp': lambda v: str(v.get('temperature', '')),
+                'Temp': lambda v: str(v.get('temp', '') or v.get('temperature', '')),
             }
             return str(type_map.get(vital_type, lambda v: '')(vs))
         return ''
@@ -203,13 +204,14 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         if vital_index < len(vital_signs):
             vs = vital_signs[vital_index]
+            # Frontend'de: time, bp, pulse, spo2, respiration, temp
             field_map = {
                 'saat': lambda v: format_time(v.get('time', '')),
                 'nabiz': lambda v: str(v.get('pulse', '') or v.get('nabiz', '')),
-                'tansiyon': lambda v: str(v.get('blood_pressure', '') or v.get('tansiyon', '')),
+                'tansiyon': lambda v: str(v.get('bp', '') or v.get('blood_pressure', '') or v.get('tansiyon', '')),
                 'solunum': lambda v: str(v.get('respiration', '') or v.get('solunum', '')),
                 'spo2': lambda v: str(v.get('spo2', '')),
-                'ates': lambda v: str(v.get('temperature', '') or v.get('ates', '')),
+                'ates': lambda v: str(v.get('temp', '') or v.get('temperature', '') or v.get('ates', '')),
             }
             return field_map.get(vital_field, lambda v: '')(vs)
         return ''
@@ -254,21 +256,27 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         gender_map = {'erkek': 'erkek', 'male': 'erkek', 'kadın': 'kadin', 'kadin': 'kadin', 'female': 'kadin'}
         return '☑' if gender_map.get(gender) == option else '☐'
     
-    # Öncelik/Triyaj - extended_form.priority veya case priority
+    # Öncelik/Triyaj - extended_form.triageCode veya priority
     if field_key.startswith('priority.'):
-        # extended_form içinde priority object olabilir: {kirmizi_kod: true, sari_kod: false}
-        priority_obj = extended_form.get('priority', {})
-        option = field_key.split('.')[1]  # kirmizi_kod, sari_kod, etc.
+        option = field_key.split('.')[1]  # kirmizi_kod, sari_kod, yesil_kod, siyah_kod, sosyal_endikasyon
+        
+        # triageCode (frontend'de bu isimle kaydediliyor)
+        triage_code = extended_form.get('triageCode', '') or case_data.get('triage_code', '') or case_data.get('priority', '')
+        triage_code = triage_code.lower() if triage_code else ''
         
         # Object format kontrolü
+        priority_obj = extended_form.get('priority', {})
         if isinstance(priority_obj, dict):
             return '☑' if priority_obj.get(option) else '☐'
         
-        # String format
-        priority_str = (str(priority_obj) or case_data.get('priority', '')).lower()
-        option_lower = option.lower().replace('_', ' ')
-        priority_map = {'critical': 'kirmizi', 'high': 'sari', 'medium': 'yesil', 'low': 'siyah'}
-        return '☑' if priority_map.get(priority_str, priority_str) == option.lower().replace('_kod', '') else '☐'
+        # String format - triageCode ile karşılaştır
+        option_clean = option.lower().replace('_kod', '').replace('_', '')  # kirmizi_kod -> kirmizi
+        
+        # Eşleştirme
+        if option_clean == 'sosyalendikasyon' or option == 'sosyal_endikasyon':
+            return '☑' if triage_code == 'sosyal' or 'sosyal' in triage_code else '☐'
+        
+        return '☑' if option_clean in triage_code or triage_code == option_clean else '☐'
     
     # Çağrı nedeni - extended_form.callReasons object veya string
     if field_key.startswith('callReason.'):
