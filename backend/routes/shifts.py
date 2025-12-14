@@ -248,11 +248,18 @@ async def get_all_assignments(request: Request, date: Optional[str] = None):
             serialized["user_name"] = user_doc.get("name", "Bilinmiyor")
             serialized["user_role"] = user_doc.get("role", "-")
             serialized["profile_photo"] = user_doc.get("profile_photo")
+        else:
+            # Kullanıcı bulunamazsa, shift'teki user_name'i kullan (import'tan gelenler için)
+            serialized["user_name"] = a.get("user_name", "Bilinmiyor")
+            serialized["user_role"] = a.get("user_role", "-")
         
         # Araç bilgilerini ekle
         vehicle_doc = vehicles_map.get(a.get("vehicle_id"))
         if vehicle_doc:
             serialized["vehicle_plate"] = vehicle_doc.get("plate", "")
+        elif a.get("vehicle_plate"):
+            # Araç bulunamazsa, shift'teki vehicle_plate'i kullan
+            serialized["vehicle_plate"] = a.get("vehicle_plate", "")
         
         result.append(serialized)
     
