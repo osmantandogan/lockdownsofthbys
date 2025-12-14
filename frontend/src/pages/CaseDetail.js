@@ -1511,9 +1511,38 @@ const CaseDetail = () => {
                 <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-72">
               <DropdownMenuLabel>PDF Formatı Seçin</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              
+              {/* YENİ: Görsel Mapping ile (Tek Sayfa) */}
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    setExcelExporting(true);
+                    toast.info('PDF hazırlanıyor (Tek Sayfa - Görsel Mapping)...');
+                    const response = await casesAPI.exportPdfWithMapping(id);
+                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    saveAs(response.data, fileName);
+                    toast.success('PDF indirildi! (Tek Sayfa)');
+                  } catch (error) {
+                    console.error('PDF hatası:', error);
+                    if (error.response?.status === 404) {
+                      toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
+                    } else {
+                      toast.error('PDF oluşturulamadı');
+                    }
+                  } finally {
+                    setExcelExporting(false);
+                  }
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                <span className="font-semibold">⭐ Görsel Mapping ile (Tek Sayfa - YENİ)</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
               <DropdownMenuItem
                 onClick={async () => {
                   if (!caseData) {
@@ -1657,34 +1686,6 @@ const CaseDetail = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72">
               <DropdownMenuLabel>📊 Excel Şablonu Seçin</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              {/* PDF - Görsel Mapping ile (ÖNERİLEN) */}
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    setExcelExporting(true);
-                    toast.info('PDF hazırlanıyor (Tek Sayfa)...');
-                    const response = await casesAPI.exportPdfWithMapping(id);
-                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.pdf`;
-                    saveAs(response.data, fileName);
-                    toast.success('PDF indirildi!');
-                  } catch (error) {
-                    console.error('PDF hatası:', error);
-                    if (error.response?.status === 404) {
-                      toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
-                    } else {
-                      toast.error('PDF oluşturulamadı');
-                    }
-                  } finally {
-                    setExcelExporting(false);
-                  }
-                }}
-              >
-                <FileText className="h-4 w-4 mr-2 text-red-600" />
-                📄 PDF İndir (Tek Sayfa - ÖNERİLEN)
-              </DropdownMenuItem>
-              
               <DropdownMenuSeparator />
               
               {/* Excel - Görsel Mapping ile */}

@@ -1714,6 +1714,20 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 except Exception as e:
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
         
+        # SAYFA AYARLARI: Tek sayfaya sığdır (A4)
+        from openpyxl.worksheet.page import PageSetup
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE  # Yatay
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+        ws.page_setup.fitToWidth = 1  # 1 sayfa genişliğine sığdır
+        ws.page_setup.fitToHeight = 1  # 1 sayfa yüksekliğine sığdır
+        ws.page_setup.scale = 100  # %100 ölçek
+        
+        # Print area: Tüm kullanılan hücreler
+        if ws.max_row > 0 and ws.max_column > 0:
+            from openpyxl.utils import get_column_letter
+            print_area = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
+            ws.print_area = print_area
+        
         # Geçici Excel dosyası oluştur
         temp_dir = os.path.join(backend_dir, "temp")
         os.makedirs(temp_dir, exist_ok=True)
@@ -1721,8 +1735,9 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         temp_xlsx = os.path.join(temp_dir, f"case_{case_id}_{uuid.uuid4().hex[:8]}.xlsx")
         wb.save(temp_xlsx)
         
-        # LibreOffice ile PDF'e dönüştür
+        # LibreOffice ile PDF'e dönüştür (tek sayfaya sığdır)
         try:
+            # LibreOffice'in basit convert komutu (sayfa ayarları Excel'de yapıldı)
             result = subprocess.run([
                 'libreoffice', '--headless', '--convert-to', 'pdf',
                 '--outdir', temp_dir, temp_xlsx
