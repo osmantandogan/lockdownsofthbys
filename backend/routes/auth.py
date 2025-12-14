@@ -20,7 +20,7 @@ class RegisterRequest(BaseModel):
     role: UserRole
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str  # Email veya isim soyisim olabilir
     password: str
 
 class SessionResponse(BaseModel):
@@ -91,58 +91,44 @@ async def process_session(request: Request, response: Response):
     
     return {"user": user, "session_token": session_token}
 
-# JWT-based Registration
+# JWT-based Registration - SADECE ADMİN YAPABİLİR
+# Dışarıdan kayıt kapatıldı - Kullanıcılar sadece admin tarafından oluşturulabilir
 @router.post("/register")
 async def register(data: RegisterRequest, response: Response):
-    """Register new user with email/password"""
-    # Check if user exists
-    existing_user = await users_collection.find_one({"email": data.email})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Hash password
-    password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt())
-    
-    # Create user
-    new_user = User(
-        email=data.email,
-        name=data.name,
-        role=data.role
+    """
+    Register new user - DEVRE DIŞI
+    Kullanıcılar sadece admin panelinden oluşturulabilir.
+    """
+    raise HTTPException(
+        status_code=403, 
+        detail="Dışarıdan kayıt kapatılmıştır. Lütfen yöneticinizle iletişime geçin."
     )
-    user_dict = new_user.model_dump(by_alias=True)
-    user_dict["password_hash"] = password_hash.decode()
-    
-    await users_collection.insert_one(user_dict)
-    
-    # Create JWT token
-    access_token = create_access_token({"sub": new_user.id})
-    
-    # Set cookie
-    response.set_cookie(
-        key="session_token",
-        value=access_token,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        path="/",
-        max_age=7 * 24 * 60 * 60
-    )
-    
-    return {"user": new_user, "session_token": access_token}
 
 # JWT-based Login
 @router.post("/login")
 async def login(data: LoginRequest, response: Response):
-    """Login with email/password"""
-    # Find user
-    user_doc = await users_collection.find_one({"email": data.email})
+    """Login with email/password or name/password"""
+    import re
+    
+    # Email mi yoksa isim soyisim mi kontrol et
+    is_email = '@' in data.email
+    
+    if is_email:
+        # Email ile ara
+        user_doc = await users_collection.find_one({"email": data.email.lower()})
+    else:
+        # İsim soyisim ile ara (case-insensitive)
+        # "Ali Veli" veya "ali veli" gibi aramaya izin ver
+        name_regex = re.compile(f"^{re.escape(data.email)}$", re.IGNORECASE)
+        user_doc = await users_collection.find_one({"name": name_regex})
+    
     if not user_doc:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı")
     
     # Check password
     password_hash = user_doc.get("password_hash")
     if not password_hash or not bcrypt.checkpw(data.password.encode(), password_hash.encode()):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Şifre hatalı")
     
     # Create JWT token
     access_token = create_access_token({"sub": user_doc["_id"]})

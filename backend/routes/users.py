@@ -1,11 +1,25 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import List, Optional
+from pydantic import BaseModel, EmailStr
 from database import users_collection, shifts_collection, cases_collection, forms_collection
 from models import User, UserUpdate, UserRole
 from auth_utils import get_current_user, require_roles
 from datetime import datetime
+import bcrypt
+import uuid
 
 router = APIRouter()
+
+# ============ ADMIN KULLANICI OLUŞTURMA ============
+
+class CreateUserRequest(BaseModel):
+    """Admin tarafından kullanıcı oluşturma"""
+    email: EmailStr
+    password: str
+    name: str
+    role: UserRole
+    phone: Optional[str] = None
+    tc_no: Optional[str] = None
 
 @router.get("/staff-performance")
 async def get_staff_performance(request: Request, start_date: Optional[str] = None, end_date: Optional[str] = None):
@@ -113,6 +127,47 @@ async def get_staff_performance(request: Request, start_date: Optional[str] = No
     performance.sort(key=lambda x: x["total_hours"], reverse=True)
     
     return performance
+
+@router.post("/create", response_model=User)
+async def create_user(data: CreateUserRequest, request: Request):
+    """
+    Admin tarafından yeni kullanıcı oluştur
+    Sadece merkez_ofis, operasyon_muduru ve mesul_mudur oluşturabilir
+    """
+    current_user = await require_roles(["merkez_ofis", "operasyon_muduru", "mesul_mudur"])(request)
+    
+    # Email kontrolü
+    existing_user = await users_collection.find_one({"email": data.email.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Bu email zaten kayıtlı")
+    
+    # İsim kontrolü (aynı isimde kullanıcı varsa uyar ama engelleme)
+    existing_name = await users_collection.find_one({"name": {"$regex": f"^{data.name}$", "$options": "i"}})
+    if existing_name:
+        # Sadece uyarı, engelleme yok
+        pass
+    
+    # Şifreyi hashle
+    password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt())
+    
+    # Kullanıcı oluştur
+    new_user = User(
+        email=data.email.lower(),
+        name=data.name,
+        role=data.role,
+        phone=data.phone,
+        tc_no=data.tc_no
+    )
+    
+    user_dict = new_user.model_dump(by_alias=True)
+    user_dict["password_hash"] = password_hash.decode()
+    user_dict["created_by"] = current_user.id
+    user_dict["created_at"] = datetime.utcnow()
+    
+    await users_collection.insert_one(user_dict)
+    
+    return new_user
+
 
 @router.get("", response_model=List[User])
 async def get_users(request: Request):

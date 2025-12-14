@@ -68,11 +68,11 @@ const Login = () => {
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email veya İsim Soyisim</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="ornek@email.com"
+                type="text"
+                placeholder="ornek@email.com veya Ali Veli"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -100,17 +100,6 @@ const Login = () => {
               {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </Button>
           </form>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Hesabınız yok mu? </span>
-            <Button
-              variant="link"
-              className="p-0 h-auto font-semibold"
-              onClick={() => navigate('/register')}
-            >
-              Kayıt Ol
-            </Button>
-          </div>
 
           {/* Development Quick Login Section */}
           <Separator className="my-6" />

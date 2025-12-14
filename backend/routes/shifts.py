@@ -620,9 +620,13 @@ async def import_december_2024_shifts(request: Request):
                 if await shift_assignments_collection.find_one({"user_id": user_id, "shift_date": shift_date}):
                     skipped_shifts += 1
                     continue
+                # 24 saat vardiya: 08:00 - ertesi gün 08:00
+                next_day = shift_date + timedelta(days=1)
                 await shift_assignments_collection.insert_one({
                     "_id": str(uuid.uuid4()), "user_id": user_id, "vehicle_id": vehicle_id,
-                    "shift_date": shift_date, "start_time": "08:00", "end_time": "20:00",
+                    "shift_date": shift_date, "start_time": "08:00", "end_time": "08:00",
+                    "end_date": next_day,  # Ertesi gün
+                    "shift_type": "saha_24",  # 24 saat vardiya
                     "location_type": "arac", "status": "pending", "created_at": get_turkey_time()
                 })
                 new_shifts += 1

@@ -25,6 +25,13 @@ const ShiftAssignments = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [ganttDate, setGanttDate] = useState(new Date());
+  // Varsayılan vardiya: 24 saat (08:00 - ertesi gün 08:00)
+  const getDefaultEndDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+  
   const [formData, setFormData] = useState({
     user_id: '',
     vehicle_id: '',
@@ -32,10 +39,11 @@ const ShiftAssignments = () => {
     health_center_name: '',
     shift_date: new Date().toISOString().split('T')[0],
     start_time: '08:00',
-    end_time: '16:00',
-    end_date: new Date().toISOString().split('T')[0],
+    end_time: '08:00',  // 24 saat vardiya: 08:00 - 08:00
+    end_date: getDefaultEndDate(),  // Ertesi gün
     is_driver_duty: false,  // Şoför görevi var mı? (ATT/Paramedik için)
-    healmedy_location_id: ''  // YENİ: Healmedy lokasyonu
+    healmedy_location_id: '',  // YENİ: Healmedy lokasyonu
+    shift_type: 'saha_24'  // Varsayılan: 24 saat saha vardiyası
   });
   
   // Healmedy lokasyonları
@@ -273,10 +281,11 @@ const ShiftAssignments = () => {
         health_center_name: '',
         shift_date: new Date().toISOString().split('T')[0],
         start_time: '08:00',
-        end_time: '16:00',
-        end_date: new Date().toISOString().split('T')[0],
+        end_time: '08:00',  // 24 saat vardiya
+        end_date: getDefaultEndDate(),  // Ertesi gün
         is_driver_duty: false,
-        healmedy_location_id: ''
+        healmedy_location_id: '',
+        shift_type: 'saha_24'
       });
       loadData();
     } catch (error) {
@@ -411,6 +420,102 @@ const ShiftAssignments = () => {
   };
 
   const canManage = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+
+  // Bugünün tarihini al
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Atamaları sırala: Bugün > Gelecek > Geçmiş, sonra lokasyona göre grupla
+  const sortedAssignments = React.useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    return [...assignments].sort((a, b) => {
+      const dateA = new Date(a.shift_date);
+      const dateB = new Date(b.shift_date);
+      dateA.setHours(0, 0, 0, 0);
+      dateB.setHours(0, 0, 0, 0);
+      
+      const isToday_A = dateA.getTime() === now.getTime();
+      const isToday_B = dateB.getTime() === now.getTime();
+      const isFuture_A = dateA > now;
+      const isFuture_B = dateB > now;
+      
+      // Bugün olanlar en önce
+      if (isToday_A && !isToday_B) return -1;
+      if (!isToday_A && isToday_B) return 1;
+      
+      // İkisi de bugünse lokasyona göre sırala
+      if (isToday_A && isToday_B) {
+        const locA = a.vehicle_plate || a.vehicle_id || a.health_center_name || '';
+        const locB = b.vehicle_plate || b.vehicle_id || b.health_center_name || '';
+        return locA.localeCompare(locB);
+      }
+      
+      // Gelecek olanlar geçmişten önce
+      if (isFuture_A && !isFuture_B) return -1;
+      if (!isFuture_A && isFuture_B) return 1;
+      
+      // Aynı kategorideyse tarihe göre
+      return dateA - dateB;
+    });
+  }, [assignments]);
+
+  // Atamaları lokasyona göre grupla (sadece bugün için)
+  const groupedTodayAssignments = React.useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const todayAssignments = sortedAssignments.filter(a => {
+      const assignDate = new Date(a.shift_date);
+      assignDate.setHours(0, 0, 0, 0);
+      
+      // Bugün başlayan veya bugün devam eden
+      if (assignDate.getTime() === now.getTime()) return true;
+      
+      // Multi-day: end_date varsa ve bugün aralıkta mı?
+      if (a.end_date) {
+        const endDate = new Date(a.end_date);
+        endDate.setHours(0, 0, 0, 0);
+        return assignDate <= now && now <= endDate;
+      }
+      return false;
+    });
+    
+    // Lokasyona göre grupla
+    const groups = {};
+    todayAssignments.forEach(a => {
+      const locationKey = a.vehicle_plate || a.vehicle_id || a.health_center_name || 'Diğer';
+      if (!groups[locationKey]) {
+        groups[locationKey] = [];
+      }
+      groups[locationKey].push(a);
+    });
+    
+    return groups;
+  }, [sortedAssignments]);
+
+  // Diğer günlerin atamaları
+  const otherDayAssignments = React.useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    return sortedAssignments.filter(a => {
+      const assignDate = new Date(a.shift_date);
+      assignDate.setHours(0, 0, 0, 0);
+      
+      // Bugün olanları hariç tut
+      if (assignDate.getTime() === now.getTime()) return false;
+      
+      // Multi-day kontrolü
+      if (a.end_date) {
+        const endDate = new Date(a.end_date);
+        endDate.setHours(0, 0, 0, 0);
+        if (assignDate <= now && now <= endDate) return false;
+      }
+      return true;
+    });
+  }, [sortedAssignments]);
 
   if (!canManage) {
     return (
@@ -703,110 +808,143 @@ const ShiftAssignments = () => {
         </TabsList>
 
         <TabsContent value="atamalar" className="space-y-6 mt-6">
-          <div className="grid gap-4">
-            {assignments.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-gray-500">Henüz atama yapılmamış</p>
-                </CardContent>
-              </Card>
-            ) : (
-              assignments.map((assignment) => (
-            <Card key={assignment.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Badge className={statusColors[assignment.status]}>
-                        {statusLabels[assignment.status]}
-                      </Badge>
-                      <span className="text-sm text-gray-500">
-                        {new Date(assignment.shift_date).toLocaleDateString('tr-TR')}
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium">{assignment.user_name || getUserName(assignment.user_id)}</span>
-                        <Badge variant="outline" className="text-xs bg-gray-50">
-                          {getRoleLabel(assignment.user_role || users.find(u => (u.id || u._id) === assignment.user_id)?.role || '-')}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {assignment.location_type === 'arac' ? (
-                          <>
-                            <Truck className="h-4 w-4 text-gray-400" />
-                            <span>{assignment.vehicle_plate || getVehiclePlate(assignment.vehicle_id)}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="h-4 w-4 text-gray-400">🏥</span>
-                            <span>{assignment.health_center_name || 'Sağlık Merkezi'}</span>
-                          </>
-                        )}
-                      </div>
-                      {(assignment.start_time || assignment.end_time) && (
-                        <div className="flex items-center space-x-2">
-                          <span className="h-4 w-4 text-gray-400">🕐</span>
-                          <span>
-                            {assignment.start_time || '08:00'} - {assignment.end_time || '16:00'}
-                            {(() => {
-                              const dayDiff = calculateDayDiff(assignment.shift_date, assignment.end_date);
-                              return dayDiff ? (
-                                <Badge variant="secondary" className="ml-2 text-xs bg-amber-100 text-amber-700">
-                                  +{dayDiff} gün
-                                </Badge>
-                              ) : null;
-                            })()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {assignment.status === 'pending' && (
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStartShift(assignment.id, assignment.user_name)}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Vardiya Başlat"
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(assignment.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        title="Sil"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                  {assignment.status === 'started' && (
-                    <div className="flex items-center space-x-2">
-                      <Badge className="bg-green-100 text-green-700 border-green-200">
-                        Aktif
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEndShift(assignment.id, assignment.user_name)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        title="Vardiya Bitir"
-                      >
-                        <Square className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+          {assignments.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-gray-500">Henüz atama yapılmamış</p>
               </CardContent>
             </Card>
-              ))
-            )}
-          </div>
+          ) : (
+            <div className="space-y-6">
+              {/* BUGÜN - Lokasyona göre gruplu */}
+              {Object.keys(groupedTodayAssignments).length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <h2 className="text-lg font-bold text-green-700">Bugün - {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+                    <Badge className="bg-green-100 text-green-700">{Object.values(groupedTodayAssignments).flat().length} atama</Badge>
+                  </div>
+                  
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {Object.entries(groupedTodayAssignments).map(([location, locationAssignments]) => (
+                      <Card key={location} className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="py-3 px-4 bg-gradient-to-r from-blue-50 to-white">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <Truck className="h-5 w-5 text-blue-600" />
+                            <span className="font-bold text-blue-800">{location}</span>
+                            <Badge variant="secondary" className="ml-auto">{locationAssignments.length} kişi</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 space-y-2">
+                          {locationAssignments.map((assignment) => (
+                            <div 
+                              key={assignment.id} 
+                              className={`flex items-center justify-between p-2 rounded-lg ${
+                                assignment.status === 'started' ? 'bg-green-50 border border-green-200' : 
+                                assignment.status === 'pending' ? 'bg-yellow-50 border border-yellow-200' : 
+                                'bg-gray-50 border border-gray-200'
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                  <span className="font-medium text-sm truncate">{assignment.user_name || getUserName(assignment.user_id)}</span>
+                                  <Badge variant="outline" className="text-xs flex-shrink-0">
+                                    {getRoleLabel(assignment.user_role || users.find(u => (u.id || u._id) === assignment.user_id)?.role || '-')}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{assignment.start_time || '08:00'} - {assignment.end_time || '08:00'}</span>
+                                  {assignment.end_date && assignment.end_date !== assignment.shift_date && (
+                                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700">24 saat</Badge>
+                                  )}
+                                  <Badge className={`ml-auto text-xs ${statusColors[assignment.status]}`}>
+                                    {statusLabels[assignment.status]}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                                {assignment.status === 'pending' && (
+                                  <>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600 hover:bg-green-100"
+                                      onClick={() => handleStartShift(assignment.id, assignment.user_name)} title="Başlat">
+                                      <Play className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
+                                      onClick={() => handleDelete(assignment.id)} title="Sil">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </>
+                                )}
+                                {assignment.status === 'started' && (
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
+                                    onClick={() => handleEndShift(assignment.id, assignment.user_name)} title="Bitir">
+                                    <Square className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* DİĞER GÜNLER */}
+              {otherDayAssignments.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-t pt-4">
+                    <Calendar className="h-5 w-5 text-gray-500" />
+                    <h2 className="text-lg font-semibold text-gray-700">Diğer Günler</h2>
+                    <Badge variant="outline">{otherDayAssignments.length} atama</Badge>
+                  </div>
+                  
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {otherDayAssignments.slice(0, 30).map((assignment) => (
+                      <Card key={assignment.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge className={statusColors[assignment.status]}>
+                                  {statusLabels[assignment.status]}
+                                </Badge>
+                                <span className="text-sm text-gray-500">
+                                  {new Date(assignment.shift_date).toLocaleDateString('tr-TR')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                <span className="font-medium text-sm truncate">{assignment.user_name || getUserName(assignment.user_id)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Truck className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                <span className="text-sm truncate">{assignment.vehicle_plate || getVehiclePlate(assignment.vehicle_id) || assignment.health_center_name}</span>
+                              </div>
+                            </div>
+                            {assignment.status === 'pending' && (
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600"
+                                onClick={() => handleDelete(assignment.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  {otherDayAssignments.length > 30 && (
+                    <p className="text-center text-gray-500 text-sm">
+                      +{otherDayAssignments.length - 30} daha fazla atama var
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="aylik" className="mt-6 space-y-6">
