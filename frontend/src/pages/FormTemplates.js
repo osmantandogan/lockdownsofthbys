@@ -279,6 +279,11 @@ const FormTemplates = () => {
                 <DropdownMenuItem onClick={() => navigate(getTemplateEditPath(template))}>
                   <Edit className="h-4 w-4 mr-2" /> Düzenle
                 </DropdownMenuItem>
+                {template.template_type === 'excel' && (
+                  <DropdownMenuItem onClick={() => navigate(`/dashboard/form-templates/excel/${template.id}/mapping`)}>
+                    <Grid3X3 className="h-4 w-4 mr-2 text-amber-600" /> Görsel Mapping
+                  </DropdownMenuItem>
+                )}
                 {template.template_type !== 'excel' && (
                   <DropdownMenuItem onClick={() => handleDuplicate(template.id)}>
                     <Copy className="h-4 w-4 mr-2" /> Kopyala

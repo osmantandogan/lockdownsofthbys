@@ -956,6 +956,17 @@ const ExcelTemplateEditor = () => {
             <Settings className="h-4 w-4 mr-1" /> Veri Eşleştirme
           </Button>
           
+          {id !== 'new' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/dashboard/form-templates/excel/${id}/mapping`)}
+              className="text-amber-600 border-amber-300 hover:bg-amber-50"
+            >
+              <Eye className="h-4 w-4 mr-1" /> Görsel Mapping
+            </Button>
+          )}
+          
           <Button variant="ghost" size="sm" onClick={() => setShowSettingsDialog(true)}>
             <Settings className="h-4 w-4" />
           </Button>
