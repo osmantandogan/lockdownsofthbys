@@ -165,8 +165,10 @@ async def get_all_stock_grouped(
             
             grouped[name]["total_quantity"] += quantity
             grouped[name]["items"].append(item)
-            if item.get("location"):
-                grouped[name]["locations"].add(item.get("location"))
+            # Lokasyon bilgisi: location_detail varsa onu kullan, yoksa location
+            loc = item.get("location_detail") or item.get("location")
+            if loc:
+                grouped[name]["locations"].add(loc)
             
             # En yakın SKT
             expiry = item.get("expiry_date")

@@ -629,8 +629,12 @@ async def get_grouped_inventory(
     
     match_query = {"status": "available"}
     
-    if location:
-        match_query["location"] = location
+    if location and location != "all":
+        # Lokasyon filtresi: location veya location_detail alanlarına bak
+        match_query["$or"] = [
+            {"location": location},
+            {"location_detail": location}
+        ]
     
     if search:
         match_query["name"] = {"$regex": search, "$options": "i"}
