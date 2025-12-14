@@ -409,6 +409,7 @@ async def get_location_stock_items(location_id: str, request: Request):
     
     # stock_locations_collection kullan (stock_barcode ile ayni)
     stock_locations_col = db["stock_locations"]
+    barcode_stock_collection = db["barcode_stock"]
     
     # Lokasyonu bul - once stock_locations_collection'da ara
     location = await stock_locations_col.find_one({"_id": location_id})
@@ -420,11 +421,58 @@ async def get_location_stock_items(location_id: str, request: Request):
     
     location_name = location["name"]
     
-    # Bu lokasyondaki stokları getir
-    items = await stock_collection.find({"location": location_name}).to_list(1000)
+    # Bu lokasyondaki stokları getir - hem stock_collection hem de barcode_stock_collection'dan
+    # location_name ile eşleşen veya location_detail ile eşleşen kayıtları bul
     
-    for item in items:
+    # 1. stock_collection'dan ara (location veya location_detail ile)
+    stock_items = await stock_collection.find({
+        "$or": [
+            {"location": location_name},
+            {"location_detail": location_name}
+        ]
+    }).to_list(1000)
+    
+    # 2. barcode_stock_collection'dan ara (location_detail ile - çünkü burada location genelde "ambulans" gibi genel bir değer)
+    barcode_items = await barcode_stock_collection.find({
+        "$or": [
+            {"location_detail": location_name},
+            {"location": location_name}
+        ],
+        "status": "available"  # Sadece mevcut stokları getir
+    }).to_list(1000)
+    
+    # Barcode stock'u stock formatına çevir (gruplu görünüm için)
+    barcode_grouped = {}
+    for item in barcode_items:
+        item_name = item.get("name", "Bilinmeyen")
+        if item_name not in barcode_grouped:
+            barcode_grouped[item_name] = {
+                "id": f"barcode_{item_name}",
+                "name": item_name,
+                "code": item.get("gtin", "")[:8] if item.get("gtin") else "",
+                "gtin": item.get("gtin"),
+                "quantity": 0,
+                "min_quantity": 0,
+                "location": item.get("location", "ambulans"),
+                "location_detail": item.get("location_detail"),
+                "unit": "adet",
+                "expiry_date": item.get("expiry_date"),
+                "lot_number": item.get("lot_number"),
+                "serial_number": item.get("serial_number"),
+                "is_barcode_stock": True  # Barcode stock'tan geldiğini belirt
+            }
+        barcode_grouped[item_name]["quantity"] += 1
+    
+    # Stock items'ı formatla
+    all_items = []
+    for item in stock_items:
         item["id"] = item.pop("_id")
+        item["is_barcode_stock"] = False
+        all_items.append(item)
+    
+    # Barcode grouped items'ı ekle
+    for item_name, item_data in barcode_grouped.items():
+        all_items.append(item_data)
     
     return {
         "location": {
@@ -432,8 +480,8 @@ async def get_location_stock_items(location_id: str, request: Request):
             "name": location_name,
             "type": location.get("type")
         },
-        "items": items,
-        "count": len(items)
+        "items": all_items,
+        "count": len(all_items)
     }
 
 
@@ -447,6 +495,7 @@ async def get_item_barcode_details(location_id: str, item_name: str, request: Re
     
     # stock_locations_collection kullan
     stock_locations_col = db["stock_locations"]
+    barcode_stock_collection = db["barcode_stock"]
     
     # Lokasyonu bul - once stock_locations_collection'da ara
     location = await stock_locations_col.find_one({"_id": location_id})
@@ -457,17 +506,33 @@ async def get_item_barcode_details(location_id: str, item_name: str, request: Re
     
     location_name = location["name"]
     
-    # Bu lokasyondaki bu isimdeki stokları getir
-    items = await stock_collection.find({
-        "location": location_name,
+    # Bu lokasyondaki bu isimdeki stokları getir - hem stock_collection hem de barcode_stock_collection'dan
+    # 1. stock_collection'dan ara
+    stock_items = await stock_collection.find({
+        "$or": [
+            {"location": location_name},
+            {"location_detail": location_name}
+        ],
         "name": {"$regex": item_name, "$options": "i"}
+    }).to_list(1000)
+    
+    # 2. barcode_stock_collection'dan ara
+    barcode_items = await barcode_stock_collection.find({
+        "$or": [
+            {"location_detail": location_name},
+            {"location": location_name}
+        ],
+        "name": {"$regex": item_name, "$options": "i"},
+        "status": "available"
     }).to_list(1000)
     
     # Karekod detaylarını düzenle
     barcode_details = []
-    for item in items:
+    
+    # Stock collection items
+    for item in stock_items:
         barcode_details.append({
-            "id": item["_id"],
+            "id": str(item.get("_id", "")),
             "name": item.get("name"),
             "qr_code": item.get("qr_code") or item.get("barcode"),
             "barcode": item.get("barcode"),
@@ -475,6 +540,19 @@ async def get_item_barcode_details(location_id: str, item_name: str, request: Re
             "expiry_date": item.get("expiry_date"),
             "quantity": item.get("quantity", 1),
             "unit": item.get("unit", "adet")
+        })
+    
+    # Barcode stock items
+    for item in barcode_items:
+        barcode_details.append({
+            "id": str(item.get("_id", "")),
+            "name": item.get("name"),
+            "qr_code": item.get("raw_barcode") or item.get("serial_number"),
+            "barcode": item.get("raw_barcode") or item.get("serial_number"),
+            "lot_number": item.get("lot_number"),
+            "expiry_date": item.get("expiry_date"),
+            "quantity": 1,  # Her barcode item = 1 adet
+            "unit": "adet"
         })
     
     return {
