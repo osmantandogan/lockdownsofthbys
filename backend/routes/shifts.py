@@ -216,8 +216,24 @@ async def get_all_assignments(request: Request, date: Optional[str] = None):
     user_ids = list(set(a.get("user_id") for a in assignments if a.get("user_id")))
     vehicle_ids = list(set(a.get("vehicle_id") for a in assignments if a.get("vehicle_id")))
     
-    users_docs = await users_collection.find({"_id": {"$in": user_ids}}).to_list(len(user_ids))
-    users_map = {u["_id"]: u for u in users_docs}
+    # String user_id'leri ObjectId'ye çevir (import scriptinden gelenler için)
+    from bson import ObjectId
+    object_user_ids = []
+    for uid in user_ids:
+        try:
+            if isinstance(uid, str) and len(uid) == 24:
+                object_user_ids.append(ObjectId(uid))
+            else:
+                object_user_ids.append(uid)
+        except:
+            object_user_ids.append(uid)
+    
+    users_docs = await users_collection.find({"_id": {"$in": object_user_ids}}).to_list(len(object_user_ids))
+    # Map'te hem ObjectId hem string key'leri tut
+    users_map = {}
+    for u in users_docs:
+        users_map[u["_id"]] = u
+        users_map[str(u["_id"])] = u
     
     vehicles_docs = await vehicles_collection.find({"_id": {"$in": vehicle_ids}}).to_list(len(vehicle_ids))
     vehicles_map = {v["_id"]: v for v in vehicles_docs}
