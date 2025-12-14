@@ -1487,6 +1487,67 @@ async def export_case_with_excel_template(case_id: str, template_id: str, reques
 
 from services.dynamic_excel_export import get_case_field_value
 
+def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
+    """
+    Vaka ve medical_form verilerini export için birleştirir
+    Frontend'deki CaseDetail.js'de kaydedilen tüm verileri içerir
+    """
+    if medical_form is None:
+        medical_form = case_doc.get("medical_form", {})
+    
+    extended_form = medical_form.get("extended_form", {})
+    
+    return {
+        "case_number": case_doc.get("case_number", ""),
+        "created_at": case_doc.get("created_at"),
+        "priority": case_doc.get("priority", ""),
+        "status": case_doc.get("status", ""),
+        "patient": case_doc.get("patient", {}),
+        "caller": case_doc.get("caller", {}),
+        "location": case_doc.get("location", {}),
+        "assigned_team": case_doc.get("assigned_team", {}),
+        # vehicle_info: hem case hem medical_form'dan
+        "vehicle_info": {**case_doc.get("vehicle_info", {}), **medical_form.get("vehicle_info", {})},
+        # time_info: hem case hem medical_form'dan
+        "time_info": {**case_doc.get("time_info", {}), **medical_form.get("time_info", {})},
+        "company": case_doc.get("company", ""),
+        # call_type ve call_reason: extended_form içinden de al
+        "call_type": case_doc.get("call_type", "") or extended_form.get("callType", ""),
+        "call_reason": case_doc.get("call_reason", "") or extended_form.get("callReason", ""),
+        "complaint": case_doc.get("complaint", "") or case_doc.get("patient", {}).get("complaint", ""),
+        "chronic_diseases": case_doc.get("chronic_diseases", "") or medical_form.get("chronic_diseases", ""),
+        "is_forensic": case_doc.get("is_forensic", False) or extended_form.get("isForensic", False),
+        "case_result": case_doc.get("case_result", "") or extended_form.get("outcome", ""),
+        "transfer_hospital": case_doc.get("transfer_hospital", "") or extended_form.get("transferHospital", ""),
+        # Vital signs
+        "vital_signs": case_doc.get("vital_signs", []) or medical_form.get("vital_signs", []),
+        # Clinical observations
+        "clinical_observations": {**case_doc.get("clinical_observations", {}), **medical_form.get("clinical_obs", {})},
+        # Extended form (checkbox'lar için)
+        "extended_form": extended_form,
+        # PROCEDURES - Dictionary format: {"Muayene (Acil)": {checked: true, adet: 2}}
+        "procedures": medical_form.get("procedures", {}),
+        # MEDICATIONS - hem case hem medical_form'dan
+        "medications": case_doc.get("medications", []) or [],
+        # MATERIALS - Dictionary format: {"Enjektör 1-2 cc": {checked: true, adet: 5}}
+        "materials": medical_form.get("materials", {}),
+        # Transfers (nakil bilgileri)
+        "transfers": medical_form.get("transfers", {}),
+        # Fluids
+        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
+        "signatures": case_doc.get("signatures", {}) or medical_form.get("signatures", {}),
+        "hospital_rejection": case_doc.get("hospital_rejection", {}),
+        "patient_rejection": case_doc.get("patient_rejection", {}),
+        # CPR data
+        "cpr_data": medical_form.get("cpr_data", {}),
+        # Isolation
+        "isolation": medical_form.get("isolation", {}),
+        # Scene type (olay yeri)
+        "scene_type": extended_form.get("sceneType", ""),
+        # Transfer type
+        "transfer_type": extended_form.get("transferType", ""),
+    }
+
 @router.get("/{case_id}/export-excel-mapped")
 async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
     """Vakayı Vaka Form Mapping kullanarak Excel'e export et (şablon formatıyla)"""
@@ -1503,35 +1564,10 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
     flat_mappings = mapping_doc.get("flat_mappings", {})
     logo_info = mapping_doc.get("logo", {})
     
-    case_data = {
-        "case_number": case_doc.get("case_number", ""),
-        "created_at": case_doc.get("created_at"),
-        "priority": case_doc.get("priority", ""),
-        "status": case_doc.get("status", ""),
-        "patient": case_doc.get("patient", {}),
-        "caller": case_doc.get("caller", {}),
-        "location": case_doc.get("location", {}),
-        "assigned_team": case_doc.get("assigned_team", {}),
-        "vehicle_info": case_doc.get("vehicle_info", {}),
-        "time_info": case_doc.get("time_info", {}),
-        "company": case_doc.get("company", ""),
-        "call_type": case_doc.get("call_type", ""),
-        "call_reason": case_doc.get("call_reason", ""),
-        "complaint": case_doc.get("complaint", ""),
-        "chronic_diseases": case_doc.get("chronic_diseases", ""),
-        "is_forensic": case_doc.get("is_forensic", False),
-        "case_result": case_doc.get("case_result", ""),
-        "transfer_hospital": case_doc.get("transfer_hospital", ""),
-        "vital_signs": case_doc.get("vital_signs", []),
-        "clinical_observations": case_doc.get("clinical_observations", {}),
-        "procedures": case_doc.get("procedures", []),
-        "medications": case_doc.get("medications", []),
-        "materials": case_doc.get("materials", []),
-        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
-        "signatures": case_doc.get("signatures", {}),
-        "hospital_rejection": case_doc.get("hospital_rejection", {}),
-        "patient_rejection": case_doc.get("patient_rejection", {}),
-    }
+    # Medical form verilerini al (CaseDetail'de kaydedilen)
+    medical_form = case_doc.get("medical_form", {})
+    
+    case_data = build_export_case_data(case_doc, medical_form)
     
     try:
         from openpyxl import load_workbook
@@ -1622,35 +1658,9 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
     flat_mappings = mapping_doc.get("flat_mappings", {})
     logo_info = mapping_doc.get("logo", {})
     
-    case_data = {
-        "case_number": case_doc.get("case_number", ""),
-        "created_at": case_doc.get("created_at"),
-        "priority": case_doc.get("priority", ""),
-        "status": case_doc.get("status", ""),
-        "patient": case_doc.get("patient", {}),
-        "caller": case_doc.get("caller", {}),
-        "location": case_doc.get("location", {}),
-        "assigned_team": case_doc.get("assigned_team", {}),
-        "vehicle_info": case_doc.get("vehicle_info", {}),
-        "time_info": case_doc.get("time_info", {}),
-        "company": case_doc.get("company", ""),
-        "call_type": case_doc.get("call_type", ""),
-        "call_reason": case_doc.get("call_reason", ""),
-        "complaint": case_doc.get("complaint", ""),
-        "chronic_diseases": case_doc.get("chronic_diseases", ""),
-        "is_forensic": case_doc.get("is_forensic", False),
-        "case_result": case_doc.get("case_result", ""),
-        "transfer_hospital": case_doc.get("transfer_hospital", ""),
-        "vital_signs": case_doc.get("vital_signs", []),
-        "clinical_observations": case_doc.get("clinical_observations", {}),
-        "procedures": case_doc.get("procedures", []),
-        "medications": case_doc.get("medications", []),
-        "materials": case_doc.get("materials", []),
-        "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []),
-        "signatures": case_doc.get("signatures", {}),
-        "hospital_rejection": case_doc.get("hospital_rejection", {}),
-        "patient_rejection": case_doc.get("patient_rejection", {}),
-    }
+    # Medical form verilerini al
+    medical_form = case_doc.get("medical_form", {})
+    case_data = build_export_case_data(case_doc, medical_form)
     
     try:
         from openpyxl import load_workbook

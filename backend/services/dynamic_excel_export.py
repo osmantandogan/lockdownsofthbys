@@ -81,26 +81,34 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'referringInstitution': lambda d: d.get('referring_institution', '') or d.get('company', ''),
     }
     
-    # Saat alanları
+    # Saat alanları (V3 formatı)
     time_mappings = {
-        'callTime': lambda d: format_time(d.get('time_info', {}).get('call_time')),
-        'departureTime': lambda d: format_time(d.get('time_info', {}).get('departure_time')),
-        'arrivalTime': lambda d: format_time(d.get('time_info', {}).get('arrival_time')),
-        'patientTime': lambda d: format_time(d.get('time_info', {}).get('patient_time') or d.get('time_info', {}).get('patient_arrival_time')),
-        'hospitalTime': lambda d: format_time(d.get('time_info', {}).get('hospital_time') or d.get('time_info', {}).get('hospital_arrival_time')),
-        'returnTime': lambda d: format_time(d.get('time_info', {}).get('return_time')),
+        'callTime': lambda d: format_time(d.get('time_info', {}).get('callTime') or d.get('time_info', {}).get('call_time')),
+        'arrivalSceneTime': lambda d: format_time(d.get('time_info', {}).get('arrivalTime') or d.get('time_info', {}).get('arrival_time')),
+        'arrivalPatientTime': lambda d: format_time(d.get('time_info', {}).get('patientArrivalTime') or d.get('time_info', {}).get('patient_arrival_time')),
+        'departureSceneTime': lambda d: format_time(d.get('time_info', {}).get('departureTime') or d.get('time_info', {}).get('departure_time')),
+        'arrivalHospitalTime': lambda d: format_time(d.get('time_info', {}).get('hospitalArrivalTime') or d.get('time_info', {}).get('hospital_arrival_time')),
+        'returnStationTime': lambda d: format_time(d.get('time_info', {}).get('stationReturnTime') or d.get('time_info', {}).get('return_time')),
+        # Eski isimler için uyumluluk
+        'departureTime': lambda d: format_time(d.get('time_info', {}).get('departureTime') or d.get('time_info', {}).get('departure_time')),
+        'arrivalTime': lambda d: format_time(d.get('time_info', {}).get('arrivalTime') or d.get('time_info', {}).get('arrival_time')),
+        'patientTime': lambda d: format_time(d.get('time_info', {}).get('patientArrivalTime') or d.get('time_info', {}).get('patient_arrival_time')),
+        'hospitalTime': lambda d: format_time(d.get('time_info', {}).get('hospitalArrivalTime') or d.get('time_info', {}).get('hospital_arrival_time')),
+        'returnTime': lambda d: format_time(d.get('time_info', {}).get('stationReturnTime') or d.get('time_info', {}).get('return_time')),
     }
     
-    # Hasta bilgileri
+    # Hasta bilgileri (V3 formatı)
     patient_mappings = {
         'patientName': lambda d: f"{d.get('patient', {}).get('name', '')} {d.get('patient', {}).get('surname', '')}".strip(),
-        'patientTcNo': lambda d: d.get('patient', {}).get('tc_no', ''),
-        'patientAge': lambda d: d.get('patient', {}).get('age', ''),
+        'patientTcNo': lambda d: d.get('patient', {}).get('tc_no', '') or d.get('patient', {}).get('tcNo', ''),
+        'patientAge': lambda d: str(d.get('patient', {}).get('age', '')) if d.get('patient', {}).get('age') else '',
         'patientGender': lambda d: d.get('patient', {}).get('gender', ''),
         'patientPhone': lambda d: d.get('caller', {}).get('phone', '') or d.get('patient', {}).get('phone', ''),
-        'patientAddress': lambda d: d.get('patient', {}).get('address', ''),
+        'patientAddress': lambda d: d.get('patient', {}).get('address', '') or d.get('location', {}).get('address', ''),
+        'patientHomeAddress': lambda d: d.get('location', {}).get('address', '') or d.get('patient', {}).get('address', ''),
+        'patientPickupAddress': lambda d: d.get('location', {}).get('pickup_location', '') or d.get('location', {}).get('address_description', ''),
         'patientComplaint': lambda d: d.get('patient', {}).get('complaint', '') or d.get('complaint', ''),
-        'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('medical_form', {}).get('chronic_diseases', ''),
+        'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('extended_form', {}).get('chronicDiseases', ''),
     }
     
     # Sonuç/Nakil bilgileri
@@ -213,17 +221,29 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         target = int(field_key.split('.')[1])
         return '☑' if eye == target else '☐'
     
-    # Sonuç checkboxları
+    # Sonuç checkboxları - extended_form.outcome'dan al
     if field_key.startswith('outcome.'):
-        result = case_data.get('case_result', '').lower() or case_data.get('status', '').lower()
+        extended_form = case_data.get('extended_form', {})
+        result = extended_form.get('outcome', '') or case_data.get('case_result', '') or case_data.get('status', '')
+        result = result.lower() if result else ''
         option = field_key.split('.')[1].lower()
-        return '☑' if result == option else '☐'
+        return '☑' if option in result or result == option else '☐'
     
-    # Transfer tipi
-    if field_key.startswith('transferType.'):
-        transfer = case_data.get('transfer_type', '').lower()
+    # Transfer tipi - extended_form.transferType'dan al
+    if field_key.startswith('transferType.') or field_key.startswith('distance.'):
+        extended_form = case_data.get('extended_form', {})
+        transfer = extended_form.get('transferType', '') or case_data.get('transfer_type', '')
+        transfer = transfer.lower() if transfer else ''
         option = field_key.split('.')[1].lower()
-        return '☑' if transfer == option else '☐'
+        return '☑' if option in transfer or transfer == option else '☐'
+    
+    # Olay yeri checkboxları - extended_form.sceneType'dan al
+    if field_key.startswith('scene.'):
+        extended_form = case_data.get('extended_form', {})
+        scene = extended_form.get('sceneType', '') or case_data.get('scene_type', '')
+        scene = scene.lower() if scene else ''
+        option = field_key.split('.')[1].lower()
+        return '☑' if option in scene or scene == option else '☐'
     
     # Adli vaka
     if field_key.startswith('forensic.'):
@@ -234,134 +254,257 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         else:
             return '☑' if not is_forensic else '☐'
     
-    # İşlemler (Prosedürler) - proc.islem_adi.cb veya proc.islem_adi.adet
-    if field_key.startswith('proc.'):
-        procedures = case_data.get('procedures', [])
-        parts = field_key.split('.')
-        proc_name = parts[1].lower() if len(parts) > 1 else ''
-        field_type = parts[2] if len(parts) > 2 else 'cb'  # cb veya adet
+    # ============ PROCEDURE MAPPING ============
+    # Frontend'de procedures dictionary olarak kaydediliyor:
+    # {"Muayene (Acil)": {checked: true, adet: 2}}
+    # Mapping key: proc.muayene_acil.cb veya proc.muayene_acil.adet
+    
+    # İşlem adı -> Mapping key eşleştirmesi
+    PROCEDURE_NAME_MAPPING = {
+        'muayene_acil': ['Muayene (Acil)', 'Muayene Acil'],
+        'enjeksiyon_im': ['Enjeksiyon IM'],
+        'enjeksiyon_iv': ['Enjeksiyon IV'],
+        'enjeksiyon_sc': ['Enjeksiyon SC'],
+        'iv_ilac': ['I.V. İlaç uygulaması', 'IV İlaç'],
+        'damar_yolu': ['Damar yolu açılması', 'Damar yolu'],
+        'sutur': ['Sütür (küçük)', 'Sütür'],
+        'mesane_sondasi': ['Mesane sondası takılması', 'Mesane sondası'],
+        'mide_yikama': ['Mide yıkanması', 'Mide yıkama'],
+        'pansuman_kucuk': ['Pansuman (küçük)', 'Pansuman'],
+        'apse': ['Apse açmak', 'Apse'],
+        'yabanci_cisim': ['Yabancı cisim çıkartılması', 'Yabancı cisim'],
+        'yanik_pansuman_kucuk': ['Yanık pansumanı (küçük)', 'Yanık pansuman küçük'],
+        'yanik_pansuman_orta': ['Yanık pansumanı (orta)', 'Yanık pansuman orta'],
+        'ng_sonda': ['NG sonda takma', 'NG sonda'],
+        'kulak_buson': ['Kulaktan buşon temizliği', 'Kulak buşon'],
+        'kol_atel': ['Kol atel (kısa)', 'Kol atel'],
+        'bacak_atel': ['Bacak atel (kısa)', 'Bacak atel'],
+        'cilt_traksiyon': ['Cilt traksiyonu uygulaması', 'Cilt traksiyon'],
+        'servikal_collar': ['Servikal collar uygulaması', 'Servikal collar'],
+        'travma_yelegi': ['Travma yeleği', 'Travma yelek'],
+        'vakum_sedye': ['Vakum sedye uygulaması', 'Vakum sedye'],
+        'sirt_tahtasi': ['Sırt tahtası uygulaması', 'Sırt tahtası'],
+        # Dolaşım desteği
+        'cpr': ['CPR (Resüsitasyon)', 'CPR'],
+        'ekg': ['EKG Uygulaması', 'EKG'],
+        'defibrilasyon': ['Defibrilasyon (CPR)', 'Defibrilasyon'],
+        'kardiyoversiyon': ['Kardiyoversiyon'],
+        'monitorizasyon': ['Monitörizasyon'],
+        'kanama_kontrolu': ['Kanama kontrolü', 'Kanama kontrol'],
+        'cut_down': ['Cut down'],
+        # Hava yolu
+        'balon_valf': ['Balon Valf Maske', 'Balon valf'],
+        'aspirasyon': ['Aspirasyon uygulaması', 'Aspirasyon'],
+        'orofaringeal': ['Orofaringeal tüp uygulaması', 'Orofaringeal tüp'],
+        'entubasyon': ['Endotrakeal entübasyon', 'Entübasyon'],
+        'mekanik_vent': ['Mekanik ventilasyon (CPAP–BIPAP dahil)', 'Mekanik ventilasyon'],
+        'oksijen': ['Oksijen inhalasyon', 'Oksijen'],
+        # Diğer işlemler
+        'normal_dogum': ['Normal doğum (Suda dahil)', 'Normal doğum'],
+        'kan_sekeri': ['Kan şekeri ölçümü', 'Kan şekeri'],
+        'lokal_anestezi': ['Lokal anestezi', 'Lokal'],
+        'tirnak_avulsiyon': ['Tırnak avülsiyonu', 'Tırnak'],
+        'transkutan_pao2': ['Transkutan PaO2-CO2', 'Transkutan'],
+        'debritman': ['Debridman', 'Debridman'],
+        'sutur_alinmasi': ['Sütür alınması', 'Sütür alma'],
+        # Yenidoğan
+        'transport_kuvoz': ['Transport küvöz', 'Küvöz'],
+        'canlandirma': ['Yenidoğan canlandırma', 'Canlandırma'],
+        'im_enjeksiyon': ['IM enjeksiyon', 'IM'],
+        'iv_enjeksiyon': ['IV enjeksiyon', 'IV'],
+        'iv_mayi': ['IV mayi', 'Mayi'],
+        # Sıvı tedavisi
+        'nacl_250': ['%0.9 NaCl 250 cc', 'NaCl 250'],
+        'nacl_500': ['%0.9 NaCl 500 cc', 'NaCl 500'],
+        'nacl_100': ['%0.9 NaCl 100 cc', 'NaCl 100'],
+        'dextroz_500': ['%5 Dextroz 500 cc', 'Dextroz 500'],
+        'mannitol_500': ['%20 Mannitol 500 cc', 'Mannitol 500'],
+        'isolyte_p': ['İsolyte P 500 cc', 'Isolyte P'],
+        'isolyte_s': ['İsolyte S 500 cc', 'Isolyte S'],
+        'dengeleyici': ['Dengeleyici solüsyon', 'Dengeleyici'],
+        'ringer_laktat': ['Laktatlı Ringer 500 cc', 'Ringer laktat'],
+    }
+    
+    def find_procedure_value(procedures_dict, proc_key, field_type):
+        """Dictionary formatındaki procedures içinden değer bul"""
+        if not isinstance(procedures_dict, dict):
+            return None
         
-        for proc in procedures:
-            if proc_name in proc.get('code', '').lower() or proc_name in proc.get('name', '').lower():
-                if field_type == 'adet':
-                    return str(proc.get('count', proc.get('quantity', 1)))
-                return '☑'
+        # Mapping'den olası isimler al
+        possible_names = PROCEDURE_NAME_MAPPING.get(proc_key, [proc_key])
+        
+        for proc_name, proc_value in procedures_dict.items():
+            # İsim eşleşmesi kontrol et
+            proc_name_lower = proc_name.lower()
+            matched = False
+            
+            for possible in possible_names:
+                if possible.lower() in proc_name_lower or proc_name_lower in possible.lower():
+                    matched = True
+                    break
+            
+            # Genel eşleşme de dene
+            if not matched and proc_key.replace('_', ' ') in proc_name_lower:
+                matched = True
+            if not matched and proc_key.replace('_', '') in proc_name_lower.replace(' ', ''):
+                matched = True
+            
+            if matched:
+                if isinstance(proc_value, dict):
+                    if proc_value.get('checked'):
+                        if field_type == 'adet':
+                            return str(proc_value.get('adet', 1))
+                        return '☑'
+                elif proc_value:  # Boolean true
+                    if field_type == 'adet':
+                        return '1'
+                    return '☑'
+        
         return '☐' if field_type == 'cb' else ''
     
-    # Hava yolu işlemleri - airway.islem_adi.cb veya airway.islem_adi.adet
-    if field_key.startswith('airway.'):
-        procedures = case_data.get('procedures', [])
-        parts = field_key.split('.')
-        airway_name = parts[1].lower() if len(parts) > 1 else ''
-        field_type = parts[2] if len(parts) > 2 else 'cb'
-        
-        for proc in procedures:
-            if airway_name in proc.get('code', '').lower() or airway_name in proc.get('name', '').lower():
-                if field_type == 'adet':
-                    return str(proc.get('count', proc.get('quantity', 1)))
-                return '☑'
-        return '☐' if field_type == 'cb' else ''
+    # İşlemler - proc., airway., circ., other., newborn., fluid. prefix'leri
+    procedure_prefixes = ['proc.', 'airway.', 'circ.', 'other.', 'newborn.', 'fluid.']
+    for prefix in procedure_prefixes:
+        if field_key.startswith(prefix):
+            procedures = case_data.get('procedures', {})
+            parts = field_key.split('.')
+            proc_key = parts[1].lower() if len(parts) > 1 else ''
+            field_type = parts[2] if len(parts) > 2 else 'cb'
+            
+            result = find_procedure_value(procedures, proc_key, field_type)
+            if result:
+                return result
+            return '☐' if field_type == 'cb' else ''
     
-    # Dolaşım desteği - circ.islem_adi.cb veya circ.islem_adi.adet
-    if field_key.startswith('circ.'):
-        procedures = case_data.get('procedures', [])
-        parts = field_key.split('.')
-        circ_name = parts[1].lower() if len(parts) > 1 else ''
-        field_type = parts[2] if len(parts) > 2 else 'cb'
-        
-        for proc in procedures:
-            if circ_name in proc.get('code', '').lower() or circ_name in proc.get('name', '').lower():
-                if field_type == 'adet':
-                    return str(proc.get('count', proc.get('quantity', 1)))
-                return '☑'
-        return '☐' if field_type == 'cb' else ''
+    # ============ MEDICATION MAPPING ============
+    MEDICATION_NAME_MAPPING = {
+        'arveles': ['Arveles amp.', 'Arveles'],
+        'dikloron': ['Dikloron amp.', 'Dikloron'],
+        'spazmolitik': ['Spazmolitik amp.', 'Spazmolitik'],
+        'adrenalin_05': ['Adrenalin 0,5 mg amp.', 'Adrenalin 0.5'],
+        'adrenalin_1': ['Adrenalin 1 mg amp.', 'Adrenalin 1'],
+        'atropin': ['Atropin 0,5 mg amp.', 'Atropin'],
+        'flumazenil': ['Flumazenil amp.', 'Flumazenil'],
+        'dopamin': ['Dopamin amp.', 'Dopamin'],
+        'citanest': ['Citanest flk.', 'Citanest', 'Priloc'],
+        'nahco3': ['NaHCO3 amp.', 'NaHCO3', 'Bikarbonat'],
+        'dizem': ['Dizem amp.', 'Dizem'],
+        'aminocordial': ['Aminocordial amp.', 'Aminocordial'],
+        'furosemid': ['Furosemid amp.', 'Furosemid', 'Lasix'],
+        'ca_glukonat': ['Ca Glukonat amp.', 'Kalsiyum glukonat'],
+        'diltizem': ['Diltizem amp.', 'Diltizem'],
+        'avil': ['Avil amp.', 'Avil'],
+        'dekort': ['Dekort amp.', 'Dekort'],
+        'antiepileptik': ['Antiepileptik amp.', 'Antiepileptik'],
+        'prednol': ['Prednol amp.', 'Prednol'],
+        'aktif_komur': ['Aktif kömür', 'Aktif komur'],
+        'beloc': ['Beloc amp.', 'Beloc'],
+        'salbutamol': ['Salbutamol amp.', 'Salbutamol', 'Ventolin'],
+        'aritmal': ['Aritmal amp.', 'Aritmal'],
+        'isoptin': ['Isoptin amp.', 'Isoptin'],
+        'kapril': ['Kapril amp.', 'Kapril'],
+        'magnezyum': ['Magnezyum amp.', 'Magnezyum'],
+        'isorid': ['Isorid amp.', 'Isorid'],
+        'coraspin': ['Coraspin tab.', 'Coraspin', 'Aspirin'],
+        'paracetamol': ['Paracetamol', 'Perfalgan'],
+        'midazolam': ['Midazolam amp.', 'Midazolam', 'Dormicum'],
+        'dramamine': ['Dramamine amp.', 'Dramamine'],
+        'rotapamid': ['Rotapamid amp.', 'Rotapamid'],
+    }
     
-    # Diğer işlemler - other.islem_adi.cb veya other.islem_adi.adet
-    if field_key.startswith('other.'):
-        procedures = case_data.get('procedures', [])
-        parts = field_key.split('.')
-        other_name = parts[1].lower() if len(parts) > 1 else ''
-        field_type = parts[2] if len(parts) > 2 else 'cb'
-        
-        for proc in procedures:
-            if other_name in proc.get('code', '').lower() or other_name in proc.get('name', '').lower():
-                if field_type == 'adet':
-                    return str(proc.get('count', proc.get('quantity', 1)))
-                return '☑'
-        return '☐' if field_type == 'cb' else ''
-    
-    # Yenidoğan işlemleri - newborn.islem_adi.cb veya newborn.islem_adi.adet
-    if field_key.startswith('newborn.'):
-        procedures = case_data.get('procedures', [])
-        parts = field_key.split('.')
-        nb_name = parts[1].lower() if len(parts) > 1 else ''
-        field_type = parts[2] if len(parts) > 2 else 'cb'
-        
-        for proc in procedures:
-            if nb_name in proc.get('code', '').lower() or nb_name in proc.get('name', '').lower():
-                if field_type == 'adet':
-                    return str(proc.get('count', proc.get('quantity', 1)))
-                return '☑'
-        return '☐' if field_type == 'cb' else ''
-    
-    # İlaçlar - med.ilac_adi.cb veya med.ilac_adi.adet
     if field_key.startswith('med.'):
         medications = case_data.get('medications', [])
         parts = field_key.split('.')
-        med_name = parts[1].lower() if len(parts) > 1 else ''
+        med_key = parts[1].lower() if len(parts) > 1 else ''
         field_type = parts[2] if len(parts) > 2 else 'cb'
         
-        for med in medications:
-            if med_name in med.get('name', '').lower() or med_name in med.get('code', '').lower():
-                if field_type == 'adet':
-                    return str(med.get('quantity', med.get('count', 1)))
-                return '☑'
+        possible_names = MEDICATION_NAME_MAPPING.get(med_key, [med_key])
+        
+        # medications liste formatında
+        if isinstance(medications, list):
+            for med in medications:
+                med_name = (med.get('name', '') or '').lower()
+                med_code = (med.get('code', '') or '').lower()
+                
+                for possible in possible_names:
+                    if possible.lower() in med_name or possible.lower() in med_code or med_key in med_name:
+                        if field_type == 'adet':
+                            return str(med.get('quantity', med.get('count', 1)))
+                        if field_type == 'tur':
+                            return med.get('route', med.get('type', ''))
+                        return '☑'
+        
         return '☐' if field_type == 'cb' else ''
     
-    # Eski format için de destek - medication.
-    if field_key.startswith('medication.'):
-        medications = case_data.get('medications', [])
-        med_name = field_key.split('.')[1].lower()
-        for med in medications:
-            if med_name in med.get('name', '').lower() or med_name in med.get('code', '').lower():
-                return med.get('quantity', '☑')
-        return ''
+    # ============ MATERIAL MAPPING ============
+    MATERIAL_NAME_MAPPING = {
+        'enjektor_1_2': ['Enjektör 1-2 cc', 'Enjektör 1-2'],
+        'enjektor_5': ['Enjektör 5 cc', 'Enjektör 5'],
+        'enjektor_10_20': ['Enjektör 10-20 cc', 'Enjektör 10-20'],
+        'monitor_pedi': ['Monitör pedi', 'Monitor pedi'],
+        'iv_kateter_14_22': ['I.V. katater 14-22', 'IV kateter 14-22'],
+        'iv_kateter_24': ['I.V. katater 24', 'IV kateter 24'],
+        'serum_seti': ['Serum seti'],
+        'steril_eldiven': ['Steril eldiven'],
+        'cerrahi_eldiven': ['Cerrahi eldiven'],
+        'sponc': ['Sponç'],
+        'sargi_bezi': ['Sargı bezi'],
+        'idrar_torbasi': ['İdrar torbası', 'Idrar torbası'],
+        'bisturi_ucu': ['Bistüri ucu', 'Bisturi'],
+        'entubasyon_balonlu': ['Entübasyon tüpü (balonlu)', 'Entübasyon balonlu'],
+        'entubasyon_balonsuz': ['Entübasyon tüpü (balonsuz)', 'Entübasyon balonsuz'],
+        'airway': ['Airway'],
+        'foley_sonda': ['Foley sonda'],
+        'ng_sonda': ['NG sonda'],
+        'atravmatik_ipek': ['Atravmatik ipek sütür', 'Atravmatik ipek'],
+        'atravmatik_katkut': ['Atravmatik katkut sütür', 'Atravmatik katkut'],
+        'dogum_seti': ['Doğum seti'],
+        'yanik_battaniyesi': ['Yanık battaniyesi'],
+        'o2_maskesi_hazneli_eriskin': ['O2 maskesi hazneli (erişkin)', 'O2 maskesi hazneli erişkin'],
+        'o2_maskesi_hazneli_pediatrik': ['O2 maskesi hazneli (pediatrik)', 'O2 maskesi hazneli pediatrik'],
+        'o2_kanulu_eriskin': ['O2 kanülü (erişkin)', 'O2 kanülü erişkin'],
+        'o2_kanulu_pediatrik': ['O2 kanülü (pediatrik)', 'O2 kanülü pediatrik'],
+        'flaster': ['Flaster'],
+        'servikal_collar': ['Servikal collar'],
+        'elastik_bandaj': ['Elastik bandaj'],
+        'etil_chloride': ['Etil chloride', 'Etil klorid'],
+        'o2_maskesi_haznesiz_eriskin': ['O2 maskesi haznesiz (erişkin)', 'O2 maskesi haznesiz erişkin'],
+        'o2_maskesi_haznesiz_pediatrik': ['O2 maskesi haznesiz (pediatrik)', 'O2 maskesi haznesiz pediatrik'],
+    }
     
-    # Malzemeler - mat.malzeme_adi.cb veya mat.malzeme_adi.adet
     if field_key.startswith('mat.'):
-        materials = case_data.get('materials', [])
+        materials = case_data.get('materials', {})
         parts = field_key.split('.')
-        mat_name = parts[1].lower() if len(parts) > 1 else ''
+        mat_key = parts[1].lower() if len(parts) > 1 else ''
         field_type = parts[2] if len(parts) > 2 else 'cb'
         
-        for mat in materials:
-            if mat_name in mat.get('name', '').lower() or mat_name in mat.get('code', '').lower():
-                if field_type == 'adet':
-                    return str(mat.get('quantity', mat.get('count', 1)))
-                return '☑'
-        return '☐' if field_type == 'cb' else ''
-    
-    # Eski format için de destek - material.
-    if field_key.startswith('material.'):
-        materials = case_data.get('materials', [])
-        mat_name = field_key.split('.')[1].lower()
-        for mat in materials:
-            if mat_name in mat.get('name', '').lower() or mat_name in mat.get('code', '').lower():
-                return mat.get('quantity', '☑')
-        return ''
-    
-    # Sıvı tedavisi - fluid.sivi_adi.cb veya fluid.sivi_adi.adet
-    if field_key.startswith('fluid.'):
-        fluids = case_data.get('fluids', []) or case_data.get('iv_fluids', [])
-        parts = field_key.split('.')
-        fluid_name = parts[1].lower() if len(parts) > 1 else ''
-        field_type = parts[2] if len(parts) > 2 else 'cb'
+        possible_names = MATERIAL_NAME_MAPPING.get(mat_key, [mat_key])
         
-        for fluid in fluids:
-            if fluid_name in fluid.get('name', '').lower():
-                if field_type == 'adet':
-                    return str(fluid.get('quantity', fluid.get('count', 1)))
-                return '☑'
+        # materials dictionary formatında
+        if isinstance(materials, dict):
+            for mat_name, mat_value in materials.items():
+                mat_name_lower = mat_name.lower()
+                matched = False
+                
+                for possible in possible_names:
+                    if possible.lower() in mat_name_lower or mat_name_lower in possible.lower():
+                        matched = True
+                        break
+                
+                if not matched and mat_key.replace('_', ' ') in mat_name_lower:
+                    matched = True
+                
+                if matched:
+                    if isinstance(mat_value, dict):
+                        if mat_value.get('checked'):
+                            if field_type == 'adet':
+                                return str(mat_value.get('adet', 1))
+                            return '☑'
+                    elif mat_value:
+                        if field_type == 'adet':
+                            return '1'
+                        return '☑'
+        
         return '☐' if field_type == 'cb' else ''
     
     # İmzalar
