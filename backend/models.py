@@ -441,6 +441,7 @@ class ShiftAssignment(BaseModel):
     healmedy_location_name: Optional[str] = None  # Görüntüleme için
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
     is_driver_duty: bool = False  # ATT/Paramedik için şoför görevi var mı?
+    is_acting_medical_role: bool = False  # Hemşire ATT/Paramedik rolü üstleniyor mu?
     shift_type: ShiftType = "saha_24"  # Vardiya tipi: saha 24 saat veya ofis 8 saat
     created_at: datetime = Field(default_factory=get_turkey_time)
 

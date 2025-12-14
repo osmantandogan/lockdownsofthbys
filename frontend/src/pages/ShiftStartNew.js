@@ -82,6 +82,7 @@ const ShiftStartNew = () => {
   // Form doldurma kontrolü
   const [isFirstPersonInShift, setIsFirstPersonInShift] = useState(true); // İlk giren mi?
   const [isDriverDuty, setIsDriverDuty] = useState(false); // Şoför görevi var mı?
+  const [isActingMedicalRole, setIsActingMedicalRole] = useState(false); // Hemşire ATT/Paramedik rolü üstleniyor mu?
   const [formAlreadyFilled, setFormAlreadyFilled] = useState(false); // Form zaten doldurulmuş mu?
   
   // Baş Şoför Onay Sistemi (Yeni - Sayfa Bazlı)
@@ -268,6 +269,9 @@ const ShiftStartNew = () => {
       // Şoför görevi kontrolü (atamadan al)
       setIsDriverDuty(todayAssignment.is_driver_duty || false);
       
+      // Hemşire için ATT/Paramedik rolü üstlenme kontrolü
+      setIsActingMedicalRole(todayAssignment.is_acting_medical_role || false);
+      
       // TODO: İlk giren kontrolü yapılacak (backend'den form durumu sorgulanacak)
       // Şimdilik her zaman form doldurtuyoruz
       setIsFirstPersonInShift(true);
@@ -331,13 +335,17 @@ const ShiftStartNew = () => {
           if (result) {
             const userRole = user?.role?.toLowerCase();
             const hasDriverDuty = result.assignment?.is_driver_duty || false;
+            const actingMedical = result.assignment?.is_acting_medical_role || false;
             
-            // Şoför veya şoför görevi olan ATT/Paramedik: Fotoğraf çekecek
-            // Şoför görevi olmayan ATT/Paramedik/Hemşire: Direkt forma geçecek
+            // Hemşire için: sadece is_acting_medical_role=true ise ATT/Paramedik gibi davran
+            const isMedicalRole = userRole === 'att' || userRole === 'paramedik' || (userRole === 'hemsire' && actingMedical);
+            
+            // Şoför veya şoför görevi olan: Fotoğraf çekecek
+            // Şoför görevi olmayan ATT/Paramedik (veya medikal rol üstlenen hemşire): Direkt forma geçecek
             if (userRole === 'sofor' || hasDriverDuty) {
               setStep(2); // Fotoğraf çekme adımı
               toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Fotoğraf çekin.`);
-            } else if (['att', 'paramedik', 'hemsire'].includes(userRole)) {
+            } else if (isMedicalRole) {
               setStep(3); // Direkt günlük kontrol formuna
               toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Formu doldurun.`);
             } else {
@@ -377,13 +385,17 @@ const ShiftStartNew = () => {
     if (result) {
       const userRole = user?.role?.toLowerCase();
       const hasDriverDuty = result.assignment?.is_driver_duty || false;
+      const actingMedical = result.assignment?.is_acting_medical_role || false;
+      
+      // Hemşire için: sadece is_acting_medical_role=true ise ATT/Paramedik gibi davran
+      const isMedicalRole = userRole === 'att' || userRole === 'paramedik' || (userRole === 'hemsire' && actingMedical);
       
       // Şoför veya şoför görevi olan: Fotoğraf çekecek
-      // Şoför görevi olmayan ATT/Paramedik/Hemşire: Direkt forma geçecek
+      // Şoför görevi olmayan medikal rol: Direkt forma geçecek
       if (userRole === 'sofor' || hasDriverDuty) {
         setStep(2);
         toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Fotoğraf çekin.`);
-      } else if (['att', 'paramedik', 'hemsire'].includes(userRole)) {
+      } else if (isMedicalRole) {
         setStep(3);
         toast.success(`✅ ${result.vehicle.plate} aracı doğrulandı! Formu doldurun.`);
       } else {
@@ -496,8 +508,10 @@ const ShiftStartNew = () => {
     
     setSendingApproval(true);
     try {
-      // Rol tipini belirle
-      const roleType = ['att', 'paramedik', 'hemsire'].includes(user?.role?.toLowerCase()) ? 'medical' : 'driver';
+      // Rol tipini belirle (hemşire sadece is_acting_medical_role=true ise medikal)
+      const userRole = user?.role?.toLowerCase();
+      const isMedicalRole = userRole === 'att' || userRole === 'paramedik' || (userRole === 'hemsire' && isActingMedicalRole);
+      const roleType = isMedicalRole ? 'medical' : 'driver';
       
       const response = await shiftsAPI.requestStartApproval({
         vehicle_id: vehicleId,
@@ -551,9 +565,10 @@ const ShiftStartNew = () => {
   }, [approvalId, approvalStatus]);
 
   const handleStartShift = async () => {
-    // ATT/Paramedik/Hemşire (şoför görevi yoksa) fotoğraf çekmiyor
+    // ATT/Paramedik (veya medikal rol üstlenen hemşire) şoför görevi yoksa fotoğraf çekmiyor
     const userRole = user?.role?.toLowerCase();
-    const requiresPhotos = userRole === 'sofor' || isDriverDuty || !['att', 'paramedik', 'hemsire'].includes(userRole);
+    const isMedicalRole = userRole === 'att' || userRole === 'paramedik' || (userRole === 'hemsire' && isActingMedicalRole);
+    const requiresPhotos = userRole === 'sofor' || isDriverDuty || !isMedicalRole;
     
     if (requiresPhotos && !photosComplete()) {
       toast.error('Lütfen tüm zorunlu fotoğrafları çekin');
@@ -591,9 +606,10 @@ const ShiftStartNew = () => {
 
   const progress = step === 1 ? 0 : step === 2 ? 33 : step === 3 ? 66 : 100;
 
-  // ATT/Paramedik/Hemşire (şoför görevi yoksa): 3 adım, diğerleri 4 adım
+  // ATT/Paramedik veya medikal rol üstlenen hemşire (şoför görevi yoksa): 3 adım, diğerleri 4 adım
   const userRole = user?.role?.toLowerCase();
-  const needsPhotos = userRole === 'sofor' || isDriverDuty || !['att', 'paramedik', 'hemsire'].includes(userRole);
+  const isMedicalRoleForSteps = userRole === 'att' || userRole === 'paramedik' || (userRole === 'hemsire' && isActingMedicalRole);
+  const needsPhotos = userRole === 'sofor' || isDriverDuty || !isMedicalRoleForSteps;
   const totalSteps = needsPhotos ? 4 : 3;
   const currentStepDisplay = needsPhotos ? step : (step === 1 ? 1 : step === 3 ? 2 : 3);
 
@@ -869,8 +885,8 @@ const ShiftStartNew = () => {
             </>
           )}
           
-          {/* ATT / PARAMEDİK / HEMŞİRE İSE */}
-          {['att', 'paramedik', 'hemsire'].includes(user?.role?.toLowerCase()) && (
+          {/* ATT / PARAMEDİK / (Medikal rol üstlenen HEMŞİRE) İSE */}
+          {(user?.role?.toLowerCase() === 'att' || user?.role?.toLowerCase() === 'paramedik' || (user?.role?.toLowerCase() === 'hemsire' && isActingMedicalRole)) && (
             <>
               {/* Form zaten doldurulmuşsa bypass et */}
               {formAlreadyFilled ? (
@@ -931,10 +947,12 @@ const ShiftStartNew = () => {
             </>
           )}
           
-          {/* Diğer roller için (merkez_ofis, operasyon_muduru vb.) - sadece basit form */}
-          {!['sofor', 'att', 'paramedik', 'hemsire'].includes(user?.role?.toLowerCase()) && (
-            <DailyControlFormFull formData={controlForm} onChange={setControlForm} />
-          )}
+          {/* Diğer roller için (merkez_ofis, operasyon_muduru, hemşire is_acting_medical=false vb.) - sadece basit form */}
+          {(() => {
+            const role = user?.role?.toLowerCase();
+            const isSpecialRole = role === 'sofor' || role === 'att' || role === 'paramedik' || (role === 'hemsire' && isActingMedicalRole);
+            return !isSpecialRole && <DailyControlFormFull formData={controlForm} onChange={setControlForm} />;
+          })()}
           
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(needsPhotos ? 2 : 1)}>Geri</Button>
