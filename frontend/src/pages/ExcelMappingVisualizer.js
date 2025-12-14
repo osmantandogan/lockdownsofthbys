@@ -822,7 +822,7 @@ const ExcelMappingVisualizer = () => {
         </span>
       </div>
 
-      {{/* Grid Area */}
+      {/* Grid Area */}
       <div className="flex-1 overflow-auto p-4" style={{ overflowX: 'auto', overflowY: 'auto' }}>
         <div 
           className="bg-white shadow-lg rounded-lg overflow-visible"
