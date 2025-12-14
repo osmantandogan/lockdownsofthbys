@@ -822,18 +822,25 @@ const ExcelMappingVisualizer = () => {
         </span>
       </div>
 
-      {/* Grid Area */}
-      <div className="flex-1 overflow-auto p-4" style={{ overflowX: 'auto', overflowY: 'auto' }}>
+      {/* Grid Area - Wrapper for scroll */}
+      <div 
+        className="flex-1 p-4"
+        style={{ 
+          overflow: 'scroll',
+          position: 'relative'
+        }}
+      >
+        {/* Inner container for zoom transform */}
         <div 
-          className="bg-white shadow-lg rounded-lg overflow-visible"
           style={{ 
             transform: `scale(${zoom / 100})`, 
             transformOrigin: 'top left',
-            width: 'max-content',
-            minWidth: '100%'
+            width: `${(100 / zoom) * 100}%`,
+            height: `${(100 / zoom) * 100}%`
           }}
         >
-          <table className="border-collapse border border-gray-300">
+          <div className="bg-white shadow-lg rounded-lg inline-block">
+            <table className="border-collapse border border-gray-300">
             <thead>
               <tr>
                 <th className="sticky top-0 left-0 z-20 bg-gray-200 border border-gray-300 w-10 h-8 text-xs font-medium">#</th>
@@ -910,6 +917,7 @@ const ExcelMappingVisualizer = () => {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

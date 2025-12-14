@@ -128,15 +128,23 @@ async def search_patient(
     tc_no: Optional[str] = None,
     name: Optional[str] = None,
     phone: Optional[str] = None,
-    limit: int = 20
+    limit: int = 100,
+    all_patients: bool = False
 ):
     """Hasta ara (TC, ad veya telefon ile) - TC olmadan da arama yapılabilir"""
     user = await get_current_user(request)
     
     # Arama kriteri gerekli (TC artık zorunlu değil)
     if not tc_no and not name and not phone:
-        # Eğer hiçbir kriter yoksa, tüm hasta kartlarını listele (erişim kısıtı korunur)
-        query = {}
+        # Eğer hiçbir kriter yoksa, tüm hasta kartlarını listele (sadece yetkili roller için)
+        if user.role in DIRECT_ACCESS_ROLES or all_patients:
+            query = {}
+            # Yetkili roller için daha yüksek limit
+            if user.role in DIRECT_ACCESS_ROLES:
+                limit = max(limit, 500)
+        else:
+            # Yetkisiz roller için boş liste döndür
+            return []
     else:
         query = {}
         if tc_no:
@@ -152,7 +160,7 @@ async def search_patient(
         if phone:
             query["phone"] = {"$regex": phone}
     
-    patients = await patients_collection.find(query).limit(limit).to_list(limit)
+    patients = await patients_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
     
     # Hemşire ise sadece temel bilgileri göster
     if user.role in OTP_ACCESS_ROLES:

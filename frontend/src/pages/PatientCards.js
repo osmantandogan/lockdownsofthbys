@@ -25,6 +25,8 @@ const PatientCards = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('tc'); // tc, name, phone
   const [searchResults, setSearchResults] = useState([]);
+  const [allPatients, setAllPatients] = useState([]); // Tüm hastalar için
+  const [allPatientsLoading, setAllPatientsLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [stats, setStats] = useState({});
   
@@ -66,6 +68,7 @@ const PatientCards = () => {
   useEffect(() => {
     if (canDirectAccess) {
       loadStats();
+      loadAllPatients();
     }
   }, []);
 
@@ -75,6 +78,20 @@ const PatientCards = () => {
       setStats(response.data);
     } catch (error) {
       console.error('Stats error:', error);
+    }
+  };
+
+  const loadAllPatients = async () => {
+    setAllPatientsLoading(true);
+    try {
+      // Tüm hastaları getir (yetkili roller için)
+      const response = await patientsAPI.search({ all_patients: true, limit: 500 });
+      setAllPatients(response.data || []);
+    } catch (error) {
+      console.error('Hastalar yüklenirken hata:', error);
+      toast.error('Hastalar yüklenemedi');
+    } finally {
+      setAllPatientsLoading(false);
     }
   };
 
@@ -177,6 +194,10 @@ const PatientCards = () => {
         blood_type: 'Bilinmiyor', phone: '', email: '', address: '', city: '', district: '',
         insurance_type: '', insurance_number: '', general_notes: ''
       });
+      // Yeni hasta eklendikten sonra listeyi güncelle
+      if (canDirectAccess) {
+        loadAllPatients();
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Oluşturma hatası');
     } finally {
@@ -361,7 +382,7 @@ const PatientCards = () => {
       {searchResults.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Sonuçlar ({searchResults.length})</CardTitle>
+            <CardTitle>Arama Sonuçları ({searchResults.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -414,6 +435,103 @@ const PatientCards = () => {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tüm Hastalar - Sadece Yetkili Roller için */}
+      {canDirectAccess && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center">
+                <User className="h-5 w-5 mr-2 text-red-600" />
+                Tüm Hastalar ({allPatients.length})
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadAllPatients}
+                disabled={allPatientsLoading}
+              >
+                {allPatientsLoading ? 'Yükleniyor...' : 'Yenile'}
+              </Button>
+            </CardTitle>
+            <CardDescription>
+              Sistemde kayıtlı tüm hasta kartları
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {allPatientsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                <span className="ml-3 text-gray-500">Hastalar yükleniyor...</span>
+              </div>
+            ) : allPatients.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <User className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                <p>Henüz kayıtlı hasta bulunmuyor</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {allPatients.map((patient) => (
+                  <div 
+                    key={patient.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => handleViewPatient(patient)}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold text-lg">
+                        {patient.name?.charAt(0)}{patient.surname?.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{patient.name} {patient.surname}</p>
+                        <p className="text-sm text-gray-500">TC: {patient.tc_no}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          {patient.birth_date && (
+                            <span className="text-xs text-gray-400">Doğum: {patient.birth_date}</span>
+                          )}
+                          {patient.phone && (
+                            <span className="text-xs text-gray-400">• {patient.phone}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {patient.blood_type && patient.blood_type !== 'Bilinmiyor' && (
+                        <Badge className="bg-red-100 text-red-800">
+                          {patient.blood_type}
+                        </Badge>
+                      )}
+                      {(patient.has_allergies || (patient.allergies && patient.allergies.length > 0)) && (
+                        <Badge className="bg-orange-100 text-orange-800">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Alerji
+                        </Badge>
+                      )}
+                      {(patient.has_chronic_diseases || (patient.chronic_diseases && patient.chronic_diseases.length > 0)) && (
+                        <Badge className="bg-purple-100 text-purple-800">
+                          <Heart className="h-3 w-3 mr-1" />
+                          Kronik
+                        </Badge>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewPatient(patient);
+                        }}
+                        disabled={loading}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Görüntüle
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
