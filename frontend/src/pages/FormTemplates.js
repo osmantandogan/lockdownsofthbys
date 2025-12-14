@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { 
   FileText, Plus, Edit, Trash2, Copy, Star, 
   RefreshCw, MoreVertical, Table, FileSpreadsheet, Layout, Upload,
-  Grid3X3, Save, RotateCcw, ChevronDown, ChevronRight
+  Grid3X3, Save, RotateCcw, ChevronDown, ChevronRight, ExternalLink
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -280,9 +280,14 @@ const FormTemplates = () => {
                   <Edit className="h-4 w-4 mr-2" /> Düzenle
                 </DropdownMenuItem>
                 {template.template_type === 'excel' && (
-                  <DropdownMenuItem onClick={() => navigate(`/dashboard/form-templates/excel/${template.id}/mapping`)}>
-                    <Grid3X3 className="h-4 w-4 mr-2 text-amber-600" /> Görsel Mapping
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => navigate(`/dashboard/form-templates/excel/${template.id}/online`)}>
+                      <ExternalLink className="h-4 w-4 mr-2 text-green-600" /> Online Düzenle (LibreOffice)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/dashboard/form-templates/excel/${template.id}/mapping`)}>
+                      <Grid3X3 className="h-4 w-4 mr-2 text-amber-600" /> Görsel Mapping
+                    </DropdownMenuItem>
+                  </>
                 )}
                 {template.template_type !== 'excel' && (
                   <DropdownMenuItem onClick={() => handleDuplicate(template.id)}>

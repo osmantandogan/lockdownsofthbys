@@ -46,6 +46,7 @@ import FormTemplates from "./pages/FormTemplates";
 import TableTemplateEditor from "./pages/TableTemplateEditor";
 import ExcelTemplateEditor from "./pages/ExcelTemplateEditor";
 import ExcelMappingVisualizer from "./pages/ExcelMappingVisualizer";
+import ExcelOnlineEditor from "./pages/ExcelOnlineEditor";
 import FirmManagement from "./pages/FirmManagement";
 
 // Protected Route Component
@@ -136,6 +137,7 @@ function App() {
             <Route path="form-templates/excel/new" element={<ExcelTemplateEditor />} />
             <Route path="form-templates/excel/:id" element={<ExcelTemplateEditor />} />
             <Route path="form-templates/excel/:id/mapping" element={<ExcelMappingVisualizer />} />
+            <Route path="form-templates/excel/:id/online" element={<ExcelOnlineEditor />} />
             <Route path="stock" element={<StockManagement />} />
             <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />
