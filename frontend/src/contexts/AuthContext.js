@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { setAuthToken, getAuthToken, authAPI } from '../api';
+import { setAuthToken, getAuthToken, authAPI, clearAllCookies } from '../api';
 import SessionManager from '../services/SessionManager';
 
 const AuthContext = createContext(null);
@@ -177,6 +177,10 @@ export const AuthProvider = ({ children }) => {
     try {
       // Önce mevcut user'ı temizle - temiz geçiş için
       setUser(null);
+      
+      // ÖNEMLİ: Cookie'leri temizle - backend cookie'den session okuyabilir
+      console.log(`[Auth] Clearing all cookies before role switch...`);
+      await clearAllCookies();
       
       // Token'ı değiştir
       console.log(`[Auth] Setting auth token...`);

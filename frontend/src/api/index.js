@@ -1,11 +1,39 @@
 import axios from 'axios';
 import { API_URL } from '../config/api';
+import { CapacitorCookies } from '@capacitor/core';
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true
 });
+
+/**
+ * Tüm cookie'leri temizle (rol değiştirirken gerekli)
+ */
+export const clearAllCookies = async () => {
+  try {
+    // Capacitor ortamında mı kontrol et
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform()) {
+      // CapacitorCookies ile tüm cookie'leri temizle
+      await CapacitorCookies.clearAllCookies();
+      console.log('[API] All cookies cleared (Capacitor)');
+    } else {
+      // Web ortamında document.cookie'yi temizle
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      }
+      console.log('[API] All cookies cleared (Web)');
+    }
+    return true;
+  } catch (error) {
+    console.error('[API] Error clearing cookies:', error);
+    return false;
+  }
+};
 
 // Token yönetimi
 const TOKEN_KEY = 'healmedy_session_token';
