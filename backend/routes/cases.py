@@ -1688,25 +1688,44 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
             ws.title = "Vaka Formu"
             logger.warning(f"Şablon bulunamadı, boş oluşturuluyor: {template_path}")
         
-        # Logo
+        # Logo - #VALUE! hatasını temizle ve logoyu düzgün ekle
         if logo_info.get("url") and logo_info.get("cell"):
             try:
                 logo_url = logo_info["url"]
+                logo_cell = logo_info.get("cell", "A1")
+                
+                # Logo hücrelerindeki #VALUE! veya formül içeriğini temizle (A1:C5 arası)
+                for row in range(1, 6):
+                    for col in range(1, 4):
+                        try:
+                            cell = ws.cell(row=row, column=col)
+                            if cell.value and (str(cell.value).startswith('=') or '#VALUE' in str(cell.value) or '__LOGO__' in str(cell.value)):
+                                cell.value = None
+                        except:
+                            pass
+                
                 if logo_url.startswith("data:image"):
                     header, encoded = logo_url.split(",", 1)
                     logo_data = base64.b64decode(encoded)
                     from io import BytesIO
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
-                    img.width = 150
-                    img.height = 60
-                    ws.add_image(img, logo_info["cell"])
+                    img.width = 180
+                    img.height = 75
+                    ws.add_image(img, logo_cell)
             except Exception as e:
                 logger.warning(f"Logo eklenemedi: {e}")
         
         # Mapping'leri uygula - şablondaki hücrelere değer yaz
         for cell_address, field_key in flat_mappings.items():
             if field_key == "__LOGO__":
+                # Logo hücresini de temizle
+                match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
+                if match:
+                    try:
+                        ws[cell_address] = None
+                    except:
+                        pass
                 continue
             
             value = get_case_field_value(case_data, field_key)
@@ -1812,25 +1831,48 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             ws = wb.active
             ws.title = "Vaka Formu"
         
-        # Logo
+        # Logo - #VALUE! hatasını temizle ve logoyu düzgün ekle
         if logo_info.get("url") and logo_info.get("cell"):
             try:
                 logo_url = logo_info["url"]
+                logo_cell = logo_info.get("cell", "A1")
+                
+                # Logo hücrelerindeki #VALUE! veya formül içeriğini temizle (A1:C5 arası)
+                for row in range(1, 6):  # 1-5 satırları
+                    for col in range(1, 4):  # A-C sütunları
+                        try:
+                            cell = ws.cell(row=row, column=col)
+                            if cell.value and (str(cell.value).startswith('=') or '#VALUE' in str(cell.value) or '__LOGO__' in str(cell.value)):
+                                cell.value = None  # Temizle
+                        except:
+                            pass
+                
                 if logo_url.startswith("data:image"):
                     header, encoded = logo_url.split(",", 1)
                     logo_data = base64.b64decode(encoded)
                     from io import BytesIO
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
-                    img.width = 150
-                    img.height = 60
-                    ws.add_image(img, logo_info["cell"])
+                    
+                    # Logo boyutları - A1:C5 alanına sığacak şekilde (daha büyük ve kaliteli)
+                    img.width = 180   # ~3 sütun genişliği
+                    img.height = 75   # ~5 satır yüksekliği
+                    
+                    ws.add_image(img, logo_cell)
+                    logger.info(f"Logo eklendi: {logo_cell}, {img.width}x{img.height}")
             except Exception as e:
                 logger.warning(f"Logo eklenemedi: {e}")
         
         # Mapping'leri uygula
         for cell_address, field_key in flat_mappings.items():
             if field_key == "__LOGO__":
+                # Logo hücresini de temizle
+                match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
+                if match:
+                    try:
+                        ws[cell_address] = None
+                    except:
+                        pass
                 continue
             
             value = get_case_field_value(case_data, field_key)
@@ -1867,7 +1909,21 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
             if match:
                 try:
-                    ws[cell_address] = value
+                    cell = ws[cell_address]
+                    cell.value = value
+                    
+                    # Uzun içerik için text wrap ve satır yüksekliği ayarla
+                    if value and len(str(value)) > 30:
+                        from openpyxl.styles import Alignment
+                        cell.alignment = Alignment(wrap_text=True, vertical='top')
+                        
+                        # Satır yüksekliğini içeriğe göre ayarla
+                        row_num = int(match.group(2))
+                        content_lines = len(str(value)) // 30 + 1
+                        current_height = ws.row_dimensions[row_num].height or 15
+                        new_height = max(current_height, content_lines * 15)
+                        ws.row_dimensions[row_num].height = new_height
+                        
                 except Exception as e:
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
         
