@@ -881,8 +881,7 @@ async def start_shift(data: ShiftStart, request: Request):
         raise HTTPException(status_code=404, detail="Araç bulunamadı. QR kodu geçersiz.")
     
     # Check if user has TODAY's assignment for this vehicle
-    # Türkiye saati (UTC+3) kullan
-    from datetime import timedelta
+    # Türkiye saati (UTC+3) kullan - timedelta zaten import edildi
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     today = turkey_now.date()
     yesterday = today - timedelta(days=1)  # Dün de kabul et (gece yarısı toleransı)
