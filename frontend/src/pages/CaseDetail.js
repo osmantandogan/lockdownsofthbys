@@ -80,6 +80,9 @@ const CaseDetail = () => {
   const [activeTab, setActiveTab] = useState('form');
   const [isFromCache, setIsFromCache] = useState(false);
   
+  // Form yapılandırması (dinamik listeler)
+  const [formConfig, setFormConfig] = useState(null);
+  
   // Real-time collaboration
   const [participants, setParticipants] = useState([]);
   const [medicalForm, setMedicalForm] = useState({});
@@ -380,7 +383,8 @@ const CaseDetail = () => {
   ];
   
   // ==================== PDF ŞABLONUNDAN İLAÇLAR ====================
-  const pdfMedicationsList = [
+  // Varsayılan liste (formConfig yüklenene kadar veya offline durumda)
+  const defaultMedicationsList = [
     { name: 'Arveles amp.', code: 'arveles' },
     { name: 'Dikloron amp.', code: 'dikloron' },
     { name: 'Spazmolitik amp.', code: 'spazmolitik' },
@@ -414,6 +418,11 @@ const CaseDetail = () => {
     { name: 'Dramamine ampul', code: 'dramamine' },
     { name: 'Rotapamid amp.', code: 'rotapamid' }
   ];
+  
+  // Dinamik liste: formConfig varsa sadece aktif olanları göster
+  const pdfMedicationsList = formConfig?.medications
+    ? formConfig.medications.filter(m => m.active)
+    : defaultMedicationsList;
   
   // PDF ilaçları için state
   const [pdfMedications, setPdfMedications] = useState({});
@@ -475,10 +484,44 @@ const CaseDetail = () => {
                    (parseInt(clinicalObs.verbalResponse) || 0) + 
                    (parseInt(clinicalObs.eyeOpening) || 0);
 
+  // Form yapılandırmasını yükle (cache ile)
+  const loadFormConfig = async () => {
+    const CACHE_KEY = 'healmedy_form_config';
+    const CACHE_VERSION_KEY = 'healmedy_form_config_version';
+    
+    try {
+      // Önce cache'den kontrol et
+      const cachedConfig = localStorage.getItem(CACHE_KEY);
+      const cachedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+      
+      if (cachedConfig) {
+        setFormConfig(JSON.parse(cachedConfig));
+      }
+      
+      // Online ise API'den güncel versiyonu kontrol et
+      if (isOnline) {
+        const response = await formConfigAPI.getCaseFormFields();
+        const serverVersion = response.data.version;
+        
+        // Yeni versiyon varsa güncelle
+        if (!cachedVersion || parseInt(cachedVersion) < serverVersion) {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(response.data.config));
+          localStorage.setItem(CACHE_VERSION_KEY, String(serverVersion));
+          setFormConfig(response.data.config);
+          console.log('[FormConfig] Güncellendi: v' + serverVersion);
+        }
+      }
+    } catch (error) {
+      console.error('[FormConfig] Yükleme hatası:', error);
+      // Hata durumunda varsayılan listeleri kullan (mevcut sabit listeler)
+    }
+  };
+
   // Load initial data
   useEffect(() => {
     loadData();
     loadHospitalsGrouped();
+    loadFormConfig(); // Form yapılandırmasını yükle
     
     // Excel şablonlarını yükle
     excelTemplatesAPI.getAll()
