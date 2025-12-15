@@ -1408,13 +1408,27 @@ const CaseDetail = () => {
     // Hasta imzasını al (inline_consents'tan)
     const patientSignature = inlineConsents.patient_info_consent_signature;
     
+    // patientInfo state'ini kullan (caseData.patient'tan doldurulmuş)
+    // Tüm alanları normalize et
+    const normalizedPatientInfo = {
+      name: patientInfo?.name || caseData?.patient?.name || '',
+      surname: patientInfo?.surname || caseData?.patient?.surname || '',
+      tc_no: patientInfo?.tc_no || caseData?.patient?.tc_no || caseData?.patient?.tcNo || '',
+      tcNo: patientInfo?.tc_no || caseData?.patient?.tc_no || caseData?.patient?.tcNo || '',
+      phone: patientInfo?.phone || caseData?.patient?.phone || caseData?.caller?.phone || '',
+      address: patientInfo?.address || caseData?.patient?.address || caseData?.location?.address || '',
+      age: patientInfo?.age || caseData?.patient?.age || '',
+      gender: patientInfo?.gender || caseData?.patient?.gender || '',
+      birth_date: patientInfo?.birth_date || caseData?.patient?.birth_date || ''
+    };
+    
     const commonProps = {
       caseId: id,
       caseData: caseData,
-      patientInfo: caseData?.patient || patientInfo,
+      patientInfo: normalizedPatientInfo,
       patientSignature: patientSignature,
       caseNumber: caseData?.case_number,
-      patientName: `${patientInfo?.name || ''} ${patientInfo?.surname || ''}`.trim() || caseData?.patient_name || '',
+      patientName: `${normalizedPatientInfo.name} ${normalizedPatientInfo.surname}`.trim() || caseData?.patient_name || '',
       onClose: () => setConsentDialogOpen(false),
       onSave: () => {
         setConsentDialogOpen(false);
