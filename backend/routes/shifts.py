@@ -27,7 +27,8 @@ class ShiftAssignmentCreate(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     end_date: Optional[str] = None
-    healmedy_location_id: Optional[str] = None  # YENİ: Healmedy lokasyonu
+    healmedy_location_id: Optional[str] = None  # Healmedy lokasyonu
+    assigned_role: Optional[str] = None  # Geçici görev rolü (örn: paramedik şoför olarak görevlendirildi)
 
 # ============================================================================
 # SHIFT ASSIGNMENT ENDPOINTS - YENİDEN YAZILDI
@@ -249,6 +250,8 @@ async def get_today_assignments(request: Request):
             serialized["user_name"] = user_doc.get("name", "Bilinmiyor")
             serialized["user_role"] = user_doc.get("role", "-")
             serialized["profile_photo"] = user_doc.get("profile_photo")  # Profil fotoğrafı
+        # Geçici görev rolü varsa ekle (assigned_role)
+        serialized["assigned_role"] = assignment.get("assigned_role")
         enriched_assignments.append(serialized)
     
     # Group by location type
@@ -398,6 +401,8 @@ async def get_all_assignments(request: Request, date: Optional[str] = None):
             # Kullanıcı bulunamazsa, shift'teki user_name'i kullan (import'tan gelenler için)
             serialized["user_name"] = a.get("user_name", "Bilinmiyor")
             serialized["user_role"] = a.get("user_role", "-")
+        # Geçici görev rolü varsa ekle (assigned_role)
+        serialized["assigned_role"] = a.get("assigned_role")
         
         # Araç bilgilerini ekle
         vehicle_doc = vehicles_map.get(a.get("vehicle_id"))
@@ -502,7 +507,8 @@ async def create_shift_assignment(data: ShiftAssignmentCreate, request: Request)
         end_time=data.end_time,
         end_date=end_date,
         healmedy_location_id=data.healmedy_location_id,
-        healmedy_location_name=healmedy_location_name
+        healmedy_location_name=healmedy_location_name,
+        assigned_role=data.assigned_role  # Geçici görev rolü
     )
     
     assignment_dict = assignment.model_dump(by_alias=True)

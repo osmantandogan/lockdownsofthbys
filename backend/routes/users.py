@@ -169,7 +169,7 @@ async def create_user(data: CreateUserRequest, request: Request):
     return new_user
 
 
-@router.get("", response_model=List[User])
+@router.get("")
 async def get_users(request: Request):
     """Get all users (accessible by all authenticated users)"""
     # Tüm giriş yapmış kullanıcılar görebilir (vaka atama, ekip seçimi vb. için gerekli)
@@ -177,8 +177,13 @@ async def get_users(request: Request):
     
     users = await users_collection.find({}, {"password_hash": 0}).to_list(1000)
     
+    # Role doğrulaması olmadan dön (DB'de geçersiz roller olabilir)
+    valid_roles = ["merkez_ofis", "operasyon_muduru", "doktor", "hemsire", "paramedik", "att", "bas_sofor", "sofor", "cagri_merkezi", "personel", "temizlik"]
     for u in users:
         u["id"] = u.pop("_id")
+        # Geçersiz role varsa "personel" olarak düzelt
+        if u.get("role") and u.get("role") not in valid_roles:
+            u["role"] = "personel"
     
     return users
 

@@ -443,6 +443,7 @@ class ShiftAssignment(BaseModel):
     status: Literal["pending", "started", "completed", "cancelled"] = "pending"
     is_driver_duty: bool = False  # ATT/Paramedik için şoför görevi var mı?
     shift_type: ShiftType = "saha_24"  # Vardiya tipi: saha 24 saat veya ofis 8 saat
+    assigned_role: Optional[str] = None  # Geçici görev rolü (örn: paramedik → şoför olarak görevlendirildi)
     created_at: datetime = Field(default_factory=get_turkey_time)
 
 class Shift(BaseModel):

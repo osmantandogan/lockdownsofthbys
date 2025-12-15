@@ -70,8 +70,21 @@ const ShiftAssignments = () => {
     end_date: getDefaultEndDate(),
     is_driver_duty: false,
     healmedy_location_id: '',
-    shift_type: 'saha_24'
+    shift_type: 'saha_24',
+    assigned_role: '' // Boş = kullanıcının kendi rolü
   });
+
+  // Rol etiketleri
+  const roleOptions = [
+    { value: '', label: 'Varsayılan (Kendi Rolü)' },
+    { value: 'doktor', label: 'Doktor' },
+    { value: 'hemsire', label: 'Hemşire' },
+    { value: 'paramedik', label: 'Paramedik' },
+    { value: 'att', label: 'ATT' },
+    { value: 'sofor', label: 'Şoför' },
+    { value: 'bas_sofor', label: 'Baş Şoför' },
+    { value: 'cagri_merkezi', label: 'Çağrı Merkezi' },
+  ];
 
   // İlk yükleme
   useEffect(() => {
@@ -247,11 +260,12 @@ const ShiftAssignments = () => {
       if (formData.end_date && formData.end_date !== formData.shift_date) assignmentData.end_date = formData.end_date.trim();
       if (formData.is_driver_duty) assignmentData.is_driver_duty = true;
       if (formData.healmedy_location_id) assignmentData.healmedy_location_id = formData.healmedy_location_id.trim();
+      if (formData.assigned_role) assignmentData.assigned_role = formData.assigned_role; // Geçici görev rolü
       
       await shiftsAPI.createAssignment(assignmentData);
       toast.success('Vardiya ataması oluşturuldu');
       setDialogOpen(false);
-      setFormData({ user_id: '', vehicle_id: '', location_type: 'arac', health_center_name: '', shift_date: new Date().toISOString().split('T')[0], start_time: '08:00', end_time: '08:00', end_date: getDefaultEndDate(), is_driver_duty: false, healmedy_location_id: '', shift_type: 'saha_24' });
+      setFormData({ user_id: '', vehicle_id: '', location_type: 'arac', health_center_name: '', shift_date: new Date().toISOString().split('T')[0], start_time: '08:00', end_time: '08:00', end_date: getDefaultEndDate(), is_driver_duty: false, healmedy_location_id: '', shift_type: 'saha_24', assigned_role: '' });
       loadAssignments(selectedDate);
     } catch (error) {
       const detail = error.response?.data?.detail;
@@ -360,6 +374,20 @@ const ShiftAssignments = () => {
                   <div className="space-y-2"><Label>Saat Başlangıç</Label><Input type="time" value={formData.start_time} onChange={(e) => setFormData(p => ({...p, start_time: e.target.value}))} /></div>
                   <div className="space-y-2"><Label>Saat Bitiş</Label><Input type="time" value={formData.end_time} onChange={(e) => setFormData(p => ({...p, end_time: e.target.value}))} /></div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Görevlendirme Rolü</Label>
+                  <Select value={formData.assigned_role} onValueChange={(v) => setFormData(p => ({...p, assigned_role: v}))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Varsayılan (Kendi Rolü)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roleOptions.map(r => (
+                        <SelectItem key={r.value || 'default'} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">Personeli farklı bir rol ile görevlendirmek için seçin (örn: paramedik → şoför)</p>
+                </div>
                 <Button onClick={handleCreate} className="w-full">Ata</Button>
               </div>
             </DialogContent>
@@ -416,7 +444,7 @@ const ShiftAssignments = () => {
                       {Object.entries(groupedAssignments).map(([vehicle, vas]) => vas.map((a, idx) => (
                         <tr key={a.id || a._id} className={`hover:bg-gray-50 ${idx === 0 ? 'border-t-2 border-t-blue-100' : ''}`}>
                           {idx === 0 && <td className="p-3 align-top" rowSpan={vas.length}><div className="flex items-center gap-2"><Truck className="h-5 w-5 text-blue-600" /><div><p className="font-bold">{vehicle}</p><p className="text-xs text-gray-500">{vas.length} kişi</p></div></div></td>}
-                          <td className="p-3"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">{(a.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}</div><div><p className="font-medium text-sm">{a.user_name || 'Bilinmiyor'}</p><p className="text-xs text-gray-500">{getRoleLabel(a.user_role)}</p></div></div></td>
+                          <td className="p-3"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">{(a.user_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2)}</div><div><p className="font-medium text-sm">{a.user_name || 'Bilinmiyor'}</p><p className="text-xs text-gray-500">{a.assigned_role ? <><span className="line-through text-gray-400">{getRoleLabel(a.user_role)}</span> → <span className="text-orange-600 font-medium">{getRoleLabel(a.assigned_role)}</span></> : getRoleLabel(a.user_role)}</p></div></div></td>
                           <td className="p-3"><div className="flex items-center gap-1 text-sm"><Clock className="h-3 w-3 text-gray-400" /><span>{a.start_time || '08:00'} - {a.end_time || '08:00'}</span>{a.end_date && a.end_date !== a.shift_date && <Badge variant="secondary" className="text-xs ml-1">+1g</Badge>}</div></td>
                           <td className="p-3"><Badge className={statusColors[a.status]}>{statusLabels[a.status]}</Badge></td>
                           <td className="p-3 text-right"><div className="flex items-center justify-end gap-1">
@@ -461,7 +489,7 @@ const ShiftAssignments = () => {
                           {a.role_type === 'medical' ? <Badge className="bg-blue-100 text-blue-800"><Stethoscope className="h-3 w-3 mr-1" />ATT/Paramedik</Badge> : <Badge className="bg-amber-100 text-amber-800"><Car className="h-3 w-3 mr-1" />Şoför</Badge>}
                           <span className="font-bold">{a.vehicle_plate}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span><Badge variant="outline">{a.user_role}</Badge></div>
+                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span>{a.assigned_role ? <><Badge variant="outline" className="line-through text-gray-400">{getRoleLabel(a.user_role)}</Badge><span>→</span><Badge className="bg-orange-100 text-orange-700">{getRoleLabel(a.assigned_role)}</Badge></> : <Badge variant="outline">{getRoleLabel(a.user_role)}</Badge>}</div>
                         <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
                       </div>
                       <div className="flex gap-2">
