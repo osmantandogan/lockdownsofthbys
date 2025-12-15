@@ -169,6 +169,37 @@ async def create_user(data: CreateUserRequest, request: Request):
     return new_user
 
 
+class ResetPasswordRequest(BaseModel):
+    """Admin tarafından şifre sıfırlama"""
+    user_id: str
+    new_password: str
+
+
+@router.post("/reset-password")
+async def reset_user_password(data: ResetPasswordRequest, request: Request):
+    """
+    Admin tarafından kullanıcı şifresi sıfırlama
+    Sadece merkez_ofis ve operasyon_muduru yapabilir
+    """
+    current_user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    # Kullanıcıyı bul
+    user_doc = await users_collection.find_one({"_id": data.user_id})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    # Yeni şifreyi bcrypt ile hashle
+    password_hash = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
+    
+    # Şifreyi güncelle
+    await users_collection.update_one(
+        {"_id": data.user_id},
+        {"$set": {"password_hash": password_hash, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": f"{user_doc.get('name', 'Kullanıcı')} için şifre başarıyla sıfırlandı"}
+
+
 @router.get("")
 async def get_users(request: Request):
     """Get all users (accessible by all authenticated users)"""
@@ -404,9 +435,8 @@ async def bulk_create_users(users_data: List[BulkUserCreate], request: Request):
                 results["errors"].append(f"{u.email}: Zaten mevcut")
                 continue
             
-            # Şifre hash'le
-            import hashlib
-            password_hash = hashlib.sha256(u.password.encode()).hexdigest()
+            # Şifre hash'le - bcrypt kullan (login bcrypt bekliyor!)
+            password_hash = bcrypt.hashpw(u.password.encode(), bcrypt.gensalt()).decode()
             
             user_doc = {
                 "_id": str(uuid.uuid4()),

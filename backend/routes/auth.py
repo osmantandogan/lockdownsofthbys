@@ -127,8 +127,26 @@ async def login(data: LoginRequest, response: Response):
     
     # Check password
     password_hash = user_doc.get("password_hash")
-    if not password_hash or not bcrypt.checkpw(data.password.encode(), password_hash.encode()):
+    if not password_hash:
         raise HTTPException(status_code=401, detail="Şifre hatalı")
+    
+    try:
+        # Bcrypt hash kontrolü (doğru format: $2a$ veya $2b$ ile başlar)
+        if not password_hash.startswith('$2'):
+            # Eski SHA256 formatı ile oluşturulmuş kullanıcı - şifre sıfırlanmalı
+            raise HTTPException(
+                status_code=500, 
+                detail="Bu kullanıcının şifresi eski formatta. Lütfen yöneticinize şifre sıfırlama için başvurun."
+            )
+        
+        if not bcrypt.checkpw(data.password.encode(), password_hash.encode()):
+            raise HTTPException(status_code=401, detail="Şifre hatalı")
+    except ValueError as e:
+        # Invalid salt hatası - şifre hash'i bozuk
+        raise HTTPException(
+            status_code=500, 
+            detail="Bu kullanıcının şifresi geçersiz formatta. Lütfen yöneticinize şifre sıfırlama için başvurun."
+        )
     
     # Create JWT token
     access_token = create_access_token({"sub": user_doc["_id"]})
