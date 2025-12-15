@@ -59,7 +59,7 @@ const RoleLoginScreen = () => {
     
     try {
       // API'ye giriş isteği gönder
-      const response = await authAPI.login({ email, password });
+      const response = await authAPI.login(email, password);
       const { token, user } = response.data;
       
       // Rol kontrolü - kullanıcının rolü seçilen rol ile eşleşmeli
@@ -87,7 +87,17 @@ const RoleLoginScreen = () => {
       if (err.response?.status === 401) {
         setError('E-posta veya şifre hatalı');
       } else if (err.response?.data?.detail) {
-        setError(err.response.data.detail);
+        // detail bir obje veya array olabilir, string'e dönüştür
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          setError(detail);
+        } else if (Array.isArray(detail)) {
+          setError(detail.map(d => d.msg || d).join(', '));
+        } else if (typeof detail === 'object') {
+          setError(detail.msg || JSON.stringify(detail));
+        } else {
+          setError('Giriş yapılamadı');
+        }
       } else {
         setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
       }
