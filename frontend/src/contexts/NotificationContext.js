@@ -20,7 +20,7 @@ import {
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, isSwitchingRole, activeRole } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -37,6 +37,12 @@ export const NotificationProvider = ({ children }) => {
     const initializeFCM = async () => {
       if (!Capacitor.isNativePlatform()) return;
       if (!isAuthenticated || !user) return;
+      
+      // Rol değişikliği sırasında bekle
+      if (isSwitchingRole) {
+        console.log('[FCM] Role switching in progress, waiting...');
+        return;
+      }
 
       try {
         const { PushNotifications } = await import('@capacitor/push-notifications');
@@ -94,7 +100,7 @@ export const NotificationProvider = ({ children }) => {
     };
 
     initializeFCM();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, isSwitchingRole]);
 
   // Native event listener (MainActivity'den gelen token)
   useEffect(() => {
@@ -139,6 +145,12 @@ export const NotificationProvider = ({ children }) => {
         return;
       }
       
+      // Rol değişikliği sırasında bekle
+      if (isSwitchingRole) {
+        console.log('[NotificationContext] Role switching in progress, waiting...');
+        return;
+      }
+      
       if (!isAuthenticated || !user) {
         console.log('[NotificationContext] User not authenticated (isAuthenticated:', isAuthenticated, ', user:', !!user, ')');
         return;
@@ -146,7 +158,7 @@ export const NotificationProvider = ({ children }) => {
 
       // User ID: id veya _id olabilir
       const userId = user.id || user._id;
-      console.log('[NotificationContext] Starting OneSignal initialization for user:', userId, user.name);
+      console.log('[NotificationContext] Starting OneSignal initialization for user:', userId, user.name, 'role:', activeRole || user.role);
 
       if (!userId) {
         console.error('[NotificationContext] User ID is missing! User object:', user);
@@ -226,7 +238,7 @@ export const NotificationProvider = ({ children }) => {
     };
 
     initializeOneSignal();
-  }, [isAuthenticated, user, authLoading]);
+  }, [isAuthenticated, user, authLoading, isSwitchingRole, activeRole]);
 
   // Kullanıcı logout olduğunda OneSignal'den çıkış yap
   useEffect(() => {

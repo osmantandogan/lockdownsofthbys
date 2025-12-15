@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [activeRole, setActiveRole] = useState(null);
   const [isMultiSessionMode, setIsMultiSessionMode] = useState(false);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -119,38 +120,56 @@ export const AuthProvider = ({ children }) => {
    * Rol değiştir (oturum açık roller arasında geçiş)
    */
   const switchRole = useCallback(async (role) => {
+    console.log(`[Auth] Starting role switch to: ${role}`);
+    
+    // Switching flag'i aç - diğer context'ler bunu kontrol edecek
+    setIsSwitchingRole(true);
+    
     const session = SessionManager.getSession(role);
     if (!session?.token) {
+      setIsSwitchingRole(false);
       throw new Error('Bu rol için oturum bulunamadı');
     }
     
-    // Token'ı değiştir
-    setAuthToken(session.token);
-    SessionManager.setActiveRole(role);
-    
-    // Kullanıcı bilgisini güncelle
     try {
+      // Önce mevcut user'ı temizle - temiz geçiş için
+      setUser(null);
+      
+      // Token'ı değiştir
+      setAuthToken(session.token);
+      SessionManager.setActiveRole(role);
+      
+      // localStorage'ı hemen güncelle
+      localStorage.setItem('token', session.token);
+      
+      // Kullanıcı bilgisini API'den al
       const response = await authAPI.me();
       const userData = response.data;
-      
-      // State'i güncelle
-      setUser(userData);
-      setActiveRole(role);
       
       // Session'ı güncelle
       SessionManager.updateUserData(role, userData);
       
-      // localStorage'ı da güncelle (sayfa yenilemelerinde kullanılır)
-      localStorage.setItem('token', session.token);
+      // localStorage'ı güncelle
       localStorage.setItem('user', JSON.stringify(userData));
       
-      console.log(`[Auth] Switched to role: ${role}, user: ${userData.name}`);
+      // State'i güncelle - en son yapılacak
+      setActiveRole(role);
+      setUser(userData);
+      
+      console.log(`[Auth] Switched to role: ${role}, user ID: ${userData.id || userData._id}, name: ${userData.name}`);
+      
+      // Küçük bir gecikme ekle - React'ın state'i propagate etmesi için
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       return userData;
     } catch (error) {
       console.error('[Auth] Role switch failed:', error);
       // Token geçersiz, oturumu kaldır
       SessionManager.removeSession(role);
       throw error;
+    } finally {
+      // Switching flag'i kapat
+      setIsSwitchingRole(false);
     }
   }, []);
 
@@ -283,6 +302,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       activeRole,
       isMultiSessionMode,
+      isSwitchingRole,
       
       // Normal auth
       login, 

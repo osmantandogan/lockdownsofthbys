@@ -1031,6 +1031,7 @@ const CaseDetail = () => {
       if (formData.procedures) setProcedures(formData.procedures);
       if (formData.transfers) setTransfers(formData.transfers);
       if (formData.materials) setMaterials(formData.materials);
+      if (formData.pdf_medications) setPdfMedications(formData.pdf_medications);
       if (formData.vehicle_info) setVehicleInfo(formData.vehicle_info);
       if (formData.time_info) setTimeInfo(formData.time_info);
       if (formData.isolation) setIsolation(formData.isolation);
