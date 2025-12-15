@@ -326,8 +326,9 @@ const CaseDetail = () => {
   
   // ==================== PDF ŞABLONUNDAN İŞLEMLER ====================
   
-  // Genel Müdahale İşlemleri
-  const genelMudahaleList = [
+  // ==================== VARSAYILAN İŞLEM LİSTELERİ ====================
+  // Genel Müdahale İşlemleri - Varsayılan
+  const defaultGenelMudahaleList = [
     'Muayene (Acil)', 'Enjeksiyon IM', 'Enjeksiyon IV', 'Enjeksiyon SC',
     'I.V. İlaç uygulaması', 'Damar yolu açılması', 'Sütür (küçük)',
     'Mesane sondası takılması', 'Mide yıkanması', 'Pansuman (küçük)',
@@ -338,39 +339,66 @@ const CaseDetail = () => {
     'Sırt tahtası uygulaması'
   ];
   
-  // Dolaşım Desteği
-  const dolasimDestegiList = [
+  // Dolaşım Desteği - Varsayılan
+  const defaultDolasimDestegiList = [
     'CPR (Resüsitasyon)', 'EKG Uygulaması', 'Defibrilasyon (CPR)',
     'Kardiyoversiyon', 'Monitörizasyon', 'Kanama kontrolü', 'Cut down'
   ];
   
-  // Hava Yolu İşlemleri
-  const havaYoluList = [
+  // Hava Yolu İşlemleri - Varsayılan
+  const defaultHavaYoluList = [
     'Balon Valf Maske', 'Aspirasyon uygulaması', 'Orofaringeal tüp uygulaması',
     'Endotrakeal entübasyon', 'Mekanik ventilasyon (CPAP–BIPAP dahil)',
     'Oksijen inhalasyon tedavisi'
   ];
   
-  // Diğer İşlemler
-  const digerIslemlerList = [
+  // Diğer İşlemler - Varsayılan
+  const defaultDigerIslemlerList = [
     'Normal doğum', 'Kan şekeri ölçümü', 'Lokal anestezi',
     'Tırnak avülsiyonu', 'Transkutan PaO2 ölçümü', 'Debritman alınması',
     'Sütür alınması'
   ];
-  
-  // Yenidoğan İşlemleri
-  const yenidoganList = [
+
+  // Yenidoğan İşlemleri - Varsayılan
+  const defaultYenidoganList = [
     'Transport küvözi ile nakil', 'Yenidoğan canlandırma',
     'Yenidoğan I.M. enjeksiyon', 'Yenidoğan I.V. enjeksiyon',
     'Yenidoğan I.V. mayi takılması', 'Yenidoğan entübasyonu'
   ];
   
-  // Sıvı Tedavisi
-  const siviTedavisiList = [
+  // Sıvı Tedavisi - Varsayılan
+  const defaultSiviTedavisiList = [
     '%0.9 NaCl 250 cc', '%0.9 NaCl 500 cc', '%0.9 NaCl 100 cc',
     '%5 Dextroz 500 cc', '%20 Mannitol 500 cc', 'İsolyte P 500 cc',
     'İsolyte S 500 cc', '%10 Dengeleyici Elektrolit 500 cc', 'Laktatlı Ringer 500 cc'
   ];
+
+  // ==================== DİNAMİK LİSTELER (formConfig'den) ====================
+  // Helper: formConfig'den aktif items al, yoksa varsayılan kullan
+  const getActiveItems = (configKey, defaultList) => {
+    if (formConfig?.[configKey]) {
+      return formConfig[configKey].filter(item => item.active).map(item => item.name);
+    }
+    return defaultList;
+  };
+
+  // Helper: procedures kategorisinden aktif items al
+  const getProcedureItems = (categoryKey, defaultList) => {
+    if (formConfig?.procedures?.[categoryKey]?.items) {
+      return formConfig.procedures[categoryKey].items
+        .filter(item => item.active)
+        .map(item => item.name);
+    }
+    return defaultList;
+  };
+
+  // Dinamik işlem listeleri
+  const genelMudahaleList = getProcedureItems('genel_mudahale', defaultGenelMudahaleList);
+  const dolasimDestegiList = getProcedureItems('dolasim_destegi', defaultDolasimDestegiList);
+  const havaYoluList = getProcedureItems('hava_yolu', defaultHavaYoluList);
+  const digerIslemlerList = getProcedureItems('diger_islemler', defaultDigerIslemlerList);
+  const yenidoganList = getProcedureItems('yenidogan', defaultYenidoganList);
+  const siviTedavisiList = getActiveItems('fluids', defaultSiviTedavisiList);
   
   // Tüm işlemler birleştirilmiş (eski uyumluluk için)
   const proceduresList = [

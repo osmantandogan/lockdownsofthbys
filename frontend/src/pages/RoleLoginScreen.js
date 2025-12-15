@@ -121,9 +121,28 @@ const RoleLoginScreen = () => {
       window.location.href = '/dashboard';
       
     } catch (err) {
-      console.error('Login error:', err);
-      if (err.response?.status === 401) {
+      // Detaylı hata logu
+      console.error('[RoleLogin] === LOGIN ERROR ===');
+      console.error('[RoleLogin] Error message:', err.message);
+      console.error('[RoleLogin] Error status:', err.response?.status);
+      console.error('[RoleLogin] Error data:', JSON.stringify(err.response?.data));
+      console.error('[RoleLogin] Error code:', err.code);
+      console.error('[RoleLogin] Full error:', JSON.stringify({
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        code: err.code
+      }));
+      
+      if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED') {
+        setError('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.');
+      } else if (err.response?.status === 401) {
         setError('E-posta veya şifre hatalı');
+      } else if (err.response?.status === 500) {
+        setError('Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
+      } else if (err.response?.status === 503) {
+        setError('Sunucu bakımda. Lütfen daha sonra tekrar deneyin.');
       } else if (err.response?.data?.detail) {
         // detail bir obje veya array olabilir, string'e dönüştür
         const detail = err.response.data.detail;
@@ -136,6 +155,8 @@ const RoleLoginScreen = () => {
         } else {
           setError('Giriş yapılamadı');
         }
+      } else if (err.message) {
+        setError(`Hata: ${err.message}`);
       } else {
         setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
       }
