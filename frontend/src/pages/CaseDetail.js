@@ -1405,10 +1405,22 @@ const CaseDetail = () => {
   
   // Onam formu bileşenini render et
   const renderConsentFormContent = (formId) => {
+    // Hasta imzasını al (inline_consents'tan)
+    const patientSignature = inlineConsents.patient_info_consent_signature;
+    
     const commonProps = {
       caseId: id,
+      caseData: caseData,
+      patientInfo: caseData?.patient || patientInfo,
+      patientSignature: patientSignature,
       caseNumber: caseData?.case_number,
-      patientName: caseData?.patient_name || ''
+      patientName: `${patientInfo?.name || ''} ${patientInfo?.surname || ''}`.trim() || caseData?.patient_name || '',
+      onClose: () => setConsentDialogOpen(false),
+      onSave: () => {
+        setConsentDialogOpen(false);
+        toast.success('Onam formu kaydedildi');
+        loadMedicalForm();
+      }
     };
     
     switch(formId) {
