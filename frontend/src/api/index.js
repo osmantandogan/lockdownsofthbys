@@ -10,10 +10,34 @@ const api = axios.create({
 // Token yönetimi
 const TOKEN_KEY = 'healmedy_session_token';
 
+/**
+ * Token'ın benzersiz parmak izini al
+ */
+const getTokenFingerprint = (token) => {
+  if (!token) return 'null';
+  return '...' + token.slice(-10);
+};
+
+/**
+ * JWT token'dan user ID'yi çıkar
+ */
+const decodeTokenUserId = (token) => {
+  try {
+    if (!token) return 'null';
+    const parts = token.split('.');
+    if (parts.length !== 3) return 'invalid';
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.sub || payload.user_id || payload.id || 'unknown';
+  } catch (e) {
+    return 'decode-error';
+  }
+};
+
 export const setAuthToken = (token) => {
   if (token) {
-    const tokenPreview = token.substring(0, 20) + '...';
-    console.log(`[API] setAuthToken: ${tokenPreview}`);
+    const fingerprint = getTokenFingerprint(token);
+    const tokenUserId = decodeTokenUserId(token);
+    console.log(`[API] setAuthToken: fingerprint=${fingerprint}, decoded_user=${tokenUserId}`);
     localStorage.setItem(TOKEN_KEY, token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
@@ -36,9 +60,26 @@ if (savedToken) {
 // Request interceptor - her istekte token ekle
 api.interceptors.request.use(
   (config) => {
-    const token = getAuthToken();
-    if (token && !config.headers['Authorization']) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+    // Mevcut header'ı kontrol et
+    const existingAuth = config.headers['Authorization'] || api.defaults.headers.common['Authorization'];
+    const storageToken = getAuthToken();
+    
+    // /auth/me endpoint'i için detaylı log
+    if (config.url?.includes('/auth/me')) {
+      const existingFingerprint = existingAuth ? getTokenFingerprint(existingAuth.replace('Bearer ', '')) : 'none';
+      const storageFingerprint = getTokenFingerprint(storageToken);
+      const existingUserId = existingAuth ? decodeTokenUserId(existingAuth.replace('Bearer ', '')) : 'none';
+      const storageUserId = decodeTokenUserId(storageToken);
+      
+      console.log('[API Interceptor] === /auth/me REQUEST ===');
+      console.log(`[API Interceptor] Existing header fingerprint: ${existingFingerprint} (user: ${existingUserId})`);
+      console.log(`[API Interceptor] Storage token fingerprint: ${storageFingerprint} (user: ${storageUserId})`);
+      console.log(`[API Interceptor] Using: ${existingAuth ? 'existing header' : 'storage token'}`);
+    }
+    
+    // Sadece header yoksa storage'dan ekle
+    if (storageToken && !config.headers['Authorization']) {
+      config.headers['Authorization'] = `Bearer ${storageToken}`;
     }
     return config;
   },
@@ -591,6 +632,15 @@ export const firmsAPI = {
   getAll: () => api.get('/firms'),
   create: (data) => api.post('/firms', data),
   delete: (id) => api.delete(`/firms/${id}`)
+};
+
+// Form Config API - Vaka Formu Yapılandırması
+export const formConfigAPI = {
+  getCaseFormFields: () => api.get('/form-config/case-form-fields'),
+  updateCaseFormFields: (config) => api.put('/form-config/case-form-fields', { config }),
+  resetCaseFormFields: () => api.post('/form-config/case-form-fields/reset'),
+  getHistory: (limit = 10) => api.get('/form-config/case-form-fields/history', { params: { limit } }),
+  getVersion: (version) => api.get(`/form-config/case-form-fields/version/${version}`)
 };
 
 export default api;

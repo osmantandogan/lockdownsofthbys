@@ -68,14 +68,33 @@ const RoleLoginScreen = () => {
       const response = await authAPI.login(email, password);
       const { session_token, user } = response.data;
       
-      // Debug: token ve user bilgilerini logla
-      const tokenPreview = session_token ? session_token.substring(0, 20) + '...' : 'null';
-      console.log('[RoleLogin] Login response:', { 
-        tokenPreview,
-        userId: user?.id || user?._id,
-        userName: user?.name,
-        userRole: user?.role
-      });
+      // Debug: token ve user bilgilerini detaylı logla
+      const tokenFingerprint = session_token ? '...' + session_token.slice(-10) : 'null';
+      let tokenUserId = 'unknown';
+      try {
+        if (session_token) {
+          const parts = session_token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            tokenUserId = payload.sub || payload.user_id || payload.id || 'unknown';
+          }
+        }
+      } catch (e) {
+        tokenUserId = 'decode-error';
+      }
+      
+      const userId = user?.id || user?._id;
+      console.log('[RoleLogin] === LOGIN RESPONSE ===');
+      console.log(`[RoleLogin] Role: ${role}`);
+      console.log(`[RoleLogin] User: ${user?.name} (ID: ${userId})`);
+      console.log(`[RoleLogin] User role from API: ${user?.role}`);
+      console.log(`[RoleLogin] Token fingerprint: ${tokenFingerprint}`);
+      console.log(`[RoleLogin] Token decoded user_id: ${tokenUserId}`);
+      
+      // Token-User eşleşmesi kontrolü
+      if (tokenUserId !== 'unknown' && tokenUserId !== userId && tokenUserId !== user?.email) {
+        console.error(`[RoleLogin] ⚠️ TOKEN MISMATCH! Token belongs to ${tokenUserId}, but API returned user ${userId}`);
+      }
       
       // Rol kontrolü - kullanıcının rolü seçilen rol ile eşleşmeli
       if (user.role !== role) {

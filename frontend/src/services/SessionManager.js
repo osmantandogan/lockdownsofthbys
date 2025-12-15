@@ -79,14 +79,50 @@ const saveSessions = (sessions) => {
 };
 
 /**
+ * JWT token'dan user ID'yi çıkar (decode)
+ */
+const decodeTokenUserId = (token) => {
+  try {
+    if (!token) return 'null';
+    const parts = token.split('.');
+    if (parts.length !== 3) return 'invalid';
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.sub || payload.user_id || payload.id || 'unknown';
+  } catch (e) {
+    return 'decode-error';
+  }
+};
+
+/**
+ * Token'ın benzersiz hash'ini al (son 10 karakter)
+ */
+const getTokenFingerprint = (token) => {
+  if (!token) return 'null';
+  // Token'ın son 10 karakteri - benzersiz olmalı
+  return '...' + token.slice(-10);
+};
+
+/**
  * Belirli bir rol için oturum ekle
  */
 const addSession = (role, userData, token) => {
   const sessions = getSessions();
   
-  // Debug: token'ın ilk 20 karakterini logla
-  const tokenPreview = token ? token.substring(0, 20) + '...' : 'null';
-  console.log(`[SessionManager] Adding session for role: ${role}, user: ${userData?.name || userData?.email}, token: ${tokenPreview}`);
+  // Debug: token'ın benzersiz kısmını ve user ID'yi logla
+  const fingerprint = getTokenFingerprint(token);
+  const tokenUserId = decodeTokenUserId(token);
+  const userId = userData?.id || userData?._id || 'no-id';
+  
+  console.log(`[SessionManager] === ADDING SESSION ===`);
+  console.log(`[SessionManager] Role: ${role}`);
+  console.log(`[SessionManager] User: ${userData?.name} (ID: ${userId})`);
+  console.log(`[SessionManager] Token fingerprint: ${fingerprint}`);
+  console.log(`[SessionManager] Token decoded user_id: ${tokenUserId}`);
+  
+  // Token'ın gerçekten bu kullanıcıya ait olup olmadığını kontrol et
+  if (tokenUserId !== 'unknown' && tokenUserId !== userId && tokenUserId !== userData?.email) {
+    console.error(`[SessionManager] WARNING! Token user_id (${tokenUserId}) does not match userData.id (${userId})!`);
+  }
   
   sessions[role] = {
     user: userData,
@@ -95,7 +131,13 @@ const addSession = (role, userData, token) => {
     lastActive: new Date().toISOString()
   };
   saveSessions(sessions);
-  console.log(`[SessionManager] Session saved for role: ${role}`);
+  
+  // Verify: kaydedilen oturumu tekrar oku ve doğrula
+  const savedSessions = getSessions();
+  const savedFingerprint = getTokenFingerprint(savedSessions[role]?.token);
+  console.log(`[SessionManager] Verified saved token fingerprint: ${savedFingerprint}`);
+  console.log(`[SessionManager] === SESSION SAVED ===`);
+  
   return sessions[role];
 };
 
@@ -142,8 +184,20 @@ const getSession = (role) => {
   
   // Debug: hangi token alındığını logla
   if (session?.token) {
-    const tokenPreview = session.token.substring(0, 20) + '...';
-    console.log(`[SessionManager] getSession(${role}): user=${session.user?.name}, token=${tokenPreview}`);
+    const fingerprint = getTokenFingerprint(session.token);
+    const tokenUserId = decodeTokenUserId(session.token);
+    const userId = session.user?.id || session.user?._id || 'no-id';
+    
+    console.log(`[SessionManager] === GET SESSION ===`);
+    console.log(`[SessionManager] Role: ${role}`);
+    console.log(`[SessionManager] User: ${session.user?.name} (ID: ${userId})`);
+    console.log(`[SessionManager] Token fingerprint: ${fingerprint}`);
+    console.log(`[SessionManager] Token decoded user_id: ${tokenUserId}`);
+    
+    // Uyumsuzluk kontrolü
+    if (tokenUserId !== 'unknown' && tokenUserId !== userId && tokenUserId !== session.user?.email) {
+      console.error(`[SessionManager] ⚠️ MISMATCH! Token belongs to ${tokenUserId}, but session user is ${userId}`);
+    }
   } else {
     console.log(`[SessionManager] getSession(${role}): no session found`);
   }

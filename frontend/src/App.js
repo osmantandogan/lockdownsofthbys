@@ -61,6 +61,7 @@ import PdfTemplateEditor from "./pages/PdfTemplateEditor";
 import FormTemplates from "./pages/FormTemplates";
 import TableTemplateEditor from "./pages/TableTemplateEditor";
 import ExcelTemplateEditor from "./pages/ExcelTemplateEditor";
+import CaseFormConfig from "./pages/CaseFormConfig";
 import ExcelMappingVisualizer from "./pages/ExcelMappingVisualizer";
 import ExcelOnlineEditor from "./pages/ExcelOnlineEditor";
 import VakaFormMappingEditor from "./pages/VakaFormMappingEditor";
@@ -168,6 +169,7 @@ function App() {
             <Route path="form-templates/excel/:id/mapping" element={<ExcelMappingVisualizer />} />
             <Route path="form-templates/excel/:id/online" element={<ExcelOnlineEditor />} />
             <Route path="form-templates/vaka-form-mapping" element={<VakaFormMappingEditor />} />
+            <Route path="form-templates/case-form-config" element={<CaseFormConfig />} />
             <Route path="stock" element={<StockManagement />} />
             <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="shifts" element={<Shifts />} />

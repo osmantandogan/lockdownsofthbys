@@ -117,10 +117,34 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Token'ın benzersiz parmak izini al
+   */
+  const getTokenFingerprint = (token) => {
+    if (!token) return 'null';
+    return '...' + token.slice(-10);
+  };
+
+  /**
+   * JWT token'dan user ID'yi çıkar
+   */
+  const decodeTokenUserId = (token) => {
+    try {
+      if (!token) return 'null';
+      const parts = token.split('.');
+      if (parts.length !== 3) return 'invalid';
+      const payload = JSON.parse(atob(parts[1]));
+      return payload.sub || payload.user_id || payload.id || 'unknown';
+    } catch (e) {
+      return 'decode-error';
+    }
+  };
+
+  /**
    * Rol değiştir (oturum açık roller arasında geçiş)
    */
   const switchRole = useCallback(async (role) => {
-    console.log(`[Auth] Starting role switch to: ${role}`);
+    console.log(`[Auth] === ROLE SWITCH START ===`);
+    console.log(`[Auth] Target role: ${role}`);
     
     // Switching flag'i aç - diğer context'ler bunu kontrol edecek
     setIsSwitchingRole(true);
@@ -132,20 +156,30 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Bu rol için oturum bulunamadı');
     }
     
-    // Debug: session'daki user bilgisini logla
-    console.log(`[Auth] Session found for ${role}:`, {
-      storedUserName: session.user?.name,
-      storedUserId: session.user?.id || session.user?._id,
-      storedUserRole: session.user?.role,
-      tokenPreview: session.token.substring(0, 20) + '...'
-    });
+    // Debug: session'daki token bilgisini detaylı logla
+    const sessionFingerprint = getTokenFingerprint(session.token);
+    const sessionTokenUserId = decodeTokenUserId(session.token);
+    const storedUserId = session.user?.id || session.user?._id;
+    
+    console.log(`[Auth] Session from SessionManager:`);
+    console.log(`[Auth]   - User: ${session.user?.name} (ID: ${storedUserId})`);
+    console.log(`[Auth]   - Token fingerprint: ${sessionFingerprint}`);
+    console.log(`[Auth]   - Token decoded user_id: ${sessionTokenUserId}`);
+    
+    // Token-User eşleşmesi kontrolü
+    if (sessionTokenUserId !== 'unknown' && sessionTokenUserId !== storedUserId) {
+      console.error(`[Auth] ⚠️ SESSION TOKEN MISMATCH DETECTED!`);
+      console.error(`[Auth]   Token belongs to: ${sessionTokenUserId}`);
+      console.error(`[Auth]   Session user ID: ${storedUserId}`);
+      console.error(`[Auth]   This means the wrong token was stored for this role!`);
+    }
     
     try {
       // Önce mevcut user'ı temizle - temiz geçiş için
       setUser(null);
       
       // Token'ı değiştir
-      console.log(`[Auth] Setting auth token for role: ${role}`);
+      console.log(`[Auth] Setting auth token...`);
       setAuthToken(session.token);
       SessionManager.setActiveRole(role);
       
@@ -157,18 +191,19 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.me();
       const userData = response.data;
       
-      console.log(`[Auth] authAPI.me() returned:`, {
-        id: userData.id || userData._id,
-        name: userData.name,
-        role: userData.role
-      });
+      const returnedUserId = userData.id || userData._id;
+      console.log(`[Auth] authAPI.me() returned:`);
+      console.log(`[Auth]   - User: ${userData.name} (ID: ${returnedUserId})`);
+      console.log(`[Auth]   - Role: ${userData.role}`);
       
       // Session'daki user ile API'den dönen user karşılaştır
-      const storedUserId = session.user?.id || session.user?._id;
-      const returnedUserId = userData.id || userData._id;
       if (storedUserId !== returnedUserId) {
-        console.error(`[Auth] USER MISMATCH! Stored: ${storedUserId}, Returned: ${returnedUserId}`);
-        console.error('[Auth] This indicates the wrong token was stored during login!');
+        console.error(`[Auth] ⚠️ USER MISMATCH CONFIRMED!`);
+        console.error(`[Auth]   Expected (stored): ${storedUserId}`);
+        console.error(`[Auth]   Got (from API): ${returnedUserId}`);
+        console.error(`[Auth]   This confirms the wrong token was stored during login!`);
+      } else {
+        console.log(`[Auth] ✓ User match confirmed: ${returnedUserId}`);
       }
       
       // Session'ı güncelle
@@ -181,7 +216,7 @@ export const AuthProvider = ({ children }) => {
       setActiveRole(role);
       setUser(userData);
       
-      console.log(`[Auth] Switched to role: ${role}, user ID: ${userData.id || userData._id}, name: ${userData.name}`);
+      console.log(`[Auth] === ROLE SWITCH COMPLETE ===`);
       
       // Küçük bir gecikme ekle - React'ın state'i propagate etmesi için
       await new Promise(resolve => setTimeout(resolve, 100));

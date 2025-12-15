@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { 
   FileText, Plus, Edit, Trash2, Copy, Star, 
   RefreshCw, MoreVertical, Table, FileSpreadsheet, Layout, Upload,
-  Grid3X3, Save, RotateCcw, ChevronDown, ChevronRight, ExternalLink
+  Grid3X3, Save, RotateCcw, ChevronDown, ChevronRight, ExternalLink, Settings
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -428,6 +428,13 @@ const FormTemplates = () => {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    onClick={() => navigate('/dashboard/form-templates/case-form-config')}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600"
+                  >
+                    <Settings className="h-4 w-4 mr-1" />
+                    ⚙️ Form Alanlarını Düzenle
+                  </Button>
                   <Button 
                     onClick={() => navigate('/dashboard/form-templates/vaka-form-mapping')}
                     className="bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
