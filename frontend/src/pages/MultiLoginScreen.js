@@ -42,9 +42,20 @@ const MultiLoginScreen = () => {
     const roleInfo = SessionManager.getRoleInfo(role);
     
     if (roleInfo.hasSession) {
-      // Oturum varsa direkt dashboard'a git
+      // Oturum varsa aktif rolü değiştir ve dashboard'a git
       SessionManager.setActiveRole(role);
-      navigate('/dashboard');
+      
+      // Token'ı da localStorage'a set et (AuthContext okuyabilsin)
+      const session = SessionManager.getSession(role);
+      if (session?.token) {
+        localStorage.setItem('token', session.token);
+        localStorage.setItem('user', JSON.stringify(session.user));
+      }
+      
+      console.log('[MultiLogin] Switching to role:', role);
+      
+      // Tam sayfa yenilemesi ile AuthContext'in yeni token'ı okumasını sağla
+      window.location.href = '/dashboard';
     } else {
       // Oturum yoksa login ekranına git
       navigate(`/role-login/${role}`);

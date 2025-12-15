@@ -58,8 +58,13 @@ const DashboardLayout = () => {
   };
   
   const handleReturnToMultiLogin = () => {
-    returnToMultiLogin();
-    navigate('/multi-login');
+    // Aktif rolü temizle ama oturumları silme
+    SessionManager.clearActiveRole();
+    
+    console.log('[Dashboard] Returning to multi-login screen');
+    
+    // Tam sayfa yenilemesi ile AuthContext'in resetlenmesini sağla
+    window.location.href = '/multi-login';
   };
 
   const menuItems = [
