@@ -239,7 +239,9 @@ const VakaFormMappingEditor = () => {
         { key: 'vital2.solunum', label: '2. Solunum' },
         { key: 'vital2.spo2', label: '2. SpO2' },
         { key: 'kan_sekeri', label: 'Kan Şekeri' },
-        { key: 'ates', label: 'Ateş' }
+        { key: 'bloodSugar', label: 'Kan Şekeri (Alt.)' },
+        { key: 'ates', label: 'Ateş' },
+        { key: 'bodyTemp', label: 'Vücut Sıcaklığı (Alt.)' }
       ]
     },
     // ==================== VİTAL - NABIZ TİPİ (V3) ====================
@@ -345,7 +347,8 @@ const VakaFormMappingEditor = () => {
         { key: 'crashVehicle4', label: 'Kazaya Karışan Araç 4' },
         { key: 'cprStartTime', label: 'CPR Başlama Zamanı' },
         { key: 'cprStopTime', label: 'CPR Bırakma Zamanı' },
-        { key: 'cprStopReason', label: 'Bırakma Nedeni' }
+        { key: 'cprStopReason', label: 'Bırakma Nedeni' },
+        { key: 'cprPerformer', label: 'CPR Uygulayan' }
       ]
     },
     {
@@ -718,10 +721,13 @@ const VakaFormMappingEditor = () => {
         // Ambulans Personeli
         { key: 'sig.hekim_prm_adi', label: 'Hekim/PRM Adı Soyadı' },
         { key: 'sig.hekim_prm_imza', label: 'Hekim/PRM İmza (✓)' },
+        { key: 'ambulans_hekim', label: 'Ambulans Hekim (Ekip)' },
         { key: 'sig.saglik_per_adi', label: 'Sağlık Per./ATT Adı' },
         { key: 'sig.saglik_per_imza', label: 'Sağlık Per. İmza (✓)' },
+        { key: 'ambulans_saglik_per', label: 'Ambulans Sağlık Per. (Ekip)' },
         { key: 'sig.sofor_teknisyen_adi', label: 'Sür./Tekn. Adı' },
         { key: 'sig.sofor_teknisyen_imza', label: 'Sür./Tekn. İmza (✓)' },
+        { key: 'ambulans_sofor', label: 'Ambulans Şoför (Ekip)' },
         // Hasta/Yakını
         { key: 'sig.hasta_yakin_adi', label: 'Hasta/Hasta Yakını Adı Soyadı' },
         { key: 'sig.hasta_yakin_imza', label: 'Hasta/Yakın İmzası (✓)' },

@@ -1575,6 +1575,11 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         "on_tani": medical_form.get("on_tani", "") or extended_form.get("onTani", "") or case_doc.get("preliminary_diagnosis", ""),
         "aciklamalar": medical_form.get("aciklamalar", "") or extended_form.get("aciklamalar", "") or case_doc.get("notes", ""),
         
+        # Notlar ve medical_form (on_tani ve aciklamalar için fallback)
+        "notes": medical_form.get("notes", "") or case_doc.get("notes", ""),
+        "preliminary_diagnosis": medical_form.get("preliminary_diagnosis", []) or case_doc.get("preliminary_diagnosis", []),
+        "medical_form": medical_form,  # Tüm medical_form'u da aktar
+        
         # Extended form (checkbox'lar için) - tam olarak aktar
         "extended_form": extended_form,
         
@@ -1607,6 +1612,14 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
             "receiver_name": extended_form.get("teslimAlanAdi", ""),
             "receiver_title": extended_form.get("teslimAlanUnvan", ""),
             "patient_name": extended_form.get("hastaYakiniAdi", ""),
+        },
+        
+        # Ekip üyeleri isimleri (PDF için)
+        "team_members": {
+            "doctor_name": assigned_team.get("doctor_name", "") or extended_form.get("hekimAdi", ""),
+            "paramedic_name": assigned_team.get("paramedic_name", "") or assigned_team.get("att_name", "") or extended_form.get("saglikPerAdi", ""),
+            "driver_name": assigned_team.get("driver_name", "") or assigned_team.get("sofor_name", "") or extended_form.get("soforAdi", ""),
+            "hemsire_name": assigned_team.get("hemsire_name", "") or assigned_team.get("nurse_name", ""),
         },
         
         # INLINE CONSENTS - İmza tab'ındaki veriler

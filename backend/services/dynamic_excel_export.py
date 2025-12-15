@@ -69,6 +69,70 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     field_key'e göre vaka verisinden değer çek
     """
     
+    # Helper: Ön tanı (ICD array'den veya string'den)
+    def get_on_tani(d):
+        # Direkt string
+        if d.get('on_tani'):
+            return d.get('on_tani')
+        
+        # preliminary_diagnosis (ICD array) - Frontend bunu kullanıyor
+        prelim = d.get('preliminary_diagnosis', []) or d.get('medical_form', {}).get('preliminary_diagnosis', [])
+        if isinstance(prelim, list) and prelim:
+            # ICD kodlarını birleştir: "J06.9 - Akut üst solunum yolu enfeksiyonu"
+            return ', '.join([f"{p.get('code', '')} - {p.get('name', '')}" for p in prelim if p.get('code')])
+        
+        # extended_form'dan
+        return d.get('extended_form', {}).get('onTani', '') or d.get('extended_form', {}).get('preliminaryDiagnosis', '')
+    
+    # Helper: Açıklamalar
+    def get_aciklamalar(d):
+        return (d.get('aciklamalar', '') or 
+                d.get('notes', '') or 
+                d.get('medical_form', {}).get('notes', '') or 
+                d.get('extended_form', {}).get('aciklamalar', '') or
+                d.get('extended_form', {}).get('generalNotes', ''))
+    
+    # Helper: Nakil Hastanesi (object veya string olabilir)
+    def get_transfer_hospital(d):
+        th = d.get('transfer_hospital', '') or d.get('extended_form', {}).get('transferHospital', '') or d.get('extended_form', {}).get('nakledilenHastane', '')
+        if isinstance(th, dict):
+            # Frontend object olarak kaydediyor: {name, type, province}
+            name = th.get('name', '')
+            province = th.get('province', '')
+            return f"{name}{' (' + province + ')' if province else ''}"
+        return str(th) if th else ''
+    
+    # Helper: KM değerleri
+    def get_start_km(d):
+        return str(
+            d.get('start_km', '') or 
+            d.get('vehicle_info', {}).get('start_km', '') or 
+            d.get('vehicle_info', {}).get('startKm', '') or 
+            d.get('vehicle_info', {}).get('baslangic_km', '') or
+            d.get('extended_form', {}).get('startKm', '') or
+            ''
+        )
+    
+    def get_end_km(d):
+        return str(
+            d.get('end_km', '') or 
+            d.get('vehicle_info', {}).get('end_km', '') or 
+            d.get('vehicle_info', {}).get('endKm', '') or 
+            d.get('vehicle_info', {}).get('bitis_km', '') or
+            d.get('extended_form', {}).get('endKm', '') or
+            ''
+        )
+    
+    def get_total_km(d):
+        start = get_start_km(d)
+        end = get_end_km(d)
+        try:
+            if start and end:
+                return str(int(end) - int(start))
+        except:
+            pass
+        return str(d.get('total_km', '') or d.get('vehicle_info', {}).get('total_km', '') or '')
+    
     # Temel alanlar (case_data'dan doğrudan erişim)
     basic_mappings = {
         'caseNumber': lambda d: d.get('case_number', ''),
@@ -78,15 +142,15 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'vehiclePlate': lambda d: d.get('vehicle_plate', '') or d.get('assigned_team', {}).get('vehicle', ''),
         'stationName': lambda d: d.get('station_name', ''),
         'pickupAddress': lambda d: d.get('location', {}).get('address', ''),
-        'startKm': lambda d: str(d.get('start_km', '') or d.get('vehicle_info', {}).get('start_km', '')),
-        'endKm': lambda d: str(d.get('end_km', '') or d.get('vehicle_info', {}).get('end_km', '')),
-        'totalKm': lambda d: str(d.get('total_km', '') or d.get('vehicle_info', {}).get('total_km', '')),
+        'startKm': get_start_km,
+        'endKm': get_end_km,
+        'totalKm': get_total_km,
         'referringInstitution': lambda d: d.get('referring_institution', ''),
-        # Ön tanı ve açıklama (doğrudan case_data'dan)
-        'on_tani': lambda d: d.get('on_tani', ''),
-        'aciklamalar': lambda d: d.get('aciklamalar', ''),
-        # Nakledilen hastane
-        'transferHospital': lambda d: d.get('transfer_hospital', ''),
+        # Ön tanı ve açıklama - helper fonksiyonlar kullan
+        'on_tani': get_on_tani,
+        'aciklamalar': get_aciklamalar,
+        # Nakledilen hastane - helper fonksiyon kullan
+        'transferHospital': get_transfer_hospital,
         # Ş.İ. Ambulans Ücreti
         'si_ambulans_ucreti': lambda d: '☑' if d.get('extended_form', {}).get('siAmbulansUcreti') else '☐',
     }
@@ -107,11 +171,49 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'returnTime': lambda d: format_time(d.get('time_info', {}).get('stationReturnTime') or d.get('time_info', {}).get('return_time')),
     }
     
+    # Helper: TC Kimlik No - boş değil ve geçerli formatta olmalı
+    def get_patient_tc(d):
+        patient = d.get('patient', {})
+        tc = (patient.get('tc_no') or 
+              patient.get('tcNo') or 
+              patient.get('tc') or 
+              patient.get('tc_kimlik') or
+              d.get('caller', {}).get('tc_no') or
+              d.get('extended_form', {}).get('patientTcNo') or
+              '')
+        # TC numarasını string olarak döndür, boş değilse
+        tc_str = str(tc).strip() if tc else ''
+        # TC numarası 11 haneli olmalı
+        if tc_str and len(tc_str) >= 10:
+            return tc_str
+        return tc_str
+    
+    # Helper: Yaş hesaplama (doğum tarihinden)
+    def get_patient_age(d):
+        patient = d.get('patient', {})
+        age = patient.get('age')
+        if age:
+            return str(age)
+        
+        # Doğum tarihinden hesapla
+        birth_date = patient.get('birth_date') or patient.get('birthDate')
+        if birth_date:
+            try:
+                if isinstance(birth_date, str):
+                    from datetime import datetime
+                    bd = datetime.fromisoformat(birth_date.replace('Z', '+00:00'))
+                    today = datetime.now()
+                    age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+                    return str(age)
+            except:
+                pass
+        return ''
+    
     # Hasta bilgileri (V3 formatı)
     patient_mappings = {
         'patientName': lambda d: f"{d.get('patient', {}).get('name', '')} {d.get('patient', {}).get('surname', '')}".strip(),
-        'patientTcNo': lambda d: str(d.get('patient', {}).get('tc_no', '') or d.get('patient', {}).get('tcNo', '') or d.get('patient', {}).get('tc', '') or ''),
-        'patientAge': lambda d: str(d.get('patient', {}).get('age', '')) if d.get('patient', {}).get('age') else '',
+        'patientTcNo': get_patient_tc,
+        'patientAge': get_patient_age,
         'patientGender': lambda d: d.get('patient', {}).get('gender', ''),
         'patientPhone': lambda d: str(d.get('patient', {}).get('phone', '') or d.get('caller', {}).get('phone', '') or ''),
         'patientAddress': lambda d: d.get('patient', {}).get('address', '') or d.get('location', {}).get('address', ''),
@@ -121,29 +223,42 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('extended_form', {}).get('chronicDiseases', '') or '',
     }
     
+    # Helper: CPR verilerini al
+    def get_cpr_data(d, field):
+        cpr = d.get('cpr_data', {}) or {}
+        extended = d.get('extended_form', {}) or {}
+        
+        field_map = {
+            'start_time': cpr.get('start_time', '') or cpr.get('startTime', '') or extended.get('cprStartTime', ''),
+            'stop_time': cpr.get('stop_time', '') or cpr.get('stopTime', '') or cpr.get('end_time', '') or extended.get('cprStopTime', ''),
+            'stop_reason': cpr.get('stop_reason', '') or cpr.get('stopReason', '') or cpr.get('reason', '') or extended.get('cprStopReason', ''),
+            'performed': cpr.get('performed', False) or cpr.get('yapildi', False) or extended.get('cprYapildi', False),
+            'performer': cpr.get('performer', '') or cpr.get('uygulayan', '') or extended.get('cprUygulayan', ''),
+        }
+        return field_map.get(field, '')
+    
     # Sonuç/Nakil bilgileri
     result_mappings = {
-        'transferHospital': lambda d: d.get('transfer_hospital', '') or d.get('extended_form', {}).get('nakledilenHastane', ''),
-        'transferType': lambda d: d.get('transfer_type', ''),
-        'caseResult': lambda d: d.get('case_result', '') or d.get('status', ''),
-        'isForensic': lambda d: 'Evet' if d.get('is_forensic') else 'Hayır',
-        'priority': lambda d: d.get('priority', ''),
-        # Kazaya karışan araç plakaları
-        'crashVehicle1': lambda d: d.get('extended_form', {}).get('crashVehicles', [''])[0] if d.get('extended_form', {}).get('crashVehicles') else '',
-        'crashVehicle2': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', ''])[1] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 1 else '',
-        'crashVehicle3': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', '', ''])[2] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 2 else '',
-        'crashVehicle4': lambda d: d.get('extended_form', {}).get('crashVehicles', ['', '', '', ''])[3] if len(d.get('extended_form', {}).get('crashVehicles', [])) > 3 else '',
-        # CPR bilgileri - hem cpr_data hem extended_form'dan
-        'cprStartTime': lambda d: format_time(d.get('cpr_data', {}).get('start_time', '') or d.get('extended_form', {}).get('cprStartTime', '')),
-        'cprStopTime': lambda d: format_time(d.get('cpr_data', {}).get('stop_time', '') or d.get('extended_form', {}).get('cprStopTime', '')),
-        'cprStopReason': lambda d: d.get('cpr_data', {}).get('stop_reason', '') or d.get('extended_form', {}).get('cprStopReason', ''),
+        'transferHospital': get_transfer_hospital,  # Yukarıda tanımlandı
+        'transferType': lambda d: d.get('transfer_type', '') or d.get('extended_form', {}).get('transferType', ''),
+        'caseResult': lambda d: d.get('case_result', '') or d.get('extended_form', {}).get('outcome', '') or d.get('status', ''),
+        'isForensic': lambda d: 'Evet' if d.get('is_forensic') or d.get('extended_form', {}).get('isForensic') else 'Hayır',
+        'priority': lambda d: d.get('priority', '') or d.get('triage_code', ''),
+        # Kazaya karışan araç plakaları - accidentVehicles veya crashVehicles
+        'crashVehicle1': lambda d: (d.get('extended_form', {}).get('accidentVehicles', ['']) or d.get('extended_form', {}).get('crashVehicles', ['']))[0] if (d.get('extended_form', {}).get('accidentVehicles') or d.get('extended_form', {}).get('crashVehicles')) else '',
+        'crashVehicle2': lambda d: (d.get('extended_form', {}).get('accidentVehicles', ['', '']) or d.get('extended_form', {}).get('crashVehicles', ['', '']))[1] if len(d.get('extended_form', {}).get('accidentVehicles', []) or d.get('extended_form', {}).get('crashVehicles', [])) > 1 else '',
+        'crashVehicle3': lambda d: (d.get('extended_form', {}).get('accidentVehicles', ['', '', '']) or d.get('extended_form', {}).get('crashVehicles', ['', '', '']))[2] if len(d.get('extended_form', {}).get('accidentVehicles', []) or d.get('extended_form', {}).get('crashVehicles', [])) > 2 else '',
+        'crashVehicle4': lambda d: (d.get('extended_form', {}).get('accidentVehicles', ['', '', '', '']) or d.get('extended_form', {}).get('crashVehicles', ['', '', '', '']))[3] if len(d.get('extended_form', {}).get('accidentVehicles', []) or d.get('extended_form', {}).get('crashVehicles', [])) > 3 else '',
+        # CPR bilgileri
+        'cprStartTime': lambda d: format_time(get_cpr_data(d, 'start_time')),
+        'cprStopTime': lambda d: format_time(get_cpr_data(d, 'stop_time')),
+        'cprStopReason': lambda d: get_cpr_data(d, 'stop_reason'),
+        'cprPerformer': lambda d: get_cpr_data(d, 'performer'),
     }
     
     # CPR checkbox
     if field_key == 'cpr.yapildi':
-        cpr_data = case_data.get('cpr_data', {})
-        extended_form = case_data.get('extended_form', {})
-        return '☑' if cpr_data.get('performed') or extended_form.get('cprYapildi') else '☐'
+        return '☑' if get_cpr_data(case_data, 'performed') else '☐'
     
     # İmza bilgileri
     signature_mappings = {
@@ -168,10 +283,49 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'hizmetReddiImza': lambda d: '✓' if d.get('signatures', {}).get('hizmetReddi', {}).get('signed') else '',
     }
     
-    # Kan şekeri ve ateş
+    # Kan şekeri ve ateş - birden fazla kaynak
+    def get_kan_sekeri(d):
+        clinical = d.get('clinical_observations', {})
+        extended = d.get('extended_form', {})
+        vital_signs = d.get('vital_signs', [])
+        
+        # Öncelik sırası
+        val = (clinical.get('blood_sugar', '') or 
+               clinical.get('bloodSugar', '') or
+               extended.get('bloodSugar', '') or
+               extended.get('kanSekeri', '') or
+               extended.get('blood_sugar', ''))
+        
+        # Vital signs'dan da dene
+        if not val and vital_signs and len(vital_signs) > 0:
+            val = vital_signs[0].get('blood_sugar', '') or vital_signs[0].get('bloodSugar', '')
+        
+        return str(val) if val else ''
+    
+    def get_ates(d):
+        clinical = d.get('clinical_observations', {})
+        extended = d.get('extended_form', {})
+        vital_signs = d.get('vital_signs', [])
+        
+        # Öncelik sırası
+        val = (clinical.get('temperature', '') or 
+               clinical.get('temp', '') or
+               clinical.get('bodyTemp', '') or
+               extended.get('bodyTemp', '') or
+               extended.get('ates', '') or
+               extended.get('temperature', ''))
+        
+        # Vital signs'dan da dene
+        if not val and vital_signs and len(vital_signs) > 0:
+            val = vital_signs[0].get('temp', '') or vital_signs[0].get('temperature', '') or vital_signs[0].get('ates', '')
+        
+        return str(val) if val else ''
+    
     clinical_extra = {
-        'kan_sekeri': lambda d: str(d.get('clinical_observations', {}).get('blood_sugar', '') or d.get('extended_form', {}).get('kanSekeri', '')),
-        'ates': lambda d: str(d.get('clinical_observations', {}).get('temperature', '') or d.get('extended_form', {}).get('ates', '')),
+        'kan_sekeri': get_kan_sekeri,
+        'ates': get_ates,
+        'bloodSugar': get_kan_sekeri,  # Alternatif isim
+        'bodyTemp': get_ates,          # Alternatif isim
     }
     
     # Vital bulgular (dinamik) - Format: vitalTime1, vitalBP1, vitalPulse1, etc.
@@ -278,19 +432,38 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         return '☑' if option_clean in triage_code or triage_code == option_clean else '☐'
     
-    # Çağrı nedeni - extended_form.callReasons object veya string
+    # Çağrı nedeni - extended_form.callReasons object, callReason string, veya callReasonDetail array
     if field_key.startswith('callReason.'):
-        option = field_key.split('.')[1]  # kesici_delici, trafik_kaz, etc.
+        option = field_key.split('.')[1]  # kesici_delici, trafik_kaz, medikal, etc.
         
-        # Object format: {kesici_delici: true, medikal: true}
+        # 1. Object format: {kesici_delici: true, medikal: true}
         call_reasons = extended_form.get('callReasons', {})
-        if isinstance(call_reasons, dict):
-            return '☑' if call_reasons.get(option) else '☐'
+        if isinstance(call_reasons, dict) and call_reasons.get(option):
+            return '☑'
         
-        # String format
+        # 2. callReasonDetail array: ["medikal", "trafik_kazasi"]
+        detail_array = extended_form.get('callReasonDetail', []) or extended_form.get('incidentLocation', [])
+        if isinstance(detail_array, list) and option in detail_array:
+            return '☑'
+        
+        # 3. String format: callReason = "medikal" veya "trafik_kazasi"
         reason = (extended_form.get('callReason', '') or case_data.get('call_reason', '')).lower()
         option_lower = option.lower().replace('_', ' ')
-        return '☑' if option_lower in reason or option in reason else '☐'
+        option_clean = option.lower().replace('_', '')
+        
+        # Trafik kazası özel eşleşmesi
+        if option in ['trafik_kaz', 'trafik_kazasi'] and ('trafik' in reason or 'kaza' in reason):
+            return '☑'
+        
+        # Medikal özel eşleşmesi
+        if option == 'medikal' and ('medikal' in reason or 'tibbi' in reason or reason == 'acil'):
+            return '☑'
+        
+        # Genel eşleşme
+        if option_lower in reason or option_clean in reason.replace(' ', '').replace('_', ''):
+            return '☑'
+        
+        return '☐'
     
     # Pupil - clinical_obs veya extended_form
     if field_key.startswith('pupil.'):
@@ -344,24 +517,74 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         resp_type = str(resp_obj).lower()
         return '☑' if option.lower() in resp_type else '☐'
     
-    # GKS Motor/Verbal/Eye
+    # GKS Motor/Verbal/Eye - Birden fazla format desteği
     if field_key.startswith('gcsMotor.'):
-        gks = case_data.get('clinical_observations', {}).get('gks', {})
-        motor = gks.get('motor', 0)
-        target = int(field_key.split('.')[1])
-        return '☑' if motor == target else '☐'
+        clinical_obs = case_data.get('clinical_observations', {})
+        extended_form = case_data.get('extended_form', {})
+        
+        # Birden fazla kaynaktan al
+        gks = clinical_obs.get('gks', {})
+        motor = gks.get('motor', 0) or gks.get('m', 0)
+        
+        # Alternatif format: motorResponse (frontend'de bu isimle kaydediliyor)
+        if not motor:
+            motor = clinical_obs.get('motorResponse', 0) or extended_form.get('motorResponse', 0)
+        
+        try:
+            motor = int(motor) if motor else 0
+            target = int(field_key.split('.')[1])
+            return '☑' if motor == target else '☐'
+        except:
+            return '☐'
     
     if field_key.startswith('gcsVerbal.'):
-        gks = case_data.get('clinical_observations', {}).get('gks', {})
-        verbal = gks.get('verbal', 0)
-        target = int(field_key.split('.')[1])
-        return '☑' if verbal == target else '☐'
+        clinical_obs = case_data.get('clinical_observations', {})
+        extended_form = case_data.get('extended_form', {})
+        
+        gks = clinical_obs.get('gks', {})
+        verbal = gks.get('verbal', 0) or gks.get('v', 0)
+        
+        # Alternatif format: verbalResponse
+        if not verbal:
+            verbal = clinical_obs.get('verbalResponse', 0) or extended_form.get('verbalResponse', 0)
+        
+        try:
+            verbal = int(verbal) if verbal else 0
+            target = int(field_key.split('.')[1])
+            return '☑' if verbal == target else '☐'
+        except:
+            return '☐'
     
     if field_key.startswith('gcsEye.'):
-        gks = case_data.get('clinical_observations', {}).get('gks', {})
-        eye = gks.get('eye', 0)
-        target = int(field_key.split('.')[1])
-        return '☑' if eye == target else '☐'
+        clinical_obs = case_data.get('clinical_observations', {})
+        extended_form = case_data.get('extended_form', {})
+        
+        gks = clinical_obs.get('gks', {})
+        eye = gks.get('eye', 0) or gks.get('e', 0)
+        
+        # Alternatif format: eyeOpening
+        if not eye:
+            eye = clinical_obs.get('eyeOpening', 0) or extended_form.get('eyeOpening', 0)
+        
+        try:
+            eye = int(eye) if eye else 0
+            target = int(field_key.split('.')[1])
+            return '☑' if eye == target else '☐'
+        except:
+            return '☐'
+    
+    # GKS Toplam
+    if field_key == 'gcsTotal':
+        clinical_obs = case_data.get('clinical_observations', {})
+        extended_form = case_data.get('extended_form', {})
+        
+        gks = clinical_obs.get('gks', {})
+        motor = int(gks.get('motor', 0) or clinical_obs.get('motorResponse', 0) or extended_form.get('motorResponse', 0) or 0)
+        verbal = int(gks.get('verbal', 0) or clinical_obs.get('verbalResponse', 0) or extended_form.get('verbalResponse', 0) or 0)
+        eye = int(gks.get('eye', 0) or clinical_obs.get('eyeOpening', 0) or extended_form.get('eyeOpening', 0) or 0)
+        
+        total = motor + verbal + eye
+        return str(total) if total > 0 else ''
     
     # Sonuç checkboxları - extended_form.outcome'dan al
     if field_key.startswith('outcome.'):
@@ -685,15 +908,36 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         return '☐' if field_type == 'cb' else ''
     
-    # İmzalar (Frontend key'leriyle uyumlu) - inline_consents'dan da al
+    # İmzalar (Frontend key'leriyle uyumlu) - inline_consents, signatures ve assigned_team'den al
     def get_inline_consent(d, key):
         return d.get('inline_consents', {}).get(key, '')
     
+    def get_team_member_name(d, role):
+        """assigned_team'den personel adını al"""
+        assigned_team = d.get('assigned_team', {})
+        team_members = d.get('team_members', {})  # Bazı vakalar bunda tutuyor
+        
+        # Role mapping
+        role_map = {
+            'doctor': ['doctor', 'hekim', 'prm'],
+            'paramedic': ['paramedic', 'saglik_per', 'att', 'hemsire'],
+            'driver': ['driver', 'sofor', 'pilot']
+        }
+        
+        # assigned_team'de isim varsa direkt al
+        for r in role_map.get(role, [role]):
+            if assigned_team.get(f'{r}_name'):
+                return assigned_team.get(f'{r}_name')
+            if team_members.get(f'{r}_name'):
+                return team_members.get(f'{r}_name')
+        
+        return ''
+    
     sig_mappings = {
         # Eski format
-        'sig.hekim_prm_name': lambda d: d.get('signatures', {}).get('doctor_name', '') or get_inline_consent(d, 'doctor_paramedic_name'),
-        'sig.saglik_per_name': lambda d: d.get('signatures', {}).get('paramedic_name', '') or get_inline_consent(d, 'health_personnel_name'),
-        'sig.sofor_name': lambda d: d.get('signatures', {}).get('driver_name', '') or get_inline_consent(d, 'driver_pilot_name'),
+        'sig.hekim_prm_name': lambda d: d.get('signatures', {}).get('doctor_name', '') or get_inline_consent(d, 'doctor_paramedic_name') or get_team_member_name(d, 'doctor'),
+        'sig.saglik_per_name': lambda d: d.get('signatures', {}).get('paramedic_name', '') or get_inline_consent(d, 'health_personnel_name') or get_team_member_name(d, 'paramedic'),
+        'sig.sofor_name': lambda d: d.get('signatures', {}).get('driver_name', '') or get_inline_consent(d, 'driver_pilot_name') or get_team_member_name(d, 'driver'),
         'sig.teslim_adi': lambda d: d.get('signatures', {}).get('receiver_name', '') or get_inline_consent(d, 'receiver_title_name'),
         'sig.teslim_unvan': lambda d: d.get('signatures', {}).get('receiver_title', ''),
         'sig.hasta_adi': lambda d: d.get('signatures', {}).get('patient_name', '') or get_inline_consent(d, 'patient_info_consent_name'),
@@ -703,13 +947,13 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'sig.teslim_alan_unvan': lambda d: d.get('signatures', {}).get('receiver_title', ''),
         'sig.teslim_alan_imza': lambda d: '✓' if get_inline_consent(d, 'receiver_signature') else '',
         
-        'sig.hekim_prm_adi': lambda d: get_inline_consent(d, 'doctor_paramedic_name') or d.get('signatures', {}).get('doctor_name', ''),
+        'sig.hekim_prm_adi': lambda d: get_inline_consent(d, 'doctor_paramedic_name') or d.get('signatures', {}).get('doctor_name', '') or get_team_member_name(d, 'doctor'),
         'sig.hekim_prm_imza': lambda d: '✓' if get_inline_consent(d, 'doctor_paramedic_signature') else '',
         
-        'sig.saglik_per_adi': lambda d: get_inline_consent(d, 'health_personnel_name') or d.get('signatures', {}).get('paramedic_name', ''),
+        'sig.saglik_per_adi': lambda d: get_inline_consent(d, 'health_personnel_name') or d.get('signatures', {}).get('paramedic_name', '') or get_team_member_name(d, 'paramedic'),
         'sig.saglik_per_imza': lambda d: '✓' if get_inline_consent(d, 'health_personnel_signature') else '',
         
-        'sig.sofor_teknisyen_adi': lambda d: get_inline_consent(d, 'driver_pilot_name') or d.get('signatures', {}).get('driver_name', ''),
+        'sig.sofor_teknisyen_adi': lambda d: get_inline_consent(d, 'driver_pilot_name') or d.get('signatures', {}).get('driver_name', '') or get_team_member_name(d, 'driver'),
         'sig.sofor_teknisyen_imza': lambda d: '✓' if get_inline_consent(d, 'driver_pilot_signature') else '',
         
         'sig.hasta_yakin_adi': lambda d: get_inline_consent(d, 'patient_info_consent_name') or d.get('signatures', {}).get('patient_name', ''),
@@ -724,6 +968,11 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'sig.hastane_reddi_imza': lambda d: '✓' if get_inline_consent(d, 'hospital_rejection_doctor_signature') else '',
         'sig.hastane_reddi_neden': lambda d: get_inline_consent(d, 'hospital_rejection_reason'),
         'sig.hastane_reddi_kurum': lambda d: get_inline_consent(d, 'hospital_rejection_institution'),
+        
+        # Ambulans personeli isimleri (PDF'de ayrı hücrelerde)
+        'ambulans_hekim': lambda d: get_inline_consent(d, 'doctor_paramedic_name') or get_team_member_name(d, 'doctor'),
+        'ambulans_saglik_per': lambda d: get_inline_consent(d, 'health_personnel_name') or get_team_member_name(d, 'paramedic'),
+        'ambulans_sofor': lambda d: get_inline_consent(d, 'driver_pilot_name') or get_team_member_name(d, 'driver'),
     }
     
     # Red formları
