@@ -127,15 +127,25 @@ export const AuthProvider = ({ children }) => {
     
     const session = SessionManager.getSession(role);
     if (!session?.token) {
+      console.log(`[Auth] No session found for role: ${role}`);
       setIsSwitchingRole(false);
       throw new Error('Bu rol için oturum bulunamadı');
     }
+    
+    // Debug: session'daki user bilgisini logla
+    console.log(`[Auth] Session found for ${role}:`, {
+      storedUserName: session.user?.name,
+      storedUserId: session.user?.id || session.user?._id,
+      storedUserRole: session.user?.role,
+      tokenPreview: session.token.substring(0, 20) + '...'
+    });
     
     try {
       // Önce mevcut user'ı temizle - temiz geçiş için
       setUser(null);
       
       // Token'ı değiştir
+      console.log(`[Auth] Setting auth token for role: ${role}`);
       setAuthToken(session.token);
       SessionManager.setActiveRole(role);
       
@@ -143,8 +153,23 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', session.token);
       
       // Kullanıcı bilgisini API'den al
+      console.log(`[Auth] Calling authAPI.me() to verify token...`);
       const response = await authAPI.me();
       const userData = response.data;
+      
+      console.log(`[Auth] authAPI.me() returned:`, {
+        id: userData.id || userData._id,
+        name: userData.name,
+        role: userData.role
+      });
+      
+      // Session'daki user ile API'den dönen user karşılaştır
+      const storedUserId = session.user?.id || session.user?._id;
+      const returnedUserId = userData.id || userData._id;
+      if (storedUserId !== returnedUserId) {
+        console.error(`[Auth] USER MISMATCH! Stored: ${storedUserId}, Returned: ${returnedUserId}`);
+        console.error('[Auth] This indicates the wrong token was stored during login!');
+      }
       
       // Session'ı güncelle
       SessionManager.updateUserData(role, userData);

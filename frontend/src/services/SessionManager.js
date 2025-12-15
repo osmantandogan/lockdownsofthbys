@@ -83,6 +83,11 @@ const saveSessions = (sessions) => {
  */
 const addSession = (role, userData, token) => {
   const sessions = getSessions();
+  
+  // Debug: token'ın ilk 20 karakterini logla
+  const tokenPreview = token ? token.substring(0, 20) + '...' : 'null';
+  console.log(`[SessionManager] Adding session for role: ${role}, user: ${userData?.name || userData?.email}, token: ${tokenPreview}`);
+  
   sessions[role] = {
     user: userData,
     token: token,
@@ -90,7 +95,7 @@ const addSession = (role, userData, token) => {
     lastActive: new Date().toISOString()
   };
   saveSessions(sessions);
-  console.log(`[SessionManager] Session added for role: ${role}`);
+  console.log(`[SessionManager] Session saved for role: ${role}`);
   return sessions[role];
 };
 
@@ -133,7 +138,17 @@ const hasSession = (role) => {
  */
 const getSession = (role) => {
   const sessions = getSessions();
-  return sessions[role] || null;
+  const session = sessions[role] || null;
+  
+  // Debug: hangi token alındığını logla
+  if (session?.token) {
+    const tokenPreview = session.token.substring(0, 20) + '...';
+    console.log(`[SessionManager] getSession(${role}): user=${session.user?.name}, token=${tokenPreview}`);
+  } else {
+    console.log(`[SessionManager] getSession(${role}): no session found`);
+  }
+  
+  return session;
 };
 
 /**

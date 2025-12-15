@@ -12,9 +12,12 @@ const TOKEN_KEY = 'healmedy_session_token';
 
 export const setAuthToken = (token) => {
   if (token) {
+    const tokenPreview = token.substring(0, 20) + '...';
+    console.log(`[API] setAuthToken: ${tokenPreview}`);
     localStorage.setItem(TOKEN_KEY, token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
+    console.log('[API] setAuthToken: clearing token');
     localStorage.removeItem(TOKEN_KEY);
     delete api.defaults.headers.common['Authorization'];
   }

@@ -58,11 +58,24 @@ const RoleLoginScreen = () => {
     setLoading(true);
     
     try {
-      // API'ye giriş isteği gönder
+      // Login öncesi mevcut token'ı temizle (interceptor eski token'ı göndermesin)
+      // NOT: Bu sadece header'ı temizler, localStorage'daki diğer oturumları etkilemez
+      const { setAuthToken } = await import('../api');
+      console.log('[RoleLogin] Clearing auth header before login...');
+      setAuthToken(null);
+      
+      // API'ye giriş isteği gönder (temiz header ile)
       const response = await authAPI.login(email, password);
       const { session_token, user } = response.data;
       
-      console.log('[RoleLogin] Login response:', { session_token: !!session_token, user: !!user });
+      // Debug: token ve user bilgilerini logla
+      const tokenPreview = session_token ? session_token.substring(0, 20) + '...' : 'null';
+      console.log('[RoleLogin] Login response:', { 
+        tokenPreview,
+        userId: user?.id || user?._id,
+        userName: user?.name,
+        userRole: user?.role
+      });
       
       // Rol kontrolü - kullanıcının rolü seçilen rol ile eşleşmeli
       if (user.role !== role) {
