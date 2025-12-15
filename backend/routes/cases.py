@@ -1695,6 +1695,38 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
             
             value = get_case_field_value(case_data, field_key)
             
+            # İmza alanı ise ve base64 görüntü varsa, görüntü olarak ekle
+            if '_imza' in field_key or '_signature' in field_key:
+                # inline_consents'tan gerçek imza verisini al
+                sig_key_map = {
+                    'sig.hekim_prm_imza': 'doctor_paramedic_signature',
+                    'sig.saglik_per_imza': 'health_personnel_signature',
+                    'sig.sofor_teknisyen_imza': 'driver_pilot_signature',
+                    'sig.teslim_alan_imza': 'receiver_signature',
+                    'sig.hasta_yakin_imza': 'patient_info_consent_signature',
+                    'sig.hasta_reddi_imza': 'patient_rejection_signature',
+                    'sig.hastane_reddi_imza': 'hospital_rejection_doctor_signature',
+                }
+                
+                inline_key = sig_key_map.get(field_key)
+                if inline_key:
+                    sig_data = case_data.get('inline_consents', {}).get(inline_key)
+                    if sig_data and isinstance(sig_data, str) and sig_data.startswith('data:image'):
+                        try:
+                            # Base64'ü görüntüye çevir
+                            header, encoded = sig_data.split(",", 1)
+                            sig_bytes = base64.b64decode(encoded)
+                            sig_buffer = BytesIO(sig_bytes)
+                            sig_img = XLImage(sig_buffer)
+                            sig_img.width = 80
+                            sig_img.height = 30
+                            ws.add_image(sig_img, cell_address)
+                            continue  # Görüntü eklendi, metin ekleme
+                        except Exception as e:
+                            logger.warning(f"İmza görüntüsü eklenemedi {cell_address}: {e}")
+                            # Fallback: ✓ yaz
+                            value = '✓'
+            
             match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
             if match:
                 try:
@@ -1786,6 +1818,35 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 continue
             
             value = get_case_field_value(case_data, field_key)
+            
+            # İmza alanı ise ve base64 görüntü varsa, görüntü olarak ekle
+            if '_imza' in field_key or '_signature' in field_key:
+                sig_key_map = {
+                    'sig.hekim_prm_imza': 'doctor_paramedic_signature',
+                    'sig.saglik_per_imza': 'health_personnel_signature',
+                    'sig.sofor_teknisyen_imza': 'driver_pilot_signature',
+                    'sig.teslim_alan_imza': 'receiver_signature',
+                    'sig.hasta_yakin_imza': 'patient_info_consent_signature',
+                    'sig.hasta_reddi_imza': 'patient_rejection_signature',
+                    'sig.hastane_reddi_imza': 'hospital_rejection_doctor_signature',
+                }
+                
+                inline_key = sig_key_map.get(field_key)
+                if inline_key:
+                    sig_data = case_data.get('inline_consents', {}).get(inline_key)
+                    if sig_data and isinstance(sig_data, str) and sig_data.startswith('data:image'):
+                        try:
+                            header, encoded = sig_data.split(",", 1)
+                            sig_bytes = base64.b64decode(encoded)
+                            sig_buffer = BytesIO(sig_bytes)
+                            sig_img = XLImage(sig_buffer)
+                            sig_img.width = 80
+                            sig_img.height = 30
+                            ws.add_image(sig_img, cell_address)
+                            continue
+                        except Exception as e:
+                            logger.warning(f"İmza görüntüsü eklenemedi {cell_address}: {e}")
+                            value = '✓'
             
             match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
             if match:
