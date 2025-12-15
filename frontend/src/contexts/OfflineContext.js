@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import NativeBridge from '../native';
 import OfflineStorage from '../services/OfflineStorage';
+import ReferenceDataCache from '../services/ReferenceDataCache';
 import api from '../api';
 import { toast } from 'sonner';
 
@@ -14,12 +15,15 @@ const OfflineContext = createContext(null);
 export const OfflineProvider = ({ children }) => {
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [syncError, setSyncError] = useState(null);
+  const [cacheReady, setCacheReady] = useState(false);
   
   const syncIntervalRef = useRef(null);
   const wasOfflineRef = useRef(false);
+  const initRef = useRef(false);
   
   // Pending item sayısını güncelle
   const updatePendingCount = useCallback(async () => {
@@ -261,20 +265,79 @@ export const OfflineProvider = ({ children }) => {
   
   // Uygulama başladığında referans verileri cache'le
   useEffect(() => {
-    if (isOnline) {
-      // İlk yüklemeden sonra cache'le
-      const timer = setTimeout(cacheReferenceData, 5000);
+    if (isOnline && !initRef.current) {
+      initRef.current = true;
+      setIsInitializing(true);
+      
+      // Kritik verileri cache'le
+      const initializeCache = async () => {
+        console.log('[Offline] Initializing reference data cache...');
+        try {
+          await ReferenceDataCache.initializeCache();
+          setCacheReady(true);
+          console.log('[Offline] Reference data cache initialized');
+        } catch (error) {
+          console.error('[Offline] Cache initialization failed:', error);
+        } finally {
+          setIsInitializing(false);
+        }
+      };
+      
+      // 2 saniye sonra başlat (auth yüklenmesini bekle)
+      const timer = setTimeout(initializeCache, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isOnline, cacheReferenceData]);
+  }, [isOnline]);
+  
+  // Pending vaka oluştur (offline)
+  const createOfflineCase = useCallback(async (caseData) => {
+    try {
+      const id = await OfflineStorage.savePendingCase(caseData);
+      await updatePendingCount();
+      toast.info('Vaka çevrimdışı kaydedildi. İnternet bağlantısı sağlandığında gönderilecek.');
+      return { success: true, id, offline: true };
+    } catch (error) {
+      console.error('[Offline] Failed to save pending case:', error);
+      return { success: false, error: error.message };
+    }
+  }, [updatePendingCount]);
+  
+  // Pending vakaları getir
+  const getPendingCases = useCallback(async () => {
+    return OfflineStorage.getPendingCases();
+  }, []);
+  
+  // Cache istatistikleri
+  const getCacheStats = useCallback(async () => {
+    return OfflineStorage.getCacheStats();
+  }, []);
+  
+  // Cache'i yenile
+  const refreshCache = useCallback(async () => {
+    if (!isOnline) {
+      toast.error('Cache yenilemek için internet bağlantısı gerekli');
+      return false;
+    }
+    
+    try {
+      await ReferenceDataCache.initializeCache(true);
+      toast.success('Referans verileri güncellendi');
+      return true;
+    } catch (error) {
+      toast.error('Cache yenilenemedi');
+      return false;
+    }
+  }, [isOnline]);
   
   const value = {
     // State
     isOnline,
     isSyncing,
+    isInitializing,
     pendingCount,
     lastSyncTime,
     syncError,
+    cacheReady,
     
     // Actions
     syncNow,
@@ -285,6 +348,10 @@ export const OfflineProvider = ({ children }) => {
     getCachedHospitals,
     cacheCase,
     getCachedCase,
+    createOfflineCase,
+    getPendingCases,
+    getCacheStats,
+    refreshCache,
     updatePendingCount
   };
   

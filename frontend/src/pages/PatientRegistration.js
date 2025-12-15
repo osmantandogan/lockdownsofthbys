@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { casesAPI, patientsAPI, firmsAPI, shiftsAPI } from '../api';
+import { casesAPI, patientsAPI, shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -10,8 +10,10 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import { User, MapPin, AlertCircle, Hash, Building2, UserPlus, Stethoscope, Search, Heart, AlertTriangle, Clock, Calendar } from 'lucide-react';
+import { User, MapPin, AlertCircle, Hash, Building2, UserPlus, Stethoscope, Search, Heart, AlertTriangle, Clock, Calendar, WifiOff, Cloud } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOffline } from '../contexts/OfflineContext';
+import ReferenceDataCache from '../services/ReferenceDataCache';
 
 // Türkiye İl/İlçe Verileri
 const TURKEY_PROVINCES = [
@@ -38,10 +40,12 @@ const DISTRICTS_BY_PROVINCE = {
 const PatientRegistration = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOnline, createOfflineCase } = useOffline();
   const [loading, setLoading] = useState(false);
   const [nextCaseNumber, setNextCaseNumber] = useState('');
+  const [firmsFromCache, setFirmsFromCache] = useState(false);
   
-  // Firma sistemi (API'den)
+  // Firma sistemi (Cache/API'den)
   const [firms, setFirms] = useState([]);
   const [companySearch, setCompanySearch] = useState('');
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
@@ -102,11 +106,16 @@ const PatientRegistration = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Firmaları API'den yükle
+  // Firmaları yükle (önce cache, sonra API)
   const loadFirms = async () => {
     try {
-      const response = await firmsAPI.getAll();
-      setFirms(Array.isArray(response.data) ? response.data : []);
+      const result = await ReferenceDataCache.getFirms();
+      setFirms(Array.isArray(result.data) ? result.data : []);
+      setFirmsFromCache(result.fromCache);
+      
+      if (result.fromCache && !isOnline) {
+        console.log('[PatientRegistration] Firmalar cache\'den yüklendi (offline)');
+      }
     } catch (error) {
       console.error('Firmalar yüklenemedi:', error);
       setFirms([]);
@@ -141,7 +150,7 @@ const PatientRegistration = () => {
     }
   };
 
-  // TC arama - debounced
+  // TC arama - debounced (offline destekli)
   useEffect(() => {
     const searchPatients = async () => {
       if (tcSearch.length < 3) {
@@ -152,9 +161,10 @@ const PatientRegistration = () => {
       
       setTcSearching(true);
       try {
-        const response = await patientsAPI.search({ tc_no: tcSearch });
-        setTcSuggestions(response.data.slice(0, 3));
-        setShowTcDropdown(response.data.length > 0);
+        // Offline-first arama
+        const result = await ReferenceDataCache.searchPatients(tcSearch);
+        setTcSuggestions((result.data || []).slice(0, 5));
+        setShowTcDropdown(result.data?.length > 0);
       } catch (error) {
         console.error('TC arama hatası:', error);
         setTcSuggestions([]);
@@ -372,21 +382,48 @@ const PatientRegistration = () => {
         status: 'hasta_alindi'
       };
 
-      const response = await casesAPI.create(caseData);
-      const caseId = response.data.id || response.data._id;
-      const caseNumber = response.data.case_number;
-      
-      if (!caseId) {
-        toast.error('Kayıt oluşturuldu ancak ID alınamadı. Vakalar listesinden erişebilirsiniz.');
-        navigate('/dashboard/cases');
-        return;
+      // Online ise normal kayıt, offline ise yerel kayıt
+      if (isOnline) {
+        const response = await casesAPI.create(caseData);
+        const caseId = response.data.id || response.data._id;
+        const caseNumber = response.data.case_number;
+        
+        if (!caseId) {
+          toast.error('Kayıt oluşturuldu ancak ID alınamadı. Vakalar listesinden erişebilirsiniz.');
+          navigate('/dashboard/cases');
+          return;
+        }
+        
+        toast.success(`Hasta kaydı oluşturuldu: ${caseNumber}`);
+        navigate(`/dashboard/cases/${caseId}`);
+      } else {
+        // Offline kayıt
+        const result = await createOfflineCase(caseData);
+        if (result.success) {
+          toast.info('Hasta kaydı çevrimdışı olarak kaydedildi. İnternet bağlantısı sağlandığında sunucuya gönderilecek.');
+          navigate('/dashboard/cases');
+        } else {
+          toast.error('Çevrimdışı kayıt başarısız: ' + result.error);
+        }
       }
-      
-      toast.success(`Hasta kaydı oluşturuldu: ${caseNumber}`);
-      navigate(`/dashboard/cases/${caseId}`);
       
     } catch (error) {
       console.error('Error creating patient registration:', error);
+      
+      // Online ise normal hata, değilse offline kayıt dene
+      if (!isOnline) {
+        try {
+          const result = await createOfflineCase(caseData);
+          if (result.success) {
+            toast.info('Hasta kaydı çevrimdışı olarak kaydedildi.');
+            navigate('/dashboard/cases');
+            return;
+          }
+        } catch (offlineError) {
+          console.error('Offline save also failed:', offlineError);
+        }
+      }
+      
       const { getErrorMessage } = await import('../utils/formHelpers');
       toast.error(getErrorMessage(error, 'Hasta kaydı oluşturulamadı'));
     } finally {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { settingsAPI, usersAPI, otpAPI, itsAPI } from '../api';
 import { API_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,14 +6,18 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { User, Info, PenTool, Camera, Trash2, Upload, Smartphone, Shield, CheckCircle, RefreshCw, Copy, Eye, EyeOff, Pill, Database, Loader2 } from 'lucide-react';
+import { User, Info, PenTool, Camera, Trash2, Upload, Smartphone, Shield, CheckCircle, RefreshCw, Copy, Eye, EyeOff, Pill, Database, Loader2, CloudOff, WifiOff, HardDrive, Wifi } from 'lucide-react';
 import SignaturePad from '../components/SignaturePad';
 import SecuritySettings from '../components/SecuritySettings';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useOffline } from '../contexts/OfflineContext';
+import ReferenceDataCache from '../services/ReferenceDataCache';
+import OfflineStorage from '../services/OfflineStorage';
 
 const Settings = () => {
   const { user } = useAuth();
+  const { isOnline, pendingCount, syncNow, isSyncing, refreshCache } = useOffline();
   const [profile, setProfile] = useState(null);
   const [systemInfo, setSystemInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +28,10 @@ const Settings = () => {
   });
   const [signature, setSignature] = useState(null);
   const [signatureSaving, setSignatureSaving] = useState(false);
+  
+  // Offline/Cache durumu
+  const [cacheStats, setCacheStats] = useState({});
+  const [cacheLoading, setCacheLoading] = useState(false);
   
   // Profil fotoğrafı
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -49,7 +57,46 @@ const Settings = () => {
 
   useEffect(() => {
     loadData();
+    loadCacheStats();
   }, []);
+  
+  const loadCacheStats = useCallback(async () => {
+    try {
+      const stats = await OfflineStorage.getCacheStats();
+      setCacheStats(stats);
+    } catch (error) {
+      console.error('Cache stats error:', error);
+    }
+  }, []);
+  
+  const handleClearCache = async () => {
+    if (!window.confirm('Tüm çevrimdışı cache verilerini silmek istediğinize emin misiniz?')) {
+      return;
+    }
+    
+    setCacheLoading(true);
+    try {
+      await ReferenceDataCache.clearCache();
+      await loadCacheStats();
+      toast.success('Cache temizlendi');
+    } catch (error) {
+      toast.error('Cache temizlenemedi');
+    } finally {
+      setCacheLoading(false);
+    }
+  };
+  
+  const handleRefreshCache = async () => {
+    setCacheLoading(true);
+    try {
+      await refreshCache();
+      await loadCacheStats();
+    } catch (error) {
+      toast.error('Cache yenilenemedi');
+    } finally {
+      setCacheLoading(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -860,6 +907,125 @@ const Settings = () => {
 
       {/* Güvenlik Ayarları */}
       <SecuritySettings />
+
+      {/* Çevrimdışı/Cache Ayarları */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <HardDrive className="h-5 w-5" />
+            <span>Çevrimdışı Veri Yönetimi</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Bağlantı Durumu */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              {isOnline ? (
+                <Wifi className="h-5 w-5 text-green-600" />
+              ) : (
+                <WifiOff className="h-5 w-5 text-red-600" />
+              )}
+              <div>
+                <p className="font-medium">{isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}</p>
+                <p className="text-sm text-gray-500">
+                  {isOnline ? 'İnternet bağlantısı aktif' : 'Veriler yerel olarak saklanıyor'}
+                </p>
+              </div>
+            </div>
+            {pendingCount > 0 && (
+              <div className="text-right">
+                <p className="text-sm font-medium text-orange-600">{pendingCount} bekleyen veri</p>
+                {isOnline && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={syncNow} 
+                    disabled={isSyncing}
+                    className="mt-1"
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Senkronize ediliyor...' : 'Şimdi Senkronize Et'}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Cache İstatistikleri */}
+          <div>
+            <h4 className="font-medium mb-2">Cache İstatistikleri</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+              <div className="p-2 bg-blue-50 rounded">
+                <p className="text-gray-600">Firmalar</p>
+                <p className="font-semibold">{cacheStats.CACHED_FIRMS || 0}</p>
+              </div>
+              <div className="p-2 bg-green-50 rounded">
+                <p className="text-gray-600">Hastalar</p>
+                <p className="font-semibold">{cacheStats.CACHED_PATIENTS || 0}</p>
+              </div>
+              <div className="p-2 bg-yellow-50 rounded">
+                <p className="text-gray-600">Kullanıcılar</p>
+                <p className="font-semibold">{cacheStats.CACHED_USERS || 0}</p>
+              </div>
+              <div className="p-2 bg-purple-50 rounded">
+                <p className="text-gray-600">Araçlar</p>
+                <p className="font-semibold">{cacheStats.CACHED_VEHICLES || 0}</p>
+              </div>
+              <div className="p-2 bg-red-50 rounded">
+                <p className="text-gray-600">Vakalar</p>
+                <p className="font-semibold">{cacheStats.CACHED_CASES || 0}</p>
+              </div>
+              <div className="p-2 bg-indigo-50 rounded">
+                <p className="text-gray-600">İlaçlar</p>
+                <p className="font-semibold">{cacheStats.CACHED_MEDICATIONS || 0}</p>
+              </div>
+              <div className="p-2 bg-pink-50 rounded">
+                <p className="text-gray-600">Hastaneler</p>
+                <p className="font-semibold">{cacheStats.CACHED_HOSPITALS || 0}</p>
+              </div>
+              <div className="p-2 bg-orange-50 rounded">
+                <p className="text-gray-600">Lokasyonlar</p>
+                <p className="font-semibold">{cacheStats.CACHED_LOCATIONS || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Cache Aksiyonları */}
+          <div className="flex gap-2 pt-2">
+            <Button 
+              onClick={handleRefreshCache} 
+              disabled={cacheLoading || !isOnline}
+              variant="outline"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${cacheLoading ? 'animate-spin' : ''}`} />
+              Cache&apos;i Yenile
+            </Button>
+            <Button 
+              onClick={handleClearCache} 
+              disabled={cacheLoading}
+              variant="outline"
+              className="text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Cache&apos;i Temizle
+            </Button>
+            <Button 
+              onClick={loadCacheStats} 
+              variant="ghost"
+              size="icon"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {!isOnline && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+              <CloudOff className="h-4 w-4 inline mr-1" />
+              Çevrimdışı moddasınız. Veriler otomatik olarak yerel depolamaya kaydediliyor ve internet bağlantısı sağlandığında senkronize edilecek.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* System Info */}
       <Card>

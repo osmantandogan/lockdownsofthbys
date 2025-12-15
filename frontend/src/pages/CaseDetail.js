@@ -35,6 +35,9 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { useAuth } from '../contexts/AuthContext';
+import { useOffline } from '../contexts/OfflineContext';
+import OfflineStorage from '../services/OfflineStorage';
+import ReferenceDataCache from '../services/ReferenceDataCache';
 import VideoCall from '../components/VideoCall';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { generateCaseFormPDF, downloadPDF, openPDFInNewTab } from '../services/pdfService';
@@ -69,11 +72,13 @@ const CaseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOnline, cacheCase } = useOffline();
   const [caseData, setCaseData] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('form');
+  const [isFromCache, setIsFromCache] = useState(false);
   
   // Real-time collaboration
   const [participants, setParticipants] = useState([]);
@@ -560,16 +565,44 @@ const CaseDetail = () => {
 
   const loadData = async () => {
     try {
-      const [caseRes, vehiclesRes, usersRes] = await Promise.all([
-        casesAPI.getById(id),
-        vehiclesAPI.getAll({ status: 'musait' }),
-        usersAPI.getAll()
-      ]);
+      let caseRes, vehiclesData, usersData;
+      
+      if (isOnline) {
+        // Online - API'den yükle
+        const [caseResponse, vehiclesRes, usersRes] = await Promise.all([
+          casesAPI.getById(id),
+          vehiclesAPI.getAll({ status: 'musait' }),
+          usersAPI.getAll()
+        ]);
+        caseRes = { data: caseResponse.data };
+        vehiclesData = vehiclesRes.data || [];
+        usersData = usersRes.data || [];
+        setIsFromCache(false);
+        
+        // Veriyi cache'le
+        await cacheCase(caseRes.data);
+        await OfflineStorage.cacheVehicles(vehiclesData);
+        await OfflineStorage.cacheUsers(usersData);
+      } else {
+        // Offline - cache'den yükle
+        const cachedCase = await OfflineStorage.getCachedCase(id);
+        if (!cachedCase) {
+          toast.error('Bu vaka çevrimdışı cache\'de bulunamadı');
+          navigate('/dashboard/cases');
+          return;
+        }
+        caseRes = { data: cachedCase };
+        vehiclesData = await OfflineStorage.getCachedVehicles();
+        usersData = await OfflineStorage.getCachedUsers();
+        setIsFromCache(true);
+        toast.info('Çevrimdışı mod - Cache\'den gösteriliyor');
+      }
+      
       setCaseData(caseRes.data);
       // Sadece ambulans tipindeki araçları göster
-      const ambulances = (vehiclesRes.data || []).filter(v => v.type === 'ambulans');
+      const ambulances = (vehiclesData || []).filter(v => v.type === 'ambulans');
       setVehicles(ambulances);
-      setUsers(usersRes.data);
+      setUsers(usersData);
       
       // Set patient info for editing
       if (caseRes.data.patient) {
@@ -634,6 +667,29 @@ const CaseDetail = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      
+      // Hata durumunda cache'den yüklemeyi dene
+      try {
+        const cachedCase = await OfflineStorage.getCachedCase(id);
+        if (cachedCase) {
+          setCaseData(cachedCase);
+          setIsFromCache(true);
+          
+          const cachedVehicles = await OfflineStorage.getCachedVehicles();
+          const ambulances = (cachedVehicles || []).filter(v => v.type === 'ambulans');
+          setVehicles(ambulances);
+          
+          const cachedUsers = await OfflineStorage.getCachedUsers();
+          setUsers(cachedUsers || []);
+          
+          toast.info('Bağlantı hatası - Cache\'den gösteriliyor');
+          setLoading(false);
+          return;
+        }
+      } catch (cacheError) {
+        console.error('Cache error:', cacheError);
+      }
+      
       toast.error('Veri yüklenemedi');
     } finally {
       setLoading(false);

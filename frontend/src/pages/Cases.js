@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { casesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -10,15 +10,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X, Truck } from 'lucide-react';
+import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X, Truck, WifiOff, CloudOff, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOffline } from '../contexts/OfflineContext';
+import OfflineStorage from '../services/OfflineStorage';
 
 const Cases = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOnline, getPendingCases, cacheCase, syncNow, pendingCount } = useOffline();
   const [cases, setCases] = useState([]);
+  const [pendingCases, setPendingCases] = useState([]);
+  const [cachedCases, setCachedCases] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('recent'); // 'recent' or 'archive'
+  const [activeTab, setActiveTab] = useState('recent'); // 'recent', 'archive', or 'pending'
   const [archivePage, setArchivePage] = useState(1);
   const [hasMoreArchive, setHasMoreArchive] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
@@ -38,11 +43,31 @@ const Cases = () => {
     has_hospital_transfer: ''
   });
 
+  // Pending ve cached vakaları yükle
+  const loadOfflineCases = useCallback(async () => {
+    try {
+      const pending = await getPendingCases();
+      setPendingCases(pending || []);
+      
+      const cached = await OfflineStorage.getCachedCases();
+      setCachedCases(cached || []);
+    } catch (error) {
+      console.error('Offline vakalar yüklenemedi:', error);
+    }
+  }, [getPendingCases]);
+
   useEffect(() => {
     loadCases();
-  }, [filters, activeTab, archivePage]);
+    loadOfflineCases();
+  }, [filters, activeTab, archivePage, loadOfflineCases]);
 
   const loadCases = async () => {
+    // Pending tab'ında API çağrısı yapma
+    if (activeTab === 'pending') {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       const params = {};
@@ -54,7 +79,7 @@ const Cases = () => {
       if (activeTab === 'recent') {
         // Son 24 saat
         params.last_24h = true;
-      } else {
+      } else if (activeTab === 'archive') {
         // Arşiv - tarih filtresi
         if (filters.start_date) params.start_date = filters.start_date;
         if (filters.end_date) params.end_date = filters.end_date;
@@ -72,9 +97,18 @@ const Cases = () => {
       const response = await casesAPI.getAll(params);
       const newCases = response.data || [];
       
+      // Vakaları cache'le
+      for (const caseItem of newCases.slice(0, 20)) {
+        try {
+          await cacheCase(caseItem);
+        } catch (e) {
+          // Cache hatası görmezden gel
+        }
+      }
+      
       if (activeTab === 'recent') {
         setCases(newCases);
-      } else {
+      } else if (activeTab === 'archive') {
         // Archive - append to existing
         if (archivePage === 1) {
           setCases(newCases);
@@ -85,7 +119,15 @@ const Cases = () => {
       }
     } catch (error) {
       console.error('Error loading cases:', error);
-      toast.error('Vakalar yüklenemedi');
+      
+      // Offline ise cache'den göster
+      if (!isOnline) {
+        const cached = await OfflineStorage.getCachedCases();
+        setCases(cached || []);
+        toast.info('Çevrimdışı mod - Cache\'den gösteriliyor');
+      } else {
+        toast.error('Vakalar yüklenemedi');
+      }
     } finally {
       setLoading(false);
     }
@@ -169,8 +211,22 @@ const Cases = () => {
       }}>
         <TabsList>
           <TabsTrigger value="recent">Son 24 Saat</TabsTrigger>
-          <TabsTrigger value="archive">İleri</TabsTrigger>
+          <TabsTrigger value="archive">Arşiv</TabsTrigger>
+          {pendingCases.length > 0 && (
+            <TabsTrigger value="pending" className="text-orange-600">
+              <WifiOff className="h-4 w-4 mr-1" />
+              Bekleyen ({pendingCases.length})
+            </TabsTrigger>
+          )}
         </TabsList>
+        
+        {/* Offline bilgi barı */}
+        {!isOnline && (
+          <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-800 text-sm">
+            <CloudOff className="h-4 w-4" />
+            <span>Çevrimdışı mod - Cache&apos;den gösteriliyor. {pendingCases.length > 0 && `${pendingCases.length} vaka bekleniyor.`}</span>
+          </div>
+        )}
 
         {/* Filters */}
         <Card className="mt-4">
@@ -521,6 +577,87 @@ const Cases = () => {
                 </div>
               )}
             </>
+          )}
+        </TabsContent>
+
+        {/* Pending Cases Tab */}
+        <TabsContent value="pending" className="mt-4">
+          <Card className="mb-4">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-orange-600">
+                  <WifiOff className="h-5 w-5" />
+                  Bekleyen Vakalar ({pendingCases.length})
+                </CardTitle>
+                {isOnline && pendingCases.length > 0 && (
+                  <Button 
+                    onClick={() => {
+                      syncNow();
+                      toast.info('Senkronizasyon başlatıldı');
+                    }}
+                    size="sm"
+                  >
+                    <Clock className="h-4 w-4 mr-1" />
+                    Şimdi Senkronize Et
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Bu vakalar çevrimdışı iken oluşturuldu. İnternet bağlantısı sağlandığında otomatik olarak sunucuya gönderilecek.
+              </p>
+            </CardContent>
+          </Card>
+
+          {pendingCases.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-gray-500">Bekleyen vaka yok</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {pendingCases.map((pendingCase, index) => (
+                <Card 
+                  key={pendingCase.id || index}
+                  className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <CardContent className="py-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Beklemede
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            {new Date(pendingCase.createdAt).toLocaleString('tr-TR')}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-medium">
+                            {pendingCase.patient?.name} {pendingCase.patient?.surname}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-medium">TC:</span> {pendingCase.patient?.tc_no || 'Belirtilmedi'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-medium">Şikayet:</span> {pendingCase.patient?.complaint || 'Belirtilmedi'}
+                          </p>
+                          {pendingCase.company && (
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Firma:</span> {pendingCase.company}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </TabsContent>
       </Tabs>

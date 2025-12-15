@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
@@ -28,20 +28,38 @@ import {
   ShoppingCart,
   Image,
   MapPin,
-  MessageSquare
+  MessageSquare,
+  ArrowUpCircle,
+  Car,
+  Stethoscope,
+  Heart
 } from 'lucide-react';
-import { useState } from 'react';
 import NotificationDropdown from '../components/NotificationDropdown';
 import OfflineStatusBar from '../components/OfflineStatusBar';
+import SessionManager from '../services/SessionManager';
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isMultiSessionMode, activeRole, returnToMultiLogin, logoutAll } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Çoklu oturum modunda mıyız?
+  const isFieldRole = SessionManager.FIELD_ROLES.includes(user?.role);
+  const showMultiLoginButton = isMultiSessionMode || (isFieldRole && SessionManager.getSessionCount() > 0);
+
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    if (isMultiSessionMode) {
+      await logoutAll();
+      navigate('/multi-login');
+    } else {
+      await logout();
+      navigate('/login');
+    }
+  };
+  
+  const handleReturnToMultiLogin = () => {
+    returnToMultiLogin();
+    navigate('/multi-login');
   };
 
   const menuItems = [
@@ -163,7 +181,45 @@ const DashboardLayout = () => {
           ))}
         </nav>
 
-        <div className="border-t bg-white p-4">
+        <div className="border-t bg-white p-4 space-y-2">
+          {/* Üst Menüye Dön - Çoklu oturum modunda görünür */}
+          {showMultiLoginButton && (
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              onClick={handleReturnToMultiLogin}
+              data-testid="return-multi-login-button"
+            >
+              <ArrowUpCircle className="h-5 w-5 mr-3" />
+              Üst Menüye Dön
+            </Button>
+          )}
+          
+          {/* Aktif oturumlar göstergesi */}
+          {showMultiLoginButton && SessionManager.getSessionCount() > 1 && (
+            <div className="flex items-center justify-center gap-1 py-1">
+              {SessionManager.getLoggedInFieldRoles().map(role => {
+                const isActive = role === (activeRole || user?.role);
+                const roleColors = {
+                  sofor: isActive ? 'bg-blue-500' : 'bg-blue-200',
+                  att: isActive ? 'bg-green-500' : 'bg-green-200',
+                  paramedik: isActive ? 'bg-red-500' : 'bg-red-200'
+                };
+                const RoleIcons = { sofor: Car, att: Stethoscope, paramedik: Heart };
+                const Icon = RoleIcons[role];
+                return (
+                  <div
+                    key={role}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center ${roleColors[role]}`}
+                    title={SessionManager.ROLE_LABELS[role]}
+                  >
+                    {Icon && <Icon className="h-3 w-3 text-white" />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
           <Button
             variant="ghost"
             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -171,7 +227,7 @@ const DashboardLayout = () => {
             data-testid="logout-button"
           >
             <LogOut className="h-5 w-5 mr-3" />
-            Çıkış Yap
+            {isMultiSessionMode ? 'Tüm Oturumlardan Çık' : 'Çıkış Yap'}
           </Button>
         </div>
       </aside>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -6,6 +6,20 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { GPSProvider } from "./contexts/GPSContext";
 import { OfflineProvider } from "./contexts/OfflineContext";
 import { Toaster } from "./components/ui/sonner";
+import { Capacitor } from "@capacitor/core";
+import BackgroundServices from "./services/BackgroundServices";
+
+// Platform kontrolü - Android mi Web mi?
+const isNativeApp = Capacitor.isNativePlatform();
+
+// Android'de arka plan servislerini başlat
+if (isNativeApp) {
+  BackgroundServices.initialize().then(() => {
+    console.log('[App] Background services initialized');
+  }).catch((err) => {
+    console.error('[App] Background services error:', err);
+  });
+}
 
 // Pages
 import Login from "./pages/Login";
@@ -52,6 +66,8 @@ import ExcelOnlineEditor from "./pages/ExcelOnlineEditor";
 import VakaFormMappingEditor from "./pages/VakaFormMappingEditor";
 import FirmManagement from "./pages/FirmManagement";
 import GPSSettings from "./pages/GPSSettings";
+import MultiLoginScreen from "./pages/MultiLoginScreen";
+import RoleLoginScreen from "./pages/RoleLoginScreen";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -99,6 +115,12 @@ function App() {
           <NotificationProvider>
             <BrowserRouter>
         <Routes>
+          {/* Multi Login Screen - Çoklu giriş ana ekranı */}
+          <Route path="/multi-login" element={<MultiLoginScreen />} />
+          
+          {/* Role Login Screen - Rol bazlı giriş */}
+          <Route path="/role-login/:role" element={<RoleLoginScreen />} />
+          
           {/* Public Routes */}
           <Route
             path="/login"
@@ -171,8 +193,8 @@ function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
 
-          {/* Redirect root to login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Redirect root - Android'de multi-login, Web'de login */}
+          <Route path="/" element={<Navigate to={isNativeApp ? "/multi-login" : "/login"} replace />} />
           
           {/* 404 */}
           <Route path="*" element={<Navigate to="/login" replace />} />

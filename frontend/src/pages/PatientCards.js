@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { patientsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -12,14 +12,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { useOffline } from '../contexts/OfflineContext';
+import OfflineStorage from '../services/OfflineStorage';
+import ReferenceDataCache from '../services/ReferenceDataCache';
 import { 
   Search, User, Phone, MapPin, Heart, AlertTriangle, FileText, Plus, 
   Shield, Stethoscope, History, Clock, Trash2, Edit, Eye, Lock,
-  Pill, Activity, UserPlus, AlertCircle, CheckCircle, XCircle
+  Pill, Activity, UserPlus, AlertCircle, CheckCircle, XCircle, WifiOff, CloudOff
 } from 'lucide-react';
 
 const PatientCards = () => {
   const { user } = useAuth();
+  const { isOnline } = useOffline();
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +33,7 @@ const PatientCards = () => {
   const [allPatientsLoading, setAllPatientsLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [stats, setStats] = useState({});
+  const [isFromCache, setIsFromCache] = useState(false);
   
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -84,11 +89,44 @@ const PatientCards = () => {
   const loadAllPatients = async () => {
     setAllPatientsLoading(true);
     try {
-      // Tüm hastaları getir (yetkili roller için)
-      const response = await patientsAPI.search({ all_patients: true, limit: 500 });
-      setAllPatients(response.data || []);
+      if (isOnline) {
+        // Online - API'den getir ve cache'le
+        const response = await patientsAPI.search({ all_patients: true, limit: 500 });
+        const patients = response.data || [];
+        setAllPatients(patients);
+        setIsFromCache(false);
+        
+        // Cache'e kaydet
+        if (patients.length > 0) {
+          await OfflineStorage.cachePatients(patients);
+          console.log('[PatientCards] Hastalar cache\'e kaydedildi:', patients.length);
+        }
+      } else {
+        // Offline - Cache'den getir
+        const cached = await OfflineStorage.getCachedPatients();
+        setAllPatients(cached || []);
+        setIsFromCache(true);
+        
+        if (cached.length > 0) {
+          toast.info('Çevrimdışı mod - Cache\'den gösteriliyor');
+        }
+      }
     } catch (error) {
       console.error('Hastalar yüklenirken hata:', error);
+      
+      // Hata durumunda cache'den dene
+      try {
+        const cached = await OfflineStorage.getCachedPatients();
+        if (cached.length > 0) {
+          setAllPatients(cached);
+          setIsFromCache(true);
+          toast.info('Cache\'den gösteriliyor');
+          return;
+        }
+      } catch (cacheError) {
+        console.error('Cache hatası:', cacheError);
+      }
+      
       toast.error('Hastalar yüklenemedi');
     } finally {
       setAllPatientsLoading(false);
@@ -103,18 +141,57 @@ const PatientCards = () => {
 
     setSearchLoading(true);
     try {
-      const params = {};
-      if (searchType === 'tc') params.tc_no = searchQuery;
-      if (searchType === 'name') params.name = searchQuery;
-      if (searchType === 'phone') params.phone = searchQuery;
+      // Offline-first arama
+      const result = await ReferenceDataCache.searchPatients(searchQuery);
       
-      const response = await patientsAPI.search(params);
-      setSearchResults(response.data);
-      
-      if (response.data.length === 0) {
-        toast.info('Sonuç bulunamadı');
+      if (result.data.length > 0) {
+        setSearchResults(result.data);
+        setIsFromCache(result.fromCache);
+        
+        if (result.fromCache && !isOnline) {
+          toast.info('Cache\'den gösteriliyor (çevrimdışı)');
+        }
+      } else {
+        // Cache'de yoksa ve online ise API'den ara
+        if (isOnline) {
+          const params = {};
+          if (searchType === 'tc') params.tc_no = searchQuery;
+          if (searchType === 'name') params.name = searchQuery;
+          if (searchType === 'phone') params.phone = searchQuery;
+          
+          const response = await patientsAPI.search(params);
+          setSearchResults(response.data);
+          setIsFromCache(false);
+          
+          // Sonuçları cache'le
+          for (const patient of response.data) {
+            await OfflineStorage.cachePatient(patient);
+          }
+          
+          if (response.data.length === 0) {
+            toast.info('Sonuç bulunamadı');
+          }
+        } else {
+          setSearchResults([]);
+          toast.info('Çevrimdışı - Cache\'de sonuç bulunamadı');
+        }
       }
     } catch (error) {
+      console.error('Arama hatası:', error);
+      
+      // Hata durumunda cache'den dene
+      try {
+        const cached = await OfflineStorage.searchPatients(searchQuery);
+        if (cached.length > 0) {
+          setSearchResults(cached);
+          setIsFromCache(true);
+          toast.info('Cache\'den gösteriliyor');
+          return;
+        }
+      } catch (cacheError) {
+        console.error('Cache arama hatası:', cacheError);
+      }
+      
       toast.error('Arama hatası');
     } finally {
       setSearchLoading(false);
@@ -130,14 +207,44 @@ const PatientCards = () => {
 
     setLoading(true);
     try {
-      const response = await patientsAPI.getById(patient.id);
-      setSelectedPatient(response.data);
-      setDetailDialogOpen(true);
+      if (isOnline) {
+        const response = await patientsAPI.getById(patient.id);
+        setSelectedPatient(response.data);
+        setDetailDialogOpen(true);
+        
+        // Cache'e kaydet
+        await OfflineStorage.cachePatient(response.data);
+      } else {
+        // Offline - cache'den getir veya mevcut veriyi kullan
+        const cached = await OfflineStorage.getCachedPatientByTc(patient.tc_no);
+        if (cached) {
+          setSelectedPatient(cached);
+          setDetailDialogOpen(true);
+          toast.info('Çevrimdışı - Cache\'den gösteriliyor');
+        } else {
+          // Cache'de detay yok, mevcut veriyi göster
+          setSelectedPatient(patient);
+          setDetailDialogOpen(true);
+          toast.warning('Çevrimdışı - Sınırlı bilgi gösteriliyor');
+        }
+      }
     } catch (error) {
       if (error.response?.status === 403) {
         setSelectedPatient(patient);
         setAccessDialogOpen(true);
       } else {
+        // Hata durumunda cache'den dene
+        try {
+          const cached = await OfflineStorage.getCachedPatientByTc(patient.tc_no);
+          if (cached) {
+            setSelectedPatient(cached);
+            setDetailDialogOpen(true);
+            toast.info('Cache\'den gösteriliyor');
+            return;
+          }
+        } catch (cacheError) {
+          console.error('Cache hatası:', cacheError);
+        }
         toast.error('Hasta kartı yüklenemedi');
       }
     } finally {

@@ -38,7 +38,14 @@
     },
     "Geolocation": {
       "timeout": 30000,
-      "enableHighAccuracy": true
+      "enableHighAccuracy": true,
+      "maximumAge": 10000
+    },
+    "BackgroundRunner": {
+      "label": "com.healmedy.ambulans.gps",
+      "src": "background.js",
+      "autoStart": true,
+      "event": "gpsUpdate"
     }
   },
   "android": {
