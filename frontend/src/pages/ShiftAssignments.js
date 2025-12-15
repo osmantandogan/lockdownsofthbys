@@ -35,6 +35,10 @@ const ShiftAssignments = () => {
   const [excelUploading, setExcelUploading] = useState(false);
   const [excelResults, setExcelResults] = useState(null);
   
+  // Toplu silme
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+  
   // Onaylar için state'ler
   const [startApprovals, setStartApprovals] = useState([]);
   const [endApprovals, setEndApprovals] = useState([]);
@@ -208,6 +212,29 @@ const ShiftAssignments = () => {
     finally { setExcelUploading(false); }
   };
 
+  // Toplu silme
+  const handleDeleteAll = async () => {
+    setDeleteAllLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/shifts/assignments/delete-all`, { 
+        method: 'DELETE', 
+        credentials: 'include' 
+      });
+      const result = await response.json();
+      if (response.ok) {
+        toast.success(`${result.deleted} vardiya silindi`);
+        setAssignments([]);
+        setDeleteAllDialogOpen(false);
+      } else {
+        toast.error(result.detail || 'Silme işlemi başarısız');
+      }
+    } catch (error) {
+      toast.error('Silme işlemi sırasında hata oluştu');
+    } finally {
+      setDeleteAllLoading(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!formData.user_id) { toast.error('Kullanıcı seçin'); return; }
     if (formData.location_type === 'arac' && !formData.vehicle_id) { toast.error('Araç seçin'); return; }
@@ -285,6 +312,22 @@ const ShiftAssignments = () => {
           <p className="text-gray-500 text-sm">Atamalar ve onaylar</p>
         </div>
         <div className="flex gap-2">
+          <Dialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+            <DialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" />Tümünü Sil</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>⚠️ Tüm Vardiyaları Sil</DialogTitle></DialogHeader>
+              <div className="py-4">
+                <p className="text-red-600 font-medium mb-4">Bu işlem geri alınamaz!</p>
+                <p className="text-gray-600">Sistemdeki TÜM vardiya atamalarını silmek istediğinizden emin misiniz?</p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDeleteAllDialogOpen(false)}>İptal</Button>
+                <Button variant="destructive" onClick={handleDeleteAll} disabled={deleteAllLoading}>
+                  {deleteAllLoading ? 'Siliniyor...' : 'Evet, Tümünü Sil'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Dialog open={excelDialogOpen} onOpenChange={setExcelDialogOpen}>
             <DialogTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button></DialogTrigger>
             <DialogContent className="max-w-lg">

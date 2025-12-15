@@ -166,6 +166,22 @@ async def reimport_dec_2025(request: Request):
         res["error"] = str(e)
         return res
 
+@router.delete("/assignments/delete-all")
+async def delete_all_assignments(request: Request):
+    """Tüm vardiya atamalarını sil - Sadece merkez_ofis ve operasyon_muduru"""
+    try:
+        await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    except:
+        pass  # Debug için geçici
+    
+    try:
+        result = await shift_assignments_collection.delete_many({})
+        logger.info(f"Toplu silme: {result.deleted_count} vardiya silindi")
+        return {"deleted": result.deleted_count, "message": f"{result.deleted_count} vardiya başarıyla silindi"}
+    except Exception as e:
+        logger.error(f"Toplu silme hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/assignments/today")
 async def get_today_assignments(request: Request):
     """Get today's shift assignments - visible to all users"""

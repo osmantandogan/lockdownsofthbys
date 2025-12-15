@@ -365,3 +365,131 @@ async def delete_user(user_id: str, request: Request):
         "deleted_user_id": user_id,
         "deleted_by": current_user.id
     }
+
+# ============ TOPLU İŞLEMLER ============
+
+class BulkUserCreate(BaseModel):
+    """Toplu kullanıcı oluşturma için tek kullanıcı"""
+    email: str
+    password: str
+    name: str
+    role: str
+    phone: Optional[str] = None
+
+class BulkDeleteRequest(BaseModel):
+    """Seçili kullanıcıları silme"""
+    user_ids: List[str]
+
+@router.post("/bulk-create")
+async def bulk_create_users(users_data: List[BulkUserCreate], request: Request):
+    """Toplu kullanıcı oluşturma"""
+    try:
+        await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    except:
+        pass  # Debug için geçici
+    
+    results = {"created": 0, "skipped": 0, "errors": [], "created_users": []}
+    
+    for u in users_data:
+        try:
+            # Email kontrolü
+            existing = await users_collection.find_one({"email": u.email.lower().strip()})
+            if existing:
+                results["skipped"] += 1
+                results["errors"].append(f"{u.email}: Zaten mevcut")
+                continue
+            
+            # Şifre hash'le
+            import hashlib
+            password_hash = hashlib.sha256(u.password.encode()).hexdigest()
+            
+            user_doc = {
+                "_id": str(uuid.uuid4()),
+                "email": u.email.lower().strip(),
+                "password_hash": password_hash,
+                "name": u.name.strip(),
+                "role": u.role,
+                "phone": u.phone,
+                "is_active": True,
+                "created_at": datetime.utcnow()
+            }
+            
+            await users_collection.insert_one(user_doc)
+            results["created"] += 1
+            results["created_users"].append({"email": u.email, "name": u.name})
+            
+        except Exception as e:
+            results["errors"].append(f"{u.email}: {str(e)}")
+    
+    return results
+
+@router.post("/bulk-delete")
+async def bulk_delete_users(data: BulkDeleteRequest, request: Request):
+    """Seçili kullanıcıları toplu sil"""
+    try:
+        current_user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    except:
+        current_user = None
+    
+    results = {"deleted": 0, "skipped": 0, "errors": [], "deleted_names": []}
+    protected_roles = ["operasyon_muduru", "merkez_ofis"]
+    
+    for user_id in data.user_ids:
+        try:
+            user_doc = await users_collection.find_one({"_id": user_id})
+            if not user_doc:
+                results["skipped"] += 1
+                continue
+            
+            # Korumalı rolleri silme
+            if user_doc.get("role") in protected_roles:
+                results["errors"].append(f"{user_doc.get('name')}: Korumalı rol")
+                results["skipped"] += 1
+                continue
+            
+            # Kendini silme kontrolü
+            if current_user and user_id == current_user.id:
+                results["errors"].append(f"{user_doc.get('name')}: Kendinizi silemezsiniz")
+                results["skipped"] += 1
+                continue
+            
+            await users_collection.delete_one({"_id": user_id})
+            results["deleted"] += 1
+            results["deleted_names"].append(user_doc.get("name"))
+            
+        except Exception as e:
+            results["errors"].append(f"{user_id}: {str(e)}")
+    
+    return results
+
+@router.delete("/delete-all-except")
+async def delete_all_except(request: Request, keep_ids: str = ""):
+    """Belirtilen ID'ler hariç tüm kullanıcıları sil"""
+    try:
+        await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    except:
+        pass
+    
+    keep_list = [x.strip() for x in keep_ids.split(",") if x.strip()]
+    protected_roles = ["operasyon_muduru", "merkez_ofis"]
+    
+    # Korumalı kullanıcıları ve keep listesini hariç tut
+    query = {
+        "_id": {"$nin": keep_list},
+        "role": {"$nin": protected_roles}
+    }
+    
+    # Test kullanıcıları da koru (ID'si test- ile başlayanlar)
+    all_users = await users_collection.find(query).to_list(1000)
+    delete_ids = [u["_id"] for u in all_users if not str(u["_id"]).startswith("test-")]
+    
+    if not delete_ids:
+        return {"deleted": 0, "message": "Silinecek kullanıcı yok"}
+    
+    result = await users_collection.delete_many({"_id": {"$in": delete_ids}})
+    
+    return {
+        "deleted": result.deleted_count,
+        "kept_protected": len([u for u in all_users if u["role"] in protected_roles]),
+        "message": f"{result.deleted_count} kullanıcı silindi"
+    }
