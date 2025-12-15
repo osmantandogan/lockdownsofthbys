@@ -60,7 +60,9 @@ const RoleLoginScreen = () => {
     try {
       // API'ye giriş isteği gönder
       const response = await authAPI.login(email, password);
-      const { token, user } = response.data;
+      const { session_token, user } = response.data;
+      
+      console.log('[RoleLogin] Login response:', { session_token: !!session_token, user: !!user });
       
       // Rol kontrolü - kullanıcının rolü seçilen rol ile eşleşmeli
       if (user.role !== role) {
@@ -70,17 +72,21 @@ const RoleLoginScreen = () => {
       }
       
       // Oturumu SessionManager'a kaydet
-      SessionManager.addSession(role, user, token);
+      SessionManager.addSession(role, user, session_token);
       
       // Aktif rolü ayarla
       SessionManager.setActiveRole(role);
       
       // localStorage'a da kaydet (eski sistem uyumluluğu için)
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', session_token);
       localStorage.setItem('user', JSON.stringify(user));
       
+      console.log('[RoleLogin] Session saved, navigating to dashboard...');
+      
       toast.success(`${roleInfo.label} olarak giriş yapıldı`);
-      navigate('/dashboard');
+      
+      // Sayfa yenileyerek AuthContext'in yeni oturumu algılamasını sağla
+      window.location.href = '/dashboard';
       
     } catch (err) {
       console.error('Login error:', err);
