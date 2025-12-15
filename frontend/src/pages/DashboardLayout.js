@@ -60,11 +60,12 @@ const DashboardLayout = () => {
   const handleReturnToMultiLogin = () => {
     // Aktif rolü temizle ama oturumları silme
     SessionManager.clearActiveRole();
+    returnToMultiLogin();
     
     console.log('[Dashboard] Returning to multi-login screen');
     
-    // Tam sayfa yenilemesi ile AuthContext'in resetlenmesini sağla
-    window.location.href = '/multi-login';
+    // Navigate ile multi-login'e git (sayfa yenilemesi yapmadan)
+    navigate('/multi-login');
   };
 
   const menuItems = [

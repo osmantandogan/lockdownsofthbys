@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import SignaturePad from '../SignaturePad';
-import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import PDFExportButton from '../PDFExportButton';
-import { exportConsentForm } from '../../utils/pdfExport';
+import { AlertTriangle, CheckCircle, FileText, Shield } from 'lucide-react';
+import { casesAPI } from '../../api';
 
-const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, caseNumber = null, patientName: defaultPatientName = '' }) => {
+const KVKKConsentForm = ({ 
+  readOnly = false, 
+  initialData = {}, 
+  caseId = null, 
+  caseData = null,
+  patientInfo = null,
+  patientSignature = null,
+  caseNumber = null, 
+  patientName: defaultPatientName = '',
+  onSave,
+  onClose
+}) => {
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   const [formData, setFormData] = useState({
     patientName: initialData.patientName || defaultPatientName || '',
+    patientTc: initialData.patientTc || '',
     informed: initialData.informed || '',
     consent: initialData.consent || '',
     approvedRelatives: initialData.approvedRelatives || '',
@@ -23,22 +40,79 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
     signature: initialData.signature || null
   });
 
-  const [saving, setSaving] = useState(false);
-  
-  // caseId prop'u varsa form kaydetme fonksiyonuna ekle
-  const extraSaveData = caseId ? { caseId, caseNumber } : {};
+  // Hasta bilgilerini otomatik doldur
+  useEffect(() => {
+    if (patientInfo) {
+      const fullName = `${patientInfo.name || ''} ${patientInfo.surname || ''}`.trim();
+      setFormData(prev => ({
+        ...prev,
+        patientName: fullName || prev.patientName,
+        patientTc: patientInfo.tc_no || patientInfo.tcNo || prev.patientTc,
+        signatoryName: fullName || prev.signatoryName,
+      }));
+    }
+  }, [patientInfo]);
+
+  // Onay dialog'unu göster
+  const handleRequestConsent = () => {
+    if (!formData.patientName) {
+      toast.error('Hasta adı gereklidir');
+      return;
+    }
+    setShowConsentDialog(true);
+  };
+
+  // Onay kabul edildiğinde
+  const handleAcceptConsent = () => {
+    setConsentAccepted(true);
+    setFormData(prev => ({ ...prev, informed: 'informed', consent: 'consent' }));
+    setShowConsentDialog(false);
+    toast.success('KVKK onamı kabul edildi');
+  };
 
   const handleSave = async () => {
     if (readOnly) return;
+    
+    if (!consentAccepted) {
+      toast.error('Lütfen önce KVKK onamını kabul edin');
+      handleRequestConsent();
+      return;
+    }
+
+    if (!patientSignature && !formData.signature) {
+      toast.error('Hasta imzası gereklidir');
+      return;
+    }
+
     setSaving(true);
-    const saveFunc = handleFormSave('kvkk', { ...formData, ...extraSaveData }, {
-      validateFields: ['patientName'],
-      validateSignature: true,
-      onSuccess: handleClear,
-      extraData: { caseId, patientName: formData.patientName }
-    });
-    await saveFunc();
-    setSaving(false);
+    try {
+      const saveData = {
+        ...formData,
+        formType: 'kvkk',
+        signature: patientSignature || formData.signature,
+        caseId: caseId,
+        caseNumber: caseNumber,
+        savedAt: new Date().toISOString(),
+        consentAcceptedAt: new Date().toISOString()
+      };
+
+      if (caseId) {
+        await casesAPI.updateMedicalForm(caseId, {
+          consent_forms: {
+            kvkk: saveData
+          }
+        });
+      }
+
+      toast.success('KVKK onam formu kaydedildi');
+      if (onSave) onSave(saveData);
+      if (onClose) onClose();
+    } catch (error) {
+      console.error('Form kaydetme hatası:', error);
+      toast.error('Form kaydedilemedi');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePrint = () => {
@@ -50,6 +124,7 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
     if (confirm('Formu temizlemek istediğinizden emin misiniz?')) {
       setFormData({
         patientName: defaultPatientName || '',
+        patientTc: '',
         informed: '',
         consent: '',
         approvedRelatives: '',
@@ -58,15 +133,69 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
         signDate: new Date().toISOString().split('T')[0],
         signature: null
       });
+      setConsentAccepted(false);
     }
   };
 
   return (
     <div className="space-y-6 pb-6">
+      {/* Onay Dialog'u */}
+      <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-600">
+              <Shield className="h-5 w-5" />
+              KVKK Onam Onayı
+            </DialogTitle>
+            <DialogDescription className="pt-4 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="font-semibold text-blue-800 mb-2">Sayın {formData.patientName || 'Hasta'},</p>
+                <p className="text-blue-700 text-sm">
+                  6698 Sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel verilerinizin 
+                  işlenmesi hakkında bilgilendirildiniz.
+                </p>
+              </div>
+              
+              <div className="text-sm space-y-2 bg-gray-50 p-4 rounded-lg">
+                <p className="font-medium">Bu formu kabul ettiğinizde:</p>
+                <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                  <li>Kişisel verilerinizin nasıl işleneceği hakkında bilgilendirildiğinizi,</li>
+                  <li>Verilerinizin hangi amaçlarla kullanılacağını anladığınızı,</li>
+                  <li>KVKK kapsamındaki haklarınızı öğrendiğinizi,</li>
+                  <li>Pazarlama faaliyetleri için onay verip vermediğinizi beyan etmiş olursunuz.</li>
+                </ul>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+                <p className="text-amber-700">
+                  <strong>Yasal Bilgi:</strong> KVKK kapsamında istediğiniz zaman verilerinizin 
+                  silinmesini veya düzeltilmesini talep edebilirsiniz.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowConsentDialog(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleAcceptConsent} className="bg-blue-600 hover:bg-blue-700">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Okudum ve Kabul Ediyorum
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="text-center space-y-2 border-b pb-4">
         <h1 className="text-2xl font-bold">KİŞİSEL VERİLERİN KORUNMASI HAKKINDA</h1>
         <h1 className="text-2xl font-bold">BİLGİLENDİRİLMİŞ ONAM FORMU</h1>
+        {consentAccepted && (
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+            <CheckCircle className="h-4 w-4" />
+            KVKK Onamı Kabul Edildi
+          </div>
+        )}
       </div>
 
       {/* Introduction */}
@@ -89,16 +218,33 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
       {/* Hasta Bilgileri */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Hasta Bilgileri</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Hasta Bilgileri
+            {patientInfo && <span className="text-xs text-green-600 font-normal">(Otomatik dolduruldu)</span>}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Hasta Adı</Label>
-            <Input
-              value={formData.patientName}
-              onChange={(e) => setFormData({...formData, patientName: e.target.value})}
-              placeholder="Hasta adı soyadı"
-            />
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Hasta Adı Soyadı</Label>
+              <Input
+                value={formData.patientName}
+                onChange={(e) => setFormData({...formData, patientName: e.target.value})}
+                placeholder="Hasta adı soyadı"
+                className={patientInfo?.name ? 'bg-green-50 border-green-300' : ''}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>TC Kimlik No</Label>
+              <Input
+                value={formData.patientTc}
+                onChange={(e) => setFormData({...formData, patientTc: e.target.value})}
+                placeholder="11111111111"
+                maxLength={11}
+                className={patientInfo?.tc_no ? 'bg-green-50 border-green-300' : ''}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -182,63 +328,33 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
         </CardContent>
       </Card>
 
-      {/* Bilgilendirme Onayı */}
+      {/* Onam Beyanı */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Bilgilendirme Beyanı</CardTitle>
+          <CardTitle className="text-sm">Onam Beyanı</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-justify">
-            "Kişisel Verilerin Korunması Hakkında Aydınlatılmış Onam Formunda" yer alan bilgi ve açıklamaların Veri Sorumlusunca tarafıma doğru ve anlaşılır biçimde:
-          </p>
-          <RadioGroup value={formData.informed} onValueChange={(v) => setFormData({...formData, informed: v})}>
-            <div className="flex space-x-6">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="informed" id="informed-yes" />
-                <Label htmlFor="informed-yes" className="font-normal cursor-pointer">Anlatıldığını</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="not-informed" id="informed-no" />
-                <Label htmlFor="informed-no" className="font-normal cursor-pointer">Anlatılmadığını</Label>
+          {!consentAccepted ? (
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+              <p className="text-blue-700 text-sm mb-3">
+                KVKK onamını kabul etmek için aşağıdaki butona tıklayınız.
+              </p>
+              <Button onClick={handleRequestConsent} className="bg-blue-600 hover:bg-blue-700">
+                <Shield className="h-4 w-4 mr-2" />
+                KVKK Onamını Oku ve Kabul Et
+              </Button>
+            </div>
+          ) : (
+            <div className="bg-blue-50 p-4 rounded flex items-center gap-3">
+              <CheckCircle className="h-6 w-6 text-blue-600" />
+              <div>
+                <p className="font-medium text-blue-700">KVKK Onamı Kabul Edildi</p>
+                <p className="text-sm text-blue-600">
+                  Kişisel verilerinizin işlenmesi hakkında bilgilendirildiniz.
+                </p>
               </div>
             </div>
-          </RadioGroup>
-          <p className="text-sm">Beyan eder ve bana/vesi/vasisi bulunduğum</p>
-          <Input
-            value={formData.patientName}
-            onChange={(e) => setFormData({...formData, patientName: e.target.value})}
-            placeholder="Hasta/veli adı"
-            className="max-w-md"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Pazarlama Onayı */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Pazarlama Faaliyetleri Onayı</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-justify">
-            'ya ait kişisel verilerin, ben Aksini bildirmedikçe MHACARE Sağlık tarafından her türlü pazarlama faaliyetleri, bilgilendirmeler, tanıtımlar, anketler, açılış, davet, etkinlik ve iletişim çalışmaları uygulamalarında kullanılmasına, saklanmasına ve bu uygulamalar ile ilgili olarak tarafıma ve/veya adına işlem gerçekleştirdiğim temsilcisi bulunduğum kişilere MHACARE Sağlık tarafından SMS, E-posta, posta, telefon ve her türlü iletişim yolu ile ulaşılmasına hiç bir baskı altında kalmaksızın açıkça:
-          </p>
-          <RadioGroup value={formData.consent} onValueChange={(v) => setFormData({...formData, consent: v})}>
-            <div className="flex space-x-6">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="consent" id="consent-yes" />
-                <Label htmlFor="consent-yes" className="font-normal cursor-pointer">Onay verdiğimi</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="no-consent" id="consent-no" />
-                <Label htmlFor="consent-no" className="font-normal cursor-pointer">Onay vermediğimi</Label>
-              </div>
-            </div>
-          </RadioGroup>
-          <p className="text-sm">Beyan Ederim</p>
-          <div className="bg-yellow-50 p-3 rounded text-xs space-y-1">
-            <p>* <strong>Onay verdiğimi</strong> kutusunun işaretlenmesi halinde anılan maddeye rıza gösterildiği anlamına gelmektedir.</p>
-            <p>* <strong>Onay vermediğimi</strong> kutusunun işaretlenmesi halinde anılan maddeye rıza gösterilmediği anlamına gelmektedir.</p>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -282,6 +398,7 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
                 value={formData.signatoryName}
                 onChange={(e) => setFormData({...formData, signatoryName: e.target.value})}
                 placeholder="Adı Soyadı"
+                className={patientInfo?.name ? 'bg-green-50 border-green-300' : ''}
               />
             </div>
             <div className="space-y-2">
@@ -293,17 +410,31 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
               />
             </div>
           </div>
-          <SignaturePad
-            label="İmza"
-            onSignature={(sig) => setFormData({...formData, signature: sig})}
-            required
-          />
+          
+          {patientSignature ? (
+            <div className="space-y-2">
+              <Label>İmza (Otomatik Alındı)</Label>
+              <div className="border-2 border-blue-500 bg-blue-50 rounded-lg p-2">
+                <img src={patientSignature} alt="Hasta İmzası" className="w-full h-24 object-contain" />
+                <p className="text-xs text-blue-600 text-center mt-1">✓ İmza alındı</p>
+              </div>
+            </div>
+          ) : (
+            <SignaturePad
+              label="İmza"
+              onSignature={(sig) => setFormData({...formData, signature: sig})}
+              required
+            />
+          )}
         </CardContent>
       </Card>
 
-      {/* Action Buttons - sadece readOnly değilse göster */}
+      {/* Action Buttons */}
       {!readOnly && (
         <div className="flex justify-end space-x-2 pt-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            ✕ Kapat
+          </Button>
           <Button variant="outline" onClick={handleClear}>
             🗑 Temizle
           </Button>
@@ -311,11 +442,7 @@ const KVKKConsentForm = ({ readOnly = false, initialData = {}, caseId = null, ca
             formType="kvkk"
             formData={formData}
             extraData={{
-              consentText: `6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, kişisel verilerimin işlenmesi hakkında aydınlatıldım. 
-              
-Sağlık hizmeti sunumu, tedavi planlaması ve takibi amacıyla özel nitelikli kişisel verilerim dahil tüm kişisel verilerimin toplanmasına, işlenmesine, saklanmasına ve gerekli durumlarda yetkili kişi, kurum ve kuruluşlarla paylaşılmasına açık rıza veriyorum.
-
-Bu onam formu kapsamında verilerimin işlenmesine ilişkin haklarım hakkında bilgilendirildim ve bu hakları kullanma yollarını öğrendim.`
+              consentText: `6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, kişisel verilerimin işlenmesi hakkında aydınlatıldım.`
             }}
             filename={`kvkk_onam_${formData.patientName || 'form'}`}
             variant="outline"
@@ -325,7 +452,7 @@ Bu onam formu kapsamında verilerimin işlenmesine ilişkin haklarım hakkında 
           <Button variant="outline" onClick={handlePrint}>
             🖨 Yazdır
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !consentAccepted}>
             {saving ? 'Kaydediliyor...' : '✓ Kaydet'}
           </Button>
         </div>

@@ -9,8 +9,10 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Car, Stethoscope, Heart, Building2, CheckCircle, LogIn, User } from 'lucide-react';
+import { Car, Stethoscope, Heart, Building2, CheckCircle, LogIn, User, Loader2 } from 'lucide-react';
 import SessionManager from '../services/SessionManager';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 // Rol ikonları
 const RoleIcon = ({ role, className }) => {
@@ -25,7 +27,9 @@ const RoleIcon = ({ role, className }) => {
 
 const MultiLoginScreen = () => {
   const navigate = useNavigate();
+  const { switchRole } = useAuth();
   const [fieldRolesStatus, setFieldRolesStatus] = useState([]);
+  const [switchingRole, setSwitchingRole] = useState(null);
   
   useEffect(() => {
     // Rol durumlarını yükle
@@ -38,24 +42,28 @@ const MultiLoginScreen = () => {
   };
   
   // Rol kartına tıklandığında
-  const handleRoleClick = (role) => {
+  const handleRoleClick = async (role) => {
     const roleInfo = SessionManager.getRoleInfo(role);
     
     if (roleInfo.hasSession) {
-      // Oturum varsa aktif rolü değiştir ve dashboard'a git
-      SessionManager.setActiveRole(role);
+      // Oturum varsa AuthContext.switchRole ile rol değiştir
+      setSwitchingRole(role);
       
-      // Token'ı da localStorage'a set et (AuthContext okuyabilsin)
-      const session = SessionManager.getSession(role);
-      if (session?.token) {
-        localStorage.setItem('token', session.token);
-        localStorage.setItem('user', JSON.stringify(session.user));
+      try {
+        console.log('[MultiLogin] Switching to role:', role);
+        await switchRole(role);
+        toast.success(`${roleInfo.label} olarak devam ediliyor`);
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('[MultiLogin] Switch role error:', error);
+        toast.error('Rol değiştirilemedi, lütfen tekrar giriş yapın');
+        // Oturum geçersiz, login ekranına yönlendir
+        SessionManager.removeSession(role);
+        loadRolesStatus();
+        navigate(`/role-login/${role}`);
+      } finally {
+        setSwitchingRole(null);
       }
-      
-      console.log('[MultiLogin] Switching to role:', role);
-      
-      // Tam sayfa yenilemesi ile AuthContext'in yeni token'ı okumasını sağla
-      window.location.href = '/dashboard';
     } else {
       // Oturum yoksa login ekranına git
       navigate(`/role-login/${role}`);
@@ -134,13 +142,23 @@ const MultiLoginScreen = () => {
                   </div>
                   <Button 
                     className={`w-full ${roleInfo.colors.bg} ${roleInfo.colors.hover} text-white`}
+                    disabled={switchingRole !== null}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRoleClick(roleInfo.key);
                     }}
                   >
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Devam Et
+                    {switchingRole === roleInfo.key ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Yükleniyor...
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Devam Et
+                      </>
+                    )}
                   </Button>
                 </div>
               ) : (
