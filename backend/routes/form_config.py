@@ -2,12 +2,12 @@
 Vaka Formu Yapılandırması API
 Operasyon Müdürü ve Merkez Ofis tarafından düzenlenebilir
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 from database import db
-from auth import get_current_user
+from auth_utils import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -331,10 +331,11 @@ async def get_case_form_config():
 
 @router.put("/case-form-fields")
 async def update_case_form_config(
-    request: ConfigUpdateRequest,
-    current_user: dict = Depends(get_current_user)
+    request: Request,
+    data: ConfigUpdateRequest
 ):
     """Vaka formu yapılandırmasını güncelle (Sadece Merkez Ofis ve Operasyon Müdürü)"""
+    current_user = await get_current_user(request)
     
     # Yetki kontrolü
     allowed_roles = ["merkez_ofis", "operasyon_muduru", "admin"]
@@ -353,7 +354,7 @@ async def update_case_form_config(
             "updated_at": datetime.utcnow(),
             "updated_by": current_user.get("id") or current_user.get("_id"),
             "updated_by_name": current_user.get("name", "Bilinmiyor"),
-            "config": request.config
+            "config": data.config
         }
         
         # Güncelle veya oluştur
@@ -367,7 +368,7 @@ async def update_case_form_config(
         await db.form_configuration_history.insert_one({
             "config_id": "case_form_fields",
             "version": new_config["version"],
-            "config": request.config,
+            "config": data.config,
             "updated_at": new_config["updated_at"],
             "updated_by": new_config["updated_by"],
             "updated_by_name": new_config["updated_by_name"]
@@ -382,10 +383,9 @@ async def update_case_form_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/case-form-fields/reset")
-async def reset_case_form_config(
-    current_user: dict = Depends(get_current_user)
-):
+async def reset_case_form_config(request: Request):
     """Vaka formu yapılandırmasını varsayılana döndür"""
+    current_user = await get_current_user(request)
     
     # Yetki kontrolü
     allowed_roles = ["merkez_ofis", "operasyon_muduru", "admin"]
@@ -424,10 +424,11 @@ async def reset_case_form_config(
 
 @router.get("/case-form-fields/history")
 async def get_config_history(
-    limit: int = 10,
-    current_user: dict = Depends(get_current_user)
+    request: Request,
+    limit: int = 10
 ):
     """Yapılandırma geçmişini getir"""
+    current_user = await get_current_user(request)
     
     allowed_roles = ["merkez_ofis", "operasyon_muduru", "admin"]
     if current_user.get("role") not in allowed_roles:
@@ -451,10 +452,11 @@ async def get_config_history(
 
 @router.get("/case-form-fields/version/{version}")
 async def get_config_version(
-    version: int,
-    current_user: dict = Depends(get_current_user)
+    request: Request,
+    version: int
 ):
     """Belirli bir versiyondaki yapılandırmayı getir"""
+    current_user = await get_current_user(request)
     
     allowed_roles = ["merkez_ofis", "operasyon_muduru", "admin"]
     if current_user.get("role") not in allowed_roles:
