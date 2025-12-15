@@ -418,6 +418,27 @@ const CaseDetail = () => {
   // PDF ilaçları için state
   const [pdfMedications, setPdfMedications] = useState({});
   
+  // PDF ilaçlarını güncelle ve kaydet
+  const updatePdfMedication = (medCode, checked, adet = 1) => {
+    const newMeds = { 
+      ...pdfMedications, 
+      [medCode]: { checked, adet: adet || 1 } 
+    };
+    setPdfMedications(newMeds);
+    updateFormField('pdf_medications', newMeds);
+  };
+  
+  // PDF ilaç adet güncelle
+  const updatePdfMedicationAdet = (medCode, adet) => {
+    const current = pdfMedications[medCode] || { checked: true, adet: 1 };
+    const newMeds = { 
+      ...pdfMedications, 
+      [medCode]: { ...current, adet: parseInt(adet) || 1 } 
+    };
+    setPdfMedications(newMeds);
+    updateFormField('pdf_medications', newMeds);
+  };
+  
   // Transfer list (14 items)
   const transferList = [
     'Evde Muayene',
@@ -3336,7 +3357,7 @@ const CaseDetail = () => {
                     <Checkbox 
                       id={`pdfmed-${index}`} 
                       checked={pdfMedications[med.code]?.checked || false} 
-                      onCheckedChange={(checked) => setPdfMedications(prev => ({ ...prev, [med.code]: { ...prev[med.code], checked, adet: prev[med.code]?.adet || 1 } }))} 
+                      onCheckedChange={(checked) => updatePdfMedication(med.code, checked, pdfMedications[med.code]?.adet || 1)} 
                       disabled={!canEditForm} 
                       className="h-4 w-4" 
                     />
@@ -3348,7 +3369,7 @@ const CaseDetail = () => {
                         max="99" 
                         className="w-12 h-6 text-xs text-center" 
                         value={pdfMedications[med.code]?.adet || 1} 
-                        onChange={(e) => setPdfMedications(prev => ({ ...prev, [med.code]: { ...prev[med.code], adet: parseInt(e.target.value) || 1 } }))} 
+                        onChange={(e) => updatePdfMedicationAdet(med.code, e.target.value)} 
                         disabled={!canEditForm} 
                       />
                     )}

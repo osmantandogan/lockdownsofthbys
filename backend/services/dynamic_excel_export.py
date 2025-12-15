@@ -560,11 +560,24 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     }
     
     if field_key.startswith('med.'):
-        medications = case_data.get('medications', []) or case_data.get('extended_form', {}).get('medications', {})
         parts = field_key.split('.')
         med_key = parts[1].lower() if len(parts) > 1 else ''
         field_type = parts[2] if len(parts) > 2 else 'cb'
         
+        # PDF medications öncelikli - direkt kod ile eşleşir
+        # Format: {"arveles": {"checked": true, "adet": 2}}
+        pdf_medications = case_data.get('pdf_medications', {})
+        if isinstance(pdf_medications, dict) and med_key in pdf_medications:
+            med_data = pdf_medications[med_key]
+            if isinstance(med_data, dict) and med_data.get('checked'):
+                if field_type == 'adet':
+                    return str(med_data.get('adet', 1))
+                if field_type == 'tur':
+                    return med_data.get('tur', '') or med_data.get('route', '') or ''
+                return '☑'
+        
+        # Eski format - medications dictionary veya list
+        medications = case_data.get('medications', []) or case_data.get('extended_form', {}).get('medications', {})
         possible_names = MEDICATION_NAME_MAPPING.get(med_key, [med_key])
         
         # medications dict formatında: {"Arveles amp.": {checked: true, adet: 2, tur: "IV"}}

@@ -1584,6 +1584,9 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         # MEDICATIONS - hem case hem medical_form'dan, hem list hem dict format
         "medications": case_doc.get("medications", []) or medical_form.get("medications", []) or [],
         
+        # PDF MEDICATIONS - Uygulamalar tabından seçilen ilaçlar (PDF için)
+        "pdf_medications": medical_form.get("pdf_medications", {}),
+        
         # MATERIALS - Dictionary format: {"Enjektör 1-2 cc": {checked: true, adet: 5}}
         "materials": medical_form.get("materials", {}),
         
