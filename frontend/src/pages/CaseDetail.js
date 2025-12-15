@@ -4239,6 +4239,7 @@ const CaseDetail = () => {
                       </div>
                       <SignaturePad 
                         label="İMZA"
+                        value={inlineConsents.patient_info_consent_signature}
                         onSignature={(sig) => updateInlineConsent('patient_info_consent_signature', sig)}
                       />
                     </div>
@@ -4294,6 +4295,7 @@ const CaseDetail = () => {
                       </div>
                       <SignaturePad 
                         label="İMZA"
+                        value={inlineConsents.hospital_rejection_doctor_signature}
                         onSignature={(sig) => updateInlineConsent('hospital_rejection_doctor_signature', sig)}
                       />
                     </CardContent>
@@ -4330,6 +4332,7 @@ const CaseDetail = () => {
                       </div>
                       <SignaturePad 
                         label="İMZA"
+                        value={inlineConsents.patient_rejection_signature}
                         onSignature={(sig) => updateInlineConsent('patient_rejection_signature', sig)}
                       />
                     </CardContent>
@@ -4365,6 +4368,7 @@ const CaseDetail = () => {
                         />
                         <SignaturePad 
                           label="İMZA"
+                          value={inlineConsents.receiver_signature}
                           onSignature={(sig) => updateInlineConsent('receiver_signature', sig)}
                         />
                       </div>
@@ -4379,6 +4383,7 @@ const CaseDetail = () => {
                         />
                         <SignaturePad 
                           label="İMZA"
+                          value={inlineConsents.doctor_paramedic_signature}
                           onSignature={(sig) => updateInlineConsent('doctor_paramedic_signature', sig)}
                         />
                       </div>
@@ -4393,6 +4398,7 @@ const CaseDetail = () => {
                         />
                         <SignaturePad 
                           label="İMZA"
+                          value={inlineConsents.health_personnel_signature}
                           onSignature={(sig) => updateInlineConsent('health_personnel_signature', sig)}
                         />
                       </div>
@@ -4407,6 +4413,7 @@ const CaseDetail = () => {
                         />
                         <SignaturePad 
                           label="İMZA"
+                          value={inlineConsents.driver_pilot_signature}
                           onSignature={(sig) => updateInlineConsent('driver_pilot_signature', sig)}
                         />
                       </div>

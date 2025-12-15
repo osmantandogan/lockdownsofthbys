@@ -2,11 +2,12 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 
-const SignaturePad = ({ label, onSignature, required = false }) => {
+const SignaturePad = ({ label, onSignature, required = false, value = null }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isSigned, setIsSigned] = useState(false);
+  const [isSigned, setIsSigned] = useState(!!value);
 
+  // Canvas'ı başlat
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -23,6 +24,25 @@ const SignaturePad = ({ label, onSignature, required = false }) => {
     canvas.height = rect.height * 2;
     ctx.scale(2, 2);
   }, []);
+  
+  // Kaydedilen imzayı göster
+  useEffect(() => {
+    if (value && value.startsWith('data:image')) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        // Canvas'ı temizle
+        ctx.clearRect(0, 0, canvas.width / 2, canvas.height / 2);
+        // İmzayı çiz
+        ctx.drawImage(img, 0, 0, canvas.width / 2, canvas.height / 2);
+        setIsSigned(true);
+      };
+      img.src = value;
+    }
+  }, [value]);
 
   const startDrawing = (e) => {
     const canvas = canvasRef.current;
