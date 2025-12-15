@@ -131,14 +131,21 @@ export const AuthProvider = ({ children }) => {
     // Kullanıcı bilgisini güncelle
     try {
       const response = await authAPI.me();
-      setUser(response.data);
+      const userData = response.data;
+      
+      // State'i güncelle
+      setUser(userData);
       setActiveRole(role);
       
       // Session'ı güncelle
-      SessionManager.updateUserData(role, response.data);
+      SessionManager.updateUserData(role, userData);
       
-      console.log(`[Auth] Switched to role: ${role}`);
-      return response.data;
+      // localStorage'ı da güncelle (sayfa yenilemelerinde kullanılır)
+      localStorage.setItem('token', session.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      console.log(`[Auth] Switched to role: ${role}, user: ${userData.name}`);
+      return userData;
     } catch (error) {
       console.error('[Auth] Role switch failed:', error);
       // Token geçersiz, oturumu kaldır

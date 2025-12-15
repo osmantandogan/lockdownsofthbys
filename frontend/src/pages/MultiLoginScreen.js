@@ -51,9 +51,12 @@ const MultiLoginScreen = () => {
       
       try {
         console.log('[MultiLogin] Switching to role:', role);
-        await switchRole(role);
+        const userData = await switchRole(role);
+        console.log('[MultiLogin] Switch successful, user:', userData?.name);
         toast.success(`${roleInfo.label} olarak devam ediliyor`);
-        navigate('/dashboard');
+        
+        // Tam sayfa yenilemesi ile AuthContext'in doğru user'ı okumasını sağla
+        window.location.href = '/dashboard';
       } catch (error) {
         console.error('[MultiLogin] Switch role error:', error);
         toast.error('Rol değiştirilemedi, lütfen tekrar giriş yapın');
