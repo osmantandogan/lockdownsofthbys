@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
    */
   const loginForRole = async (email, password, role) => {
     try {
-      const response = await authAPI.login({ email, password });
+      const response = await authAPI.login(email, password);
       const { session_token, user: userData } = response.data;
       
       // Rol kontrolü

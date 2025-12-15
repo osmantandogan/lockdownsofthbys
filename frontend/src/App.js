@@ -82,7 +82,8 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Android'de multi-login'e, Web'de normal login'e yönlendir
+    return <Navigate to={isNativeApp ? "/multi-login" : "/login"} replace />;
   }
 
   return children;
@@ -197,7 +198,7 @@ function App() {
           <Route path="/" element={<Navigate to={isNativeApp ? "/multi-login" : "/login"} replace />} />
           
           {/* 404 */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to={isNativeApp ? "/multi-login" : "/login"} replace />} />
         </Routes>
             </BrowserRouter>
             <Toaster />
