@@ -711,18 +711,28 @@ const VakaFormMappingEditor = () => {
       icon: PenTool,
       color: 'slate',
       fields: [
+        // Hastayı Teslim Alan
         { key: 'sig.teslim_alan_adi', label: 'Hastayı Teslim Alan Adı' },
-        { key: 'sig.teslim_alan_unvani', label: 'Teslim Alan Unvanı' },
-        { key: 'sig.teslim_alan_imza', label: 'Teslim Alan İmza' },
-        { key: 'sig.teslim_alan_kase', label: 'Teslim Alan Kaşe' },
-        { key: 'sig.hekim_prm_name', label: 'Hekim/PRM Adı Soyadı' },
-        { key: 'sig.hekim_prm_imza', label: 'Hekim/PRM İmza' },
-        { key: 'sig.saglik_per_name', label: 'Sağlık Per./ATT Adı' },
-        { key: 'sig.saglik_per_imza', label: 'Sağlık Per. İmza' },
-        { key: 'sig.sofor_teknisyen_name', label: 'Sür./Tekn. Adı' },
-        { key: 'sig.sofor_teknisyen_imza', label: 'Sür./Tekn. İmza' },
+        { key: 'sig.teslim_alan_unvan', label: 'Teslim Alan Unvanı' },
+        { key: 'sig.teslim_alan_imza', label: 'Teslim Alan İmza (✓)' },
+        // Ambulans Personeli
+        { key: 'sig.hekim_prm_adi', label: 'Hekim/PRM Adı Soyadı' },
+        { key: 'sig.hekim_prm_imza', label: 'Hekim/PRM İmza (✓)' },
+        { key: 'sig.saglik_per_adi', label: 'Sağlık Per./ATT Adı' },
+        { key: 'sig.saglik_per_imza', label: 'Sağlık Per. İmza (✓)' },
+        { key: 'sig.sofor_teknisyen_adi', label: 'Sür./Tekn. Adı' },
+        { key: 'sig.sofor_teknisyen_imza', label: 'Sür./Tekn. İmza (✓)' },
+        // Hasta/Yakını
         { key: 'sig.hasta_yakin_adi', label: 'Hasta/Hasta Yakını Adı Soyadı' },
-        { key: 'sig.hasta_yakin_imza', label: 'Hasta/Yakın İmzası' }
+        { key: 'sig.hasta_yakin_imza', label: 'Hasta/Yakın İmzası (✓)' },
+        // Hasta Reddi
+        { key: 'sig.hasta_reddi_adi', label: 'Hasta Reddi - Adı' },
+        { key: 'sig.hasta_reddi_imza', label: 'Hasta Reddi - İmza (✓)' },
+        // Hastane Reddi
+        { key: 'sig.hastane_reddi_doktor', label: 'Hastane Reddi - Doktor Adı' },
+        { key: 'sig.hastane_reddi_imza', label: 'Hastane Reddi - İmza (✓)' },
+        { key: 'sig.hastane_reddi_neden', label: 'Hastane Reddi - Neden' },
+        { key: 'sig.hastane_reddi_kurum', label: 'Hastane Reddi - Kurum' }
       ]
     },
     // ==================== ONAY METNİ (V3) ====================

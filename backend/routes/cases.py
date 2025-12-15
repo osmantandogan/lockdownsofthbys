@@ -1593,7 +1593,7 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         # Fluids
         "fluids": case_doc.get("fluids", []) or case_doc.get("iv_fluids", []) or medical_form.get("fluids", []),
         
-        # İmzalar - hem signatures hem extended_form'dan
+        # İmzalar - hem signatures hem extended_form hem inline_consents'dan
         "signatures": {
             **case_doc.get("signatures", {}), 
             **medical_form.get("signatures", {}),
@@ -1605,6 +1605,9 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
             "receiver_title": extended_form.get("teslimAlanUnvan", ""),
             "patient_name": extended_form.get("hastaYakiniAdi", ""),
         },
+        
+        # INLINE CONSENTS - İmza tab'ındaki veriler
+        "inline_consents": medical_form.get("inline_consents", {}),
         
         "hospital_rejection": case_doc.get("hospital_rejection", {}),
         "patient_rejection": case_doc.get("patient_rejection", {}),

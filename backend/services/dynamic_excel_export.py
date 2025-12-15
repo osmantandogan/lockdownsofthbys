@@ -672,32 +672,45 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         return '☐' if field_type == 'cb' else ''
     
-    # İmzalar (Frontend key'leriyle uyumlu)
+    # İmzalar (Frontend key'leriyle uyumlu) - inline_consents'dan da al
+    def get_inline_consent(d, key):
+        return d.get('inline_consents', {}).get(key, '')
+    
     sig_mappings = {
         # Eski format
-        'sig.hekim_prm_name': lambda d: d.get('signatures', {}).get('doctor_name', ''),
-        'sig.saglik_per_name': lambda d: d.get('signatures', {}).get('paramedic_name', ''),
-        'sig.sofor_name': lambda d: d.get('signatures', {}).get('driver_name', ''),
-        'sig.teslim_adi': lambda d: d.get('signatures', {}).get('receiver_name', ''),
+        'sig.hekim_prm_name': lambda d: d.get('signatures', {}).get('doctor_name', '') or get_inline_consent(d, 'doctor_paramedic_name'),
+        'sig.saglik_per_name': lambda d: d.get('signatures', {}).get('paramedic_name', '') or get_inline_consent(d, 'health_personnel_name'),
+        'sig.sofor_name': lambda d: d.get('signatures', {}).get('driver_name', '') or get_inline_consent(d, 'driver_pilot_name'),
+        'sig.teslim_adi': lambda d: d.get('signatures', {}).get('receiver_name', '') or get_inline_consent(d, 'receiver_title_name'),
         'sig.teslim_unvan': lambda d: d.get('signatures', {}).get('receiver_title', ''),
-        'sig.hasta_adi': lambda d: d.get('signatures', {}).get('patient_name', ''),
+        'sig.hasta_adi': lambda d: d.get('signatures', {}).get('patient_name', '') or get_inline_consent(d, 'patient_info_consent_name'),
         
-        # Yeni format (Frontend'deki key'ler)
-        'sig.teslim_alan_adi': lambda d: d.get('signatures', {}).get('receiver_name', '') or d.get('extended_form', {}).get('teslimAlanAdi', ''),
-        'sig.teslim_alan_unvan': lambda d: d.get('signatures', {}).get('receiver_title', '') or d.get('extended_form', {}).get('teslimAlanUnvan', ''),
-        'sig.teslim_alan_imza': lambda d: '✓' if d.get('signatures', {}).get('receiver_signed') else '',
+        # Yeni format (Frontend'deki key'ler) - inline_consents'dan al
+        'sig.teslim_alan_adi': lambda d: get_inline_consent(d, 'receiver_title_name') or d.get('signatures', {}).get('receiver_name', ''),
+        'sig.teslim_alan_unvan': lambda d: d.get('signatures', {}).get('receiver_title', ''),
+        'sig.teslim_alan_imza': lambda d: '✓' if get_inline_consent(d, 'receiver_signature') else '',
         
-        'sig.hekim_prm_adi': lambda d: d.get('signatures', {}).get('doctor_name', '') or d.get('extended_form', {}).get('hekimAdi', ''),
-        'sig.hekim_prm_imza': lambda d: '✓' if d.get('signatures', {}).get('doctor_signed') else '',
+        'sig.hekim_prm_adi': lambda d: get_inline_consent(d, 'doctor_paramedic_name') or d.get('signatures', {}).get('doctor_name', ''),
+        'sig.hekim_prm_imza': lambda d: '✓' if get_inline_consent(d, 'doctor_paramedic_signature') else '',
         
-        'sig.saglik_per_adi': lambda d: d.get('signatures', {}).get('paramedic_name', '') or d.get('extended_form', {}).get('saglikPerAdi', ''),
-        'sig.saglik_per_imza': lambda d: '✓' if d.get('signatures', {}).get('paramedic_signed') else '',
+        'sig.saglik_per_adi': lambda d: get_inline_consent(d, 'health_personnel_name') or d.get('signatures', {}).get('paramedic_name', ''),
+        'sig.saglik_per_imza': lambda d: '✓' if get_inline_consent(d, 'health_personnel_signature') else '',
         
-        'sig.sofor_teknisyen_adi': lambda d: d.get('signatures', {}).get('driver_name', '') or d.get('extended_form', {}).get('soforAdi', ''),
-        'sig.sofor_teknisyen_imza': lambda d: '✓' if d.get('signatures', {}).get('driver_signed') else '',
+        'sig.sofor_teknisyen_adi': lambda d: get_inline_consent(d, 'driver_pilot_name') or d.get('signatures', {}).get('driver_name', ''),
+        'sig.sofor_teknisyen_imza': lambda d: '✓' if get_inline_consent(d, 'driver_pilot_signature') else '',
         
-        'sig.hasta_yakin_adi': lambda d: d.get('signatures', {}).get('patient_name', '') or d.get('extended_form', {}).get('hastaYakiniAdi', ''),
-        'sig.hasta_yakin_imza': lambda d: '✓' if d.get('signatures', {}).get('patient_signed') else '',
+        'sig.hasta_yakin_adi': lambda d: get_inline_consent(d, 'patient_info_consent_name') or d.get('signatures', {}).get('patient_name', ''),
+        'sig.hasta_yakin_imza': lambda d: '✓' if get_inline_consent(d, 'patient_info_consent_signature') else '',
+        
+        # Hasta reddi
+        'sig.hasta_reddi_adi': lambda d: get_inline_consent(d, 'patient_rejection_name'),
+        'sig.hasta_reddi_imza': lambda d: '✓' if get_inline_consent(d, 'patient_rejection_signature') else '',
+        
+        # Hastane reddi
+        'sig.hastane_reddi_doktor': lambda d: get_inline_consent(d, 'hospital_rejection_doctor_name'),
+        'sig.hastane_reddi_imza': lambda d: '✓' if get_inline_consent(d, 'hospital_rejection_doctor_signature') else '',
+        'sig.hastane_reddi_neden': lambda d: get_inline_consent(d, 'hospital_rejection_reason'),
+        'sig.hastane_reddi_kurum': lambda d: get_inline_consent(d, 'hospital_rejection_institution'),
     }
     
     # Red formları
