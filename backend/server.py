@@ -123,6 +123,7 @@ api_router.include_router(settings.router, prefix="/settings", tags=["Settings"]
 api_router.include_router(forms.router, prefix="/forms", tags=["Forms"])
 api_router.include_router(documents.router, prefix="/documents", tags=["Documents"])
 api_router.include_router(reference_data.router, prefix="/reference-data", tags=["Reference Data"])
+api_router.include_router(reference_data.router, prefix="/reference", tags=["Reference Data"])  # Alias for frontend compatibility
 api_router.include_router(video_call.router, prefix="/video", tags=["Video Call"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(medications.router, prefix="/medications", tags=["Medications"])
