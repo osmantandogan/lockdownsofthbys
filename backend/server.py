@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Import routers
 try:
-    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates, firms, form_config, stock_v2, stock_new
+    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates, firms, form_config, stock_v2, stock_new, warehouse
     logger.info("Tüm router'lar başarıyla yüklendi")
 except ImportError as e:
     logger.error(f"Router import hatası: {e}")
@@ -119,6 +119,7 @@ api_router.include_router(cases.router, prefix="/cases", tags=["Cases"])
 api_router.include_router(vehicles.router, prefix="/vehicles", tags=["Vehicles"])
 api_router.include_router(stock_new.router, prefix="/stock-new", tags=["Stock - Yeni Sistem"])
 api_router.include_router(stock_new.router, prefix="/stock", tags=["Stock - Alias (Eski API Uyumluluğu)"])
+api_router.include_router(warehouse.router, prefix="/warehouse", tags=["Warehouse - Merkez Depo"])
 api_router.include_router(shifts.router, prefix="/shifts", tags=["Shifts"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
 api_router.include_router(forms.router, prefix="/forms", tags=["Forms"])
