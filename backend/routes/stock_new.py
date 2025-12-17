@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
 from database import db
 from auth_utils import get_current_user, require_roles
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 from typing import Literal
 import uuid
@@ -357,43 +357,59 @@ async def get_my_location_stock(request: Request):
     """Kullanıcının atandığı lokasyonun stoğu"""
     user = await get_current_user(request)
     
-    # Bugünkü vardiya atamasını bul
+    # Bugünkü vardiya atamasını bul (shift_assignments_collection)
     today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
     
-    shift = await db.shifts.find_one({
-        "date": {"$gte": today},
-        "assignments": {"$elemMatch": {"user_id": user.id}}
+    # Aktif veya bekleyen vardiya ataması ara
+    assignment = await db.shift_assignments.find_one({
+        "user_id": user.id,
+        "status": {"$in": ["pending", "started"]},
+        "$or": [
+            # Bugün başlayan
+            {"shift_date": {"$gte": today, "$lt": tomorrow}},
+            # Veya bugünü kapsayan (çok günlük vardiya)
+            {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+        ]
     })
     
-    if not shift:
-        return {"location": None, "items": [], "message": "Bugün için atama yok"}
-    
-    # Atamayı bul
-    assignment = None
-    for a in shift.get("assignments", []):
-        if a.get("user_id") == user.id:
-            assignment = a
-            break
-    
     if not assignment:
-        return {"location": None, "items": [], "message": "Atama bulunamadı"}
+        return {"location": None, "items": [], "message": "Bugün için aktif bir araç atamanız bulunmuyor"}
     
-    target_id = assignment.get("vehicle_id") or assignment.get("location_id")
+    # Araç veya lokasyon ID'sini al
+    target_id = assignment.get("vehicle_id")
+    target_name = assignment.get("vehicle_plate", "")
+    target_type = "vehicle"
+    
+    # Eğer araç yoksa sağlık merkezi olabilir
+    if not target_id and assignment.get("location_type") == "saglik_merkezi":
+        target_id = assignment.get("health_center_name", "saglik_merkezi")
+        target_name = assignment.get("health_center_name", "Sağlık Merkezi")
+        target_type = "waiting_point"
+    
     if not target_id:
-        return {"location": None, "items": [], "message": "Lokasyon bilgisi yok"}
+        return {"location": None, "items": [], "message": "Atamada lokasyon bilgisi yok"}
     
     # Stok getir
     loc = await location_stocks.find_one({"location_id": target_id})
     if not loc:
-        return {"location": None, "items": [], "message": "Bu lokasyon için stok yok"}
+        return {
+            "location": {
+                "id": target_id,
+                "name": target_name,
+                "type": target_type
+            },
+            "items": [],
+            "message": "Bu lokasyon için henüz stok tanımlanmamış"
+        }
     
     loc["id"] = loc.pop("_id", "")
     
     return {
         "location": {
             "id": loc["id"],
-            "name": loc.get("location_name"),
-            "type": loc.get("location_type")
+            "name": loc.get("location_name", target_name),
+            "type": loc.get("location_type", target_type)
         },
         "items": loc.get("items", [])
     }
