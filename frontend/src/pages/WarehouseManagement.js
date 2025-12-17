@@ -47,6 +47,12 @@ const WarehouseManagement = () => {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   
+  // Toplu Giriş
+  const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
+  const [bulkQRText, setBulkQRText] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkResults, setBulkResults] = useState(null);
+  
   // Erişim kontrolü
   const canManage = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
   const canSplit = ['merkez_ofis', 'operasyon_muduru', 'cagri_merkezi', 'bas_sofor'].includes(user?.role);
@@ -145,6 +151,65 @@ const WarehouseManagement = () => {
       toast.error(error.response?.data?.detail || 'Stok eklenemedi');
     } finally {
       setAddingStock(false);
+    }
+  };
+
+  // Toplu QR Girişi
+  const handleBulkAdd = async () => {
+    if (!bulkQRText.trim()) {
+      toast.error('QR kodlarını girin (her satırda bir QR)');
+      return;
+    }
+    
+    setBulkProcessing(true);
+    const qrLines = bulkQRText.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+    
+    const results = {
+      success: [],
+      errors: [],
+      total: qrLines.length
+    };
+    
+    for (let i = 0; i < qrLines.length; i++) {
+      const qr = qrLines[i];
+      
+      try {
+        // QR'ı parse et
+        const parseResponse = await warehouseAPI.parseQR({ qr_code: qr });
+        const parsed = parseResponse.data;
+        
+        // Depoya ekle (varsayılan: 1 kutu, 10 adet)
+        await warehouseAPI.addStock({
+          qr_code: qr,
+          box_quantity: 1,
+          items_per_box: 10,  // Varsayılan
+          warehouse_location: '',
+          item_name: parsed.drug_name
+        });
+        
+        results.success.push({
+          qr: qr,
+          name: parsed.drug_name
+        });
+        
+      } catch (error) {
+        results.errors.push({
+          qr: qr,
+          error: error.response?.data?.detail || error.message || 'Hata'
+        });
+      }
+    }
+    
+    setBulkResults(results);
+    setBulkProcessing(false);
+    
+    if (results.success.length > 0) {
+      toast.success(`${results.success.length} QR başarıyla eklendi!`);
+      loadData();
+    }
+    
+    if (results.errors.length > 0) {
+      toast.error(`${results.errors.length} QR eklenemedi`);
     }
   };
 
@@ -260,10 +325,16 @@ const WarehouseManagement = () => {
           </Button>
           
           {canManage && (
-            <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              QR Ekle
-            </Button>
+            <>
+              <Button onClick={() => setShowAddDialog(true)} className="bg-green-600 hover:bg-green-700">
+                <Plus className="h-4 w-4 mr-2" />
+                QR Ekle
+              </Button>
+              <Button onClick={() => setShowBulkAddDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Package className="h-4 w-4 mr-2" />
+                Toplu Giriş
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -621,6 +692,91 @@ const WarehouseManagement = () => {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toplu Giriş Dialog */}
+      <Dialog open={showBulkAddDialog} onOpenChange={setShowBulkAddDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Toplu QR Girişi</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>İTS QR Kodları (Her satırda bir QR)</Label>
+              <Textarea
+                className="h-96 font-mono text-sm"
+                placeholder="QR kodlarını yapıştırın... 
+Her satırda bir QR kod
+# ile başlayan satırlar yorum olarak algılanır
+
+Örnek:
+0108699788750027212599607002003674172905311025607002
+0108699788750027212599607002003670172905311025607002
+..."
+                value={bulkQRText}
+                onChange={(e) => setBulkQRText(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Varsayılan: Her kutu 10 adet içerir. İsterseniz tek tek düzenleyebilirsiniz.
+              </p>
+            </div>
+            
+            {bulkResults && (
+              <Card className={bulkResults.errors.length > 0 ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}>
+                <CardContent className="p-4">
+                  <p className="font-medium">
+                    ✓ {bulkResults.success.length} başarılı, 
+                    ✗ {bulkResults.errors.length} hatalı 
+                    (Toplam: {bulkResults.total})
+                  </p>
+                  
+                  {bulkResults.errors.length > 0 && (
+                    <div className="mt-3 max-h-48 overflow-y-auto">
+                      <p className="text-sm font-medium text-red-700 mb-2">Hatalar:</p>
+                      {bulkResults.errors.map((err, idx) => (
+                        <div key={idx} className="text-xs text-red-600 bg-white p-2 rounded mb-1">
+                          <p className="font-mono">{err.qr.substring(0, 30)}...</p>
+                          <p>{err.error}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowBulkAddDialog(false);
+              setBulkQRText('');
+              setBulkResults(null);
+            }}>
+              {bulkResults ? 'Kapat' : 'İptal'}
+            </Button>
+            
+            {!bulkResults && (
+              <Button 
+                onClick={handleBulkAdd} 
+                disabled={bulkProcessing || !bulkQRText.trim()}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {bulkProcessing ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    İşleniyor...
+                  </>
+                ) : (
+                  <>
+                    <Package className="h-4 w-4 mr-2" />
+                    Toplu Ekle
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

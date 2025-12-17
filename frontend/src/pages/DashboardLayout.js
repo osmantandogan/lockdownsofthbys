@@ -78,6 +78,8 @@ const DashboardLayout = () => {
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/vehicle-locations', icon: MapPin, label: 'Araç Lokasyonları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
     { path: '/dashboard/stock', icon: Package, label: 'Stok', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
+    { path: '/dashboard/warehouse', icon: Package, label: 'Merkez Depo', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
+    { path: '/dashboard/warehouse-transfers', icon: Send, label: 'Depo Transferleri', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
     { path: '/dashboard/stock-barcode-entry', icon: QrCode, label: 'Karekod Stok Girişi', roles: ['operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/stock-requests', icon: Send, label: 'Stok Talepleri', roles: ['operasyon_muduru', 'merkez_ofis', 'hemsire'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya', roles: ['att', 'paramedik', 'hemsire', 'sofor', 'operasyon_muduru', 'merkez_ofis'] },
