@@ -189,16 +189,23 @@ async def seed_all_locations():
         )
         results["vehicles"].append(result)
     
-    # Bekleme noktalarını al
-    stock_locs = await db.stock_locations.find({"is_active": True}).to_list(100)
-    for loc in stock_locs:
-        if loc.get("type") in ["waiting_point", "healmedy"]:
-            result = await seed_location_stock(
-                location_id=loc["_id"],
-                location_type="waiting_point",
-                location_name=loc.get("name", "")
-            )
-            results["waiting_points"].append(result)
+    # Healmedy Bekleme Noktaları (Sabit liste)
+    HEALMEDY_LOCATIONS = [
+        {"id": "osman_gazi_fpu", "name": "Osman Gazi/FPU"},
+        {"id": "green_zone_ronesans", "name": "Green Zone/Rönesans"},
+        {"id": "bati_kuzey_isg", "name": "Batı-Kuzey/İSG BİNA"},
+        {"id": "red_zone_kara", "name": "Red Zone/Kara Tesisleri"},
+        {"id": "dogu_rihtimi", "name": "Doğu Rıhtımı"},
+        # Filyos hariç - kullanıcı söyledi
+    ]
+    
+    for loc in HEALMEDY_LOCATIONS:
+        result = await seed_location_stock(
+            location_id=loc["id"],
+            location_type="waiting_point",
+            location_name=loc["name"]
+        )
+        results["waiting_points"].append(result)
     
     return results
 
