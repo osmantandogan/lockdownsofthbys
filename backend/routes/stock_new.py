@@ -108,6 +108,39 @@ async def cleanup_old_stock_data():
         return False
 
 
+async def cleanup_duplicate_waiting_points():
+    """Duplike bekleme noktalarını temizle - sadece doğru ID'li olanları tut"""
+    
+    # Doğru Healmedy lokasyon ID'leri
+    VALID_HEALMEDY_IDS = [
+        "osman_gazi_fpu",
+        "green_zone_ronesans", 
+        "bati_kuzey_isg",
+        "red_zone_kara",
+        "dogu_rihtimi",
+        "filyos_saglik_merkezi"
+    ]
+    
+    # Tüm bekleme noktalarını al
+    all_waiting_points = await location_stocks.find({"location_type": "waiting_point"}).to_list(100)
+    
+    deleted_count = 0
+    kept_count = 0
+    
+    for wp in all_waiting_points:
+        loc_id = wp.get("location_id", "")
+        
+        # Eğer doğru ID listesinde değilse sil
+        if loc_id not in VALID_HEALMEDY_IDS:
+            await location_stocks.delete_one({"_id": wp["_id"]})
+            deleted_count += 1
+            logger.info(f"Duplike bekleme noktası silindi: {wp.get('location_name')} (ID: {loc_id})")
+        else:
+            kept_count += 1
+    
+    return {"deleted": deleted_count, "kept": kept_count}
+
+
 # ============ STOK BAŞLATMA (SEED) ============
 
 async def seed_location_stock(location_id: str, location_type: str, location_name: str):
@@ -236,6 +269,21 @@ async def seed_all_endpoint(request: Request):
         "success": True,
         "message": f"{vehicles_created} araç ve {wp_created} bekleme noktasına stok eklendi",
         "details": results
+
+
+@router.delete("/cleanup-duplicates")
+async def cleanup_duplicates_endpoint(request: Request):
+    """Duplike bekleme noktalarını temizle"""
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    result = await cleanup_duplicate_waiting_points()
+    
+    logger.info(f"Duplike temizleme by {user.name}: {result['deleted']} silindi, {result['kept']} kaldı")
+    
+    return {
+        "success": True,
+        "message": f"{result['deleted']} duplike bekleme noktası silindi, {result['kept']} adet kaldı",
+        "details": result
     }
 
 
