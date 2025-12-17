@@ -76,7 +76,7 @@ const ShiftAssignments = () => {
 
   // Rol etiketleri
   const roleOptions = [
-    { value: '', label: 'Varsayılan (Kendi Rolü)' },
+    { value: 'default', label: 'Varsayılan (Kendi Rolü)' },
     { value: 'doktor', label: 'Doktor' },
     { value: 'hemsire', label: 'Hemşire' },
     { value: 'paramedik', label: 'Paramedik' },
@@ -382,7 +382,7 @@ const ShiftAssignments = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {roleOptions.map(r => (
-                        <SelectItem key={r.value || 'default'} value={r.value}>{r.label}</SelectItem>
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
