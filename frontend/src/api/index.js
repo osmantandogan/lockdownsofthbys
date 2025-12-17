@@ -257,6 +257,32 @@ export const stockAPI = {
   createStockMovement: (data) => api.post('/stock-barcode/movements/create', data)
 };
 
+// YENİ STOK SİSTEMİ (stock-new)
+export const stockNewAPI = {
+  // Lokasyon Stokları
+  getAllLocations: (params) => api.get('/stock-new/locations', { params }),
+  getLocationStock: (locationId) => api.get(`/stock-new/locations/${locationId}`),
+  updateLocationStock: (locationId, data) => api.patch(`/stock-new/locations/${locationId}/update`, data),
+  useFromLocation: (locationId, data) => api.post(`/stock-new/locations/${locationId}/use`, data),
+  
+  // Kullanıcının Erişebileceği Lokasyonlar
+  getMyAccessibleLocations: () => api.get('/stock-new/my-accessible-locations'),
+  getMyLocation: () => api.get('/stock-new/my-location'),
+  
+  // Stok Talepleri
+  getRequests: (params) => api.get('/stock-new/requests', { params }),
+  createRequest: (data) => api.post('/stock-new/requests', data),
+  approveRequest: (requestId) => api.post(`/stock-new/requests/${requestId}/approve`),
+  rejectRequest: (requestId) => api.post(`/stock-new/requests/${requestId}/reject`),
+  deliverRequest: (requestId) => api.post(`/stock-new/requests/${requestId}/deliver`),
+  
+  // Yönetim
+  seedAll: () => api.post('/stock-new/seed-all'),
+  cleanupDuplicates: () => api.delete('/stock-new/cleanup-duplicates'),
+  getLocationsSummary: () => api.get('/stock-new/locations/summary'),
+  healthCheck: () => api.get('/stock-new/health')
+};
+
 // Medications API (Vakada kullanılan ilaçlar)
 export const medicationsAPI = {
   // Karekod işlemleri

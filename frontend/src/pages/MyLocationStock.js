@@ -9,10 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { 
   Package, 
   AlertTriangle, 
-  Clock, 
-  CheckCircle2, 
   Search,
-  QrCode,
   Truck,
   MapPin,
   RefreshCw,
@@ -21,7 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
-import { stockAPI, shiftsAPI, medicationsAPI } from '../api';
+import { stockNewAPI } from '../api';
 
 /**
  * ATT/Paramedik için Lokasyon Stok Kontrolü
@@ -31,10 +28,9 @@ import { stockAPI, shiftsAPI, medicationsAPI } from '../api';
 const MyLocationStock = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [myLocation, setMyLocation] = useState(null); // Atandığım araç/lokasyon
-  const [stockItems, setStockItems] = useState([]);
+  const [accessibleLocations, setAccessibleLocations] = useState([]); // Erişebildiğim tüm lokasyonlar
+  const [selectedLocation, setSelectedLocation] = useState(null); // Seçili lokasyon
   const [searchQuery, setSearchQuery] = useState('');
-  const [barcodeInput, setBarcodeInput] = useState('');
   
   // Sayım modu
   const [countingMode, setCountingMode] = useState(false);
@@ -46,123 +42,50 @@ const MyLocationStock = () => {
   const [itemDetails, setItemDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // Bugünkü görevimi ve lokasyonumu bul
-  const loadMyAssignment = useCallback(async () => {
+  // Erişebildiğim tüm lokasyonları yükle
+  const loadAccessibleLocations = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Bugünkü vardiya atamasını getir
-      const response = await shiftsAPI.getTodayAssignments();
-      // Backend artık { vehicle_assignments: [...], health_center_assignments: [...] } formatında dönüyor
+      // Yeni API endpoint'i - backend vardiya kontrolü yapıyor
+      const response = await stockNewAPI.getMyAccessibleLocations();
       const data = response.data || {};
-      const allAssignments = [
-        ...(data.vehicle_assignments || []),
-        ...(data.health_center_assignments || [])
-      ];
       
-      // Kullanıcının atamasını bul
-      const myAssignment = allAssignments.find(a => 
-        a.user_id === user?.id || 
-        a.personnel?.some(p => p.id === user?.id || p._id === user?.id)
-      );
+      const locations = data.locations || [];
+      setAccessibleLocations(locations);
       
-      if (myAssignment) {
-        // Araç bilgisini al
-        const vehiclePlate = myAssignment.vehicle?.plate || myAssignment.vehicle_plate;
-        const waitingPoint = myAssignment.waiting_point;
-        
-        setMyLocation({
-          type: 'vehicle',
-          id: myAssignment.vehicle?.id || myAssignment.vehicle_id,
-          name: vehiclePlate ? `${vehiclePlate}` : 'Araç',
-          plate: vehiclePlate,
-          waitingPoint: waitingPoint,
-          assignment: myAssignment
-        });
-        
-        // Bu lokasyonun stoklarını yükle
-        await loadLocationStock(vehiclePlate, waitingPoint);
+      // İlk lokasyonu varsayılan olarak seç
+      if (locations.length > 0) {
+        setSelectedLocation(locations[0]);
       } else {
-        // Atama bulunamadı
-        setMyLocation(null);
-        toast.info('Bugün için aktif bir araç atamanız bulunmuyor');
+        toast.info('Bugün için aktif bir vardiya atamanız bulunmuyor');
       }
+      
     } catch (error) {
-      console.error('Görev yüklenemedi:', error);
-      toast.error('Görev bilgileri alınamadı');
+      console.error('Lokasyonlar yüklenemedi:', error);
+      toast.error('Lokasyon bilgileri alınamadı');
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
-
-  // Lokasyon stoklarını yükle
-  const loadLocationStock = async (plate, waitingPoint) => {
-    try {
-      // Araç plakasına göre stok getir
-      const response = await stockAPI.getAll({ 
-        location_detail: plate 
-      });
-      
-      let items = response.data || [];
-      
-      // Bekleme noktası stoklarını da ekle
-      if (waitingPoint) {
-        const wpResponse = await stockAPI.getAll({ 
-          location_detail: waitingPoint 
-        });
-        items = [...items, ...(wpResponse.data || [])];
-      }
-      
-      setStockItems(items);
-    } catch (error) {
-      console.error('Stok yüklenemedi:', error);
-      toast.error('Stok bilgileri alınamadı');
-    }
-  };
+  }, []);
 
   useEffect(() => {
-    loadMyAssignment();
-  }, [loadMyAssignment]);
+    loadAccessibleLocations();
+  }, [loadAccessibleLocations]);
 
   // Arama/filtreleme
+  const stockItems = selectedLocation?.items || [];
   const filteredItems = stockItems.filter(item => 
-    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.gtin?.includes(searchQuery)
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Barkod arama
-  const handleBarcodeSearch = async () => {
-    if (!barcodeInput.trim()) return;
-    
-    try {
-      const response = await medicationsAPI.parseBarcode(barcodeInput);
-      const parsed = response.data;
-      
-      // Stokta bu GTIN'e sahip ürünü bul
-      const found = stockItems.find(item => item.gtin === parsed.gtin);
-      
-      if (found) {
-        setSelectedItem(found);
-        toast.success(`${found.name} bulundu!`);
-      } else {
-        toast.warning('Bu ürün lokasyonunuzda bulunamadı');
-      }
-    } catch (error) {
-      // Direkt arama yap
-      setSearchQuery(barcodeInput);
-    }
-    
-    setBarcodeInput('');
-  };
 
   // Sayım modunu başlat
   const startCounting = () => {
     setCountingMode(true);
-    // Mevcut stok miktarlarını başlangıç değeri olarak ayarla
+    // Mevcut stok miktarlarını başlangıç değeri olarak ayarla (isim bazlı)
     const initial = {};
     stockItems.forEach(item => {
-      initial[item._id || item.id] = item.quantity;
+      initial[item.name] = item.quantity;
     });
     setCountedItems(initial);
     toast.info('Sayım modu başladı. Stok miktarlarını güncelleyebilirsiniz.');
@@ -179,84 +102,56 @@ const MyLocationStock = () => {
     try {
       setSavingCount(true);
       
-      // Değişen öğeleri bul
-      const changes = [];
-      Object.entries(countedItems).forEach(([itemId, newQty]) => {
-        const item = stockItems.find(i => (i._id || i.id) === itemId);
-        if (item && item.quantity !== newQty) {
-          changes.push({
-            item_id: itemId,
-            old_quantity: item.quantity,
-            new_quantity: newQty,
-            item_name: item.name
-          });
-        }
-      });
-      
-      if (changes.length === 0) {
-        toast.info('Değişiklik yapılmadı');
-        setCountingMode(false);
+      if (!selectedLocation) {
+        toast.error('Lokasyon seçilmedi');
         return;
       }
       
-      // Her değişikliği kaydet
-      for (const change of changes) {
-        await stockAPI.update(change.item_id, { quantity: change.new_quantity });
-      }
+      // Güncellenmiş itemları hazırla
+      const updatedItems = stockItems.map(item => {
+        const itemKey = item.name; // İsme göre eşleştir
+        const countedQty = countedItems[itemKey];
+        
+        return {
+          name: item.name,
+          quantity: countedQty !== undefined ? countedQty : item.quantity
+        };
+      });
       
-      toast.success(`${changes.length} ürün güncellendi`);
+      // Yeni API'ye gönder
+      await stockNewAPI.updateLocationStock(selectedLocation.location_id, {
+        items: updatedItems
+      });
+      
+      toast.success('Sayım kaydedildi');
       
       // Stokları yeniden yükle
-      if (myLocation?.plate) {
-        await loadLocationStock(myLocation.plate, myLocation.waitingPoint);
-      }
+      await loadAccessibleLocations();
       
       setCountingMode(false);
       setCountedItems({});
     } catch (error) {
       console.error('Sayım kaydedilemedi:', error);
-      toast.error('Sayım kaydedilemedi');
+      toast.error(error.response?.data?.detail || 'Sayım kaydedilemedi');
     } finally {
       setSavingCount(false);
     }
   };
 
   // Ürün detaylarını göster
-  const showItemDetails = async (item) => {
+  const showItemDetails = (item) => {
     setSelectedItem(item);
-    setLoadingDetails(true);
-    
-    try {
-      const response = await stockAPI.getItemBarcodeDetails(
-        myLocation?.plate || '',
-        item.name
-      );
-      setItemDetails(response.data);
-    } catch (error) {
-      console.error('Detay yüklenemedi:', error);
-      setItemDetails(null);
-    } finally {
-      setLoadingDetails(false);
-    }
   };
 
   // Stok durumu badge'i
   const getStockBadge = (item) => {
-    const now = new Date();
-    const expiry = item.expiry_date ? new Date(item.expiry_date) : null;
-    const daysToExpiry = expiry ? Math.ceil((expiry - now) / (1000 * 60 * 60 * 24)) : null;
+    if (!item) return null;
     
     if (item.quantity === 0) {
       return <Badge variant="destructive">Stok Yok</Badge>;
     }
-    if (item.quantity <= item.min_quantity) {
+    if (item.quantity < item.min_quantity) {
       return <Badge variant="outline" className="border-orange-500 text-orange-600">Kritik</Badge>;
-    }
-    if (expiry && daysToExpiry !== null && daysToExpiry < 0) {
-      return <Badge variant="destructive">Süresi Dolmuş</Badge>;
-    }
-    if (expiry && daysToExpiry !== null && daysToExpiry <= 30) {
-      return <Badge variant="outline" className="border-yellow-500 text-yellow-600">Yakında Dolacak</Badge>;
     }
     return <Badge variant="outline" className="border-green-500 text-green-600">Normal</Badge>;
   };
@@ -272,7 +167,7 @@ const MyLocationStock = () => {
     );
   }
 
-  if (!myLocation) {
+  if (!selectedLocation && accessibleLocations.length === 0) {
     return (
       <div className="space-y-6">
         <Card>
@@ -284,7 +179,7 @@ const MyLocationStock = () => {
           </CardHeader>
           <CardContent className="p-6 text-center">
             <p className="text-gray-600 mb-4">
-              Bugün için aktif bir araç atamanız bulunmuyor.
+              Bugün için aktif bir vardiya atamanız bulunmuyor.
             </p>
             <p className="text-sm text-gray-500">
               Vardiya ataması yapıldıktan sonra lokasyon stoklarınızı buradan görebilirsiniz.
@@ -292,7 +187,7 @@ const MyLocationStock = () => {
             <Button 
               variant="outline" 
               className="mt-4"
-              onClick={loadMyAssignment}
+              onClick={loadAccessibleLocations}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Yenile
@@ -305,24 +200,48 @@ const MyLocationStock = () => {
 
   return (
     <div className="space-y-6">
-      {/* Başlık */}
+      {/* Başlık ve Lokasyon Seçici */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Lokasyon Stoğum</h1>
-          <p className="text-gray-600 flex items-center gap-2 mt-1">
-            <Truck className="h-4 w-4" />
-            {myLocation.plate || myLocation.name}
-            {myLocation.waitingPoint && (
-              <>
-                <MapPin className="h-4 w-4 ml-2" />
-                {myLocation.waitingPoint}
-              </>
-            )}
-          </p>
+          
+          {/* Lokasyon Seçici */}
+          {accessibleLocations.length > 1 ? (
+            <div className="mt-3">
+              <Label className="text-sm text-gray-600 mb-2 block">Lokasyon Seçin:</Label>
+              <div className="flex gap-2">
+                {accessibleLocations.map((loc, idx) => (
+                  <Button
+                    key={idx}
+                    variant={selectedLocation?.location_id === loc.location_id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedLocation(loc)}
+                    className="flex items-center gap-2"
+                  >
+                    {loc.location_type === 'vehicle' ? (
+                      <Truck className="h-4 w-4" />
+                    ) : (
+                      <MapPin className="h-4 w-4" />
+                    )}
+                    {loc.location_name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-600 flex items-center gap-2 mt-1">
+              {selectedLocation?.location_type === 'vehicle' ? (
+                <Truck className="h-4 w-4" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
+              {selectedLocation?.location_name}
+            </p>
+          )}
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" onClick={loadMyAssignment}>
+          <Button variant="outline" onClick={loadAccessibleLocations}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Yenile
           </Button>
@@ -374,39 +293,21 @@ const MyLocationStock = () => {
       {/* Arama */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Label>Ürün Ara</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="İsim veya kod ile ara..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex-1">
-              <Label>Karekod/Barkod</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  placeholder="Karekod okutun veya yapıştırın..."
-                  value={barcodeInput}
-                  onChange={(e) => setBarcodeInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleBarcodeSearch()}
-                />
-                <Button variant="outline" onClick={handleBarcodeSearch}>
-                  <QrCode className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          <Label>Ürün Ara</Label>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Ürün adı ile ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </CardContent>
       </Card>
 
       {/* Özet Kartları */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card className="border-blue-200">
           <CardContent className="p-4 text-center">
             <Package className="h-8 w-8 mx-auto text-blue-600 mb-2" />
@@ -419,7 +320,7 @@ const MyLocationStock = () => {
           <CardContent className="p-4 text-center">
             <AlertTriangle className="h-8 w-8 mx-auto text-orange-600 mb-2" />
             <div className="text-2xl font-bold text-orange-600">
-              {stockItems.filter(i => i.quantity <= i.min_quantity).length}
+              {stockItems.filter(i => i.quantity < i.min_quantity).length}
             </div>
             <div className="text-sm text-gray-600">Kritik Stok</div>
           </CardContent>
@@ -427,25 +328,11 @@ const MyLocationStock = () => {
         
         <Card className="border-red-200">
           <CardContent className="p-4 text-center">
-            <Clock className="h-8 w-8 mx-auto text-red-600 mb-2" />
+            <AlertTriangle className="h-8 w-8 mx-auto text-red-600 mb-2" />
             <div className="text-2xl font-bold text-red-600">
-              {stockItems.filter(i => {
-                if (!i.expiry_date) return false;
-                const days = Math.ceil((new Date(i.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
-                return days < 0;
-              }).length}
+              {stockItems.filter(i => i.quantity === 0).length}
             </div>
-            <div className="text-sm text-gray-600">Süresi Dolmuş</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-green-200">
-          <CardContent className="p-4 text-center">
-            <CheckCircle2 className="h-8 w-8 mx-auto text-green-600 mb-2" />
-            <div className="text-2xl font-bold text-green-600">
-              {stockItems.filter(i => i.quantity > i.min_quantity).length}
-            </div>
-            <div className="text-sm text-gray-600">Normal</div>
+            <div className="text-sm text-gray-600">Stok Yok</div>
           </CardContent>
         </Card>
       </div>
@@ -476,10 +363,8 @@ const MyLocationStock = () => {
                       <span className="font-medium">{item.name}</span>
                       {getStockBadge(item)}
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Kod: {item.code || '-'} | 
-                      Lot: {item.lot_number || '-'} | 
-                      SKT: {item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('tr-TR') : '-'}
+                    <div className="text-sm text-gray-500 mt-1 capitalize">
+                      Kategori: {item.category || '-'} | Min: {item.min_quantity} {item.unit || 'ADET'}
                     </div>
                   </div>
                   
@@ -491,10 +376,10 @@ const MyLocationStock = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const id = item._id || item.id;
+                            const itemName = item.name;
                             setCountedItems(prev => ({
                               ...prev,
-                              [id]: Math.max(0, (prev[id] || 0) - 1)
+                              [itemName]: Math.max(0, (prev[itemName] ?? item.quantity) - 1)
                             }));
                           }}
                         >
@@ -503,12 +388,12 @@ const MyLocationStock = () => {
                         <Input
                           type="number"
                           className="w-20 text-center"
-                          value={countedItems[item._id || item.id] ?? item.quantity}
+                          value={countedItems[item.name] ?? item.quantity}
                           onChange={(e) => {
-                            const id = item._id || item.id;
+                            const itemName = item.name;
                             setCountedItems(prev => ({
                               ...prev,
-                              [id]: parseInt(e.target.value) || 0
+                              [itemName]: parseInt(e.target.value) || 0
                             }));
                           }}
                           onClick={(e) => e.stopPropagation()}
@@ -518,10 +403,10 @@ const MyLocationStock = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const id = item._id || item.id;
+                            const itemName = item.name;
                             setCountedItems(prev => ({
                               ...prev,
-                              [id]: (prev[id] || 0) + 1
+                              [itemName]: (prev[itemName] ?? item.quantity) + 1
                             }));
                           }}
                         >
@@ -534,7 +419,7 @@ const MyLocationStock = () => {
                           {item.quantity}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {item.unit || 'adet'}
+                          {item.unit || 'ADET'}
                         </div>
                       </div>
                     )}
@@ -556,61 +441,27 @@ const MyLocationStock = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-500">Kod</Label>
-                <p className="font-medium">{selectedItem?.code || '-'}</p>
+                <Label className="text-gray-500">Mevcut Miktar</Label>
+                <p className="text-2xl font-bold text-blue-600">{selectedItem?.quantity}</p>
               </div>
               <div>
-                <Label className="text-gray-500">GTIN</Label>
-                <p className="font-medium">{selectedItem?.gtin || '-'}</p>
+                <Label className="text-gray-500">Birim</Label>
+                <p className="text-xl font-medium">{selectedItem?.unit || 'ADET'}</p>
               </div>
               <div>
-                <Label className="text-gray-500">Miktar</Label>
-                <p className="font-medium">{selectedItem?.quantity} {selectedItem?.unit || 'adet'}</p>
+                <Label className="text-gray-500">Minimum Miktar</Label>
+                <p className="font-medium text-orange-600">{selectedItem?.min_quantity}</p>
               </div>
               <div>
-                <Label className="text-gray-500">Min. Miktar</Label>
-                <p className="font-medium">{selectedItem?.min_quantity}</p>
-              </div>
-              <div>
-                <Label className="text-gray-500">Lot No</Label>
-                <p className="font-medium">{selectedItem?.lot_number || '-'}</p>
-              </div>
-              <div>
-                <Label className="text-gray-500">SKT</Label>
-                <p className="font-medium">
-                  {selectedItem?.expiry_date 
-                    ? new Date(selectedItem.expiry_date).toLocaleDateString('tr-TR')
-                    : '-'
-                  }
-                </p>
+                <Label className="text-gray-500">Kategori</Label>
+                <p className="font-medium capitalize">{selectedItem?.category || '-'}</p>
               </div>
             </div>
             
-            {/* Karekod Detayları */}
-            {loadingDetails && (
-              <div className="text-center py-4">
-                <div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              </div>
-            )}
-            
-            {itemDetails?.barcodes && itemDetails.barcodes.length > 0 && (
-              <div>
-                <Label className="text-gray-500 mb-2 block">Karekod Detayları</Label>
-                <div className="bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto">
-                  {itemDetails.barcodes.map((bc, idx) => (
-                    <div key={idx} className="flex justify-between text-sm py-1 border-b last:border-0">
-                      <span className="font-mono">{bc.serial || bc.barcode}</span>
-                      <span className="text-gray-500">
-                        {bc.expiry_date 
-                          ? new Date(bc.expiry_date).toLocaleDateString('tr-TR')
-                          : '-'
-                        }
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="border-t pt-4">
+              <Label className="text-gray-500 mb-2 block">Stok Durumu</Label>
+              {getStockBadge(selectedItem || {})}
+            </div>
           </div>
           
           <DialogFooter>
@@ -625,4 +476,5 @@ const MyLocationStock = () => {
 };
 
 export default MyLocationStock;
+
 
