@@ -269,6 +269,7 @@ async def seed_all_endpoint(request: Request):
         "success": True,
         "message": f"{vehicles_created} araç ve {wp_created} bekleme noktasına stok eklendi",
         "details": results
+    }
 
 
 @router.delete("/cleanup-duplicates")
