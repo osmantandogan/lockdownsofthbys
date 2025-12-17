@@ -735,13 +735,8 @@ async def get_locations_summary(request: Request):
 
 @router.get("/case/{case_id}/available")
 async def get_case_available_stock(case_id: str, request: Request):
-    """Vakaya atanan aracın ve lokasyonun stoklarını getir"""
-    await get_current_user(request)
-    
-    # Vaka bilgisini al
-    case = await db.cases.find_one({"_id": case_id})
-    if not case:
-        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    """Vakaya atanan aracın ve lokasyonun stoklarını getir - basitleştirilmiş versiyon"""
+    user = await get_current_user(request)
     
     result = {
         "vehicle": None,
@@ -749,9 +744,30 @@ async def get_case_available_stock(case_id: str, request: Request):
     }
     
     try:
-        # Araç stoğu
-        vehicle_id = case.get("assigned_team", {}).get("vehicle_id") if case.get("assigned_team") else None
+        # 1. Önce vakadan araç ID'sini almayı dene
+        vehicle_id = None
+        case = await db.cases.find_one({"_id": case_id})
+        if case and case.get("assigned_team"):
+            vehicle_id = case.get("assigned_team", {}).get("vehicle_id")
         
+        # 2. Vakada araç yoksa, kullanıcının bugünkü vardiyasındaki aracı bul
+        if not vehicle_id:
+            today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow = today + timedelta(days=1)
+            
+            assignment = await db.shift_assignments.find_one({
+                "user_id": user.id,
+                "status": {"$in": ["pending", "started"]},
+                "$or": [
+                    {"shift_date": {"$gte": today, "$lt": tomorrow}},
+                    {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+                ]
+            })
+            
+            if assignment:
+                vehicle_id = assignment.get("vehicle_id")
+        
+        # 3. Araç stoğunu getir
         if vehicle_id:
             vehicle = await db.vehicles.find_one({"_id": vehicle_id})
             vehicle_stock = await location_stocks.find_one({"location_id": vehicle_id})
@@ -775,7 +791,7 @@ async def get_case_available_stock(case_id: str, request: Request):
                     "items": vehicle_items
                 }
             
-            # Aracın bulunduğu lokasyon stoğu
+            # 4. Aracın bulunduğu lokasyon stoğu
             vehicle_current_loc = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
             if vehicle_current_loc:
                 loc_id = vehicle_current_loc.get("location_id")
@@ -800,9 +816,32 @@ async def get_case_available_stock(case_id: str, request: Request):
                             "type": "waiting_point",
                             "items": loc_items
                         }
+        
+        # 5. Hala stok bulunamadıysa, tüm araç stoklarından ilkini göster (fallback)
+        if not result["vehicle"] and not result["location"]:
+            all_stocks = await location_stocks.find({"location_type": "vehicle"}).limit(1).to_list(1)
+            if all_stocks:
+                stock = all_stocks[0]
+                items = []
+                for item in stock.get("items", []):
+                    if isinstance(item, dict) and item.get("quantity", 0) > 0:
+                        items.append({
+                            "name": item.get("name", ""),
+                            "quantity": item.get("quantity", 0),
+                            "category": item.get("category", "sarf"),
+                            "source": "vehicle",
+                            "source_name": stock.get("location_name", "")
+                        })
+                
+                result["vehicle"] = {
+                    "id": stock.get("location_id"),
+                    "name": stock.get("location_name", ""),
+                    "type": "vehicle",
+                    "items": items
+                }
+                
     except Exception as e:
         logger.error(f"Error loading case available stock: {e}")
-        # Return empty result instead of failing
     
     return result
 
