@@ -793,13 +793,22 @@ async def get_case_available_stock(case_id: str, request: Request):
             
             # 4. Aracın bulunduğu bekleme noktası stoğu
             vehicle_current_loc = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
+            logger.info(f"[STOCK DEBUG] vehicle_id={vehicle_id}, vehicle_current_loc={vehicle_current_loc}")
+            
             if vehicle_current_loc:
                 # current_location_id veya assigned_location_id kullan
                 loc_id = vehicle_current_loc.get("current_location_id") or vehicle_current_loc.get("assigned_location_id")
                 loc_name = vehicle_current_loc.get("current_location_name") or vehicle_current_loc.get("assigned_location_name")
+                logger.info(f"[STOCK DEBUG] loc_id={loc_id}, loc_name={loc_name}")
                 
                 if loc_id:
                     loc_stock = await location_stocks.find_one({"location_id": loc_id})
+                    logger.info(f"[STOCK DEBUG] loc_stock found={loc_stock is not None}, location_id query={loc_id}")
+                    
+                    # Eğer location_id ile bulunamazsa, location_name ile dene
+                    if not loc_stock and loc_name:
+                        loc_stock = await location_stocks.find_one({"location_name": loc_name})
+                        logger.info(f"[STOCK DEBUG] loc_stock by name found={loc_stock is not None}")
                     
                     if loc_stock:
                         loc_items = []
