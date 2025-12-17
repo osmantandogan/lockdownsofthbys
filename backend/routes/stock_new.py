@@ -791,10 +791,13 @@ async def get_case_available_stock(case_id: str, request: Request):
                     "items": vehicle_items
                 }
             
-            # 4. Aracın bulunduğu lokasyon stoğu
+            # 4. Aracın bulunduğu bekleme noktası stoğu
             vehicle_current_loc = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
             if vehicle_current_loc:
-                loc_id = vehicle_current_loc.get("location_id")
+                # current_location_id veya assigned_location_id kullan
+                loc_id = vehicle_current_loc.get("current_location_id") or vehicle_current_loc.get("assigned_location_id")
+                loc_name = vehicle_current_loc.get("current_location_name") or vehicle_current_loc.get("assigned_location_name")
+                
                 if loc_id:
                     loc_stock = await location_stocks.find_one({"location_id": loc_id})
                     
