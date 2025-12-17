@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { stockV2API } from '../api';
+import { stockNewAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -78,16 +78,17 @@ const StockManagement = () => {
 
   const loadLocations = async () => {
     try {
-      const response = await stockV2API.getAllLocationStocks();
+      const response = await stockNewAPI.getAllLocations();
       setLocations(response.data?.locations || []);
     } catch (error) {
       console.error('Lokasyonlar yüklenemedi:', error);
+      toast.error('Lokasyonlar yüklenemedi');
     }
   };
 
   const loadAllStock = async () => {
     try {
-      const response = await stockV2API.getAllLocationStocks();
+      const response = await stockNewAPI.getAllLocations();
       const locs = response.data?.locations || [];
       
       // Tüm stokları birleştir
@@ -121,10 +122,11 @@ const StockManagement = () => {
   const loadRequests = async () => {
     setRequestsLoading(true);
     try {
-      const response = await stockV2API.getRequests({});
+      const response = await stockNewAPI.getRequests({});
       setRequests(response.data?.requests || []);
     } catch (error) {
       console.error('Talepler yüklenemedi:', error);
+      toast.error('Talepler yüklenemedi');
     } finally {
       setRequestsLoading(false);
     }
@@ -136,7 +138,7 @@ const StockManagement = () => {
     setLoadingDetail(true);
     
     try {
-      const response = await stockV2API.getLocationStock(location.location_id);
+      const response = await stockNewAPI.getLocationStock(location.location_id);
       setLocationStock(response.data);
     } catch (error) {
       console.error('Lokasyon detayı yüklenemedi:', error);
@@ -148,34 +150,37 @@ const StockManagement = () => {
 
   const handleApproveRequest = async (requestId) => {
     try {
-      await stockV2API.approveRequest(requestId, '');
+      await stockNewAPI.approveRequest(requestId);
       toast.success('Talep onaylandı');
       loadRequests();
       setRequestDetailOpen(false);
     } catch (error) {
-      toast.error('Onaylama başarısız');
+      toast.error('Onaylama başarısız: ' + (error.response?.data?.detail || error.message));
     }
   };
 
   const handleRejectRequest = async (requestId) => {
     try {
-      await stockV2API.rejectRequest(requestId, '');
+      await stockNewAPI.rejectRequest(requestId);
       toast.success('Talep reddedildi');
       loadRequests();
       setRequestDetailOpen(false);
     } catch (error) {
-      toast.error('Reddetme başarısız');
+      toast.error('Reddetme başarısız: ' + (error.response?.data?.detail || error.message));
     }
   };
 
   const handleDeliverRequest = async (requestId) => {
     try {
-      await stockV2API.deliverRequest(requestId);
+      await stockNewAPI.deliverRequest(requestId);
       toast.success('Talep teslim edildi');
       loadRequests();
       setRequestDetailOpen(false);
+      // Lokasyonları yeniden yükle (stoklar değişti)
+      loadLocations();
+      loadAllStock();
     } catch (error) {
-      toast.error('Teslim işlemi başarısız');
+      toast.error('Teslim işlemi başarısız: ' + (error.response?.data?.detail || error.message));
     }
   };
 
