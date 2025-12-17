@@ -487,7 +487,7 @@ const Tickets = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Seçim Yok</SelectItem>
-                      {vehicles.map(v => (
+                      {vehicles.filter(v => v.id || v._id).map(v => (
                         <SelectItem key={v.id || v._id} value={v.id || v._id}>
                           {v.plate}
                         </SelectItem>
@@ -506,7 +506,7 @@ const Tickets = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Seçim Yok</SelectItem>
-                      {recentCases.map(c => (
+                      {recentCases.filter(c => c.id || c._id).map(c => (
                         <SelectItem key={c.id || c._id} value={c.id || c._id}>
                           {c.case_number} - {c.patient?.name || 'İsimsiz'}
                         </SelectItem>
