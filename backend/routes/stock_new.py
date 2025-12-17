@@ -362,9 +362,50 @@ async def get_location_stock(location_id: str, request: Request):
 
 @router.patch("/locations/{location_id}/update")
 async def update_location_stock(location_id: str, request: Request):
-    """Lokasyon stoğunu güncelle (sayım)"""
+    """Lokasyon stoğunu güncelle (sayım) - Kullanıcı sadece erişebildiği lokasyonları güncelleyebilir"""
     user = await get_current_user(request)
     data = await request.json()
+    
+    # Yetki kontrolü - Merkez ofis her lokasyona erişebilir
+    if user.role not in ["merkez_ofis", "operasyon_muduru"]:
+        # Kullanıcının bu lokasyona erişimi var mı kontrol et
+        today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+        
+        assignment = await db.shift_assignments.find_one({
+            "user_id": user.id,
+            "status": {"$in": ["pending", "started"]},
+            "$or": [
+                {"shift_date": {"$gte": today, "$lt": tomorrow}},
+                {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+            ]
+        })
+        
+        if not assignment:
+            raise HTTPException(status_code=403, detail="Aktif vardiya atamanız bulunmuyor")
+        
+        # Erişilebilir lokasyonları kontrol et
+        accessible_location_ids = []
+        
+        # Kendi aracı
+        if assignment.get("vehicle_id"):
+            accessible_location_ids.append(assignment.get("vehicle_id"))
+            
+            # Aracın bulunduğu bekleme noktası
+            vehicle_location = await db.vehicle_current_locations.find_one({"vehicle_id": assignment.get("vehicle_id")})
+            if vehicle_location:
+                wp_id = vehicle_location.get("current_location_id") or vehicle_location.get("assigned_location_id")
+                if wp_id:
+                    accessible_location_ids.append(wp_id)
+        
+        # Veya sağlık merkezi
+        if assignment.get("location_type") == "saglik_merkezi":
+            hc_id = assignment.get("healmedy_location_id", "filyos_saglik_merkezi")
+            accessible_location_ids.append(hc_id)
+        
+        # Erişim kontrolü
+        if location_id not in accessible_location_ids:
+            raise HTTPException(status_code=403, detail="Bu lokasyona erişim yetkiniz yok")
     
     loc = await location_stocks.find_one({"location_id": location_id})
     if not loc:
@@ -387,14 +428,57 @@ async def update_location_stock(location_id: str, request: Request):
         {"$set": {"items": items, "updated_at": get_turkey_time()}}
     )
     
+    logger.info(f"Stok güncellendi: {user.name} - {loc.get('location_name')} - {len(updates)} ürün")
+    
     return {"success": True, "message": "Stok güncellendi"}
 
 
 @router.post("/locations/{location_id}/use")
 async def use_from_location(location_id: str, request: Request):
-    """Lokasyondan stok kullan (düş)"""
+    """Lokasyondan stok kullan (düş) - Kullanıcı sadece erişebildiği lokasyonlardan stok kullanabilir"""
     user = await get_current_user(request)
     data = await request.json()
+    
+    # Yetki kontrolü - Merkez ofis her lokasyona erişebilir
+    if user.role not in ["merkez_ofis", "operasyon_muduru"]:
+        # Kullanıcının bu lokasyona erişimi var mı kontrol et
+        today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+        
+        assignment = await db.shift_assignments.find_one({
+            "user_id": user.id,
+            "status": {"$in": ["pending", "started"]},
+            "$or": [
+                {"shift_date": {"$gte": today, "$lt": tomorrow}},
+                {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+            ]
+        })
+        
+        if not assignment:
+            raise HTTPException(status_code=403, detail="Aktif vardiya atamanız bulunmuyor")
+        
+        # Erişilebilir lokasyonları kontrol et
+        accessible_location_ids = []
+        
+        # Kendi aracı
+        if assignment.get("vehicle_id"):
+            accessible_location_ids.append(assignment.get("vehicle_id"))
+            
+            # Aracın bulunduğu bekleme noktası
+            vehicle_location = await db.vehicle_current_locations.find_one({"vehicle_id": assignment.get("vehicle_id")})
+            if vehicle_location:
+                wp_id = vehicle_location.get("current_location_id") or vehicle_location.get("assigned_location_id")
+                if wp_id:
+                    accessible_location_ids.append(wp_id)
+        
+        # Veya sağlık merkezi
+        if assignment.get("location_type") == "saglik_merkezi":
+            hc_id = assignment.get("healmedy_location_id", "filyos_saglik_merkezi")
+            accessible_location_ids.append(hc_id)
+        
+        # Erişim kontrolü
+        if location_id not in accessible_location_ids:
+            raise HTTPException(status_code=403, detail="Bu lokasyona erişim yetkiniz yok")
     
     loc = await location_stocks.find_one({"location_id": location_id})
     if not loc:
@@ -417,6 +501,8 @@ async def use_from_location(location_id: str, request: Request):
         {"_id": loc["_id"]},
         {"$set": {"items": items, "updated_at": get_turkey_time()}}
     )
+    
+    logger.info(f"Stok kullanımı: {user.name} - {loc.get('location_name')} - {len(usages)} ürün")
     
     return {"success": True, "message": "Stok kullanımı kaydedildi"}
 
@@ -481,6 +567,94 @@ async def get_my_location_stock(request: Request):
             "type": loc.get("location_type", target_type)
         },
         "items": loc.get("items", [])
+    }
+
+
+@router.get("/my-accessible-locations")
+async def get_my_accessible_locations(request: Request):
+    """
+    Kullanıcının erişebileceği TÜM lokasyonları getir
+    - Kendi vardiyasında atandığı araç/lokasyon
+    - Eğer araca atanmışsa, aracın bulunduğu bekleme noktası
+    """
+    user = await get_current_user(request)
+    
+    # Bugünkü vardiya atamasını bul
+    today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    
+    assignment = await db.shift_assignments.find_one({
+        "user_id": user.id,
+        "status": {"$in": ["pending", "started"]},
+        "$or": [
+            {"shift_date": {"$gte": today, "$lt": tomorrow}},
+            {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+        ]
+    })
+    
+    if not assignment:
+        return {
+            "locations": [],
+            "message": "Bugün için aktif bir vardiya atamanız bulunmuyor"
+        }
+    
+    accessible_locations = []
+    
+    # 1. Kendi atandığı lokasyonu ekle
+    vehicle_id = assignment.get("vehicle_id")
+    location_type = assignment.get("location_type", "arac")
+    
+    if vehicle_id:
+        # Araca atanmış - aracın stoğunu ekle
+        vehicle_stock = await location_stocks.find_one({"location_id": vehicle_id})
+        if vehicle_stock:
+            vehicle_stock["id"] = vehicle_stock.pop("_id", "")
+            accessible_locations.append({
+                "location_id": vehicle_stock.get("location_id"),
+                "location_name": vehicle_stock.get("location_name"),
+                "location_type": "vehicle",
+                "items": vehicle_stock.get("items", []),
+                "source": "atanmis_arac"
+            })
+        
+        # 2. Aracın bulunduğu bekleme noktasını kontrol et
+        vehicle_location = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
+        if vehicle_location:
+            waiting_point_id = vehicle_location.get("current_location_id") or vehicle_location.get("assigned_location_id")
+            
+            if waiting_point_id:
+                # Bekleme noktasının stoğunu getir
+                waiting_point_stock = await location_stocks.find_one({"location_id": waiting_point_id})
+                if waiting_point_stock:
+                    waiting_point_stock["id"] = waiting_point_stock.pop("_id", "")
+                    accessible_locations.append({
+                        "location_id": waiting_point_stock.get("location_id"),
+                        "location_name": waiting_point_stock.get("location_name"),
+                        "location_type": "waiting_point",
+                        "items": waiting_point_stock.get("items", []),
+                        "source": "arac_bekleme_noktasi"
+                    })
+    
+    elif location_type == "saglik_merkezi":
+        # Sağlık merkezine atanmış (hemşire/doktor)
+        health_center_id = assignment.get("healmedy_location_id", "filyos_saglik_merkezi")
+        health_center_name = assignment.get("health_center_name", "Filyos Sağlık Merkezi")
+        
+        health_center_stock = await location_stocks.find_one({"location_id": health_center_id})
+        if health_center_stock:
+            health_center_stock["id"] = health_center_stock.pop("_id", "")
+            accessible_locations.append({
+                "location_id": health_center_stock.get("location_id"),
+                "location_name": health_center_stock.get("location_name"),
+                "location_type": "waiting_point",
+                "items": health_center_stock.get("items", []),
+                "source": "atanmis_saglik_merkezi"
+            })
+    
+    return {
+        "locations": accessible_locations,
+        "total": len(accessible_locations),
+        "message": f"{len(accessible_locations)} lokasyona erişiminiz var"
     }
 
 
