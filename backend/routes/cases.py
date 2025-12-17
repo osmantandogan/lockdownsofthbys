@@ -1054,49 +1054,55 @@ class MedicalFormUpdate(BaseModel):
 @router.post("/{case_id}/join")
 async def join_case(case_id: str, request: Request):
     """Join case as participant (real-time collaboration)"""
-    user = await get_current_user(request)
-    
-    case_doc = await cases_collection.find_one({"_id": case_id})
-    if not case_doc:
-        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
-    
-    # Check if user is authorized (assigned to case or doctor/nurse/admin)
-    is_authorized = False
-    assigned_team = case_doc.get("assigned_team", {})
-    
-    if user.role in ["merkez_ofis", "operasyon_muduru", "doktor", "hemsire"]:
-        is_authorized = True
-    elif user.id in [
-        assigned_team.get("driver_id"),
-        assigned_team.get("paramedic_id"),
-        assigned_team.get("att_id"),
-        assigned_team.get("nurse_id")
-    ]:
-        is_authorized = True
-    
-    if not is_authorized:
-        raise HTTPException(status_code=403, detail="Bu vakaya erişim yetkiniz yok")
-    
-    # Add or update participant
-    participant = CaseParticipant(
-        user_id=user.id,
-        user_name=user.name,
-        user_role=user.role,
-        joined_at=get_turkey_time(),
-        last_activity=get_turkey_time()
-    )
-    
-    # Remove old entry if exists, then add new
-    await cases_collection.update_one(
-        {"_id": case_id},
-        {"$pull": {"participants": {"user_id": user.id}}}
-    )
-    await cases_collection.update_one(
-        {"_id": case_id},
-        {"$push": {"participants": participant.model_dump()}}
-    )
-    
-    return {"message": "Vakaya katıldınız", "participant": participant.model_dump()}
+    try:
+        user = await get_current_user(request)
+        
+        case_doc = await cases_collection.find_one({"_id": case_id})
+        if not case_doc:
+            raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+        
+        # Check if user is authorized (assigned to case or doctor/nurse/admin)
+        is_authorized = False
+        assigned_team = case_doc.get("assigned_team") or {}
+        
+        if user.role in ["merkez_ofis", "operasyon_muduru", "doktor", "hemsire", "att", "paramedik", "sofor", "bas_sofor"]:
+            is_authorized = True
+        elif user.id in [
+            assigned_team.get("driver_id"),
+            assigned_team.get("paramedic_id"),
+            assigned_team.get("att_id"),
+            assigned_team.get("nurse_id")
+        ]:
+            is_authorized = True
+        
+        if not is_authorized:
+            raise HTTPException(status_code=403, detail="Bu vakaya erişim yetkiniz yok")
+        
+        # Add or update participant
+        participant = CaseParticipant(
+            user_id=user.id or "",
+            user_name=user.name or "Bilinmeyen",
+            user_role=user.role or "personel",
+            joined_at=get_turkey_time(),
+            last_activity=get_turkey_time()
+        )
+        
+        # Remove old entry if exists, then add new
+        await cases_collection.update_one(
+            {"_id": case_id},
+            {"$pull": {"participants": {"user_id": user.id}}}
+        )
+        await cases_collection.update_one(
+            {"_id": case_id},
+            {"$push": {"participants": participant.model_dump()}}
+        )
+        
+        return {"message": "Vakaya katıldınız", "participant": participant.model_dump()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error joining case {case_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Vakaya katılırken hata: {str(e)}")
 
 @router.post("/{case_id}/leave")
 async def leave_case(case_id: str, request: Request):

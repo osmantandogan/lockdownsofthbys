@@ -732,42 +732,61 @@ async def get_case_available_stock(case_id: str, request: Request):
         "location": None
     }
     
-    # Araç stoğu
-    vehicle_id = case.get("assigned_team", {}).get("vehicle_id")
-    if vehicle_id:
-        vehicle = await db.vehicles.find_one({"_id": vehicle_id})
-        vehicle_stock = await location_stocks.find_one({"location_id": vehicle_id})
+    try:
+        # Araç stoğu
+        vehicle_id = case.get("assigned_team", {}).get("vehicle_id") if case.get("assigned_team") else None
         
-        if vehicle_stock:
-            result["vehicle"] = {
-                "id": vehicle_id,
-                "name": vehicle.get("plate", "") if vehicle else "",
-                "type": "vehicle",
-                "items": [
-                    {**item, "source": "vehicle", "source_name": vehicle.get("plate", "") if vehicle else ""}
-                    for item in vehicle_stock.get("items", [])
-                    if item.get("quantity", 0) > 0
-                ]
-            }
-    
-    # Aracın bulunduğu lokasyon stoğu
-    # Önce aracın mevcut lokasyonunu bul
-    vehicle_current_loc = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
-    if vehicle_current_loc:
-        loc_id = vehicle_current_loc.get("location_id")
-        loc_stock = await location_stocks.find_one({"location_id": loc_id})
-        
-        if loc_stock:
-            result["location"] = {
-                "id": loc_id,
-                "name": loc_stock.get("location_name", ""),
-                "type": "waiting_point",
-                "items": [
-                    {**item, "source": "location", "source_name": loc_stock.get("location_name", "")}
-                    for item in loc_stock.get("items", [])
-                    if item.get("quantity", 0) > 0
-                ]
-            }
+        if vehicle_id:
+            vehicle = await db.vehicles.find_one({"_id": vehicle_id})
+            vehicle_stock = await location_stocks.find_one({"location_id": vehicle_id})
+            
+            if vehicle_stock:
+                vehicle_items = []
+                for item in vehicle_stock.get("items", []):
+                    if isinstance(item, dict) and item.get("quantity", 0) > 0:
+                        vehicle_items.append({
+                            "name": item.get("name", ""),
+                            "quantity": item.get("quantity", 0),
+                            "category": item.get("category", "sarf"),
+                            "source": "vehicle",
+                            "source_name": vehicle.get("plate", "") if vehicle else ""
+                        })
+                
+                result["vehicle"] = {
+                    "id": vehicle_id,
+                    "name": vehicle.get("plate", "") if vehicle else "",
+                    "type": "vehicle",
+                    "items": vehicle_items
+                }
+            
+            # Aracın bulunduğu lokasyon stoğu
+            vehicle_current_loc = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
+            if vehicle_current_loc:
+                loc_id = vehicle_current_loc.get("location_id")
+                if loc_id:
+                    loc_stock = await location_stocks.find_one({"location_id": loc_id})
+                    
+                    if loc_stock:
+                        loc_items = []
+                        for item in loc_stock.get("items", []):
+                            if isinstance(item, dict) and item.get("quantity", 0) > 0:
+                                loc_items.append({
+                                    "name": item.get("name", ""),
+                                    "quantity": item.get("quantity", 0),
+                                    "category": item.get("category", "sarf"),
+                                    "source": "location",
+                                    "source_name": loc_stock.get("location_name", "")
+                                })
+                        
+                        result["location"] = {
+                            "id": loc_id,
+                            "name": loc_stock.get("location_name", ""),
+                            "type": "waiting_point",
+                            "items": loc_items
+                        }
+    except Exception as e:
+        logger.error(f"Error loading case available stock: {e}")
+        # Return empty result instead of failing
     
     return result
 
