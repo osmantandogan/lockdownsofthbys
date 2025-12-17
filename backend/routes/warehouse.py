@@ -136,9 +136,10 @@ async def parse_its_qr(qr_code: str) -> dict:
         
         return {
             "gtin": parsed.get("gtin"),
-            "lot_number": parsed.get("lot"),
-            "expiry_date": parsed.get("expiry"),
-            "serial_number": parsed.get("serial"),
+            "lot_number": parsed.get("lot_number"),
+            "expiry_date": parsed.get("expiry_date"),
+            "serial_number": parsed.get("serial_number"),
+            "quantity": parsed.get("quantity"),  # AI (30) - Kutudaki adet
             "drug_name": drug_info.get("name") if drug_info else None,
             "drug_info": drug_info,
             "parsed": parsed,
@@ -196,7 +197,8 @@ async def add_warehouse_stock(request: Request):
     
     # Manuel bilgileri al
     box_quantity = data.get("box_quantity", 1)
-    items_per_box = data.get("items_per_box", 1)
+    # Eğer QR'dan adet bilgisi gelmişse onu kullan, yoksa manuel girişi kullan
+    items_per_box = its_data.get("quantity") or data.get("items_per_box", 1)
     warehouse_location = data.get("warehouse_location", "")  # Raf konumu
     
     # Kaydet

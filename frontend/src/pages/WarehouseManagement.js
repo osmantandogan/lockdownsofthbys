@@ -114,8 +114,16 @@ const WarehouseManagement = () => {
     
     try {
       const response = await warehouseAPI.parseQR({ qr_code: qrCode });
-      setParsedQR(response.data);
-      toast.success('QR kod başarıyla okundu!');
+      const parsed = response.data;
+      setParsedQR(parsed);
+      
+      // Eğer QR'dan kutudaki adet bilgisi gelmişse otomatik doldur
+      if (parsed.quantity) {
+        setItemsPerBox(parsed.quantity);
+        toast.success(`QR okundu! Kutuda ${parsed.quantity} adet`);
+      } else {
+        toast.success('QR kod başarıyla okundu!');
+      }
     } catch (error) {
       console.error('QR parse hatası:', error);
       toast.error(error.response?.data?.detail || 'QR kod okunamadı');
@@ -179,11 +187,11 @@ const WarehouseManagement = () => {
         const parseResponse = await warehouseAPI.parseQR({ qr_code: qr });
         const parsed = parseResponse.data;
         
-        // Depoya ekle (varsayılan: 1 kutu, 10 adet)
+        // Depoya ekle - QR'dan gelen adet veya varsayılan 10
         await warehouseAPI.addStock({
           qr_code: qr,
           box_quantity: 1,
-          items_per_box: 10,  // Varsayılan
+          items_per_box: parsed.quantity || 10,  // QR'dan gelen veya varsayılan
           warehouse_location: '',
           item_name: parsed.drug_name
         });
@@ -494,6 +502,9 @@ const WarehouseManagement = () => {
                     <p><strong>GTIN:</strong> {parsedQR.gtin}</p>
                     <p><strong>Lot:</strong> {parsedQR.lot_number}</p>
                     <p><strong>SKT:</strong> {parsedQR.expiry_date || '-'}</p>
+                    {parsedQR.quantity && (
+                      <p><strong>Kutudaki Adet (QR'dan):</strong> {parsedQR.quantity}</p>
+                    )}
                     {parsedQR.its_verified && (
                       <Badge className="bg-green-600 mt-2">İTS Doğrulandı</Badge>
                     )}

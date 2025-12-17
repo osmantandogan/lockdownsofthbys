@@ -330,6 +330,7 @@ def parse_datamatrix(barcode: str) -> Dict:
         "serial_number": None,
         "lot_number": None,
         "expiry_date": None,
+        "quantity": None,  # AI (30) - Kutudaki adet
         "raw": barcode
     }
     
@@ -365,6 +366,11 @@ def parse_datamatrix(barcode: str) -> Dict:
         if exp_match:
             exp_str = exp_match.group(1)
             result["expiry_date"] = _parse_expiry_date(exp_str)
+        
+        # Kutudaki Adet (30)
+        qty_match = re.search(r'\(30\)(\d+)', clean_barcode)
+        if qty_match:
+            result["quantity"] = int(qty_match.group(1))
     
     # Yöntem 2: GS ayraçlı veya ayraçsız format
     # 01GTIN17SKT10LOT21SERIAL veya 01GTIN|17SKT|10LOT|21SERIAL
@@ -385,6 +391,11 @@ def parse_datamatrix(barcode: str) -> Dict:
         exp_match = re.search(r'17(\d{6})', full_data)
         if exp_match:
             result["expiry_date"] = _parse_expiry_date(exp_match.group(1))
+        
+        # Kutudaki Adet (30) - değişken uzunluklu ama genelde 1-8 hane
+        qty_match = re.search(r'30(\d{1,8})', full_data)
+        if qty_match:
+            result["quantity"] = int(qty_match.group(1))
         
         # Lot (10) ve Seri (21) değişken uzunluklu - daha karmaşık parse
         # Bu AI'lar değişken uzunlukta olduğu için sırayla bakmamız gerekiyor
