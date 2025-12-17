@@ -283,6 +283,41 @@ export const stockNewAPI = {
   healthCheck: () => api.get('/stock-new/health')
 };
 
+// DEPO (WAREHOUSE) SİSTEMİ
+export const warehouseAPI = {
+  // Depo Stok Yönetimi
+  getStock: (params) => api.get('/warehouse/stock', { params }),
+  getStockDetail: (stockId) => api.get(`/warehouse/stock/${stockId}`),
+  addStock: (data) => api.post('/warehouse/stock/add', data),
+  deleteStock: (stockId) => api.delete(`/warehouse/stock/${stockId}`),
+  updateLocation: (stockId, data) => api.patch(`/warehouse/stock/${stockId}/location`, data),
+  
+  // İTS QR Parse
+  parseQR: (data) => api.post('/warehouse/parse-qr', data),
+  
+  // İstatistikler
+  getStats: () => api.get('/warehouse/stats'),
+  
+  // Transfer Talepleri
+  getTransfers: (params) => api.get('/warehouse/transfers', { params }),
+  getTransferDetail: (transferId) => api.get(`/warehouse/transfers/${transferId}`),
+  createTransferRequest: (data) => api.post('/warehouse/transfers/request', data),
+  approveTransfer: (transferId) => api.post(`/warehouse/transfers/${transferId}/approve`),
+  rejectTransfer: (transferId, data) => api.post(`/warehouse/transfers/${transferId}/reject`, data),
+  
+  // Kutu Parçalama
+  splitBox: (stockId, data) => api.post(`/warehouse/stock/${stockId}/split`, data),
+  getSplits: (params) => api.get('/warehouse/splits', { params }),
+  
+  // Internal QR (Araç stoğu için)
+  getInternalQRs: (locationId) => api.get(`/warehouse/internal-qr/${locationId}`),
+  scanInternalQR: (data) => api.post('/warehouse/internal-qr/scan', data),
+  useInternalQR: (qrId, data) => api.post(`/warehouse/internal-qr/${qrId}/use`, data),
+  
+  // Health
+  healthCheck: () => api.get('/warehouse/health')
+};
+
 // Medications API (Vakada kullanılan ilaçlar)
 export const medicationsAPI = {
   // Karekod işlemleri
