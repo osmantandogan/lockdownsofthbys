@@ -242,7 +242,7 @@ async def seed_all_locations():
         {"id": "bati_kuzey_isg", "name": "Batı-Kuzey/İSG BİNA"},
         {"id": "red_zone_kara", "name": "Red Zone/Kara Tesisleri"},
         {"id": "dogu_rihtimi", "name": "Doğu Rıhtımı"},
-        # Filyos hariç - kullanıcı söyledi
+        {"id": "filyos_saglik_merkezi", "name": "Filyos Sağlık Merkezi"},
     ]
     
     for loc in HEALMEDY_LOCATIONS:
@@ -1256,4 +1256,201 @@ async def search_stock_item(request: Request, q: str = "", location_id: Optional
                     })
     
     return {"items": results[:20]}
+
+
+# --- Vaka İçin Stok İşlemleri ---
+
+@router.get("/case/{case_id}/available")
+async def get_case_available_stock(case_id: str, request: Request):
+    """Vakadaki ekibin erişebileceği tüm stokları getir (araç + bekleme noktası)"""
+    user = await get_current_user(request)
+    
+    # Vakayı getir
+    case = await db.cases.find_one({"_id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Vakanın aracını bul
+    vehicle_id = case.get("vehicle_id")
+    if not vehicle_id:
+        return {"items": [], "message": "Vakada araç ataması yok"}
+    
+    all_items = []
+    
+    # 1. Aracın stoğu
+    vehicle_stock = await location_stocks.find_one({"location_id": vehicle_id})
+    if vehicle_stock:
+        for item in vehicle_stock.get("items", []):
+            if item.get("quantity", 0) > 0:
+                all_items.append({
+                    **item,
+                    "source": "vehicle",
+                    "source_id": vehicle_id,
+                    "source_name": vehicle_stock.get("location_name", "Araç")
+                })
+    
+    # 2. Aracın bulunduğu bekleme noktasının stoğu
+    vehicle_location = await db.vehicle_current_locations.find_one({"vehicle_id": vehicle_id})
+    if vehicle_location:
+        wp_id = vehicle_location.get("current_location_id") or vehicle_location.get("assigned_location_id")
+        if wp_id:
+            wp_stock = await location_stocks.find_one({"location_id": wp_id})
+            if wp_stock:
+                for item in wp_stock.get("items", []):
+                    if item.get("quantity", 0) > 0:
+                        all_items.append({
+                            **item,
+                            "source": "waiting_point",
+                            "source_id": wp_id,
+                            "source_name": wp_stock.get("location_name", "Bekleme Noktası")
+                        })
+    
+    return {"items": all_items}
+
+
+@router.get("/case/{case_id}/usage")
+async def get_case_stock_usage(case_id: str, request: Request):
+    """Vakada kullanılan stokları getir"""
+    await get_current_user(request)
+    
+    # Case collection'dan kullanılan stokları al
+    case = await db.cases.find_one({"_id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    # Vakadaki medications ve stock_usage alanlarını birleştir
+    used_items = []
+    
+    # Medications alanından
+    for med in case.get("medications", []):
+        used_items.append({
+            "id": med.get("id", ""),
+            "name": med.get("name", ""),
+            "quantity": med.get("quantity", 0),
+            "unit": med.get("unit", "ADET"),
+            "category": med.get("category", "ilac"),
+            "used_at": med.get("added_at"),
+            "used_by": med.get("added_by", "")
+        })
+    
+    return {"items": used_items}
+
+
+@router.post("/case/{case_id}/use")
+async def use_stock_for_case(case_id: str, request: Request):
+    """Vakada stok kullan - hem lokasyon stoğundan düş hem vakaya ekle"""
+    user = await get_current_user(request)
+    data = await request.json()
+    
+    item_name = data.get("item_name")
+    quantity = data.get("quantity", 1)
+    source_id = data.get("source_id")  # location_id (araç veya bekleme noktası)
+    source = data.get("source", "vehicle")  # vehicle veya waiting_point
+    
+    if not item_name or not source_id:
+        raise HTTPException(status_code=400, detail="item_name ve source_id gerekli")
+    
+    # Lokasyon stoğundan düş
+    loc = await location_stocks.find_one({"location_id": source_id})
+    if not loc:
+        raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
+    
+    items = loc.get("items", [])
+    item_found = False
+    
+    for item in items:
+        if item["name"] == item_name:
+            item_found = True
+            if item["quantity"] < quantity:
+                raise HTTPException(status_code=400, detail=f"Yetersiz stok. Mevcut: {item['quantity']}")
+            item["quantity"] -= quantity
+            break
+    
+    if not item_found:
+        raise HTTPException(status_code=404, detail="Ürün bu lokasyonda bulunamadı")
+    
+    # Lokasyon stoğunu güncelle
+    await location_stocks.update_one(
+        {"_id": loc["_id"]},
+        {"$set": {"items": items, "updated_at": get_turkey_time()}}
+    )
+    
+    # Vakaya ekle (medications alanına)
+    case = await db.cases.find_one({"_id": case_id})
+    if case:
+        medications = case.get("medications", [])
+        medications.append({
+            "id": str(uuid.uuid4()),
+            "name": item_name,
+            "quantity": quantity,
+            "unit": data.get("unit", "ADET"),
+            "category": data.get("category", "ilac"),
+            "added_at": get_turkey_time(),
+            "added_by": user.name,
+            "source": source,
+            "source_id": source_id
+        })
+        
+        await db.cases.update_one(
+            {"_id": case_id},
+            {"$set": {"medications": medications}}
+        )
+    
+    logger.info(f"Vaka stok kullanımı: {user.name} - {case_id} - {item_name} x{quantity}")
+    
+    return {"success": True, "message": f"{item_name} x{quantity} vakaya eklendi"}
+
+
+@router.post("/case/{case_id}/remove-usage")
+async def remove_case_stock_usage(case_id: str, request: Request):
+    """Vakadan stok kullanımını kaldır - stoğa iade et"""
+    user = await get_current_user(request)
+    data = await request.json()
+    
+    usage_id = data.get("usage_id")
+    if not usage_id:
+        raise HTTPException(status_code=400, detail="usage_id gerekli")
+    
+    # Vakadan medication'ı bul ve kaldır
+    case = await db.cases.find_one({"_id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    medications = case.get("medications", [])
+    med_to_remove = None
+    
+    for med in medications:
+        if med.get("id") == usage_id:
+            med_to_remove = med
+            break
+    
+    if not med_to_remove:
+        raise HTTPException(status_code=404, detail="Kullanım kaydı bulunamadı")
+    
+    # Stoğa iade et
+    source_id = med_to_remove.get("source_id")
+    if source_id:
+        loc = await location_stocks.find_one({"location_id": source_id})
+        if loc:
+            items = loc.get("items", [])
+            for item in items:
+                if item["name"] == med_to_remove["name"]:
+                    item["quantity"] += med_to_remove.get("quantity", 1)
+                    break
+            
+            await location_stocks.update_one(
+                {"_id": loc["_id"]},
+                {"$set": {"items": items, "updated_at": get_turkey_time()}}
+            )
+    
+    # Vakadan kaldır
+    medications = [m for m in medications if m.get("id") != usage_id]
+    await db.cases.update_one(
+        {"_id": case_id},
+        {"$set": {"medications": medications}}
+    )
+    
+    logger.info(f"Vaka stok iadesi: {user.name} - {case_id} - {med_to_remove['name']}")
+    
+    return {"success": True, "message": "Kullanım iptal edildi ve stoğa iade edildi"}
 
