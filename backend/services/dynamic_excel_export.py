@@ -133,24 +133,52 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
             pass
         return str(d.get('total_km', '') or d.get('vehicle_info', {}).get('total_km', '') or '')
     
+    # Helper: Plaka - birden fazla kaynak
+    def get_vehicle_plate(d):
+        plate = (d.get('vehicle_plate', '') or 
+                 d.get('assigned_team', {}).get('vehicle', '') or
+                 d.get('vehicle_info', {}).get('plate', '') or
+                 d.get('vehicle_info', {}).get('plaka', '') or
+                 d.get('extended_form', {}).get('vehiclePlate', ''))
+        return str(plate) if plate else ''
+    
+    # Helper: Vakayı Veren Kurum - boş değilse göster
+    def get_referring_inst(d):
+        inst = (d.get('referring_institution', '') or 
+                d.get('company', '') or
+                d.get('extended_form', {}).get('referralSource', '') or
+                d.get('extended_form', {}).get('referringInstitution', '') or
+                d.get('extended_form', {}).get('vakayiVerenKurum', ''))
+        # Eğer sadece _ veya - ise boş döndür
+        if inst and str(inst).strip() in ['_', '-', '__', '--']:
+            return ''
+        return str(inst) if inst else ''
+    
     # Temel alanlar (case_data'dan doğrudan erişim)
     basic_mappings = {
         'caseNumber': lambda d: d.get('case_number', ''),
         'caseDate': lambda d: format_date(d.get('created_at')),
         'caseCode': lambda d: d.get('case_code', ''),
         'atn_no': lambda d: d.get('atn_no', ''),
-        'vehiclePlate': lambda d: d.get('vehicle_plate', '') or d.get('assigned_team', {}).get('vehicle', ''),
+        'vehiclePlate': get_vehicle_plate,
+        'plaka': get_vehicle_plate,  # Alternatif isim
         'stationName': lambda d: d.get('station_name', ''),
         'pickupAddress': lambda d: d.get('location', {}).get('address', ''),
         'startKm': get_start_km,
         'endKm': get_end_km,
         'totalKm': get_total_km,
-        'referringInstitution': lambda d: d.get('referring_institution', ''),
+        'baslangicKm': get_start_km,  # Alternatif isim
+        'bitisKm': get_end_km,        # Alternatif isim
+        'referringInstitution': get_referring_inst,
+        'vakayiVerenKurum': get_referring_inst,  # Alternatif isim
         # Ön tanı ve açıklama - helper fonksiyonlar kullan
         'on_tani': get_on_tani,
+        'onTani': get_on_tani,  # Alternatif isim
         'aciklamalar': get_aciklamalar,
+        'notes': get_aciklamalar,  # Alternatif isim
         # Nakledilen hastane - helper fonksiyon kullan
         'transferHospital': get_transfer_hospital,
+        'nakledilenHastane': get_transfer_hospital,  # Alternatif isim
         # Ş.İ. Ambulans Ücreti
         'si_ambulans_ucreti': lambda d: '☑' if d.get('extended_form', {}).get('siAmbulansUcreti') else '☐',
     }
@@ -223,17 +251,32 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('extended_form', {}).get('chronicDiseases', '') or '',
     }
     
-    # Helper: CPR verilerini al
+    # Helper: CPR verilerini al (tüm kaynaklardan)
     def get_cpr_data(d, field):
         cpr = d.get('cpr_data', {}) or {}
         extended = d.get('extended_form', {}) or {}
+        medical_form = d.get('medical_form', {}) or {}
+        mf_cpr = medical_form.get('cpr_data', {}) or {}
+        
+        # Tüm kaynaklardan birleştir
+        all_cpr = {**mf_cpr, **cpr}
         
         field_map = {
-            'start_time': cpr.get('start_time', '') or cpr.get('startTime', '') or extended.get('cprStartTime', ''),
-            'stop_time': cpr.get('stop_time', '') or cpr.get('stopTime', '') or cpr.get('end_time', '') or extended.get('cprStopTime', ''),
-            'stop_reason': cpr.get('stop_reason', '') or cpr.get('stopReason', '') or cpr.get('reason', '') or extended.get('cprStopReason', ''),
-            'performed': cpr.get('performed', False) or cpr.get('yapildi', False) or extended.get('cprYapildi', False),
-            'performer': cpr.get('performer', '') or cpr.get('uygulayan', '') or extended.get('cprUygulayan', ''),
+            'start_time': (all_cpr.get('start_time') or all_cpr.get('startTime') or 
+                          all_cpr.get('baslama_zamani') or extended.get('cprStartTime') or 
+                          extended.get('cpr_baslama') or ''),
+            'stop_time': (all_cpr.get('stop_time') or all_cpr.get('stopTime') or 
+                         all_cpr.get('end_time') or all_cpr.get('bitis_zamani') or 
+                         extended.get('cprStopTime') or extended.get('cpr_bitis') or ''),
+            'stop_reason': (all_cpr.get('stop_reason') or all_cpr.get('stopReason') or 
+                           all_cpr.get('reason') or all_cpr.get('neden') or 
+                           all_cpr.get('birakma_nedeni') or extended.get('cprStopReason') or 
+                           extended.get('cpr_neden') or ''),
+            'performed': (all_cpr.get('performed') or all_cpr.get('yapildi') or 
+                         all_cpr.get('applied') or extended.get('cprYapildi') or 
+                         extended.get('cpr_yapildi') or False),
+            'performer': (all_cpr.get('performer') or all_cpr.get('uygulayan') or 
+                         extended.get('cprUygulayan') or extended.get('cpr_uygulayan') or ''),
         }
         return field_map.get(field, '')
     
@@ -465,31 +508,63 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         
         return '☐'
     
-    # Pupil - clinical_obs veya extended_form
+    # Pupil - clinical_obs veya extended_form (çoklu kaynak kontrol)
     if field_key.startswith('pupil.'):
-        option = field_key.split('.')[1]
+        option = field_key.split('.')[1].lower()
         
-        # Object format
-        pupils_obj = clinical_obs.get('pupils', {}) or extended_form.get('pupils', {})
+        # Object format kontrol - tüm kaynaklardan
+        pupils_obj = (clinical_obs.get('pupils', {}) or 
+                     extended_form.get('pupils', {}) or
+                     case_data.get('clinical_observations', {}).get('pupils', {}))
+        
         if isinstance(pupils_obj, dict):
-            return '☑' if pupils_obj.get(option) else '☐'
+            # normal, miyotik, midriatik, anizokorik, reaksiyonyok, fiksdilate
+            option_map = {
+                'normal': ['normal', 'N'],
+                'miyotik': ['miyotik', 'M', 'constricted'],
+                'midriatik': ['midriatik', 'D', 'dilated'],
+                'anizokorik': ['anizokorik', 'A', 'anisocoric', 'unequal'],
+                'reaksiyonyok': ['reaksiyonyok', 'reaksiyon_yok', 'noreaction', 'noReaction'],
+                'fiksdilate': ['fiksdilate', 'fiks_dilate', 'fixed', 'fixedDilated'],
+            }
+            possible_keys = option_map.get(option, [option])
+            for key in possible_keys:
+                if pupils_obj.get(key) or pupils_obj.get(key.lower()):
+                    return '☑'
+            return '☐'
         
         # String format
         pupils = str(pupils_obj).lower()
-        return '☑' if option.lower() in pupils else '☐'
+        return '☑' if option in pupils else '☐'
     
-    # Deri - clinical_obs veya extended_form
+    # Deri - clinical_obs veya extended_form (çoklu kaynak kontrol)
     if field_key.startswith('skin.'):
-        option = field_key.split('.')[1]
+        option = field_key.split('.')[1].lower()
         
-        # Object format
-        skin_obj = clinical_obs.get('skin', {}) or extended_form.get('skin', {})
+        # Object format kontrol - tüm kaynaklardan
+        skin_obj = (clinical_obs.get('skin', {}) or 
+                   extended_form.get('skin', {}) or
+                   case_data.get('clinical_observations', {}).get('skin', {}))
+        
         if isinstance(skin_obj, dict):
-            return '☑' if skin_obj.get(option) else '☐'
+            # normal, soluk, siyanotik, hiperemik, ikterik, terli
+            option_map = {
+                'normal': ['normal', 'N'],
+                'soluk': ['soluk', 'S', 'pale'],
+                'siyanotik': ['siyanotik', 'C', 'cyanotic'],
+                'hiperemik': ['hiperemik', 'H', 'hyperemic'],
+                'ikterik': ['ikterik', 'I', 'icteric', 'jaundice'],
+                'terli': ['terli', 'T', 'sweaty', 'diaphoretic'],
+            }
+            possible_keys = option_map.get(option, [option])
+            for key in possible_keys:
+                if skin_obj.get(key) or skin_obj.get(key.lower()):
+                    return '☑'
+            return '☐'
         
         # String format
         skin = str(skin_obj).lower()
-        return '☑' if option.lower() in skin else '☐'
+        return '☑' if option in skin else '☐'
     
     # Nabız tipi
     if field_key.startswith('pulseType.') or field_key.startswith('pulse.'):

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Clock, QrCode, Calendar, CheckCircle, FileText } from 'lucide-react';
+import { Clock, QrCode, Calendar, CheckCircle, FileText, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 // Türkiye saati yardımcı fonksiyonu (UTC+3)
@@ -13,6 +13,22 @@ const getTurkeyTime = () => {
   const now = new Date();
   const turkeyOffset = 3 * 60; // UTC+3 dakika cinsinden
   return new Date(now.getTime() + (turkeyOffset + now.getTimezoneOffset()) * 60000);
+};
+
+// Tarihin bugün olup olmadığını kontrol et
+const isToday = (dateStr) => {
+  const today = getTurkeyTime();
+  const todayStr = today.toISOString().split('T')[0];
+  const checkDate = dateStr?.split('T')[0];
+  return todayStr === checkDate;
+};
+
+// Bu ay içinde mi kontrol et
+const isCurrentMonth = (dateStr) => {
+  const today = getTurkeyTime();
+  const checkDate = new Date(dateStr);
+  return today.getFullYear() === checkDate.getFullYear() && 
+         today.getMonth() === checkDate.getMonth();
 };
 
 const Shifts = () => {
@@ -154,45 +170,92 @@ const Shifts = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {/* My Assignments */}
-          {myAssignments.length > 0 ? (
-            <Card className="border-green-500">
-              <CardHeader>
-                <CardTitle className="text-green-700">Bekleyen Vardiyalarınız</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {myAssignments.map((assignment) => (
-                  <div key={assignment.id} className="p-4 bg-green-50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">
-                          {new Date(assignment.shift_date).toLocaleDateString('tr-TR')}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Araç: {assignment.vehicle_plate || assignment.vehicle?.plate || 'Atanmadı'}
-                        </p>
+          {/* My Assignments - Bu aya ait olanlar */}
+          {(() => {
+            // Sadece bu aya ait atamaları filtrele
+            const currentMonthAssignments = myAssignments.filter(a => isCurrentMonth(a.shift_date));
+            const todayAssignment = currentMonthAssignments.find(a => isToday(a.shift_date) && a.status === 'pending');
+            
+            return currentMonthAssignments.length > 0 ? (
+              <Card className="border-green-500">
+                <CardHeader>
+                  <CardTitle className="text-green-700 flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Bu Ayki Vardiyalarınız
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {currentMonthAssignments.map((assignment) => {
+                    const isTodayShift = isToday(assignment.shift_date);
+                    const canStart = isTodayShift && assignment.status === 'pending';
+                    
+                    return (
+                      <div 
+                        key={assignment.id} 
+                        className={`p-4 rounded-lg border ${
+                          isTodayShift 
+                            ? 'bg-green-50 border-green-300' 
+                            : 'bg-gray-50 border-gray-200 opacity-70'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className={`font-medium flex items-center gap-2 ${isTodayShift ? 'text-green-800' : 'text-gray-600'}`}>
+                              {!isTodayShift && <Lock className="h-3 w-3" />}
+                              {new Date(assignment.shift_date).toLocaleDateString('tr-TR', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long'
+                              })}
+                              {isTodayShift && <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full">BUGÜN</span>}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Araç: {assignment.vehicle_plate || assignment.vehicle?.plate || 'Atanmadı'}
+                            </p>
+                          </div>
+                          <Badge className={
+                            isTodayShift && assignment.status === 'pending'
+                              ? 'bg-green-100 text-green-800'
+                              : assignment.status === 'started'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }>
+                            {assignment.status === 'pending' 
+                              ? (isTodayShift ? 'Başlatılabilir' : 'Bekliyor') 
+                              : assignment.status === 'started' 
+                              ? 'Başladı' 
+                              : assignment.status}
+                          </Badge>
+                        </div>
                       </div>
-                      <Badge className="bg-yellow-100 text-yellow-800">
-                        {assignment.status === 'pending' ? 'Bekliyor' : 'Başladı'}
-                      </Badge>
+                    );
+                  })}
+                  
+                  {todayAssignment ? (
+                    <Button onClick={() => navigate('/dashboard/shift-start')} className="w-full bg-green-600 hover:bg-green-700" data-testid="start-shift-button">
+                      <QrCode className="h-4 w-4 mr-2" />
+                      Bugünkü Vardiyayı Başlat (QR)
+                    </Button>
+                  ) : (
+                    <div className="text-center py-3 bg-gray-100 rounded-lg">
+                      <p className="text-sm text-gray-500">
+                        <Lock className="h-4 w-4 inline mr-1" />
+                        Bugün için başlatılabilir vardiya bulunmuyor
+                      </p>
                     </div>
-                  </div>
-                ))}
-                <Button onClick={() => navigate('/dashboard/shift-start')} className="w-full" data-testid="start-shift-button">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Vardiya Başlat (QR)
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
             <Card>
               <CardContent className="py-12 text-center space-y-4">
                 <Clock className="h-12 w-12 text-gray-400 mx-auto" />
                 <p className="text-gray-500">Aktif vardiya yok</p>
-                <p className="text-sm text-gray-400">Size atanmış bir vardiya bulunmuyor.</p>
+                <p className="text-sm text-gray-400">Bu ay için size atanmış bir vardiya bulunmuyor.</p>
               </CardContent>
             </Card>
-          )}
+            );
+          })()}
         </div>
       )}
 

@@ -32,7 +32,8 @@ import {
   ArrowUpCircle,
   Car,
   Stethoscope,
-  Heart
+  Heart,
+  Send
 } from 'lucide-react';
 import NotificationDropdown from '../components/NotificationDropdown';
 import OfflineStatusBar from '../components/OfflineStatusBar';
@@ -69,7 +70,7 @@ const DashboardLayout = () => {
   };
 
   const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'att', 'paramedik', 'hemsire', 'sofor', 'mesul_mudur'] },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'att', 'paramedik', 'hemsire', 'sofor', 'mesul_mudur'] },
     { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire'] },
     { path: '/dashboard/patient-registration', icon: UserPlus, label: 'Kayıt', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/my-stock', icon: Package, label: 'Lokasyon Stoğum', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
@@ -78,6 +79,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/vehicle-locations', icon: MapPin, label: 'Araç Lokasyonları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
     { path: '/dashboard/stock', icon: Package, label: 'Stok', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
     { path: '/dashboard/stock-barcode-entry', icon: QrCode, label: 'Karekod Stok Girişi', roles: ['operasyon_muduru', 'merkez_ofis'] },
+    { path: '/dashboard/stock-requests', icon: Send, label: 'Stok Talepleri', roles: ['operasyon_muduru', 'merkez_ofis', 'hemsire'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya', roles: ['att', 'paramedik', 'hemsire', 'sofor', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'mesul_mudur'] },
     { path: '/dashboard/tickets', icon: MessageSquare, label: 'Bildirim ve Talepler' },

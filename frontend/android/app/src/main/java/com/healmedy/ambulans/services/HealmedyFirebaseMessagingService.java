@@ -172,27 +172,66 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     private void startEmergencyAlarm() {
         stopEmergencyAlarm();
         try {
-            Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (alarmUri == null) alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            // Önce custom siren sesini dene (res/raw/emergency_siren.mp3)
+            Uri sirenUri = null;
+            int sirenResId = getResources().getIdentifier("emergency_siren", "raw", getPackageName());
+            
+            if (sirenResId != 0) {
+                sirenUri = Uri.parse("android.resource://" + getPackageName() + "/" + sirenResId);
+                Log.d(TAG, "Using custom siren sound");
+            } else {
+                // Custom siren yoksa, alarm sesini kullan
+                sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                if (sirenUri == null) {
+                    sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+                }
+                if (sirenUri == null) {
+                    sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                }
+                Log.d(TAG, "Using system alarm sound");
+            }
             
             emergencyMediaPlayer = new MediaPlayer();
-            emergencyMediaPlayer.setDataSource(this, alarmUri);
+            emergencyMediaPlayer.setDataSource(this, sirenUri);
             emergencyMediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+                .build());
             emergencyMediaPlayer.setLooping(true);
             
+            // Ses seviyesini MAKSIMUM yap
             AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            
+            // Tüm ses kanallarını maksimuma çek
             am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0);
+            am.setStreamVolume(AudioManager.STREAM_RING, am.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
+            am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, am.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION), 0);
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
+            
+            // Sessiz modu devre dışı bırak (DND bypass)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                try {
+                    am.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+                } catch (SecurityException e) {
+                    Log.w(TAG, "Cannot change ringer mode: " + e.getMessage());
+                }
+            }
             
             emergencyMediaPlayer.prepare();
             emergencyMediaPlayer.start();
+            
+            // Titreşimi başlat
             startEmergencyVibration();
             
+            // 60 saniye sonra otomatik dur
             alarmHandler = new Handler(Looper.getMainLooper());
             alarmHandler.postDelayed(HealmedyFirebaseMessagingService::stopEmergencyAlarm, ALARM_DURATION_MS);
-            Log.d(TAG, "Emergency alarm started");
-        } catch (Exception e) { Log.e(TAG, "Error starting alarm", e); }
+            
+            Log.d(TAG, "🚨 Emergency alarm started at MAXIMUM volume!");
+        } catch (Exception e) { 
+            Log.e(TAG, "Error starting alarm", e); 
+        }
     }
     
     private void startEmergencyVibration() {
@@ -233,13 +272,26 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
+            // Custom siren sesini kontrol et
+            Uri sirenUri = null;
+            int sirenResId = getResources().getIdentifier("emergency_siren", "raw", getPackageName());
+            if (sirenResId != 0) {
+                sirenUri = Uri.parse("android.resource://" + getPackageName() + "/" + sirenResId);
+            } else {
+                sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            }
+
             // 🚨 ACİL DURUM KANALI - EN YÜKSEK ÖNCELİK
             NotificationChannel emergency = new NotificationChannel(CHANNEL_EMERGENCY, "🚨 Acil Vakalar", NotificationManager.IMPORTANCE_HIGH);
             emergency.setDescription("Yeni vaka bildirimleri - Yüksek sesli alarm");
             emergency.enableVibration(true);
-            emergency.setVibrationPattern(new long[]{0, 1000, 500, 1000, 500, 1000});
-            emergency.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-                new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+            emergency.setVibrationPattern(new long[]{0, 1000, 500, 1000, 500, 1000, 500, 1000});
+            emergency.setSound(sirenUri,
+                new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+                    .build());
             emergency.setBypassDnd(true);
             emergency.enableLights(true);
             emergency.setLightColor(Color.RED);

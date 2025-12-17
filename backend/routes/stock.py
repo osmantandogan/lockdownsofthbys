@@ -53,7 +53,7 @@ async def create_stock_item(data: StockItemCreate, request: Request):
     
     return new_item
 
-@router.get("", response_model=List[StockItem])
+@router.get("")
 async def get_stock_items(
     request: Request,
     location: Optional[str] = None,
@@ -77,10 +77,18 @@ async def get_stock_items(
     
     items = await stock_collection.find(query).to_list(1000)
     
+    result = []
     for item in items:
-        item["id"] = item.pop("_id")
+        item["id"] = item.pop("_id", item.get("id", ""))
+        # Varsayılan değerler ekle (eski veriler için)
+        item.setdefault("code", "")
+        item.setdefault("quantity", 0)
+        item.setdefault("min_quantity", 0)
+        item.setdefault("location", "")
+        item.setdefault("unit", "adet")
+        result.append(item)
     
-    return items
+    return result
 
 @router.get("/all-grouped")
 async def get_all_stock_grouped(
@@ -898,38 +906,51 @@ async def seed_sample_stock_endpoint(request: Request):
     from database import vehicles_collection
     from models import HEALMEDY_LOCATIONS
     
-    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    user = await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi"])(request)
     
     # stock_locations_collection kullan (stock_barcode ile ayni)
     stock_locations_col = db["stock_locations"]
     
+    # Test verileri - 3 kategori: ilac, itriyat (serum/sivi), sarf (malzeme)
     SAMPLE_ITEMS = [
-        {"name": "Parasetamol 500mg", "code": "PAR500", "min_quantity": 10, "category": "ilac"},
-        {"name": "Ibuprofen 400mg", "code": "IBU400", "min_quantity": 10, "category": "ilac"},
-        {"name": "Adrenalin 1mg/ml", "code": "ADR001", "min_quantity": 5, "category": "ilac"},
-        {"name": "Serum Fizyolojik 500ml", "code": "SF500", "min_quantity": 20, "category": "ilac"},
-        {"name": "Midazolam 5mg/ml", "code": "MID005", "min_quantity": 3, "category": "ilac"},
-        {"name": "Aspirin 100mg", "code": "ASP100", "min_quantity": 15, "category": "ilac"},
-        {"name": "Atropin 0.5mg/ml", "code": "ATR05", "min_quantity": 5, "category": "ilac"},
-        {"name": "Dopamin 200mg/5ml", "code": "DOP200", "min_quantity": 3, "category": "ilac"},
-        {"name": "Diazepam 10mg/2ml", "code": "DIA10", "min_quantity": 5, "category": "ilac"},
-        {"name": "Morfin 10mg/ml", "code": "MOR10", "min_quantity": 2, "category": "ilac"},
-        {"name": "Eldiven (M)", "code": "ELD-M", "min_quantity": 50, "category": "itriyat"},
-        {"name": "Eldiven (L)", "code": "ELD-L", "min_quantity": 50, "category": "itriyat"},
-        {"name": "Eldiven (S)", "code": "ELD-S", "min_quantity": 30, "category": "itriyat"},
-        {"name": "Maske N95", "code": "MSK-N95", "min_quantity": 30, "category": "itriyat"},
-        {"name": "Cerrahi Maske", "code": "MSK-CRH", "min_quantity": 100, "category": "itriyat"},
-        {"name": "Dezenfektan 500ml", "code": "DEZ500", "min_quantity": 10, "category": "itriyat"},
-        {"name": "El Antiseptigi 100ml", "code": "ELA100", "min_quantity": 20, "category": "itriyat"},
-        {"name": "Gazli Bez 10x10", "code": "GZB-10", "min_quantity": 100, "category": "diger"},
-        {"name": "Flaster 2.5cm", "code": "FLS-25", "min_quantity": 20, "category": "diger"},
-        {"name": "IV Kateter 18G", "code": "IVK-18", "min_quantity": 50, "category": "diger"},
-        {"name": "IV Kateter 20G", "code": "IVK-20", "min_quantity": 50, "category": "diger"},
-        {"name": "Enjektör 5ml", "code": "ENJ-05", "min_quantity": 100, "category": "diger"},
-        {"name": "Enjektör 10ml", "code": "ENJ-10", "min_quantity": 50, "category": "diger"},
-        {"name": "Serum Seti", "code": "SRM-SET", "min_quantity": 30, "category": "diger"},
-        {"name": "Oksijen Maskesi", "code": "OKS-MSK", "min_quantity": 10, "category": "diger"},
-        {"name": "Ambu Balon", "code": "AMB-BLN", "min_quantity": 2, "category": "diger"},
+        # === İLAÇLAR ===
+        {"name": "Test İlaç - Parasetamol 500mg", "code": "TST-PAR500", "min_quantity": 10, "category": "ilac", "gtin": "8699546090001"},
+        {"name": "Test İlaç - Adrenalin 1mg/ml", "code": "TST-ADR001", "min_quantity": 5, "category": "ilac", "gtin": "8699546090002"},
+        {"name": "Test İlaç - Midazolam 5mg/ml", "code": "TST-MID005", "min_quantity": 3, "category": "ilac", "gtin": "8699546090003"},
+        {"name": "Test İlaç - Aspirin 100mg", "code": "TST-ASP100", "min_quantity": 15, "category": "ilac", "gtin": "8699546090004"},
+        {"name": "Test İlaç - Atropin 0.5mg/ml", "code": "TST-ATR05", "min_quantity": 5, "category": "ilac", "gtin": "8699546090005"},
+        {"name": "Test İlaç - Dopamin 200mg", "code": "TST-DOP200", "min_quantity": 3, "category": "ilac", "gtin": "8699546090006"},
+        {"name": "Test İlaç - Diazepam 10mg", "code": "TST-DIA10", "min_quantity": 5, "category": "ilac", "gtin": "8699546090007"},
+        {"name": "Test İlaç - Morfin 10mg", "code": "TST-MOR10", "min_quantity": 2, "category": "ilac", "gtin": "8699546090008"},
+        {"name": "Test İlaç - Dekstroz %5", "code": "TST-DEX05", "min_quantity": 10, "category": "ilac", "gtin": "8699546090009"},
+        {"name": "Test İlaç - Furosemid 40mg", "code": "TST-FUR40", "min_quantity": 8, "category": "ilac", "gtin": "8699546090010"},
+        
+        # === İTRİYAT (Serum/Sıvı) ===
+        {"name": "Test İtriyat - Serum Fizyolojik 500ml", "code": "TST-SF500", "min_quantity": 20, "category": "itriyat"},
+        {"name": "Test İtriyat - Serum Fizyolojik 1000ml", "code": "TST-SF1000", "min_quantity": 15, "category": "itriyat"},
+        {"name": "Test İtriyat - Ringer Laktat 500ml", "code": "TST-RL500", "min_quantity": 15, "category": "itriyat"},
+        {"name": "Test İtriyat - Dekstroz %5 500ml", "code": "TST-D5-500", "min_quantity": 10, "category": "itriyat"},
+        {"name": "Test İtriyat - NaCl %0.9 100ml", "code": "TST-NC100", "min_quantity": 20, "category": "itriyat"},
+        {"name": "Test İtriyat - İzotonik 250ml", "code": "TST-IZO250", "min_quantity": 15, "category": "itriyat"},
+        {"name": "Test İtriyat - Mannitol 250ml", "code": "TST-MAN250", "min_quantity": 5, "category": "itriyat"},
+        
+        # === SARF MALZEMELERİ ===
+        {"name": "Test Sarf - Eldiven (M)", "code": "TST-ELD-M", "min_quantity": 50, "category": "sarf"},
+        {"name": "Test Sarf - Eldiven (L)", "code": "TST-ELD-L", "min_quantity": 50, "category": "sarf"},
+        {"name": "Test Sarf - Maske N95", "code": "TST-MSK-N95", "min_quantity": 30, "category": "sarf"},
+        {"name": "Test Sarf - Cerrahi Maske", "code": "TST-MSK-CRH", "min_quantity": 100, "category": "sarf"},
+        {"name": "Test Sarf - Dezenfektan 500ml", "code": "TST-DEZ500", "min_quantity": 10, "category": "sarf"},
+        {"name": "Test Sarf - Gazlı Bez 10x10", "code": "TST-GZB-10", "min_quantity": 100, "category": "sarf"},
+        {"name": "Test Sarf - Flaster 2.5cm", "code": "TST-FLS-25", "min_quantity": 20, "category": "sarf"},
+        {"name": "Test Sarf - IV Kateter 18G", "code": "TST-IVK-18", "min_quantity": 50, "category": "sarf"},
+        {"name": "Test Sarf - IV Kateter 20G", "code": "TST-IVK-20", "min_quantity": 50, "category": "sarf"},
+        {"name": "Test Sarf - Enjektör 5ml", "code": "TST-ENJ-05", "min_quantity": 100, "category": "sarf"},
+        {"name": "Test Sarf - Enjektör 10ml", "code": "TST-ENJ-10", "min_quantity": 50, "category": "sarf"},
+        {"name": "Test Sarf - Serum Seti", "code": "TST-SRM-SET", "min_quantity": 30, "category": "sarf"},
+        {"name": "Test Sarf - Oksijen Maskesi", "code": "TST-OKS-MSK", "min_quantity": 10, "category": "sarf"},
+        {"name": "Test Sarf - Ambu Balon", "code": "TST-AMB-BLN", "min_quantity": 2, "category": "sarf"},
+        {"name": "Test Sarf - Endotrakeal Tüp 7.0", "code": "TST-ETT-70", "min_quantity": 5, "category": "sarf"},
+        {"name": "Test Sarf - Laringoskop Blade", "code": "TST-LRG-BLD", "min_quantity": 3, "category": "sarf"},
     ]
     
     # Onceki stoklari temizle
@@ -989,45 +1010,106 @@ async def seed_sample_stock_endpoint(request: Request):
     locations = await stock_locations_col.find({"is_active": True}).to_list(100)
     
     total_stock = 0
+    loc_stats = {"warehouse": 0, "vehicle": 0, "waiting_point": 0}
     loc_names = []
     
     for loc in locations:
         loc_name = loc.get("name")
         loc_type = loc.get("type", "unknown")
-        loc_names.append(loc_name)
+        loc_names.append(f"{loc_name} ({loc_type})")
         
-        # Merkez depoya tum urunleri, digerlerine rastgele
+        # Merkez depoya TÜM ürünleri KUTU olarak (yüksek miktar)
         if loc_type == "warehouse":
             items = SAMPLE_ITEMS
-            qty_mult = 5
-        else:
-            items = random.sample(SAMPLE_ITEMS, min(random.randint(8, 12), len(SAMPLE_ITEMS)))
+            qty_mult = 10  # Kutu bazında
+            unit_type = "kutu"
+            box_quantity = 20  # Her kutuda 20 adet
+            loc_stats["warehouse"] += 1
+        # Ambulanslara ADET bazında (rastgele seçim)
+        elif loc_type == "vehicle":
+            items = random.sample(SAMPLE_ITEMS, min(random.randint(15, 25), len(SAMPLE_ITEMS)))
             qty_mult = 1
+            unit_type = "adet"
+            box_quantity = None
+            loc_stats["vehicle"] += 1
+        # Bekleme noktalarına (carter) ADET bazında
+        elif loc_type == "waiting_point":
+            items = random.sample(SAMPLE_ITEMS, min(random.randint(10, 20), len(SAMPLE_ITEMS)))
+            qty_mult = 2  # Biraz daha fazla
+            unit_type = "adet"
+            box_quantity = None
+            loc_stats["waiting_point"] += 1
+        else:
+            continue  # Bilinmeyen tip atlat
         
         for item in items:
             quantity = random.randint(item["min_quantity"], item["min_quantity"] * 3) * qty_mult
             expiry_days = random.randint(60, 365)
             
-            await stock_collection.insert_one({
+            stock_item = {
                 "_id": str(uuid.uuid4()),
                 "name": item["name"],
                 "code": item["code"],
                 "quantity": quantity,
                 "min_quantity": item["min_quantity"],
-                "location": loc_name,  # Lokasyon ismiyle eslestir
+                "location": loc_name,
+                "location_detail": loc.get("vehicle_plate"),
                 "category": item["category"],
                 "lot_number": f"LOT{random.randint(10000, 99999)}",
                 "expiry_date": datetime.utcnow() + timedelta(days=expiry_days),
+                "unit": unit_type,
+                "unit_type": unit_type,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
-            })
+            }
+            
+            # GTIN varsa ekle (ilaçlar için)
+            if item.get("gtin"):
+                stock_item["gtin"] = item["gtin"]
+            
+            # Kutu ise box_quantity ekle
+            if box_quantity:
+                stock_item["box_quantity"] = box_quantity
+            
+            await stock_collection.insert_one(stock_item)
             total_stock += 1
     
     logger.info(f"Sample stock seeded: {total_stock} items for {len(locations)} locations")
     
     return {
-        "message": f"{len(locations)} lokasyona toplam {total_stock} ornek stok eklendi",
+        "message": f"{len(locations)} lokasyona toplam {total_stock} test stoğu eklendi",
         "locations": len(locations),
         "total_stock": total_stock,
-        "location_names": loc_names
+        "stats": loc_stats,
+        "location_names": loc_names,
+        "categories": {
+            "ilac": len([i for i in SAMPLE_ITEMS if i["category"] == "ilac"]),
+            "itriyat": len([i for i in SAMPLE_ITEMS if i["category"] == "itriyat"]),
+            "sarf": len([i for i in SAMPLE_ITEMS if i["category"] == "sarf"])
+        }
     }
+
+
+# ============ STANDART STOK LİSTESİ ============
+
+@router.post("/seed-standard-stock")
+async def seed_standard_stock_endpoint(request: Request):
+    """
+    Tüm ambulans ve bekleme noktalarına standart stok listesini ekle.
+    Bekleme noktası/Revir için temel liste, Ambulanslar için ek ekipmanlar.
+    """
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    from scripts.seed_standard_stock import seed_standard_stock
+    
+    try:
+        result = await seed_standard_stock()
+        logger.info(f"Standart stok listesi eklendi by {user.name}: {result}")
+        return {
+            "success": True,
+            "message": f"Standart stok listesi başarıyla eklendi",
+            **result
+        }
+    except Exception as e:
+        logger.error(f"Standart stok listesi eklenirken hata: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -921,6 +921,7 @@ const ShiftStartNew = () => {
                     formData={controlForm} 
                     onChange={setControlForm}
                     vehicleId={vehicleInfo?._id || vehicleInfo?.id}
+                    vehiclePlate={vehicleInfo?.plate}
                     onComplete={(data) => {
                       setControlForm(data);
                       toast.success('✅ Günlük kontrol formu tamamlandı!');

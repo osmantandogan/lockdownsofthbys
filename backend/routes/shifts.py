@@ -1017,6 +1017,16 @@ async def start_shift(data: ShiftStart, request: Request):
         }
         await forms_collection.insert_one(daily_control_form)
         logger.info(f"Günlük kontrol formu kaydedildi: {daily_control_form['_id']}")
+        
+        # Günlük formu doldurulmuş olarak işaretle - aynı araçta diğer ekip üyesi doldurmasın
+        await shifts_collection.update_one(
+            {"_id": new_shift.id},
+            {"$set": {
+                "daily_control_filled_by": user.id,
+                "daily_control_filled_at": turkey_now
+            }}
+        )
+        logger.info(f"Günlük kontrol formu dolduruldu işaretlendi: user={user.id}, shift={new_shift.id}")
     
     # Araç fotoğraflarını kaydet (ayrı bir collection'da)
     if data.photos:

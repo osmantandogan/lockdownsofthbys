@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, stockAPI, stockBarcodeAPI, patientsAPI, excelTemplatesAPI, formConfigAPI } from '../api';
+import { casesAPI, vehiclesAPI, usersAPI, referenceAPI, videoCallAPI, medicationsAPI, patientsAPI, excelTemplatesAPI, formConfigAPI, stockV2API } from '../api';
 import { BACKEND_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -23,7 +23,7 @@ import {
   Heart, Thermometer, Droplet, Brain, AlertCircle, Eye, Syringe,
   Ambulance, ClipboardList, VideoOff, FileSignature, Shield, Scissors, Save,
   Package, QrCode, Trash2, Plus, Pill, Camera, FileDown, ChevronDown, ChevronRight, Layout,
-  Wind, Baby, Settings
+  Wind, Baby, Settings, Send, Loader2
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import {
@@ -154,23 +154,20 @@ const CaseDetail = () => {
   });
   const [savingConsents, setSavingConsents] = useState(false);
   
-  // Medication/Materials state
+  // Medication/Materials state - YENİ V2 Stok Sistemi
   const [medications, setMedications] = useState([]);
-  const [vehicleStock, setVehicleStock] = useState([]);
   const [stockSearch, setStockSearch] = useState('');
   const [stockSearchResults, setStockSearchResults] = useState([]);
-  const [barcodeInput, setBarcodeInput] = useState('');
-  const [barcodeResult, setBarcodeResult] = useState(null);
-  const [showNewStockDialog, setShowNewStockDialog] = useState(false);
-  const [newStockName, setNewStockName] = useState('');
   const [addingMedication, setAddingMedication] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [creatingStockRequest, setCreatingStockRequest] = useState(false);
   
-  // YENİ: Çoklu stok kaynağı desteği (Araç + Carter)
-  const [allStockData, setAllStockData] = useState({ vehicle: [], carter: null, carter_name: '' });
-  const [selectedStockSource, setSelectedStockSource] = useState('vehicle'); // 'vehicle' veya 'carter'
-  const [loadingAllStock, setLoadingAllStock] = useState(false);
+  // V2 Stok states
+  const [availableStock, setAvailableStock] = useState({ vehicle: null, location: null });
+  const [loadingAvailableStock, setLoadingAvailableStock] = useState(false);
+  const [selectedSource, setSelectedSource] = useState('vehicle'); // 'vehicle' veya 'location'
+  const [itemQuantities, setItemQuantities] = useState({}); // { itemName: quantity }
   
   // Onam formları listesi
   const consentFormsList = [
@@ -740,23 +737,11 @@ const CaseDetail = () => {
         }));
       }
       
-      // Load medications
+      // Load medications (V2)
       await loadMedications();
       
-      // Load all stock (araç + carter) after case data is loaded
-      if (caseRes.data?.assigned_team?.vehicle_id) {
-        try {
-          const stockRes = await stockAPI.getVehicleAllStock(caseRes.data.assigned_team.vehicle_id);
-          setAllStockData({
-            vehicle: stockRes.data?.vehicle_stock || [],
-            carter: stockRes.data?.carter_stock || [],
-            carter_name: stockRes.data?.carter_name || 'Carter',
-            carter_location_id: stockRes.data?.carter_location_id || null
-          });
-        } catch (stockErr) {
-          console.error('Error loading all stock:', stockErr);
-        }
-      }
+      // Load available stock for this case (V2)
+      await loadAvailableStock(caseRes.data?._id || id);
     } catch (error) {
       console.error('Error loading data:', error);
       
@@ -788,177 +773,142 @@ const CaseDetail = () => {
     }
   };
   
-  // Load medications for case
+  // Load medications for case (V2 - medication_usage collection)
   const loadMedications = async () => {
     try {
-      const res = await medicationsAPI.getCaseMedications(id);
-      setMedications(res.data || []);
+      const res = await stockV2API.getCaseUsage(id);
+      setMedications(res.data?.usages || []);
     } catch (error) {
       console.error('Error loading medications:', error);
     }
   };
   
-  // YENİ: Araç ve Carter stoklarını yükle
-  const loadAllStock = async () => {
-    if (!caseData?.assigned_team?.vehicle_id) return;
+  // V2: Vaka için mevcut stokları yükle
+  const loadAvailableStock = async (caseId) => {
+    if (!caseId) return;
     
-    setLoadingAllStock(true);
+    setLoadingAvailableStock(true);
     try {
-      const res = await stockAPI.getVehicleAllStock(caseData.assigned_team.vehicle_id);
-      setAllStockData({
-        vehicle: res.data?.vehicle_stock || [],
-        carter: res.data?.carter_stock || [],
-        carter_name: res.data?.carter_name || 'Carter',
-        carter_location_id: res.data?.carter_location_id || null
+      const res = await stockV2API.getCaseAvailableStock(caseId);
+      setAvailableStock({
+        vehicle: res.data?.vehicle || null,
+        location: res.data?.location || null
       });
-    } catch (error) {
-      console.error('Error loading all stock:', error);
-      // Fallback: sadece araç stoku
-      setAllStockData({ vehicle: [], carter: [], carter_name: '' });
-    } finally {
-      setLoadingAllStock(false);
-    }
-  };
-  
-  // Handle barcode submit
-  const handleBarcodeSubmit = async () => {
-    if (!barcodeInput.trim()) return;
-    
-    try {
-      // Get vehicle plate from assigned team
-      const vehiclePlate = caseData?.assigned_team?.vehicle_id 
-        ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
-        : null;
       
-      const res = await medicationsAPI.parseBarcode(barcodeInput, vehiclePlate);
-      setBarcodeResult(res.data);
-      setBarcodeInput('');
+      // Default source selection
+      if (res.data?.vehicle?.items?.length > 0) {
+        setSelectedSource('vehicle');
+      } else if (res.data?.location?.items?.length > 0) {
+        setSelectedSource('location');
+      }
     } catch (error) {
-      console.error('Error parsing barcode:', error);
-      toast.error('Barkod okunamadı');
+      console.error('Error loading available stock:', error);
+      setAvailableStock({ vehicle: null, location: null });
+    } finally {
+      setLoadingAvailableStock(false);
     }
   };
   
-  // Handle stock search
+  // V2: Handle stock search - içerideki stoktan ara
   const handleStockSearch = async (query) => {
     if (query.length < 2) {
       setStockSearchResults([]);
       return;
     }
     
-    try {
-      // Get vehicle plate
-      const vehiclePlate = caseData?.assigned_team?.vehicle_id 
-        ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
-        : null;
-      
-      const res = await stockAPI.search({ 
-        q: query, 
-        location: 'ambulans',
-        location_detail: vehiclePlate
-      });
-      setStockSearchResults(res.data || []);
-    } catch (error) {
-      console.error('Error searching stock:', error);
-    }
+    // Local search from availableStock
+    const allItems = [
+      ...(availableStock.vehicle?.items || []),
+      ...(availableStock.location?.items || [])
+    ];
+    
+    const filtered = allItems.filter(item => 
+      item.name.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    setStockSearchResults(filtered.slice(0, 20));
   };
   
-  // Add medication to case (with source info: vehicle or carter)
-  const handleAddMedication = async (stockItem, parsedBarcode, sourceType = 'vehicle') => {
+  // V2: Malzeme kullan - stoktan düş
+  const handleUseStock = async (item, quantity = 1) => {
     setAddingMedication(true);
     try {
-      // Kaynak bilgisini belirle
-      const sourceInfo = sourceType === 'carter' 
-        ? { 
-            source_type: 'carter', 
-            source_location_id: allStockData.carter_location_id,
-            source_location_name: allStockData.carter_name 
-          }
-        : { 
-            source_type: 'vehicle',
-            source_location_id: caseData?.assigned_team?.vehicle_id,
-            source_location_name: vehicles.find(v => v.id === caseData?.assigned_team?.vehicle_id)?.plate || 'Araç'
-          };
-      
-      await medicationsAPI.addToCases(id, {
-        name: stockItem?.name || 'Bilinmiyor',
-        gtin: parsedBarcode?.gtin || stockItem?.gtin,
-        lot_number: parsedBarcode?.lot_number || stockItem?.lot_number,
-        serial_number: parsedBarcode?.serial_number || stockItem?.serial_number,
-        expiry_date: parsedBarcode?.expiry_date_parsed || stockItem?.expiry_date,
-        quantity: 1,
-        unit: stockItem?.unit || 'adet',
-        stock_item_id: stockItem?.id,
-        ...sourceInfo
+      const response = await stockV2API.useCaseStock(id, {
+        item_name: item.name,
+        quantity: quantity,
+        source: item.source,
+        source_id: item.source === 'vehicle' ? availableStock.vehicle?.id : availableStock.location?.id,
+        source_name: item.source_name
       });
       
-      const sourceLabel = sourceType === 'carter' ? allStockData.carter_name : 'Araç';
-      toast.success(`Malzeme eklendi (${sourceLabel} stoğundan düşüldü)`);
-      setBarcodeResult(null);
+      toast.success(`${item.name} x${quantity} kullanıldı`);
       setStockSearch('');
       setStockSearchResults([]);
-      await loadMedications();
+      setItemQuantities({});
       
-      // Stokları güncelle
-      if (caseData?.assigned_team?.vehicle_id) {
-        const stockRes = await stockAPI.getVehicleAllStock(caseData.assigned_team.vehicle_id);
-        setAllStockData({
-          vehicle: stockRes.data?.vehicle_stock || [],
-          carter: stockRes.data?.carter_stock || [],
-          carter_name: stockRes.data?.carter_name || 'Carter',
-          carter_location_id: stockRes.data?.carter_location_id || null
-        });
-      }
+      // Reload data
+      await Promise.all([
+        loadMedications(),
+        loadAvailableStock(id)
+      ]);
     } catch (error) {
-      console.error('Error adding medication:', error);
-      toast.error('Malzeme eklenemedi');
+      console.error('Error using stock:', error);
+      toast.error(error.response?.data?.detail || 'Malzeme kullanılamadı');
     } finally {
       setAddingMedication(false);
     }
   };
   
-  // Remove medication from case
-  const handleRemoveMedication = async (medicationId) => {
-    try {
-      await medicationsAPI.removeFromCase(id, medicationId);
-      toast.success('Malzeme kaldırıldı ve stoğa iade edildi');
-      await loadMedications();
-    } catch (error) {
-      console.error('Error removing medication:', error);
-      toast.error('Malzeme kaldırılamadı');
-    }
+  // Quantity değiştirme
+  const updateItemQuantity = (itemName, delta) => {
+    setItemQuantities(prev => {
+      const current = prev[itemName] || 1;
+      const newVal = Math.max(1, current + delta);
+      return { ...prev, [itemName]: newVal };
+    });
   };
   
-  // Create new stock item from barcode
-  const handleCreateNewStock = async () => {
-    if (!newStockName.trim() || !barcodeResult) return;
-    
+  const setItemQuantity = (itemName, value) => {
+    const num = parseInt(value) || 1;
+    setItemQuantities(prev => ({ ...prev, [itemName]: Math.max(1, num) }));
+  };
+  
+  // V2: Remove medication from case - stoğa iade et
+  const handleRemoveMedication = async (usageId) => {
     try {
-      // Get vehicle plate
-      const vehiclePlate = caseData?.assigned_team?.vehicle_id 
-        ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
-        : null;
+      await stockV2API.removeCaseUsage(id, usageId);
+      toast.success('Kullanım iptal edildi ve stoğa iade edildi');
       
-      const res = await medicationsAPI.createFromBarcode({
-        barcode: barcodeResult.parsed?.raw_data || '',
-        name: newStockName,
-        quantity: 10, // Default initial quantity
-        min_quantity: 5,
-        location: 'ambulans',
-        location_detail: vehiclePlate
+      // Reload data
+      await Promise.all([
+        loadMedications(),
+        loadAvailableStock(id)
+      ]);
+    } catch (error) {
+      console.error('Error removing medication:', error);
+      toast.error('Kullanım iptal edilemedi');
+    }
+  };
+
+  // Create stock request from case medications
+  const handleCreateStockRequest = async () => {
+    if (medications.length === 0) {
+      toast.error('Talep edilecek malzeme yok');
+      return;
+    }
+
+    setCreatingStockRequest(true);
+    try {
+      const response = await stockV2API.createRequestFromCase(id, {
+        note: `Vaka #${caseData?.case_number} için otomatik talep`
       });
       
-      toast.success('Yeni ürün stoğa eklendi');
-      setNewStockName('');
-      setBarcodeResult(null);
-      
-      // Now add it to the case
-      if (res.data?.stock_item) {
-        await handleAddMedication(res.data.stock_item, barcodeResult.parsed);
-      }
+      toast.success(response.data?.message || 'Stok talebi oluşturuldu');
     } catch (error) {
-      console.error('Error creating stock:', error);
-      toast.error('Ürün eklenemedi');
+      console.error('Error creating stock request:', error);
+      toast.error(error.response?.data?.detail || 'Stok talebi oluşturulamadı');
+    } finally {
+      setCreatingStockRequest(false);
     }
   };
   
@@ -1642,7 +1592,7 @@ const CaseDetail = () => {
                   <SelectValue placeholder={statusUpdating ? "Güncelleniyor..." : "Sonraki durum"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {getNextStatuses(caseData?.status).map((status) => (
+                  {getNextStatuses(caseData?.status).filter(s => s && s.trim()).map((status) => (
                     <SelectItem key={status} value={status}>
                       {getStatusLabel(status)}
                     </SelectItem>
@@ -2902,7 +2852,7 @@ const CaseDetail = () => {
                             <SelectValue placeholder="İl seçin..." />
                           </SelectTrigger>
                           <SelectContent className="max-h-60">
-                            {hospitalsGrouped.provinces.map((prov) => (
+                            {hospitalsGrouped.provinces.filter(prov => prov && prov.trim()).map((prov) => (
                               <SelectItem key={prov} value={prov}>{prov}</SelectItem>
                             ))}
                           </SelectContent>
@@ -3514,7 +3464,7 @@ const CaseDetail = () => {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: Kullanılan Malzemeler/İlaçlar */}
+        {/* TAB 4: Kullanılan Malzemeler/İlaçlar - V2 */}
         <TabsContent value="medications" className="space-y-4">
           <Card>
             <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-t-lg">
@@ -3527,51 +3477,49 @@ const CaseDetail = () => {
               {/* Yetki kontrolü - ATT ve Paramedik */}
               {(user?.role === 'att' || user?.role === 'paramedik' || user?.role === 'hemsire' || user?.role === 'doktor') && (
                 <div className="space-y-4">
-                  {/* Kamera ile Tarama Butonu */}
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => setShowCameraScanner(true)}
-                      className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-                    >
-                      <Camera className="h-5 w-5 mr-2" />
-                      Kamera ile İlaç Karekodu Tara
-                    </Button>
-                  </div>
+                  
+                  {/* QR Tarama Butonu */}
+                  <Button 
+                    onClick={() => setShowCameraScanner(true)}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                  >
+                    <QrCode className="h-5 w-5 mr-2" />
+                    QR ile Malzeme Tara
+                  </Button>
 
-                  {/* Kamera Tarayıcı Dialog */}
-                  <Dialog open={showCameraScanner} onOpenChange={(open) => {
-                    if (!open) {
-                      setShowCameraScanner(false);
-                    } else {
-                      setShowCameraScanner(true);
-                    }
-                  }}>
+                  {/* QR Tarayıcı Dialog */}
+                  <Dialog open={showCameraScanner} onOpenChange={setShowCameraScanner}>
                     <DialogContent className="max-w-lg p-0" aria-describedby={undefined}>
                       <DialogHeader className="sr-only">
-                        <DialogTitle>İlaç Karekodu Tarayıcı</DialogTitle>
+                        <DialogTitle>QR Tarayıcı</DialogTitle>
                       </DialogHeader>
                       <BarcodeScanner
                         mode="usage"
                         caseId={id}
-                        title="İlaç Kullanımı - Karekod Tara"
+                        title="Malzeme QR Tarayıcı"
                         onScan={async (barcode) => {
                           try {
-                            // Araç plakasını bul
-                            const vehiclePlate = caseData?.assigned_team?.vehicle_id 
-                              ? vehicles.find(v => v.id === caseData.assigned_team.vehicle_id)?.plate
-                              : null;
+                            // QR'daki ürün adını stokta ara
+                            const allItems = [
+                              ...(availableStock.vehicle?.items || []),
+                              ...(availableStock.location?.items || [])
+                            ];
                             
-                            const response = await stockBarcodeAPI.deductByBarcode({
-                              barcode: barcode,
-                              case_id: id,
-                              vehicle_plate: vehiclePlate
-                            });
+                            // Basit QR format: ürün adı veya kod
+                            const foundItem = allItems.find(item => 
+                              item.name.toLowerCase() === barcode.toLowerCase() ||
+                              item.name.toLowerCase().includes(barcode.toLowerCase())
+                            );
                             
-                            toast.success(response.data.message || 'İlaç vakaya eklendi');
-                            await loadMedications();
-                            return { success: true, item: response.data.medication };
+                            if (foundItem) {
+                              await handleUseStock(foundItem, 1);
+                              return { success: true, item: foundItem };
+                            } else {
+                              toast.error('QR ile eşleşen ürün stokta bulunamadı');
+                              return { success: false, error: 'Ürün bulunamadı' };
+                            }
                           } catch (error) {
-                            const message = error.response?.data?.detail || 'İlaç eklenemedi';
+                            const message = error.response?.data?.detail || 'Malzeme eklenemedi';
                             toast.error(message);
                             return { success: false, error: message };
                           }
@@ -3582,213 +3530,162 @@ const CaseDetail = () => {
                     </DialogContent>
                   </Dialog>
 
-                  {/* Karekod/Barkod Manuel Giriş */}
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Label>veya Manuel Karekod Girişi</Label>
-                      <div className="flex gap-2 mt-1">
-                        <Input
-                          placeholder="Karekodu yapıştırın veya tarayın..."
-                          value={barcodeInput}
-                          onChange={(e) => setBarcodeInput(e.target.value)}
-                          onKeyDown={async (e) => {
-                            if (e.key === 'Enter' && barcodeInput.trim()) {
-                              await handleBarcodeSubmit();
-                            }
-                          }}
-                        />
-                        <Button 
-                          variant="outline" 
-                          onClick={handleBarcodeSubmit}
-                          disabled={!barcodeInput.trim()}
-                        >
-                          <QrCode className="h-4 w-4 mr-2" />
-                          Ara
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Barkod Sonucu */}
-                  {barcodeResult && (
-                    <Card className={`border-2 ${barcodeResult.found ? 'border-green-300 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
-                      <CardContent className="p-4">
-                        {barcodeResult.found ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold text-green-800">{barcodeResult.stock_item?.name}</p>
-                                <p className="text-sm text-green-600">
-                                  Stok: {barcodeResult.stock_item?.quantity} {barcodeResult.stock_item?.unit || 'adet'} | 
-                                  Lot: {barcodeResult.parsed?.lot_number || '-'} | 
-                                  SKT: {barcodeResult.parsed?.expiry_date_parsed ? new Date(barcodeResult.parsed.expiry_date_parsed).toLocaleDateString('tr-TR') : '-'}
-                                </p>
-                              </div>
-                              <Button 
-                                onClick={() => handleAddMedication(barcodeResult.stock_item, barcodeResult.parsed)}
-                                disabled={addingMedication}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Ekle
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="font-semibold text-amber-800">Stokta bulunamadı</p>
-                            <p className="text-sm text-amber-600">
-                              GTIN: {barcodeResult.parsed?.gtin || '-'} | 
-                              Lot: {barcodeResult.parsed?.lot_number || '-'}
-                            </p>
-                            <div className="flex gap-2 mt-2">
-                              <Input
-                                placeholder="Ürün adını girin..."
-                                value={newStockName}
-                                onChange={(e) => setNewStockName(e.target.value)}
-                                className="flex-1"
-                              />
-                              <Button 
-                                onClick={handleCreateNewStock}
-                                disabled={!newStockName.trim()}
-                                variant="outline"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Yeni Ürün Ekle
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Manuel Arama */}
+                  {/* Arama */}
                   <div>
-                    <Label>veya Manuel Ara</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        placeholder="İlaç/malzeme adı..."
-                        value={stockSearch}
-                        onChange={(e) => {
-                          setStockSearch(e.target.value);
-                          handleStockSearch(e.target.value);
-                        }}
-                      />
-                    </div>
+                    <Label className="text-sm font-medium">Malzeme Ara</Label>
+                    <Input
+                      placeholder="Malzeme adı yazın..."
+                      value={stockSearch}
+                      onChange={(e) => {
+                        setStockSearch(e.target.value);
+                        handleStockSearch(e.target.value);
+                      }}
+                      className="mt-1"
+                    />
                     {stockSearchResults.length > 0 && (
-                      <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto">
-                        {stockSearchResults.map((item) => (
+                      <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto bg-white shadow-sm">
+                        {stockSearchResults.map((item, idx) => (
                           <div 
-                            key={item.id}
-                            className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
-                            onClick={() => handleAddMedication(item, null, selectedStockSource)}
+                            key={`${item.name}-${idx}`}
+                            className="p-3 hover:bg-emerald-50 cursor-pointer flex justify-between items-center border-b last:border-b-0"
+                            onClick={() => {
+                              handleUseStock(item, itemQuantities[item.name] || 1);
+                              setStockSearch('');
+                              setStockSearchResults([]);
+                            }}
                           >
                             <div>
                               <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-gray-500">
-                                Stok: {item.quantity} | {item.location_detail || item.location}
+                              <p className="text-xs text-gray-500">
+                                Stok: {item.quantity} | {item.source_name}
                               </p>
                             </div>
-                            <Plus className="h-4 w-4 text-gray-400" />
+                            <Badge variant="outline" className={item.source === 'vehicle' ? 'text-blue-600 border-blue-300' : 'text-amber-600 border-amber-300'}>
+                              {item.source === 'vehicle' ? 'Araç' : 'Lokasyon'}
+                            </Badge>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  
-                  {/* YENİ: Stok Kaynağı Seçici (Araç vs Carter) */}
-                  <Separator className="my-4" />
+
+                  <Separator />
+
+                  {/* Stok Kaynağı Seçimi */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-base font-semibold">Stok Kaynağı Seç</Label>
-                      {loadingAllStock && (
-                        <span className="text-sm text-gray-500">Yükleniyor...</span>
+                      <Label className="text-sm font-medium">Mevcut Stoklar</Label>
+                      {loadingAvailableStock && (
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                       )}
                     </div>
                     
-                    {/* Kaynak Seçimi Butonları */}
+                    {/* Kaynak Butonları */}
                     <div className="flex gap-2">
-                      <Button
-                        variant={selectedStockSource === 'vehicle' ? 'default' : 'outline'}
-                        onClick={() => setSelectedStockSource('vehicle')}
-                        className={`flex-1 ${selectedStockSource === 'vehicle' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                      >
-                        <Truck className="h-4 w-4 mr-2" />
-                        Araç Stoğu
-                        <Badge variant="secondary" className="ml-2">
-                          {allStockData.vehicle?.length || 0}
-                        </Badge>
-                      </Button>
-                      {allStockData.carter_location_id && (
+                      {availableStock.vehicle && (
                         <Button
-                          variant={selectedStockSource === 'carter' ? 'default' : 'outline'}
-                          onClick={() => setSelectedStockSource('carter')}
-                          className={`flex-1 ${selectedStockSource === 'carter' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                          variant={selectedSource === 'vehicle' ? 'default' : 'outline'}
+                          onClick={() => setSelectedSource('vehicle')}
+                          className={`flex-1 ${selectedSource === 'vehicle' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                          size="sm"
                         >
-                          <Package className="h-4 w-4 mr-2" />
-                          {allStockData.carter_name || 'Carter'}
-                          <Badge variant="secondary" className="ml-2">
-                            {allStockData.carter?.length || 0}
+                          <Ambulance className="h-4 w-4 mr-1" />
+                          {availableStock.vehicle.name || 'Araç'}
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {availableStock.vehicle.items?.length || 0}
+                          </Badge>
+                        </Button>
+                      )}
+                      {availableStock.location && (
+                        <Button
+                          variant={selectedSource === 'location' ? 'default' : 'outline'}
+                          onClick={() => setSelectedSource('location')}
+                          className={`flex-1 ${selectedSource === 'location' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                          size="sm"
+                        >
+                          <Building2 className="h-4 w-4 mr-1" />
+                          {availableStock.location.name || 'Lokasyon'}
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {availableStock.location.items?.length || 0}
                           </Badge>
                         </Button>
                       )}
                     </div>
                     
-                    {/* Seçili Kaynaktaki Stok Listesi */}
-                    <div className="border rounded-lg max-h-64 overflow-y-auto">
-                      {selectedStockSource === 'vehicle' ? (
-                        allStockData.vehicle?.length > 0 ? (
-                          allStockData.vehicle.map((item) => (
-                            <div 
-                              key={item.id}
-                              className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center border-b last:border-b-0"
-                              onClick={() => handleAddMedication(item, null, 'vehicle')}
-                            >
-                              <div>
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-sm text-gray-500">
-                                  Stok: {item.quantity} {item.unit || 'adet'}
-                                  {item.expiry_date && ` | SKT: ${new Date(item.expiry_date).toLocaleDateString('tr-TR')}`}
+                    {/* Stok Listesi */}
+                    <div className="border rounded-lg max-h-72 overflow-y-auto">
+                      {(() => {
+                        const items = selectedSource === 'vehicle' 
+                          ? availableStock.vehicle?.items || []
+                          : availableStock.location?.items || [];
+                        
+                        if (items.length === 0) {
+                          return (
+                            <p className="text-center text-gray-500 py-6">
+                              {loadingAvailableStock ? 'Yükleniyor...' : 'Stok bulunamadı'}
+                            </p>
+                          );
+                        }
+                        
+                        return items.map((item, idx) => (
+                          <div 
+                            key={`${item.name}-${idx}`}
+                            className={`p-3 border-b last:border-b-0 ${
+                              selectedSource === 'vehicle' ? 'hover:bg-blue-50' : 'hover:bg-amber-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{item.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  Mevcut: {item.quantity} adet
                                 </p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-blue-600 border-blue-300">
-                                  Araç
-                                </Badge>
-                                <Plus className="h-4 w-4 text-gray-400" />
+                              
+                              {/* Miktar Kontrolü */}
+                              <div className="flex items-center gap-2 ml-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => updateItemQuantity(item.name, -1)}
+                                >
+                                  -
+                                </Button>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={item.quantity}
+                                  value={itemQuantities[item.name] || 1}
+                                  onChange={(e) => setItemQuantity(item.name, e.target.value)}
+                                  className="w-14 h-8 text-center text-sm"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => updateItemQuantity(item.name, 1)}
+                                  disabled={(itemQuantities[item.name] || 1) >= item.quantity}
+                                >
+                                  +
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-emerald-600 hover:bg-emerald-700 h-8"
+                                  onClick={() => handleUseStock(item, itemQuantities[item.name] || 1)}
+                                  disabled={addingMedication || (itemQuantities[item.name] || 1) > item.quantity}
+                                >
+                                  {addingMedication ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Plus className="h-4 w-4" />
+                                  )}
+                                </Button>
                               </div>
                             </div>
-                          ))
-                        ) : (
-                          <p className="text-center text-gray-500 py-4">Araçta stok bulunamadı</p>
-                        )
-                      ) : (
-                        allStockData.carter?.length > 0 ? (
-                          allStockData.carter.map((item) => (
-                            <div 
-                              key={item.id}
-                              className="p-3 hover:bg-amber-50 cursor-pointer flex justify-between items-center border-b last:border-b-0"
-                              onClick={() => handleAddMedication(item, null, 'carter')}
-                            >
-                              <div>
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-sm text-gray-500">
-                                  Stok: {item.quantity} {item.unit || 'adet'}
-                                  {item.expiry_date && ` | SKT: ${new Date(item.expiry_date).toLocaleDateString('tr-TR')}`}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-amber-600 border-amber-300">
-                                  {allStockData.carter_name}
-                                </Badge>
-                                <Plus className="h-4 w-4 text-gray-400" />
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-center text-gray-500 py-4">{allStockData.carter_name || 'Carter'} stoğu boş</p>
-                        )
-                      )}
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -3796,45 +3693,40 @@ const CaseDetail = () => {
 
               {/* Kullanılan Malzemeler Listesi */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-3 flex items-center">
+                <h4 className="font-semibold mb-3 flex items-center text-emerald-700">
                   <Pill className="h-4 w-4 mr-2" />
                   Vakada Kullanılan ({medications.length})
                 </h4>
                 {medications.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Henüz malzeme eklenmedi</p>
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <Package className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500">Henüz malzeme kullanılmadı</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {medications.map((med) => (
                       <div 
                         key={med.id} 
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"
                       >
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium">{med.name}</p>
-                            {/* Kaynak Bilgisi Badge */}
-                            {med.source_type && (
-                              <Badge 
-                                variant="outline" 
-                                className={med.source_type === 'carter' 
-                                  ? 'text-amber-600 border-amber-300 bg-amber-50' 
-                                  : 'text-blue-600 border-blue-300 bg-blue-50'
-                                }
-                              >
-                                {med.source_type === 'carter' 
-                                  ? (med.source_location_name || 'Carter')
-                                  : 'Araç'
-                                }
-                              </Badge>
-                            )}
+                            <p className="font-medium truncate">{med.name}</p>
+                            <Badge 
+                              variant="outline" 
+                              className={med.source_type === 'location' 
+                                ? 'text-amber-600 border-amber-300 bg-amber-50' 
+                                : 'text-blue-600 border-blue-300 bg-blue-50'
+                              }
+                            >
+                              {med.source_location_name || (med.source_type === 'vehicle' ? 'Araç' : 'Lokasyon')}
+                            </Badge>
                           </div>
                           <p className="text-sm text-gray-500">
-                            Miktar: {med.quantity} {med.unit || 'adet'} | 
-                            {med.lot_number && ` Lot: ${med.lot_number} |`}
-                            {med.expiry_date && ` SKT: ${new Date(med.expiry_date).toLocaleDateString('tr-TR')}`}
+                            Miktar: {med.quantity} adet
                           </p>
                           <p className="text-xs text-gray-400">
-                            Ekleyen: {med.added_by_name} - {new Date(med.added_at).toLocaleString('tr-TR')}
+                            {med.added_by_name} - {new Date(med.added_at).toLocaleString('tr-TR')}
                           </p>
                         </div>
                         {(user?.role === 'att' || user?.role === 'paramedik' || user?.role === 'hemsire') && (
@@ -3842,12 +3734,34 @@ const CaseDetail = () => {
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleRemoveMedication(med.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Stok Talebi Butonu */}
+                {medications.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <Button 
+                      onClick={handleCreateStockRequest}
+                      disabled={creatingStockRequest}
+                      className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                    >
+                      {creatingStockRequest ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Kullanılan Malzemeleri Talep Et ({medications.length} ürün)
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Merkez ofise otomatik stok talebi oluşturur
+                    </p>
                   </div>
                 )}
               </div>
@@ -4295,7 +4209,7 @@ const CaseDetail = () => {
                         <SelectValue placeholder="Durum seçin" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(statusLabels).map(([key, label]) => (
+                        {Object.entries(statusLabels).filter(([key]) => key && key.trim()).map(([key, label]) => (
                           <SelectItem key={key} value={key}>{label}</SelectItem>
                         ))}
                       </SelectContent>

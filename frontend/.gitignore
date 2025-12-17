@@ -11,6 +11,11 @@
 # production
 /build
 
+# Electron build output
+/dist-electron
+*.exe
+*.asar
+
 # misc
 .DS_Store
 .env.local

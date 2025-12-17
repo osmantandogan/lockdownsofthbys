@@ -1905,6 +1905,10 @@ async def get_unit_stock(
         clean_location = re.sub(r'\s*\(\d+\)\s*$', '', location).strip()
         location_id = f"ambulans_{clean_location.replace(' ', '_').lower()}"
         
+        # Araç plakasını çıkar (parantez içinden veya direkt)
+        plate_match = re.search(r'([A-Z0-9]{2}\s*[A-Z]{1,3}\s*\d{2,4})', clean_location.upper())
+        plate = plate_match.group(1) if plate_match else clean_location
+        
         query["$or"] = [
             {"location": location},
             {"location": clean_location},
@@ -1912,7 +1916,10 @@ async def get_unit_stock(
             {"location_name": location},
             {"location_name": clean_location},
             {"location_detail": location},
-            {"location_detail": clean_location}
+            {"location_detail": clean_location},
+            {"location_detail": plate},  # Plaka formatı
+            {"vehicle_plate": plate},    # Yeni eklenen alan
+            {"vehicle_plate": clean_location}
         ]
     
     items = await unit_stock_collection.find(query).sort("opened_at", -1).to_list(1000)
@@ -1969,8 +1976,10 @@ async def open_barcode_box(request: Request):
         "lot_number": stock_item.get("lot_number"),
         "expiry_date": stock_item.get("expiry_date"),
         "location": stock_item.get("location"),
-        "location_name": stock_item.get("location_name"),
+        "location_name": stock_item.get("location_name") or stock_item.get("location_detail"),  # Plaka varsa kullan
+        "location_detail": stock_item.get("location_detail"),  # Araç plakası - ÖNEMLİ!
         "location_type": stock_item.get("location_type"),
+        "vehicle_plate": stock_item.get("location_detail") if stock_item.get("location") == "ambulans" else None,  # Kolay filtreleme için
         "status": "opened",
         "opened_at": datetime.utcnow(),
         "opened_by": user.id,
@@ -1984,6 +1993,64 @@ async def open_barcode_box(request: Request):
         "message": f"{stock_item.get('name')} kutusu acildi, {stock_item.get('unit_count', 1)} adet stoka eklendi",
         "unit_stock_id": unit_stock["_id"],
         "remaining_units": stock_item.get("unit_count", 1)
+    }
+
+
+@router.post("/unit-stock/fix-locations")
+async def fix_unit_stock_locations(request: Request):
+    """
+    Eksik location_detail ve vehicle_plate alanlarini duzelt.
+    Kaynak stock'tan bilgileri alip unit_stock'a kopyalar.
+    """
+    user = await require_roles(["operasyon_muduru", "merkez_ofis"])(request)
+    
+    # location_detail eksik olan kayitlari bul
+    items_to_fix = await unit_stock_collection.find({
+        "$or": [
+            {"location_detail": {"$exists": False}},
+            {"location_detail": None},
+            {"location_detail": ""}
+        ]
+    }).to_list(1000)
+    
+    fixed_count = 0
+    
+    for item in items_to_fix:
+        source_id = item.get("source_stock_id")
+        if not source_id:
+            continue
+        
+        # Kaynak stok kaydini bul
+        source = await barcode_stock_collection.find_one({"_id": source_id})
+        if not source:
+            continue
+        
+        location_detail = source.get("location_detail")
+        if not location_detail:
+            continue
+        
+        # Guncelle
+        update_data = {
+            "location_detail": location_detail,
+            "location_name": source.get("location_name") or location_detail,
+        }
+        
+        # Ambulans ise plaka ekle
+        if source.get("location") == "ambulans":
+            update_data["vehicle_plate"] = location_detail
+        
+        await unit_stock_collection.update_one(
+            {"_id": item["_id"]},
+            {"$set": update_data}
+        )
+        fixed_count += 1
+    
+    logger.info(f"[FIX] {fixed_count} adet unit_stock kaydinin location bilgisi duzeltildi")
+    
+    return {
+        "message": f"{fixed_count} kayit duzeltildi",
+        "total_checked": len(items_to_fix),
+        "fixed": fixed_count
     }
 
 

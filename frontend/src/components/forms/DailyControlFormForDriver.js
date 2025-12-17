@@ -8,8 +8,9 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Progress } from '../ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { toast } from 'sonner';
-import { ChevronDown, CheckCircle, Fuel } from 'lucide-react';
+import { ChevronDown, CheckCircle, Fuel, MapPin, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { locationsAPI } from '../../api';
 
 /**
  * Şoför için Araç Günlük Kontrol ve Devir Alma Formu
@@ -27,9 +28,41 @@ const DailyControlFormForDriver = ({ formData: externalFormData, onChange, vehic
   });
 
   const [checks, setChecks] = useState({});
+  
+  // Lokasyon autocomplete için state'ler
+  const [locations, setLocations] = useState([]);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [filteredLocations, setFilteredLocations] = useState([]);
 
   const formData = externalFormData || localFormData;
   const setFormData = onChange || setLocalFormData;
+  
+  // Lokasyonları yükle
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await locationsAPI.getField({ status: 'active' });
+        setLocations(response.data || []);
+      } catch (error) {
+        console.error('Lokasyonlar yüklenemedi:', error);
+      }
+    };
+    fetchLocations();
+  }, []);
+  
+  // Lokasyon arama filtreleme
+  useEffect(() => {
+    if (locationSearch.trim()) {
+      const filtered = locations.filter(loc => 
+        loc.name?.toLowerCase().includes(locationSearch.toLowerCase()) ||
+        loc.address?.toLowerCase().includes(locationSearch.toLowerCase())
+      );
+      setFilteredLocations(filtered);
+    } else {
+      setFilteredLocations(locations);
+    }
+  }, [locationSearch, locations]);
 
   // Araç plakasını otomatik doldur
   useEffect(() => {
@@ -174,21 +207,53 @@ const DailyControlFormForDriver = ({ formData: externalFormData, onChange, vehic
       <Card>
         <CardContent className="pt-6">
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label>İstasyon Adı</Label>
-              <Input 
-                value={formData.istasyonAdi}
-                onChange={(e) => handleInputChange('istasyonAdi', e.target.value)}
-                placeholder="İstasyon adı" 
-              />
+            <div className="space-y-2 relative">
+              <Label className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                İstasyon Adı
+              </Label>
+              <div className="relative">
+                <Input 
+                  value={locationSearch || formData.istasyonAdi}
+                  onChange={(e) => {
+                    setLocationSearch(e.target.value);
+                    setShowLocationDropdown(true);
+                  }}
+                  onFocus={() => setShowLocationDropdown(true)}
+                  placeholder="Lokasyon ara veya seç..." 
+                  className="pr-8"
+                />
+                <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              {showLocationDropdown && filteredLocations.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {filteredLocations.map((loc) => (
+                    <button
+                      key={loc._id || loc.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm border-b last:border-0"
+                      onClick={() => {
+                        handleInputChange('istasyonAdi', loc.name);
+                        setLocationSearch(loc.name);
+                        setShowLocationDropdown(false);
+                      }}
+                    >
+                      <div className="font-medium">{loc.name}</div>
+                      {loc.address && (
+                        <div className="text-xs text-gray-500">{loc.address}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Plaka</Label>
               <Input 
                 value={formData.plaka || vehiclePlate}
-                onChange={(e) => handleInputChange('plaka', e.target.value)}
-                placeholder="34 ABC 123" 
-                disabled={!!vehiclePlate}
+                readOnly
+                disabled
+                className="bg-gray-100 font-medium"
               />
             </div>
             <div className="space-y-2">

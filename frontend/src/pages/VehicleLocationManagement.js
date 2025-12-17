@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { vehiclesAPI, locationsAPI } from '../api';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { Truck, MapPin, RefreshCw, Save, AlertCircle } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, Save, AlertCircle, Plus, Trash2, Building2 } from 'lucide-react';
 
 const VehicleLocationManagement = () => {
   const [vehicles, setVehicles] = useState([]);
-  const [healmedyLocations, setHealmedyLocations] = useState([]);
+  const [healmedyLocations, setHealmedyLocations] = useState([]); // Sadece bekleme noktaları
+  const [allLocations, setAllLocations] = useState([]); // Tüm lokasyonlar (dinamik dahil)
+  const [customLocations, setCustomLocations] = useState([]); // Kullanıcı eklediği lokasyonlar
   const [vehicleLocations, setVehicleLocations] = useState({}); // {vehicleId: locationId}
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
+  
+  // Yeni lokasyon ekleme dialog
+  const [addLocationOpen, setAddLocationOpen] = useState(false);
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newLocationType, setNewLocationType] = useState('waiting_point');
+  const [addingLocation, setAddingLocation] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -25,9 +36,26 @@ const VehicleLocationManagement = () => {
       const vehiclesRes = await vehiclesAPI.getAll({});
       setVehicles(vehiclesRes.data);
       
-      // Healmedy lokasyonlarını getir
-      const locationsRes = await locationsAPI.getHealmedy();
-      setHealmedyLocations(locationsRes.data);
+      // Healmedy lokasyonlarını getir (sadece bekleme noktaları)
+      const healmedyRes = await locationsAPI.getHealmedy();
+      setHealmedyLocations(healmedyRes.data);
+      
+      // Tüm lokasyonları getir (dinamik dahil)
+      try {
+        const allLocsRes = await locationsAPI.getAll();
+        const locs = allLocsRes.data?.locations || [];
+        setAllLocations(locs);
+        
+        // Kullanıcı eklediği lokasyonları filtrele (healmedy ve araç dışındakiler)
+        const custom = locs.filter(l => 
+          l.type === 'waiting_point' && 
+          l.source !== 'healmedy_static' &&
+          !healmedyRes.data.some(h => h.id === l.id)
+        );
+        setCustomLocations(custom);
+      } catch (e) {
+        console.log('Dinamik lokasyonlar yüklenemedi:', e);
+      }
       
       // Mevcut lokasyon atamalarını oluştur
       const locationMap = {};
@@ -43,6 +71,48 @@ const VehicleLocationManagement = () => {
       toast.error('Veriler yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Yeni lokasyon ekleme
+  const handleAddLocation = async () => {
+    if (!newLocationName.trim()) {
+      toast.error('Lokasyon adı gerekli');
+      return;
+    }
+    
+    setAddingLocation(true);
+    try {
+      await locationsAPI.create({
+        name: newLocationName.trim(),
+        type: newLocationType
+      });
+      
+      toast.success(`"${newLocationName}" lokasyonu eklendi`);
+      setNewLocationName('');
+      setAddLocationOpen(false);
+      loadData(); // Yeniden yükle
+    } catch (error) {
+      console.error('Lokasyon eklenirken hata:', error);
+      toast.error(error.response?.data?.detail || 'Lokasyon eklenemedi');
+    } finally {
+      setAddingLocation(false);
+    }
+  };
+  
+  // Lokasyon silme
+  const handleDeleteLocation = async (locationId, locationName) => {
+    if (!window.confirm(`"${locationName}" lokasyonunu silmek istediğinize emin misiniz?`)) {
+      return;
+    }
+    
+    try {
+      await locationsAPI.delete(locationId);
+      toast.success('Lokasyon silindi');
+      loadData();
+    } catch (error) {
+      console.error('Lokasyon silinirken hata:', error);
+      toast.error(error.response?.data?.detail || 'Lokasyon silinemedi');
     }
   };
 
@@ -74,8 +144,15 @@ const VehicleLocationManagement = () => {
   };
 
   const getLocationName = (locationId) => {
-    const loc = healmedyLocations.find(l => l.id === locationId);
-    return loc ? loc.name : 'Belirtilmemiş';
+    // Önce healmedy lokasyonlarında ara
+    const healmedyLoc = healmedyLocations.find(l => l.id === locationId);
+    if (healmedyLoc) return healmedyLoc.name;
+    
+    // Sonra custom lokasyonlarda ara
+    const customLoc = customLocations.find(l => l.id === locationId);
+    if (customLoc) return customLoc.name;
+    
+    return 'Belirtilmemiş';
   };
 
   const getLocationColor = (locationId) => {
@@ -97,9 +174,15 @@ const VehicleLocationManagement = () => {
     );
   }
 
+  // Tüm bekleme noktalarını birleştir
+  const combinedLocations = [
+    ...healmedyLocations,
+    ...customLocations.map(c => ({ id: c.id, name: c.name }))
+  ];
+  
   // Lokasyonlara göre araçları grupla
   const vehiclesByLocation = {};
-  healmedyLocations.forEach(loc => {
+  combinedLocations.forEach(loc => {
     vehiclesByLocation[loc.id] = vehicles.filter(v => 
       (v.healmedy_location_id === loc.id) || (v.current_location_id === loc.id)
     );
@@ -110,6 +193,12 @@ const VehicleLocationManagement = () => {
     !v.healmedy_location_id && !v.current_location_id
   );
 
+  // Tüm bekleme noktaları (healmedy + custom)
+  const allWaitingPoints = [
+    ...healmedyLocations,
+    ...customLocations.map(c => ({ id: c.id, name: c.name }))
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -118,15 +207,112 @@ const VehicleLocationManagement = () => {
           <h1 className="text-3xl font-bold">Araç Lokasyon Yönetimi</h1>
           <p className="text-gray-500">Araçların hangi bekleme noktasında olduğunu yönetin</p>
         </div>
-        <Button onClick={loadData} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Yenile
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setAddLocationOpen(true)} variant="default">
+            <Plus className="h-4 w-4 mr-2" />
+            Lokasyon Ekle
+          </Button>
+          <Button onClick={loadData} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Yenile
+          </Button>
+        </div>
       </div>
+      
+      {/* Yeni Lokasyon Ekleme Dialog */}
+      <Dialog open={addLocationOpen} onOpenChange={setAddLocationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Yeni Bekleme Noktası Ekle
+            </DialogTitle>
+            <DialogDescription>
+              Eklenen lokasyon araç atama ve stok yönetiminde kullanılabilir olacak.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="locationName">Lokasyon Adı</Label>
+              <Input
+                id="locationName"
+                placeholder="Örn: Yeni Bekleme Noktası"
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Lokasyon Tipi</Label>
+              <Select value={newLocationType} onValueChange={setNewLocationType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="waiting_point">Bekleme Noktası</SelectItem>
+                  <SelectItem value="warehouse">Depo</SelectItem>
+                  <SelectItem value="health_center">Sağlık Merkezi</SelectItem>
+                  <SelectItem value="custom">Diğer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddLocationOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleAddLocation} disabled={addingLocation}>
+              {addingLocation ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Ekle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Kullanıcı Eklediği Lokasyonlar */}
+      {customLocations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-purple-600" />
+              Eklenen Lokasyonlar
+            </CardTitle>
+            <CardDescription>
+              Sisteme eklediğiniz özel lokasyonlar (stok ve araç atamasında kullanılabilir)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {customLocations.map(loc => (
+                <Badge 
+                  key={loc.id} 
+                  variant="secondary" 
+                  className="px-3 py-2 text-sm flex items-center gap-2"
+                >
+                  <MapPin className="h-3 w-3" />
+                  {loc.name}
+                  <button
+                    onClick={() => handleDeleteLocation(loc.id, loc.name)}
+                    className="ml-1 text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Lokasyonlara göre araçlar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {healmedyLocations.map(location => (
+        {allWaitingPoints.map(location => (
           <Card key={location.id} className="overflow-hidden">
             <CardHeader className={`${getLocationColor(location.id)} border-b`}>
               <CardTitle className="flex items-center justify-between">
@@ -224,7 +410,7 @@ const VehicleLocationManagement = () => {
                             <SelectValue placeholder="Lokasyon seçin" />
                           </SelectTrigger>
                           <SelectContent>
-                            {healmedyLocations.map(loc => (
+                            {allWaitingPoints.map(loc => (
                               <SelectItem key={loc.id} value={loc.id}>
                                 <div className="flex items-center gap-2">
                                   <MapPin className="h-3 w-3" />

@@ -714,6 +714,7 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             logger.error(f"Error sending case notifications: {e}")
     
     # ========== FCM BİLDİRİMİ - ATT/PARAMEDİK/ŞOFÖR İÇİN ACİL ALARM ==========
+    logger.info(f"[FCM] FCM_ENABLED: {FCM_ENABLED}")
     if FCM_ENABLED:
         try:
             case_doc = await cases_collection.find_one({"_id": case_id})
@@ -725,17 +726,31 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             for key in ["driver_id", "paramedic_id", "att_id"]:
                 if assigned_team.get(key):
                     field_personnel_ids.append(assigned_team[key])
+                    logger.info(f"[FCM] Field personnel {key}: {assigned_team[key]}")
+            
+            logger.info(f"[FCM] Field personnel IDs: {field_personnel_ids}")
             
             fcm_tokens = []
             for user_id in field_personnel_ids:
                 user_doc = await users_collection.find_one({"_id": user_id})
-                if user_doc and user_doc.get("fcm_tokens"):
-                    # Token objelerinden sadece token string'lerini çıkar
-                    for token_obj in user_doc["fcm_tokens"]:
-                        if isinstance(token_obj, dict) and token_obj.get("token"):
-                            fcm_tokens.append(token_obj["token"])
-                        elif isinstance(token_obj, str):
-                            fcm_tokens.append(token_obj)
+                if user_doc:
+                    user_fcm_tokens = user_doc.get("fcm_tokens", [])
+                    logger.info(f"[FCM] User {user_doc.get('name')} ({user_id}) has {len(user_fcm_tokens)} FCM tokens")
+                    if user_fcm_tokens:
+                        # Token objelerinden sadece token string'lerini çıkar
+                        for token_obj in user_fcm_tokens:
+                            if isinstance(token_obj, dict) and token_obj.get("token"):
+                                fcm_tokens.append(token_obj["token"])
+                                logger.info(f"[FCM] Added token: ...{token_obj['token'][-20:]}")
+                            elif isinstance(token_obj, str):
+                                fcm_tokens.append(token_obj)
+                                logger.info(f"[FCM] Added token (string): ...{token_obj[-20:]}")
+                    else:
+                        logger.warning(f"[FCM] User {user_doc.get('name')} has NO FCM tokens!")
+                else:
+                    logger.warning(f"[FCM] User {user_id} not found in database!")
+            
+            logger.info(f"[FCM] Total FCM tokens collected: {len(fcm_tokens)}")
             
             if fcm_tokens:
                 patient_name = f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş"
@@ -759,8 +774,12 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
                     priority="high"
                 )
                 logger.info(f"FCM emergency sent to {len(fcm_tokens)} tokens: {result}")
+            else:
+                logger.warning(f"[FCM] No FCM tokens found for any field personnel! Notifications NOT sent.")
         except Exception as e:
-            logger.error(f"Error sending FCM notification: {e}")
+            logger.error(f"Error sending FCM notification: {e}", exc_info=True)
+    else:
+        logger.warning("[FCM] FCM is disabled, skipping notifications")
     
     return {"message": "Team assigned successfully"}
 
@@ -1493,19 +1512,23 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
     Frontend'deki CaseDetail.js'de kaydedilen tüm verileri içerir
     """
     if medical_form is None:
-        medical_form = case_doc.get("medical_form", {})
+        medical_form = case_doc.get("medical_form") or {}
     
-    extended_form = medical_form.get("extended_form", {})
-    clinical_obs = medical_form.get("clinical_obs", {})
+    extended_form = medical_form.get("extended_form") or {}
+    clinical_obs = medical_form.get("clinical_obs") or {}
     
-    # Vehicle info birleştir
-    vehicle_info = {**case_doc.get("vehicle_info", {}), **medical_form.get("vehicle_info", {})}
+    # Vehicle info birleştir - None kontrolü
+    case_vehicle_info = case_doc.get("vehicle_info") or {}
+    form_vehicle_info = medical_form.get("vehicle_info") or {}
+    vehicle_info = {**case_vehicle_info, **form_vehicle_info}
     
-    # Time info birleştir
-    time_info = {**case_doc.get("time_info", {}), **medical_form.get("time_info", {})}
+    # Time info birleştir - None kontrolü
+    case_time_info = case_doc.get("time_info") or {}
+    form_time_info = medical_form.get("time_info") or {}
+    time_info = {**case_time_info, **form_time_info}
     
-    # Assigned team
-    assigned_team = case_doc.get("assigned_team", {})
+    # Assigned team - None kontrolü
+    assigned_team = case_doc.get("assigned_team") or {}
     
     return {
         "case_number": case_doc.get("case_number", ""),
@@ -1548,7 +1571,7 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         # call_type ve call_reason: extended_form içinden de al
         "call_type": case_doc.get("call_type", "") or extended_form.get("callType", ""),
         "call_reason": case_doc.get("call_reason", "") or extended_form.get("callReason", ""),
-        "complaint": case_doc.get("complaint", "") or case_doc.get("patient", {}).get("complaint", ""),
+        "complaint": case_doc.get("complaint", "") or (case_doc.get("patient") or {}).get("complaint", ""),
         "chronic_diseases": case_doc.get("chronic_diseases", "") or medical_form.get("chronic_diseases", "") or extended_form.get("chronicDiseases", ""),
         "is_forensic": case_doc.get("is_forensic", False) or extended_form.get("isForensic", False),
         "case_result": case_doc.get("case_result", "") or extended_form.get("outcome", ""),
@@ -1557,18 +1580,36 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         # Vital signs - clinical_obs içinden de al
         "vital_signs": case_doc.get("vital_signs", []) or medical_form.get("vital_signs", []) or clinical_obs.get("vital_signs", []),
         
-        # Clinical observations - tüm kaynaklardan birleştir
+        # Clinical observations - tüm kaynaklardan birleştir (öncelik sırası önemli)
         "clinical_observations": {
-            **case_doc.get("clinical_observations", {}), 
+            **(case_doc.get("clinical_observations") or {}), 
             **clinical_obs,
-            # Ek alanlar
-            "blood_sugar": clinical_obs.get("blood_sugar", "") or extended_form.get("kanSekeri", ""),
-            "temperature": clinical_obs.get("temperature", "") or extended_form.get("ates", ""),
-            "pulseType": clinical_obs.get("pulseType", {}) or extended_form.get("pulseType", {}),
-            "respType": clinical_obs.get("respType", {}) or extended_form.get("respType", {}),
-            "pupils": clinical_obs.get("pupils", {}) or extended_form.get("pupils", {}),
-            "skin": clinical_obs.get("skin", {}) or extended_form.get("skin", {}),
-            "gks": clinical_obs.get("gks", {}) or extended_form.get("gks", {}),
+            # Kan şekeri - birden fazla kaynak
+            "blood_sugar": (clinical_obs.get("blood_sugar") or 
+                           clinical_obs.get("bloodSugar") or 
+                           extended_form.get("kanSekeri") or 
+                           extended_form.get("bloodSugar") or ""),
+            # Ateş - birden fazla kaynak
+            "temperature": (clinical_obs.get("temperature") or 
+                           clinical_obs.get("temp") or 
+                           clinical_obs.get("bodyTemp") or
+                           extended_form.get("ates") or 
+                           extended_form.get("bodyTemp") or ""),
+            # Nabız tipi - object format
+            "pulseType": clinical_obs.get("pulseType", {}) or extended_form.get("pulseType", {}) or {},
+            "pulse_type": clinical_obs.get("pulseType", {}) or extended_form.get("pulseType", {}) or {},
+            # Solunum tipi - object format
+            "respType": clinical_obs.get("respType", {}) or extended_form.get("respType", {}) or {},
+            "resp_type": clinical_obs.get("respType", {}) or extended_form.get("respType", {}) or {},
+            # Pupil - object format
+            "pupils": clinical_obs.get("pupils", {}) or extended_form.get("pupils", {}) or {},
+            # Deri - object format
+            "skin": clinical_obs.get("skin", {}) or extended_form.get("skin", {}) or {},
+            # GKS - motor, verbal, eye ayrı ayrı
+            "gks": clinical_obs.get("gks", {}) or extended_form.get("gks", {}) or {},
+            "motorResponse": clinical_obs.get("motorResponse") or (clinical_obs.get("gks") or {}).get("motor") or extended_form.get("motorResponse") or 0,
+            "verbalResponse": clinical_obs.get("verbalResponse") or (clinical_obs.get("gks") or {}).get("verbal") or extended_form.get("verbalResponse") or 0,
+            "eyeOpening": clinical_obs.get("eyeOpening") or (clinical_obs.get("gks") or {}).get("eye") or extended_form.get("eyeOpening") or 0,
         },
         
         # Ön tanı ve açıklama
@@ -1603,8 +1644,8 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         
         # İmzalar - hem signatures hem extended_form hem inline_consents'dan
         "signatures": {
-            **case_doc.get("signatures", {}), 
-            **medical_form.get("signatures", {}),
+            **(case_doc.get("signatures") or {}), 
+            **(medical_form.get("signatures") or {}),
             # Extended form'dan da al
             "doctor_name": extended_form.get("hekimAdi", ""),
             "paramedic_name": extended_form.get("saglikPerAdi", ""),
@@ -1628,8 +1669,28 @@ def build_export_case_data(case_doc: dict, medical_form: dict = None) -> dict:
         "hospital_rejection": case_doc.get("hospital_rejection", {}),
         "patient_rejection": case_doc.get("patient_rejection", {}),
         
-        # CPR data
-        "cpr_data": medical_form.get("cpr_data", {}) or extended_form.get("cprData", {}),
+        # CPR data - tüm kaynaklardan birleştir
+        "cpr_data": {
+            **(case_doc.get("cpr_data") or {}),
+            **(medical_form.get("cpr_data") or {}),
+            **(extended_form.get("cprData") or {}),
+            # Explicit field mappings
+            "start_time": ((medical_form.get("cpr_data") or {}).get("start_time") or 
+                          (medical_form.get("cpr_data") or {}).get("startTime") or
+                          extended_form.get("cprStartTime") or
+                          extended_form.get("cpr_baslama") or ""),
+            "stop_time": ((medical_form.get("cpr_data") or {}).get("stop_time") or 
+                         (medical_form.get("cpr_data") or {}).get("stopTime") or
+                         extended_form.get("cprStopTime") or
+                         extended_form.get("cpr_bitis") or ""),
+            "stop_reason": ((medical_form.get("cpr_data") or {}).get("stop_reason") or 
+                           (medical_form.get("cpr_data") or {}).get("stopReason") or
+                           extended_form.get("cprStopReason") or
+                           extended_form.get("cpr_neden") or ""),
+            "performed": ((medical_form.get("cpr_data") or {}).get("performed") or 
+                         (medical_form.get("cpr_data") or {}).get("yapildi") or
+                         extended_form.get("cprYapildi") or False),
+        },
         
         # Isolation
         "isolation": medical_form.get("isolation", {}),
@@ -1689,21 +1750,36 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
             logger.warning(f"Şablon bulunamadı, boş oluşturuluyor: {template_path}")
         
         # Logo - #VALUE! hatasını temizle ve logoyu düzgün ekle
-        if logo_info.get("url") and logo_info.get("cell"):
+        # Logo - Önce dosyadan, yoksa mapping'den yükle
+        logo_cell = logo_info.get("cell", "A1") if logo_info else "A1"
+        
+        # Logo hücrelerindeki içeriği temizle
+        for row in range(1, 7):
+            for col in range(1, 5):
+                try:
+                    cell = ws.cell(row=row, column=col)
+                    cell.value = None
+                except:
+                    pass
+        
+        # Önce dosyadan logo yükle
+        logo_path = os.path.join(backend_dir, "templates", "healmedy_logo.png")
+        logo_added = False
+        
+        if os.path.exists(logo_path):
+            try:
+                img = XLImage(logo_path)
+                img.width = 180
+                img.height = 90
+                ws.add_image(img, logo_cell)
+                logo_added = True
+            except Exception as e:
+                logger.warning(f"Logo dosyadan eklenemedi: {e}")
+        
+        # Dosyadan eklenemezse mapping'deki base64'ü dene
+        if not logo_added and logo_info and logo_info.get("url"):
             try:
                 logo_url = logo_info["url"]
-                logo_cell = logo_info.get("cell", "A1")
-                
-                # Logo hücrelerindeki #VALUE! veya formül içeriğini temizle (A1:C5 arası)
-                for row in range(1, 6):
-                    for col in range(1, 4):
-                        try:
-                            cell = ws.cell(row=row, column=col)
-                            if cell.value and (str(cell.value).startswith('=') or '#VALUE' in str(cell.value) or '__LOGO__' in str(cell.value)):
-                                cell.value = None
-                        except:
-                            pass
-                
                 if logo_url.startswith("data:image"):
                     header, encoded = logo_url.split(",", 1)
                     logo_data = base64.b64decode(encoded)
@@ -1711,10 +1787,10 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
                     img.width = 180
-                    img.height = 75
+                    img.height = 90
                     ws.add_image(img, logo_cell)
             except Exception as e:
-                logger.warning(f"Logo eklenemedi: {e}")
+                logger.warning(f"Logo base64'ten eklenemedi: {e}")
         
         # Mapping'leri uygula - şablondaki hücrelere değer yaz
         for cell_address, field_key in flat_mappings.items():
@@ -1789,18 +1865,72 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
         raise HTTPException(status_code=500, detail=f"Excel oluşturma hatası: {str(e)}")
 
 
+@router.get("/{case_id}/export-pdf-debug")
+async def export_case_pdf_debug(case_id: str, request: Request):
+    """PDF export debug - her adımı kontrol eder"""
+    user = await get_current_user(request)
+    
+    result = {"steps": []}
+    
+    # Step 1: Case kontrolü
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    result["steps"].append({"step": "case_found", "ok": case_doc is not None})
+    if not case_doc:
+        return result
+    
+    # Step 2: Mapping kontrolü
+    mapping_doc = await db.vaka_form_mappings.find_one({"_id": "default"})
+    result["steps"].append({"step": "mapping_found", "ok": mapping_doc is not None})
+    result["steps"].append({"step": "flat_mappings_count", "count": len(mapping_doc.get("flat_mappings", {})) if mapping_doc else 0})
+    
+    # Step 3: Template kontrolü
+    import os
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    template_path = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
+    result["steps"].append({"step": "template_exists", "ok": os.path.exists(template_path), "path": template_path})
+    
+    # Step 4: LibreOffice kontrolü
+    import shutil
+    libreoffice_path = shutil.which("libreoffice")
+    result["steps"].append({"step": "libreoffice_found", "ok": libreoffice_path is not None, "path": libreoffice_path})
+    
+    # Step 5: Temp dir kontrolü
+    temp_dir = os.path.join(backend_dir, "temp")
+    result["steps"].append({"step": "temp_dir_exists", "ok": os.path.exists(temp_dir), "path": temp_dir})
+    
+    # Step 6: Logo kontrolü
+    logo_info = mapping_doc.get("logo", {}) if mapping_doc else {}
+    result["steps"].append({"step": "logo_url_exists", "ok": bool(logo_info.get("url"))})
+    
+    return result
+
+
 @router.get("/{case_id}/export-pdf-mapped")
 async def export_case_pdf_with_mapping(case_id: str, request: Request):
     """Vakayı Vaka Form Mapping kullanarak PDF olarak export et (Tek Sayfa)"""
+    from openpyxl import load_workbook
+    from openpyxl.drawing.image import Image as XLImage
+    from openpyxl.styles import Alignment
+    from io import BytesIO
+    import base64
+    import re
+    import os
+    import subprocess
+    import tempfile
+    import uuid as uuid_module
+    
     user = await get_current_user(request)
+    logger.info(f"PDF export başlıyor: case_id={case_id}")
     
     case_doc = await cases_collection.find_one({"_id": case_id})
     if not case_doc:
         raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    logger.info("Vaka bulundu")
     
     mapping_doc = await db.vaka_form_mappings.find_one({"_id": "default"})
     if not mapping_doc or not mapping_doc.get("flat_mappings"):
         raise HTTPException(status_code=404, detail="Vaka form mapping bulunamadı. Önce mapping oluşturun.")
+    logger.info(f"Mapping bulundu: {len(mapping_doc.get('flat_mappings', {}))} hücre")
     
     flat_mappings = mapping_doc.get("flat_mappings", {})
     logo_info = mapping_doc.get("logo", {})
@@ -1808,19 +1938,12 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
     # Medical form verilerini al
     medical_form = case_doc.get("medical_form", {})
     case_data = build_export_case_data(case_doc, medical_form)
+    logger.info("Case data hazırlandı")
     
     try:
-        from openpyxl import load_workbook
-        from openpyxl.drawing.image import Image as XLImage
-        import base64
-        import re
-        import os
-        import subprocess
-        import tempfile
-        import uuid
-        
         backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         template_path = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
+        logger.info(f"Template path: {template_path}, exists: {os.path.exists(template_path)}")
         
         if os.path.exists(template_path):
             wb = load_workbook(template_path)
@@ -1831,51 +1954,69 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             ws = wb.active
             ws.title = "Vaka Formu"
         
-        # Logo - #VALUE! hatasını temizle ve logoyu düzgün ekle
-        if logo_info.get("url") and logo_info.get("cell"):
+        # Logo - Önce dosyadan, yoksa mapping'den yükle
+        logo_cell = logo_info.get("cell", "A1") if logo_info else "A1"
+        
+        # Logo hücrelerindeki tüm içeriği temizle (A1:D6 arası - geniş alan)
+        for row in range(1, 7):  # 1-6 satırları
+            for col in range(1, 5):  # A-D sütunları
+                try:
+                    cell = ws.cell(row=row, column=col)
+                    cell.value = None
+                except:
+                    pass
+        
+        # Önce dosyadan logo yükle
+        logo_path = os.path.join(backend_dir, "templates", "healmedy_logo.png")
+        logo_added = False
+        
+        if os.path.exists(logo_path):
+            try:
+                img = XLImage(logo_path)
+                # Logo boyutları - orantılı ve net
+                img.width = 180   # Genişlik
+                img.height = 90   # Yükseklik (orantılı)
+                ws.add_image(img, logo_cell)
+                logger.info(f"Logo dosyadan eklendi: {logo_cell}, {img.width}x{img.height}")
+                logo_added = True
+            except Exception as e:
+                logger.warning(f"Logo dosyadan eklenemedi: {e}")
+        
+        # Dosyadan eklenemezse mapping'deki base64'ü dene
+        if not logo_added and logo_info and logo_info.get("url"):
             try:
                 logo_url = logo_info["url"]
-                logo_cell = logo_info.get("cell", "A1")
-                
-                # Logo hücrelerindeki #VALUE! veya formül içeriğini temizle (A1:C5 arası)
-                for row in range(1, 6):  # 1-5 satırları
-                    for col in range(1, 4):  # A-C sütunları
-                        try:
-                            cell = ws.cell(row=row, column=col)
-                            if cell.value and (str(cell.value).startswith('=') or '#VALUE' in str(cell.value) or '__LOGO__' in str(cell.value)):
-                                cell.value = None  # Temizle
-                        except:
-                            pass
-                
                 if logo_url.startswith("data:image"):
                     header, encoded = logo_url.split(",", 1)
                     logo_data = base64.b64decode(encoded)
                     from io import BytesIO
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
-                    
-                    # Logo boyutları - A1:C5 alanına sığacak şekilde (daha büyük ve kaliteli)
-                    img.width = 180   # ~3 sütun genişliği
-                    img.height = 75   # ~5 satır yüksekliği
-                    
+                    img.width = 180
+                    img.height = 90
                     ws.add_image(img, logo_cell)
-                    logger.info(f"Logo eklendi: {logo_cell}, {img.width}x{img.height}")
+                    logger.info(f"Logo base64'ten eklendi: {logo_cell}")
             except Exception as e:
-                logger.warning(f"Logo eklenemedi: {e}")
+                logger.warning(f"Logo base64'ten eklenemedi: {e}")
         
         # Mapping'leri uygula
+        logger.info(f"Mapping uygulanıyor: {len(flat_mappings)} hücre")
         for cell_address, field_key in flat_mappings.items():
-            if field_key == "__LOGO__":
-                # Logo hücresini de temizle
-                match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
-                if match:
-                    try:
-                        ws[cell_address] = None
-                    except:
-                        pass
-                continue
-            
-            value = get_case_field_value(case_data, field_key)
+            try:
+                if field_key == "__LOGO__":
+                    # Logo hücresini de temizle
+                    match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
+                    if match:
+                        try:
+                            ws[cell_address] = None
+                        except:
+                            pass
+                    continue
+                
+                value = get_case_field_value(case_data, field_key)
+            except Exception as field_err:
+                logger.warning(f"Alan değeri alınamadı: {field_key} -> {cell_address}: {field_err}")
+                value = ""
             
             # İmza alanı ise ve base64 görüntü varsa, görüntü olarak ekle
             if '_imza' in field_key or '_signature' in field_key:
@@ -1892,19 +2033,23 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 inline_key = sig_key_map.get(field_key)
                 if inline_key:
                     sig_data = case_data.get('inline_consents', {}).get(inline_key)
-                    if sig_data and isinstance(sig_data, str) and sig_data.startswith('data:image'):
+                    if sig_data and isinstance(sig_data, str) and sig_data.startswith('data:image') and ',' in sig_data:
                         try:
                             header, encoded = sig_data.split(",", 1)
-                            sig_bytes = base64.b64decode(encoded)
-                            sig_buffer = BytesIO(sig_bytes)
-                            sig_img = XLImage(sig_buffer)
-                            sig_img.width = 80
-                            sig_img.height = 30
-                            ws.add_image(sig_img, cell_address)
-                            continue
+                            if encoded:  # Base64 verisi var mı kontrol et
+                                sig_bytes = base64.b64decode(encoded)
+                                sig_buffer = BytesIO(sig_bytes)
+                                sig_img = XLImage(sig_buffer)
+                                sig_img.width = 80
+                                sig_img.height = 30
+                                ws.add_image(sig_img, cell_address)
+                                continue
                         except Exception as e:
                             logger.warning(f"İmza görüntüsü eklenemedi {cell_address}: {e}")
                             value = '✓'
+                    elif sig_data:
+                        # İmza var ama görüntü olarak eklenemedi
+                        value = '✓'
             
             match = re.match(r'^([A-Z]+)(\d+)$', cell_address.upper())
             if match:
@@ -1912,17 +2057,32 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     cell = ws[cell_address]
                     cell.value = value
                     
-                    # Uzun içerik için text wrap ve satır yüksekliği ayarla
-                    if value and len(str(value)) > 30:
-                        from openpyxl.styles import Alignment
-                        cell.alignment = Alignment(wrap_text=True, vertical='top')
-                        
-                        # Satır yüksekliğini içeriğe göre ayarla
+                    from openpyxl.styles import Alignment
+                    
+                    # Tüm hücrelere text wrap uygula (uzun içerik varsa satıra sığması için)
+                    cell.alignment = Alignment(wrap_text=True, vertical='center', horizontal='left')
+                    
+                    # Uzun içerik için satır yüksekliğini artır
+                    if value and len(str(value)) > 25:
                         row_num = int(match.group(2))
-                        content_lines = len(str(value)) // 30 + 1
+                        
+                        # Sütun genişliğini hesapla (yaklaşık karakter sayısı)
+                        col_letter = match.group(1)
+                        col_width = ws.column_dimensions[col_letter].width or 10
+                        chars_per_line = int(col_width * 1.2)  # Yaklaşık
+                        
+                        # Gerekli satır sayısını hesapla
+                        content_lines = max(1, len(str(value)) // max(chars_per_line, 10) + 1)
+                        
+                        # Mevcut yüksekliği al
                         current_height = ws.row_dimensions[row_num].height or 15
-                        new_height = max(current_height, content_lines * 15)
-                        ws.row_dimensions[row_num].height = new_height
+                        
+                        # Yeni yükseklik hesapla (satır başına ~14px)
+                        needed_height = content_lines * 14
+                        new_height = max(current_height, needed_height, 15)
+                        
+                        # Maksimum sınır koy (çok uzun içerikler için)
+                        ws.row_dimensions[row_num].height = min(new_height, 100)
                         
                 except Exception as e:
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
@@ -1966,7 +2126,7 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         temp_dir = os.path.join(backend_dir, "temp")
         os.makedirs(temp_dir, exist_ok=True)
         
-        temp_xlsx = os.path.join(temp_dir, f"case_{case_id}_{uuid.uuid4().hex[:8]}.xlsx")
+        temp_xlsx = os.path.join(temp_dir, f"case_{case_id}_{uuid_module.uuid4().hex[:8]}.xlsx")
         wb.save(temp_xlsx)
         
         # LibreOffice ile PDF'e dönüştür (A4 tek sayfa)
@@ -2104,5 +2264,13 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"PDF export hatası: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"PDF oluşturma hatası: {str(e)}")
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"PDF export hatası: {str(e)}\nTraceback:\n{error_trace}")
+        # Hata detaylarını response'a ekle (debug için)
+        error_detail = {
+            "error": str(e),
+            "type": type(e).__name__,
+            "trace": error_trace[-500:] if len(error_trace) > 500 else error_trace
+        }
+        raise HTTPException(status_code=500, detail=f"PDF oluşturma hatası: {type(e).__name__}: {str(e)[:300]}")

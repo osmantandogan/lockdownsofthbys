@@ -225,6 +225,9 @@ export const stockAPI = {
   getLocationItems: (id) => api.get(`/stock/locations/${id}/items`),
   getItemBarcodeDetails: (locationId, itemName) => api.get(`/stock/locations/${locationId}/items/${encodeURIComponent(itemName)}/details`),
   
+  // Standart Stok Listesi
+  seedStandardStock: () => api.post('/stock/seed-standard-stock'),
+  
   // YENİ: Stok Transfer
   transfer: (data) => api.post('/stock/transfer', data),
   getTransfers: (params) => api.get('/stock/transfers', { params }),
@@ -326,6 +329,15 @@ export const shiftsAPI = {
 
 // Locations API (YENİ)
 export const locationsAPI = {
+  // ============ MERKEZİ LOKASYON API ============
+  // Tüm lokasyonları tek endpoint'ten al (önerilen)
+  getAll: (params) => api.get('/locations/all', { params }),
+  create: (data) => api.post('/locations/create', data),
+  update: (id, data) => api.patch(`/locations/update/${id}`, data),
+  delete: (id) => api.delete(`/locations/delete/${id}`),
+  sync: () => api.post('/locations/sync'),
+  
+  // ============ ESKİ ENDPOINT'LER (Geriye Uyumluluk) ============
   // Healmedy Lokasyonları
   getHealmedy: () => api.get('/locations/healmedy'),
   
@@ -347,7 +359,7 @@ export const locationsAPI = {
   setVehicleLocation: (vehicleId, data) => api.post(`/locations/vehicle/${vehicleId}/set-location`, data),
   getVehiclesByLocation: (locationId) => api.get(`/locations/vehicles/by-location/${locationId}`),
   
-  // GPS Tracking (YENİ)
+  // GPS Tracking
   updateVehicleGPS: (vehicleId, data) => api.post(`/locations/vehicle/${vehicleId}/gps`, data),
   getVehicleGPSHistory: (vehicleId, params) => api.get(`/locations/vehicle/${vehicleId}/gps/history`, { params }),
   getVehicleLatestGPS: (vehicleId) => api.get(`/locations/vehicle/${vehicleId}/gps/latest`),
@@ -669,6 +681,39 @@ export const formConfigAPI = {
   resetCaseFormFields: () => api.post('/form-config/case-form-fields/reset'),
   getHistory: (limit = 10) => api.get('/form-config/case-form-fields/history', { params: { limit } }),
   getVersion: (version) => api.get(`/form-config/case-form-fields/version/${version}`)
+};
+
+// Stock V2 API - Yeni Stok Yönetim Sistemi
+export const stockV2API = {
+  // Sağlık kontrolü
+  healthCheck: () => api.get('/stock/health'),
+  
+  // Seed - Tüm lokasyonlara stok ekle
+  seedAll: () => api.post('/stock/seed-all'),
+  
+  // Lokasyon Stokları
+  getAllLocationStocks: (locationType) => api.get('/stock/locations', { params: { location_type: locationType } }),
+  getLocationStock: (locationId) => api.get(`/stock/locations/${locationId}`),
+  updateStockCount: (locationId, items) => api.patch(`/stock/locations/${locationId}/update`, { items }),
+  useFromStock: (locationId, items) => api.post(`/stock/locations/${locationId}/use`, { items }),
+  
+  // Kendi Lokasyonum
+  getMyStock: () => api.get('/stock/my-location'),
+  
+  // Stok Talepleri
+  getRequests: (params) => api.get('/stock/requests', { params }),
+  createRequest: (data) => api.post('/stock/requests', data),
+  createRequestFromCase: (caseId, data) => api.post(`/stock/requests/from-case/${caseId}`, data || {}),
+  approveRequest: (requestId, note) => api.patch(`/stock/requests/${requestId}/approve`, { note }),
+  rejectRequest: (requestId, note) => api.patch(`/stock/requests/${requestId}/reject`, { note }),
+  deliverRequest: (requestId) => api.patch(`/stock/requests/${requestId}/deliver`, {}),
+  
+  // Vaka için Stok
+  getCaseAvailableStock: (caseId) => api.get(`/stock/case/${caseId}/available`),
+  useCaseStock: (caseId, data) => api.post(`/stock/case/${caseId}/use`, data),
+  getCaseUsage: (caseId) => api.get(`/stock/case/${caseId}/usage`),
+  removeCaseUsage: (caseId, usageId) => api.delete(`/stock/case/${caseId}/usage/${usageId}`),
+  searchStockItem: (query, locationId) => api.get('/stock/item/search', { params: { q: query, location_id: locationId } })
 };
 
 export default api;

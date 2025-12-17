@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { stockBarcodeAPI, vehiclesAPI } from '../api';
+import { stockBarcodeAPI, locationsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -37,7 +37,7 @@ const StockBarcodeEntry = () => {
   const { user } = useAuth();
   const [step, setStep] = useState('location'); // location, scan, summary, transfer
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [vehicles, setVehicles] = useState([]);
+  const [allLocations, setAllLocations] = useState([]); // Tüm lokasyonlar (merkezi API'den)
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState(null);
   const [scannedItems, setScannedItems] = useState([]);
@@ -53,12 +53,16 @@ const StockBarcodeEntry = () => {
   const [boxFinished, setBoxFinished] = useState(false);
   const [targetLocation, setTargetLocation] = useState(null);
 
-  // Lokasyon seçenekleri
-  const locationOptions = [
+  // Sabit lokasyon seçenekleri (sadece UI için ikonlar)
+  const staticLocationOptions = [
     { key: 'merkez_depo', label: 'Merkez Depo', icon: Warehouse, color: 'blue' },
-    { key: 'acil_canta', label: 'Acil Çanta', icon: Briefcase, color: 'red' },
-    { key: 'saha_ofis', label: 'Saha Ofis', icon: MapPin, color: 'purple' }
+    { key: 'acil_canta', label: 'Acil Çanta', icon: Briefcase, color: 'red' }
   ];
+  
+  // Lokasyonları tipine göre filtrele
+  const warehouseLocations = allLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag');
+  const healmedyLocations = allLocations.filter(l => l.type === 'healmedy' || l.type === 'waiting_point');
+  const vehicleLocations = allLocations.filter(l => l.type === 'vehicle');
 
   useEffect(() => {
     loadData();
@@ -67,12 +71,16 @@ const StockBarcodeEntry = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [vehiclesRes, inventoryRes, expiringRes] = await Promise.all([
-        vehiclesAPI.getAll(),
+      const [locationsRes, inventoryRes, expiringRes] = await Promise.all([
+        locationsAPI.getAll(),
         stockBarcodeAPI.getInventoryByLocation(),
         stockBarcodeAPI.getExpiringItems(30)
       ]);
-      setVehicles(vehiclesRes.data || []);
+      
+      // Lokasyonları ayarla
+      const locations = locationsRes.data?.locations || [];
+      setAllLocations(locations);
+      
       setInventory(inventoryRes.data);
       setExpiringItems(expiringRes.data?.expiring_items || []);
     } catch (error) {
@@ -385,10 +393,14 @@ const StockBarcodeEntry = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="acil_canta|">Acil Çanta</SelectItem>
-                      <SelectItem value="saha_ofis|">Saha Ofis</SelectItem>
-                      {vehicles.map(v => (
-                        <SelectItem key={v.id || v._id} value={`ambulans|${v.plate}`}>
-                          🚑 {v.plate}
+                      {healmedyLocations.map(loc => (
+                        <SelectItem key={loc.id} value={`${loc.id}|${loc.name}`}>
+                          📍 {loc.name}
+                        </SelectItem>
+                      ))}
+                      {vehicleLocations.map(loc => (
+                        <SelectItem key={loc.id} value={`ambulans|${loc.vehicle_plate || loc.name}`}>
+                          🚑 {loc.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -458,48 +470,83 @@ const StockBarcodeEntry = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Sabit Lokasyonlar */}
+            {/* Depo ve Sabit Lokasyonlar */}
             <div className="space-y-3">
-              <h3 className="font-medium text-sm text-gray-700">Sabit Lokasyonlar</h3>
+              <h3 className="font-medium text-sm text-gray-700">Depo ve Sabit Lokasyonlar</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {locationOptions.map(loc => {
-                  const Icon = loc.icon;
-                  const bgColor = `bg-${loc.color}-100`;
-                  const hoverBorder = `hover:border-${loc.color}-500`;
-                  const hoverBg = `hover:bg-${loc.color}-50`;
-                  
-                  return (
-                    <button
-                      key={loc.key}
-                      onClick={() => handleLocationSelect(loc.key)}
-                      className={`flex items-center justify-between p-4 border-2 rounded-xl hover:border-${loc.color}-500 hover:bg-${loc.color}-50 transition-all group`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-3 bg-${loc.color}-100 rounded-xl group-hover:bg-${loc.color}-200 transition-colors`}>
-                          <Icon className={`h-6 w-6 text-${loc.color}-600`} />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-semibold">{loc.label}</p>
-                          <p className="text-xs text-gray-500">Stok girişi</p>
-                        </div>
-                      </div>
-                      <ChevronRight className={`h-5 w-5 text-gray-400 group-hover:text-${loc.color}-600`} />
-                    </button>
-                  );
-                })}
+                {/* Merkez Depo */}
+                <button
+                  onClick={() => handleLocationSelect('merkez_depo')}
+                  className="flex items-center justify-between p-4 border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition-colors">
+                      <Warehouse className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold">Merkez Depo</p>
+                      <p className="text-xs text-gray-500">Ana stok deposu</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
+                </button>
+                
+                {/* Acil Çanta */}
+                <button
+                  onClick={() => handleLocationSelect('acil_canta')}
+                  className="flex items-center justify-between p-4 border-2 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-red-100 rounded-xl group-hover:bg-red-200 transition-colors">
+                      <Briefcase className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold">Acil Çanta</p>
+                      <p className="text-xs text-gray-500">Portatif çanta</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-red-600" />
+                </button>
               </div>
             </div>
+            
+            {/* Bekleme Noktaları / Healmedy Lokasyonları */}
+            {healmedyLocations.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-medium text-sm text-gray-700">Bekleme Noktaları</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {healmedyLocations.map(loc => (
+                    <button
+                      key={loc.id}
+                      onClick={() => handleLocationSelect(loc.id, loc.name)}
+                      className="flex items-center justify-between p-4 border-2 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-purple-100 rounded-xl group-hover:bg-purple-200 transition-colors">
+                          <MapPin className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-semibold">{loc.name}</p>
+                          <p className="text-xs text-gray-500">Bekleme noktası</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-purple-600" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Araç Lokasyonları */}
-            {vehicles.length > 0 && (
+            {vehicleLocations.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-medium text-sm text-gray-700">Araçlar (Ambulanslar)</h3>
+                <h3 className="font-medium text-sm text-gray-700">Araçlar ({vehicleLocations.length})</h3>
                 <ScrollArea className="h-[280px]">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-4">
-                    {vehicles.map(vehicle => (
+                    {vehicleLocations.map(loc => (
                       <button
-                        key={vehicle.id || vehicle._id}
-                        onClick={() => handleLocationSelect('ambulans', vehicle.plate)}
+                        key={loc.id}
+                        onClick={() => handleLocationSelect('ambulans', loc.vehicle_plate || loc.name)}
                         className="flex items-center justify-between p-4 border-2 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
                       >
                         <div className="flex items-center gap-3">
@@ -507,15 +554,15 @@ const StockBarcodeEntry = () => {
                             <Truck className="h-6 w-6 text-green-600" />
                           </div>
                           <div className="text-left">
-                            <p className="font-semibold">{vehicle.plate}</p>
+                            <p className="font-semibold">{loc.name}</p>
                             <p className="text-xs text-gray-500">
-                              {vehicle.status === 'musait' ? 'Müsait' : vehicle.status === 'gorevde' ? 'Görevde' : 'Bakımda'}
+                              {loc.is_active !== false ? 'Aktif' : 'Pasif'}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={vehicle.status === 'musait' ? 'outline' : 'secondary'} className="text-xs">
-                            {vehicle.status === 'musait' ? 'Aktif' : 'Meşgul'}
+                          <Badge variant={loc.is_active !== false ? 'outline' : 'secondary'} className="text-xs">
+                            {loc.is_active !== false ? 'Aktif' : 'Pasif'}
                           </Badge>
                           <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-green-600" />
                         </div>
@@ -535,7 +582,9 @@ const StockBarcodeEntry = () => {
   if (step === 'scan') {
     const locationLabel = selectedLocation.location === 'ambulans' 
       ? `Ambulans: ${selectedLocation.locationDetail}`
-      : locationOptions.find(l => l.key === selectedLocation.location)?.label || selectedLocation.location;
+      : selectedLocation.location === 'merkez_depo' ? 'Merkez Depo'
+      : selectedLocation.location === 'acil_canta' ? 'Acil Çanta'
+      : allLocations.find(l => l.id === selectedLocation.location)?.name || selectedLocation.locationDetail || selectedLocation.location;
 
     return (
       <div className="space-y-4 max-w-4xl mx-auto">
@@ -666,7 +715,9 @@ const StockBarcodeEntry = () => {
   if (step === 'summary') {
     const locationLabel = selectedLocation?.location === 'ambulans' 
       ? `Ambulans: ${selectedLocation?.locationDetail}`
-      : locationOptions.find(l => l.key === selectedLocation?.location)?.label || selectedLocation?.location;
+      : selectedLocation?.location === 'merkez_depo' ? 'Merkez Depo'
+      : selectedLocation?.location === 'acil_canta' ? 'Acil Çanta'
+      : allLocations.find(l => l.id === selectedLocation?.location)?.name || selectedLocation?.locationDetail || selectedLocation?.location;
 
     return (
       <div className="space-y-6 max-w-4xl mx-auto">

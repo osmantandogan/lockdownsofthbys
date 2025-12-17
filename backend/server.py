@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Import routers
 try:
-    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates, firms, form_config
+    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates, firms, form_config, stock_v2, stock_new
     logger.info("Tüm router'lar başarıyla yüklendi")
 except ImportError as e:
     logger.error(f"Router import hatası: {e}")
@@ -117,7 +117,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(cases.router, prefix="/cases", tags=["Cases"])
 api_router.include_router(vehicles.router, prefix="/vehicles", tags=["Vehicles"])
-api_router.include_router(stock.router, prefix="/stock", tags=["Stock"])
+api_router.include_router(stock_new.router, prefix="/stock", tags=["Stock - Yeni Sistem"])
 api_router.include_router(shifts.router, prefix="/shifts", tags=["Shifts"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
 api_router.include_router(forms.router, prefix="/forms", tags=["Forms"])
@@ -133,6 +133,7 @@ api_router.include_router(approvals.router, prefix="/approvals", tags=["Approval
 api_router.include_router(patients.router, prefix="/patients", tags=["Patients - Hasta Kartı"])
 api_router.include_router(pdf.router, prefix="/pdf", tags=["PDF - PDF Generation"])
 api_router.include_router(stock_barcode.router, prefix="/stock-barcode", tags=["Stock Barcode - Karekod Bazlı Stok"])
+api_router.include_router(stock_v2.router, prefix="/stock-v2", tags=["Stock V2 - Yeni Stok Sistemi"])
 api_router.include_router(material_requests.router, prefix="/material-requests", tags=["Material Requests - Malzeme Talepleri"])
 api_router.include_router(locations.router, prefix="/locations", tags=["Locations - Lokasyon Yönetimi"])
 api_router.include_router(pdf_templates.router, prefix="/pdf-templates", tags=["PDF Templates - PDF Şablon Yönetimi"])
@@ -189,6 +190,25 @@ async def startup_event():
             use_test=its_use_test
         )
         logger.info(f"ITS service configured (test_mode={its_use_test})")
+    
+    # Eski stok verilerini temizle ve yeni sistemi başlat
+    try:
+        from routes.stock_new import cleanup_old_stock_data, seed_all_locations
+        
+        # Eski verileri temizle
+        await cleanup_old_stock_data()
+        logger.info("Eski stok verileri temizlendi")
+        
+        # Yeni stok sistemini başlat
+        seed_result = await seed_all_locations()
+        vehicles_created = len([r for r in seed_result["vehicles"] if r.get("action") == "created"])
+        wp_created = len([r for r in seed_result["waiting_points"] if r.get("action") == "created"])
+        if vehicles_created > 0 or wp_created > 0:
+            logger.info(f"Otomatik stok seed: {vehicles_created} araç, {wp_created} bekleme noktası")
+        else:
+            logger.info("Stok seed: Tüm lokasyonlar zaten mevcut")
+    except Exception as e:
+        logger.warning(f"Stok sistemi başlatma hatası: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

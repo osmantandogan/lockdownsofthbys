@@ -53,10 +53,15 @@ const MyLocationStock = () => {
       
       // Bugünkü vardiya atamasını getir
       const response = await shiftsAPI.getTodayAssignments();
-      const assignments = response.data || [];
+      // Backend artık { vehicle_assignments: [...], health_center_assignments: [...] } formatında dönüyor
+      const data = response.data || {};
+      const allAssignments = [
+        ...(data.vehicle_assignments || []),
+        ...(data.health_center_assignments || [])
+      ];
       
       // Kullanıcının atamasını bul
-      const myAssignment = assignments.find(a => 
+      const myAssignment = allAssignments.find(a => 
         a.user_id === user?.id || 
         a.personnel?.some(p => p.id === user?.id || p._id === user?.id)
       );

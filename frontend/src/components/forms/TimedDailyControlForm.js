@@ -9,8 +9,8 @@ import { Progress } from '../ui/progress';
 import SignaturePad from '../SignaturePad';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { shiftsAPI } from '../../api';
-import { Clock, Lock, CheckCircle, Timer } from 'lucide-react';
+import { shiftsAPI, locationsAPI } from '../../api';
+import { Clock, Lock, CheckCircle, Timer, MapPin, Search } from 'lucide-react';
 
 // Bölüm süreleri (saniye cinsinden)
 const SECTION_TIMES = {
@@ -139,7 +139,7 @@ const formatTime = (seconds) => {
 /**
  * Zaman Kısıtlamalı Günlük Kontrol Formu (ATT/Paramedik için)
  */
-const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId, onComplete }) => {
+const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId, vehiclePlate, onComplete }) => {
   const { user } = useAuth();
   
   // Bölüm durumları
@@ -152,15 +152,53 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
   const [checks, setChecks] = useState({});
   const [formInfo, setFormInfo] = useState({
     istasyonAdi: '',
-    plaka: '',
-    km: '',
+    plaka: vehiclePlate || '',
     tarih: new Date().toISOString().split('T')[0],
     aciklama: ''
   });
   
+  // Lokasyon autocomplete için state'ler
+  const [locations, setLocations] = useState([]);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [filteredLocations, setFilteredLocations] = useState([]);
+  
   // Form zaten doldurulmuş mu
   const [alreadyFilled, setAlreadyFilled] = useState(false);
   const [filledBy, setFilledBy] = useState(null);
+  
+  // Lokasyonları yükle
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await locationsAPI.getField({ status: 'active' });
+        setLocations(response.data || []);
+      } catch (error) {
+        console.error('Lokasyonlar yüklenemedi:', error);
+      }
+    };
+    fetchLocations();
+  }, []);
+  
+  // Lokasyon arama filtreleme
+  useEffect(() => {
+    if (locationSearch.trim()) {
+      const filtered = locations.filter(loc => 
+        loc.name?.toLowerCase().includes(locationSearch.toLowerCase()) ||
+        loc.address?.toLowerCase().includes(locationSearch.toLowerCase())
+      );
+      setFilteredLocations(filtered);
+    } else {
+      setFilteredLocations(locations);
+    }
+  }, [locationSearch, locations]);
+  
+  // Araç plakasını otomatik doldur
+  useEffect(() => {
+    if (vehiclePlate && !formInfo.plaka) {
+      setFormInfo(prev => ({ ...prev, plaka: vehiclePlate }));
+    }
+  }, [vehiclePlate]);
   
   // Başlangıçta form durumunu kontrol et
   useEffect(() => {
@@ -330,33 +368,55 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
       
       <Card>
         <CardContent className="pt-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label>İstasyon Adı</Label>
-              <Input 
-                value={formInfo.istasyonAdi}
-                onChange={(e) => handleInfoChange('istasyonAdi', e.target.value)}
-                placeholder="İstasyon adını giriniz"
-                disabled={!allCompleted && currentSection !== 1}
-              />
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2 relative">
+              <Label className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                İstasyon Adı
+              </Label>
+              <div className="relative">
+                <Input 
+                  value={locationSearch || formInfo.istasyonAdi}
+                  onChange={(e) => {
+                    setLocationSearch(e.target.value);
+                    setShowLocationDropdown(true);
+                  }}
+                  onFocus={() => setShowLocationDropdown(true)}
+                  placeholder="Lokasyon ara veya seç..."
+                  className="pr-8"
+                  disabled={!allCompleted && currentSection !== 1}
+                />
+                <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              {showLocationDropdown && filteredLocations.length > 0 && (allCompleted || currentSection === 1) && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {filteredLocations.map((loc) => (
+                    <button
+                      key={loc._id || loc.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm border-b last:border-0"
+                      onClick={() => {
+                        handleInfoChange('istasyonAdi', loc.name);
+                        setLocationSearch(loc.name);
+                        setShowLocationDropdown(false);
+                      }}
+                    >
+                      <div className="font-medium">{loc.name}</div>
+                      {loc.address && (
+                        <div className="text-xs text-gray-500">{loc.address}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Plaka</Label>
               <Input 
-                value={formInfo.plaka}
-                onChange={(e) => handleInfoChange('plaka', e.target.value)}
-                placeholder="34 ABC 123"
-                disabled={!allCompleted && currentSection !== 1}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>KM</Label>
-              <Input 
-                type="number"
-                value={formInfo.km}
-                onChange={(e) => handleInfoChange('km', e.target.value)}
-                placeholder="125000"
-                disabled={!allCompleted && currentSection !== 1}
+                value={formInfo.plaka || vehiclePlate}
+                readOnly
+                disabled
+                className="bg-gray-100 font-medium"
               />
             </div>
             <div className="space-y-2">

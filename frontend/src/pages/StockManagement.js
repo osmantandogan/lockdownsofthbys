@@ -1,2412 +1,634 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { stockAPI, vehiclesAPI, itsAPI, stockBarcodeAPI, locationsAPI } from '../api';
+import React, { useState, useEffect } from 'react';
+import { stockV2API } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Badge } from '../components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { ScrollArea } from '../components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { Package, Plus, Edit, AlertTriangle, MapPin, Truck, Warehouse, Briefcase, ArrowLeft, ArrowRight, CheckCircle, QrCode, Search, Loader2, X, Calendar, Hash, RefreshCw, ChevronRight, Pill, Box, Scissors, ArrowRightLeft, History, Send, Droplet } from 'lucide-react';
-import StockLocationSummary from '../components/StockLocationSummary';
+import { 
+  Package, MapPin, Truck, Building2, Search, RefreshCw, 
+  AlertTriangle, CheckCircle, Clock, Loader2, ChevronRight,
+  Box, Pill, Droplet, Wrench, XCircle, Send
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-// Kategori etiketleri
-const categoryLabels = {
-  ilac: 'İlaç',
-  itriyat: 'İtriyat',
-  diger: 'Diğer'
-};
-
+// Kategori ikonları
 const categoryIcons = {
   ilac: Pill,
-  itriyat: Droplet,
-  diger: Package
+  sarf: Package,
+  serum: Droplet,
+  tibbi_cihaz: Wrench,
+  malzeme: Box
+};
+
+// Kategori renkleri
+const categoryColors = {
+  ilac: 'bg-purple-100 text-purple-800',
+  sarf: 'bg-blue-100 text-blue-800',
+  serum: 'bg-cyan-100 text-cyan-800',
+  tibbi_cihaz: 'bg-orange-100 text-orange-800',
+  malzeme: 'bg-gray-100 text-gray-800'
 };
 
 const StockManagement = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('locations');
+  const [loading, setLoading] = useState(true);
+  
+  // Lokasyonlar
+  const [locations, setLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationDetailOpen, setLocationDetailOpen] = useState(false);
+  const [locationStock, setLocationStock] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  
+  // Stok Listesi
+  const [allStock, setAllStock] = useState([]);
+  const [stockSearch, setStockSearch] = useState('');
+  
+  // Talepler
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [requestDetailOpen, setRequestDetailOpen] = useState(false);
   
   // Erişim kontrolü
-  const canViewStock = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'bas_sofor'].includes(user?.role);
-  
-  if (!canViewStock) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Erişim Reddedildi</h2>
-        <p className="text-gray-600">Bu sayfayı görüntülemek için yetkiniz bulunmamaktadır.</p>
-      </div>
-    );
-  }
-  
-  const [stocks, setStocks] = useState([]);
-  const [allStockGroups, setAllStockGroups] = useState([]);
-  const [allStockLoading, setAllStockLoading] = useState(false);
-  const [stockCategoryFilter, setStockCategoryFilter] = useState(''); // 'ilac', 'itriyat', 'diger'
-  const [stockSearch, setStockSearch] = useState('');
-  const [alerts, setAlerts] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedStock, setSelectedStock] = useState(null);
-  const [dialogStep, setDialogStep] = useState(1); // 1: Lokasyon seç, 2: Kategori seç, 3: Detayları doldur
-  const [selectedCategory, setSelectedCategory] = useState(''); // 'ilac', 'itriyat', 'diger'
-  const [vehicles, setVehicles] = useState([]);
-  const [customLocations, setCustomLocations] = useState([]);
-  const [barcodeLoading, setBarcodeLoading] = useState(false);
-  const [itsDrug, setItsDrug] = useState(null); // İTS'den bulunan ilaç
-  const barcodeInputRef = useRef(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    quantity: 0,
-    min_quantity: 0,
-    location: '',
-    location_detail: '',
-    shelf_code: '', // Raf kodu
-    lot_number: '',
-    expiry_date: '',
-    gtin: '' // İlaç için GTIN
-  });
-
-  // Karekod Bazlı Stok State
-  const [barcodeGroups, setBarcodeGroups] = useState([]);
-  const [barcodeLoading2, setBarcodeLoading2] = useState(false);
-  const [barcodeSearch, setBarcodeSearch] = useState('');
-  const [barcodeLocationFilter, setBarcodeLocationFilter] = useState('all');
-  const [selectedMedication, setSelectedMedication] = useState(null);
-  const [medicationDetailsOpen, setMedicationDetailsOpen] = useState(false);
-  const [medicationDetails, setMedicationDetails] = useState(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-
-  // Stok Parçalama State
-  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
-  const [selectedItemForSplit, setSelectedItemForSplit] = useState(null);
-  const [splitQuantity, setSplitQuantity] = useState(1);
-  const [splitTargetLocation, setSplitTargetLocation] = useState('');
-  const [splitLoading, setSplitLoading] = useState(false);
-  
-  // Stok Hareketleri State
-  const [movementsDialogOpen, setMovementsDialogOpen] = useState(false);
-  const [stockMovements, setStockMovements] = useState([]);
-  const [movementsLoading, setMovementsLoading] = useState(false);
-  
-  // Stok Hareketi Ekleme State
-  const [addMovementDialogOpen, setAddMovementDialogOpen] = useState(false);
-  const [movementStep, setMovementStep] = useState(1); // 1: Kategori, 2: Ürün, 3: Lokasyon ve Detaylar
-  const [movementCategory, setMovementCategory] = useState('');
-  const [movementItems, setMovementItems] = useState([]); // Seçilen ürünler
-  const [availableItems, setAvailableItems] = useState([]); // Kategoriye göre filtrelenmiş ürünler
-  const [movementFromLocation, setMovementFromLocation] = useState('');
-  const [movementToLocation, setMovementToLocation] = useState('');
-  const [movementShelfCode, setMovementShelfCode] = useState('');
-  const [movementLoading, setMovementLoading] = useState(false);
-  const [selectedItemForMovement, setSelectedItemForMovement] = useState(null);
-  const [movementQuantity, setMovementQuantity] = useState(1);
-  
-  // Stok Lokasyonları State
-  const [stockLocations, setStockLocations] = useState([]);
-  const [syncingLocations, setSyncingLocations] = useState(false);
-  
-  // YENİ: Açılmış İlaçlar (Adet Bazlı) State
-  const [unitStockItems, setUnitStockItems] = useState([]);
-  const [unitStockLoading, setUnitStockLoading] = useState(false);
-  const [unitStockLocationFilter, setUnitStockLocationFilter] = useState('all');
-  
-  // YENİ: İtriyat State
-  const [itriyatItems, setItriyatItems] = useState([]);
-  const [itriyatLoading, setItriyatLoading] = useState(false);
-  const [itriyatLocationFilter, setItriyatLocationFilter] = useState('all');
-  
-  // YENİ: Sarf Malzeme State
-  const [sarfItems, setSarfItems] = useState([]);
-  const [sarfLoading, setSarfLoading] = useState(false);
-  const [sarfLocationFilter, setSarfLocationFilter] = useState('all');
-  
-  // YENİ: Tüm Lokasyonlar (API'den)
-  const [allLocations, setAllLocations] = useState([]);
+  const canManage = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
 
   useEffect(() => {
     loadData();
-    loadBarcodeGroups();
-    loadStockLocations();
-    loadAllStockGroups();
-    loadAllLocationsFromAPI();
   }, []);
-  
-  // Tüm lokasyonları API'den yükle (araçlar + saha noktaları + sabit lokasyonlar)
-  const loadAllLocationsFromAPI = async () => {
-    try {
-      const [vehiclesRes, healmedyRes, fieldRes] = await Promise.all([
-        vehiclesAPI.getAll(),
-        locationsAPI.getHealmedy().catch(() => ({ data: [] })),
-        locationsAPI.getField().catch(() => ({ data: [] }))
-      ]);
-      
-      const locations = [];
-      
-      // Sabit lokasyonlar (Healmedy)
-      const healmedyLocs = healmedyRes.data || [];
-      healmedyLocs.forEach(loc => {
-        locations.push({
-          id: loc.id,
-          name: loc.name,
-          type: 'healmedy',
-          icon: 'building'
-        });
-      });
-      
-      // Merkez Depo ekle (eğer yoksa)
-      if (!locations.find(l => l.id === 'merkez_depo')) {
-        locations.unshift({ id: 'merkez_depo', name: 'Merkez Depo', type: 'depo', icon: 'warehouse' });
-      }
-      
-      // Araçlar
-      const vehicles = vehiclesRes.data || [];
-      vehicles.forEach(v => {
-        locations.push({
-          id: `ambulans_${v.plate?.replace(/\s/g, '_').toLowerCase()}`,
-          name: v.plate,
-          type: 'ambulans',
-          icon: 'truck',
-          vehicleId: v._id || v.id
-        });
-      });
-      
-      // Saha Noktaları
-      const fieldLocs = fieldRes.data || [];
-      fieldLocs.forEach(loc => {
-        locations.push({
-          id: loc.id || loc._id,
-          name: loc.name,
-          type: loc.location_type || 'saha',
-          icon: 'mappin'
-        });
-      });
-      
-      setAllLocations(locations);
-    } catch (error) {
-      console.error('Lokasyonlar yüklenemedi:', error);
-    }
-  };
-  
-  // Lokasyon filtresi değiştiğinde yeniden yükle
-  useEffect(() => {
-    loadBarcodeGroups();
-  }, [barcodeLocationFilter]);
-  
-  // Tüm stok filtreleri değiştiğinde yeniden yükle
-  useEffect(() => {
-    loadAllStockGroups();
-  }, [stockCategoryFilter, stockSearch]);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      const [stocksRes, alertsRes, vehiclesRes] = await Promise.all([
-        stockAPI.getAll(),
-        stockAPI.getAlerts(),
-        vehiclesAPI.getAll()
+      await Promise.all([
+        loadLocations(),
+        loadAllStock(),
+        loadRequests()
       ]);
-      setStocks(stocksRes.data);
-      setAlerts(alertsRes.data);
-      setVehicles(vehiclesRes.data || []);
-      
-      // Sadece ambulans tipindeki araçları göster
-      const ambulances = (vehiclesRes.data || []).filter(v => v.type === 'ambulans');
-      
-      // Araçlardan lokasyon listesi oluştur (bekleme noktası yok)
-      const locations = [];
-      ambulances.forEach(v => {
-        locations.push({
-          type: 'vehicle',
-          name: `${v.plate} Aracı`,
-          plate: v.plate,
-          icon: 'truck'
-        });
-      });
-      setCustomLocations(locations);
     } catch (error) {
-      console.error('Stok yüklenemedi:', error);
-      toast.error('Stok yüklenemedi');
+      console.error('Veri yüklenemedi:', error);
     } finally {
       setLoading(false);
     }
   };
-  
-  // Tüm stokları gruplandırılmış şekilde yükle
-  const loadAllStockGroups = async () => {
-    setAllStockLoading(true);
-    try {
-      const params = {};
-      if (stockCategoryFilter) params.category = stockCategoryFilter;
-      if (stockSearch) params.search = stockSearch;
-      
-      const response = await stockAPI.getAllGrouped(params);
-      setAllStockGroups(response.data.groups || []);
-    } catch (error) {
-      console.error('Tüm stoklar yüklenemedi:', error);
-      toast.error('Stoklar yüklenemedi');
-    } finally {
-      setAllStockLoading(false);
-    }
-  };
 
-  // Karekod Bazlı Stok Yükle
-  const loadBarcodeGroups = useCallback(async () => {
-    setBarcodeLoading2(true);
+  const loadLocations = async () => {
     try {
-      const params = {};
-      if (barcodeLocationFilter && barcodeLocationFilter !== 'all') {
-        params.location = barcodeLocationFilter;
-      }
-      if (barcodeSearch) {
-        params.search = barcodeSearch;
-      }
-      
-      const response = await stockAPI.getGroupedInventory(params);
-      setBarcodeGroups(response.data.groups || []);
-    } catch (error) {
-      console.error('Karekod stok yüklenemedi:', error);
-      toast.error('Karekod stok yüklenemedi');
-    } finally {
-      setBarcodeLoading2(false);
-    }
-  }, [barcodeLocationFilter, barcodeSearch]);
-
-  // İlaç detaylarını yükle (QR kodları ile)
-  const loadMedicationDetails = async (medication) => {
-    setSelectedMedication(medication);
-    setMedicationDetailsOpen(true);
-    setLoadingDetails(true);
-    
-    try {
-      const location = barcodeLocationFilter !== 'all' ? barcodeLocationFilter : null;
-      const response = await stockAPI.getItemQRDetails(medication.name, location);
-      setMedicationDetails(response.data);
-    } catch (error) {
-      console.error('İlaç detayları yüklenemedi:', error);
-      toast.error('Detaylar yüklenemedi');
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  // Tab değiştiğinde ilgili veriyi yükle
-  const handleTabChange = (value) => {
-    if (value === 'barcode') {
-      loadBarcodeGroups();
-    } else if (value === 'opened') {
-      loadUnitStock();
-    } else if (value === 'itriyat') {
-      loadItriyat();
-    } else if (value === 'sarf') {
-      loadSarf();
-    }
-  };
-  
-  // YENİ: Açılmış İlaçları Yükle
-  const loadUnitStock = async (locationOverride) => {
-    setUnitStockLoading(true);
-    try {
-      const loc = locationOverride !== undefined ? locationOverride : unitStockLocationFilter;
-      const locationParam = loc === 'all' ? undefined : loc;
-      const response = await stockBarcodeAPI.getUnitStock(locationParam);
-      setUnitStockItems(response.data.items || []);
-    } catch (error) {
-      console.error('Açılmış ilaçlar yüklenemedi:', error);
-      toast.error('Açılmış ilaçlar yüklenemedi');
-    } finally {
-      setUnitStockLoading(false);
-    }
-  };
-  
-  // YENİ: İtriyat Yükle
-  const loadItriyat = async (locationOverride) => {
-    setItriyatLoading(true);
-    try {
-      const loc = locationOverride !== undefined ? locationOverride : itriyatLocationFilter;
-      const locationParam = loc === 'all' ? undefined : loc;
-      const response = await stockBarcodeAPI.getItriyat(locationParam);
-      setItriyatItems(response.data.items || []);
-    } catch (error) {
-      console.error('İtriyat yüklenemedi:', error);
-      toast.error('İtriyat yüklenemedi');
-    } finally {
-      setItriyatLoading(false);
-    }
-  };
-  
-  // YENİ: Sarf Malzeme Yükle
-  const loadSarf = async (locationOverride) => {
-    setSarfLoading(true);
-    try {
-      const loc = locationOverride !== undefined ? locationOverride : sarfLocationFilter;
-      const locationParam = loc === 'all' ? undefined : loc;
-      const response = await stockBarcodeAPI.getSarf(locationParam);
-      setSarfItems(response.data.items || []);
-    } catch (error) {
-      console.error('Sarf malzeme yüklenemedi:', error);
-      toast.error('Sarf malzeme yüklenemedi');
-    } finally {
-      setSarfLoading(false);
-    }
-  };
-  
-  // YENİ: Kutu Aç (Karekodlu stoktan adet bazlıya dönüştür)
-  const handleOpenBox = async (stockId) => {
-    try {
-      const response = await stockBarcodeAPI.openBox(stockId);
-      toast.success(response.data.message);
-      loadBarcodeGroups();
-      loadUnitStock();
-    } catch (error) {
-      console.error('Kutu açılamadı:', error);
-      toast.error(error.response?.data?.detail || 'Kutu açılamadı');
-    }
-  };
-
-  // Tarih formatla
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('tr-TR');
-  };
-
-  // SKT durumu kontrol
-  const getExpiryStatus = (expiryDate) => {
-    if (!expiryDate) return null;
-    const now = new Date();
-    const expiry = new Date(expiryDate);
-    const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-    
-    if (daysLeft < 0) return { status: 'expired', label: 'Süresi Dolmuş', color: 'bg-red-500' };
-    if (daysLeft <= 30) return { status: 'expiring', label: `${daysLeft} gün`, color: 'bg-orange-500' };
-    if (daysLeft <= 90) return { status: 'warning', label: `${daysLeft} gün`, color: 'bg-yellow-500' };
-    return { status: 'ok', label: formatDate(expiryDate), color: 'bg-green-500' };
-  };
-
-  // Stok Lokasyonlarını Yükle
-  const loadStockLocations = async () => {
-    try {
-      const response = await stockAPI.getStockLocations();
-      const locations = response.data.locations || [];
-      setStockLocations(locations);
-      
-      // Eğer hiç lokasyon yoksa otomatik senkronize et
-      if (locations.length === 0) {
-        console.log('Lokasyon bulunamadı, otomatik senkronizasyon başlatılıyor...');
-        await syncVehicleLocationsAuto();
-      }
+      const response = await stockV2API.getAllLocationStocks();
+      setLocations(response.data?.locations || []);
     } catch (error) {
       console.error('Lokasyonlar yüklenemedi:', error);
     }
   };
 
-  // Otomatik senkronizasyon (sessiz)
-  const syncVehicleLocationsAuto = async () => {
+  const loadAllStock = async () => {
     try {
-      await stockAPI.syncVehicleLocations();
-      const response = await stockAPI.getStockLocations();
-      setStockLocations(response.data.locations || []);
-    } catch (error) {
-      console.error('Otomatik senkronizasyon hatası:', error);
-    }
-  };
-
-  // Araç Lokasyonlarını Otomatik Senkronize Et
-  const syncVehicleLocations = async () => {
-    setSyncingLocations(true);
-    try {
-      const response = await stockAPI.syncVehicleLocations();
-      toast.success(response.data.message);
-      loadStockLocations();
-    } catch (error) {
-      console.error('Senkronizasyon hatası:', error);
-      toast.error('Lokasyonlar senkronize edilemedi');
-    } finally {
-      setSyncingLocations(false);
-    }
-  };
-
-  // Eski "Bekleme Noktası" Lokasyonlarını Temizle
-  const cleanupOldLocations = async () => {
-    setSyncingLocations(true);
-    try {
-      const response = await stockAPI.cleanupOldLocations();
-      toast.success(response.data.message);
-      loadStockLocations();
-    } catch (error) {
-      console.error('Temizleme hatası:', error);
-      toast.error('Eski lokasyonlar temizlenemedi');
-    } finally {
-      setSyncingLocations(false);
-    }
-  };
-
-  // Stok Parçalama İşlemi
-  const openSplitDialog = (item) => {
-    setSelectedItemForSplit(item);
-    setSplitQuantity(1);
-    setSplitTargetLocation('');
-    setSplitDialogOpen(true);
-  };
-
-  const handleSplitStock = async () => {
-    if (!selectedItemForSplit || !splitTargetLocation || splitQuantity < 1) {
-      toast.error('Lütfen tüm alanları doldurun');
-      return;
-    }
-
-    setSplitLoading(true);
-    try {
-      const response = await stockAPI.splitStock({
-        barcode_stock_id: selectedItemForSplit.id,
-        target_location: splitTargetLocation,
-        quantity_in_package: splitQuantity,
-        notes: `Stok parçalama: ${splitQuantity} adet`
-      });
+      const response = await stockV2API.getAllLocationStocks();
+      const locs = response.data?.locations || [];
       
-      toast.success(response.data.message);
-      setSplitDialogOpen(false);
-      setMedicationDetailsOpen(false);
-      loadBarcodeGroups();
-    } catch (error) {
-      console.error('Parçalama hatası:', error);
-      toast.error(error.response?.data?.detail || 'Stok parçalanamadı');
-    } finally {
-      setSplitLoading(false);
-    }
-  };
-
-  // Stok Hareketlerini Yükle
-  const loadStockMovements = async () => {
-    setMovementsLoading(true);
-    try {
-      const response = await stockAPI.getStockMovements({ limit: 50 });
-      setStockMovements(response.data.movements || []);
-    } catch (error) {
-      console.error('Hareketler yüklenemedi:', error);
-    } finally {
-      setMovementsLoading(false);
-    }
-  };
-
-  const openMovementsDialog = () => {
-    setMovementsDialogOpen(true);
-    loadStockMovements();
-  };
-  
-  // Kategoriye göre mevcut ürünleri yükle
-  const loadAvailableItemsForMovement = async (category) => {
-    try {
-      const response = await stockAPI.getAllGrouped({ category });
-      setAvailableItems(response.data.groups || []);
-    } catch (error) {
-      console.error('Ürünler yüklenemedi:', error);
-      toast.error('Ürünler yüklenemedi');
-    }
-  };
-  
-  // Stok hareketi formunu sıfırla
-  const resetMovementForm = () => {
-    setMovementStep(1);
-    setMovementCategory('');
-    setMovementItems([]);
-    setAvailableItems([]);
-    setMovementFromLocation('');
-    setMovementToLocation('');
-    setMovementShelfCode('');
-    setSelectedItemForMovement(null);
-    setMovementQuantity(1);
-  };
-  
-  // Stok hareketi oluştur
-  const handleCreateMovement = async () => {
-    if (!movementFromLocation || !movementToLocation || !movementShelfCode || movementItems.length === 0) {
-      toast.error('Lütfen tüm alanları doldurun');
-      return;
-    }
-    
-    setMovementLoading(true);
-    try {
-      // Her ürün için stok hareketi oluştur
-      const items = movementItems.map(item => ({
-        name: item.name,
-        quantity: item.quantity,
-        category: item.category
-      }));
-      
-      const response = await stockAPI.createStockMovement({
-        from_location: movementFromLocation,
-        to_location: movementToLocation,
-        items: items,
-        shelf_code: movementShelfCode,
-        notes: `Raf kodu: ${movementShelfCode}`
-      });
-      
-      toast.success(response.data.message || 'Stok hareketi oluşturuldu');
-      setAddMovementDialogOpen(false);
-      resetMovementForm();
-      loadAllStockGroups();
-      loadStockMovements();
-    } catch (error) {
-      console.error('Stok hareketi oluşturulamadı:', error);
-      toast.error(error.response?.data?.detail || 'Stok hareketi oluşturulamadı');
-    } finally {
-      setMovementLoading(false);
-    }
-  };
-
-  const handleCreate = async () => {
-    try {
-      await stockAPI.create(formData);
-      toast.success('Stok oluşturuldu');
-      setDialogOpen(false);
-      resetForm();
-      loadData();
-    } catch (error) {
-      toast.error('Stok oluşturulamadı');
-    }
-  };
-
-  const handleUpdate = async () => {
-    try {
-      await stockAPI.update(selectedStock.id, {
-        quantity: formData.quantity,
-        min_quantity: formData.min_quantity,
-        location: formData.location,
-        location_detail: formData.location_detail
-      });
-      toast.success('Stok güncellendi');
-      setDialogOpen(false);
-      resetForm();
-      loadData();
-    } catch (error) {
-      toast.error('Stok güncellenemedi');
-    }
-  };
-
-  const openEditDialog = (stock) => {
-    setSelectedStock(stock);
-    setFormData({
-      name: stock.name,
-      code: stock.code,
-      quantity: stock.quantity,
-      min_quantity: stock.min_quantity,
-      location: stock.location,
-      location_detail: stock.location_detail || '',
-      lot_number: stock.lot_number || '',
-      expiry_date: stock.expiry_date ? new Date(stock.expiry_date).toISOString().split('T')[0] : ''
-    });
-    setEditMode(true);
-    setDialogStep(2); // Düzenleme modunda direkt form'a git
-    setDialogOpen(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      code: '',
-      quantity: 0,
-      min_quantity: 0,
-      location: '',
-      location_detail: '',
-      shelf_code: '',
-      lot_number: '',
-      expiry_date: '',
-      gtin: ''
-    });
-    setEditMode(false);
-    setSelectedStock(null);
-    setDialogStep(1);
-    setSelectedCategory('');
-    setItsDrug(null); // İTS ilaç bilgisini temizle
-  };
-
-  const selectLocation = (locationName) => {
-    setFormData(prev => ({ ...prev, location: locationName }));
-    setDialogStep(2); // Kategori seçim adımına git
-  };
-
-  const goBackToLocationSelect = () => {
-    setDialogStep(1);
-  };
-
-  // Karekod okutunca İTS'den ilaç bilgisi getir
-  const handleBarcodeChange = async (barcode) => {
-    setFormData(prev => ({ ...prev, code: barcode }));
-    setItsDrug(null);
-    
-    // En az 10 karakter girildiyse ara
-    if (barcode.length >= 10) {
-      setBarcodeLoading(true);
-      try {
-        const response = await itsAPI.parseBarcode(barcode);
-        const { parsed, drug } = response.data;
-        
-        if (drug) {
-          // İlaç bulundu - bilgileri doldur
-          setItsDrug(drug);
-          setFormData(prev => ({
-            ...prev,
-            name: drug.name || prev.name,
-            lot_number: parsed.lot_number || prev.lot_number,
-            expiry_date: parsed.expiry_date || prev.expiry_date
-          }));
-          toast.success(`İlaç bulundu: ${drug.name}`);
-        } else if (parsed.gtin) {
-          // GTIN var ama ilaç bulunamadı
-          toast.info('Karekod okundu ama İTS\'de bulunamadı');
-          // Parse edilen bilgileri yine de doldur
-          if (parsed.lot_number) {
-            setFormData(prev => ({ ...prev, lot_number: parsed.lot_number }));
+      // Tüm stokları birleştir
+      const allItems = {};
+      for (const loc of locs) {
+        for (const item of loc.items || []) {
+          const name = item.name;
+          if (!allItems[name]) {
+            allItems[name] = {
+              name,
+              category: item.category || 'sarf',
+              total_quantity: 0,
+              locations: []
+            };
           }
-          if (parsed.expiry_date) {
-            setFormData(prev => ({ ...prev, expiry_date: parsed.expiry_date }));
-          }
+          allItems[name].total_quantity += item.quantity || 0;
+          allItems[name].locations.push({
+            name: loc.location_name,
+            type: loc.location_type,
+            quantity: item.quantity || 0
+          });
         }
-      } catch (error) {
-        console.error('Barcode parse error:', error);
-      } finally {
-        setBarcodeLoading(false);
       }
+      
+      setAllStock(Object.values(allItems));
+    } catch (error) {
+      console.error('Stoklar yüklenemedi:', error);
     }
   };
 
-  // İlaç ara (manuel)
-  const searchDrugs = async (query) => {
-    if (query.length < 2) return;
+  const loadRequests = async () => {
+    setRequestsLoading(true);
+    try {
+      const response = await stockV2API.getRequests({});
+      setRequests(response.data?.requests || []);
+    } catch (error) {
+      console.error('Talepler yüklenemedi:', error);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  const openLocationDetail = async (location) => {
+    setSelectedLocation(location);
+    setLocationDetailOpen(true);
+    setLoadingDetail(true);
     
     try {
-      const response = await itsAPI.searchDrugs(query, 10);
-      return response.data.drugs || [];
+      const response = await stockV2API.getLocationStock(location.location_id);
+      setLocationStock(response.data);
     } catch (error) {
-      console.error('Drug search error:', error);
-      return [];
+      console.error('Lokasyon detayı yüklenemedi:', error);
+      toast.error('Detaylar yüklenemedi');
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
-  const locationLabels = {
-    ambulans: 'Ambulans',
-    saha_ofis: 'Saha Ofis',
-    acil_canta: 'Acil Çanta',
-    merkez_depo: 'Merkez Depo',
-    'Merkez Depo': 'Merkez Depo',
-    'Acil Çanta': 'Acil Çanta'
+  const handleApproveRequest = async (requestId) => {
+    try {
+      await stockV2API.approveRequest(requestId, '');
+      toast.success('Talep onaylandı');
+      loadRequests();
+      setRequestDetailOpen(false);
+    } catch (error) {
+      toast.error('Onaylama başarısız');
+    }
   };
-  
-  // Lokasyon adını göster (dinamik lokasyonlar için)
-  const getLocationName = (location) => {
-    return locationLabels[location] || location || 'Bilinmiyor';
+
+  const handleRejectRequest = async (requestId) => {
+    try {
+      await stockV2API.rejectRequest(requestId, '');
+      toast.success('Talep reddedildi');
+      loadRequests();
+      setRequestDetailOpen(false);
+    } catch (error) {
+      toast.error('Reddetme başarısız');
+    }
   };
+
+  const handleDeliverRequest = async (requestId) => {
+    try {
+      await stockV2API.deliverRequest(requestId);
+      toast.success('Talep teslim edildi');
+      loadRequests();
+      setRequestDetailOpen(false);
+    } catch (error) {
+      toast.error('Teslim işlemi başarısız');
+    }
+  };
+
+  // Filtrelenmiş stok listesi
+  const filteredStock = allStock.filter(item => 
+    !stockSearch || item.name.toLowerCase().includes(stockSearch.toLowerCase())
+  );
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto p-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Stok Yönetimi</h1>
-          <p className="text-gray-500">Tıbbi malzeme ve ilaç stok takibi</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Package className="h-7 w-7" />
+            Stok Yönetimi
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Araç ve lokasyon bazlı stok takibi
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={syncVehicleLocations}
-            disabled={syncingLocations}
-          >
-            {syncingLocations ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Lokasyonları Senkronize Et
-          </Button>
-          <Button variant="outline" onClick={openMovementsDialog}>
-            <History className="h-4 w-4 mr-2" />
-            Stok Hareketleri
-          </Button>
-          <Button onClick={() => setAddMovementDialogOpen(true)}>
-            <Send className="h-4 w-4 mr-2" />
-            Stok Hareketi Ekle
-          </Button>
-        </div>
+        <Button variant="outline" onClick={loadData} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Yenile
+        </Button>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4" onValueChange={handleTabChange}>
-        <TabsList className="flex flex-wrap gap-1">
-          <TabsTrigger value="all" className="flex items-center space-x-2">
-            <Package className="h-4 w-4" />
-            <span>Tüm Stoklar</span>
-          </TabsTrigger>
-          <TabsTrigger value="barcode" className="flex items-center space-x-2">
-            <QrCode className="h-4 w-4" />
-            <span>Karekod (Kutu)</span>
-          </TabsTrigger>
-          <TabsTrigger value="opened" className="flex items-center space-x-2">
-            <Pill className="h-4 w-4" />
-            <span>Açılmış İlaçlar</span>
-          </TabsTrigger>
-          <TabsTrigger value="itriyat" className="flex items-center space-x-2">
-            <Droplet className="h-4 w-4" />
-            <span>İtriyat</span>
-          </TabsTrigger>
-          <TabsTrigger value="sarf" className="flex items-center space-x-2">
-            <Scissors className="h-4 w-4" />
-            <span>Sarf Malzeme</span>
-          </TabsTrigger>
-          <TabsTrigger value="locations" className="flex items-center space-x-2">
+      {/* Özet Kartları */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <MapPin className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{locations.length}</p>
+                <p className="text-sm text-gray-500">Lokasyon</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Package className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{allStock.length}</p>
+                <p className="text-sm text-gray-500">Ürün Çeşidi</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {locations.reduce((sum, l) => sum + (l.critical_count || 0), 0)}
+                </p>
+                <p className="text-sm text-gray-500">Kritik Stok</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {requests.filter(r => r.status === 'pending').length}
+                </p>
+                <p className="text-sm text-gray-500">Bekleyen Talep</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Ana İçerik */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="locations" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            <span>Lokasyonlar</span>
+            Lokasyonlar
+          </TabsTrigger>
+          <TabsTrigger value="stock" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Stok Listesi
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <Send className="h-4 w-4" />
+            Talepler
+            {requests.filter(r => r.status === 'pending').length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {requests.filter(r => r.status === 'pending').length}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
-        
-        {/* Tüm Stoklar Sekmesi - Gruplandırılmış */}
-        <TabsContent value="all">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex gap-4 flex-wrap items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <Label className="text-sm text-gray-500 mb-1 block">Ürün Ara</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Ürün adı ara..."
-                      value={stockSearch}
-                      onChange={(e) => setStockSearch(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && loadAllStockGroups()}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant={stockCategoryFilter === '' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStockCategoryFilter('')}
-                  >
-                    Tümü
-                  </Button>
-                  <Button
-                    variant={stockCategoryFilter === 'ilac' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStockCategoryFilter('ilac')}
-                  >
-                    <Pill className="h-4 w-4 mr-1" />
-                    İlaç
-                  </Button>
-                  <Button
-                    variant={stockCategoryFilter === 'itriyat' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStockCategoryFilter('itriyat')}
-                  >
-                    <Droplet className="h-4 w-4 mr-1" />
-                    İtriyat
-                  </Button>
-                  <Button
-                    variant={stockCategoryFilter === 'diger' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStockCategoryFilter('diger')}
-                  >
-                    <Package className="h-4 w-4 mr-1" />
-                    Diğer
-                  </Button>
-                </div>
 
-                <Button onClick={loadAllStockGroups} disabled={allStockLoading}>
-                  {allStockLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Yenile
-                </Button>
-              </div>
-              
-              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Stok
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editMode ? 'Stok Düzenle' : 
-                       dialogStep === 1 ? '1. Adım: Lokasyon Seç' :
-                       dialogStep === 2 ? '2. Adım: Kategori Seç' :
-                       '3. Adım: Stok Bilgilerini Gir'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {editMode ? 'Stok bilgilerini güncelleyin' : 'Yeni stok eklemek için adımları takip edin'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  {/* ADIM 1: LOKASYON SEÇİMİ */}
-                  {dialogStep === 1 && !editMode && (
-                    <div className="space-y-4 pt-4">
-                      <p className="text-sm text-gray-500">Stok eklenecek lokasyonu seçin</p>
-                      
-                      {/* Sabit Lokasyonlar */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-sm text-gray-700">Sabit Lokasyonlar</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => selectLocation('merkez_depo')}
-                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
-                          >
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <Warehouse className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">Merkez Depo</p>
-                              <p className="text-xs text-gray-500">Ana stok deposu</p>
-                            </div>
-                          </button>
-                          <button
-                            onClick={() => selectLocation('saglik_merkezi')}
-                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
-                          >
-                            <div className="p-2 bg-green-100 rounded-lg">
-                              <Briefcase className="h-5 w-5 text-green-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">Sağlık Merkezi</p>
-                              <p className="text-xs text-gray-500">Sağlık merkezi stoğu</p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Araçlar */}
-                      {customLocations.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="font-medium text-sm text-gray-700">Araçlar</h4>
-                          <ScrollArea className="h-[200px] pr-3">
-                            <div className="space-y-2">
-                              {customLocations.map(loc => (
-                                <button
-                                  key={loc.plate}
-                                  onClick={() => selectLocation(loc.name)}
-                                  className="w-full flex items-center justify-between p-3 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
-                                >
-                                  <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-green-100 rounded-lg">
-                                      <Truck className="h-4 w-4 text-green-600" />
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">{loc.plate}</p>
-                                      <p className="text-xs text-gray-500">Araç içi stok</p>
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </div>
-                      )}
-
-                      {/* Saha İçi Noktalar */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-sm text-gray-700">Saha İçi Noktalar</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => selectLocation('Osman Gazi/FPU')}
-                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
-                          >
-                            <div className="p-2 bg-purple-100 rounded-lg">
-                              <MapPin className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">Osman Gazi/FPU</p>
-                            </div>
-                          </button>
-                          <button
-                            onClick={() => selectLocation('Green Zone/Rönesans')}
-                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
-                          >
-                            <div className="p-2 bg-purple-100 rounded-lg">
-                              <MapPin className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">Green Zone/Rönesans</p>
-                            </div>
-                          </button>
-                          <button
-                            onClick={() => selectLocation('Batı-Kuzey/İSG BİNA')}
-                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
-                          >
-                            <div className="p-2 bg-purple-100 rounded-lg">
-                              <MapPin className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">Batı-Kuzey/İSG BİNA</p>
-                            </div>
-                          </button>
-                          <button
-                            onClick={() => selectLocation('Red Zone/Kara Tesisleri')}
-                            className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
-                          >
-                            <div className="p-2 bg-purple-100 rounded-lg">
-                              <MapPin className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">Red Zone/Kara Tesisleri</p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* ADIM 2: KATEGORİ SEÇİMİ */}
-                  {dialogStep === 2 && !editMode && (
-                    <div className="space-y-4 pt-4">
-                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          <span className="font-medium text-green-800">Lokasyon: {formData.location}</span>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => setDialogStep(1)}>
-                          <ArrowLeft className="h-4 w-4 mr-1" />
-                          Değiştir
-                        </Button>
-                      </div>
-                      
-                      <p className="text-sm text-gray-500 mb-4">Stok eklenecek kategoriyi seçin</p>
-                      
-                      <div className="grid grid-cols-3 gap-4">
-                        <button
-                          onClick={() => {
-                            setSelectedCategory('ilac');
-                            setDialogStep(3);
-                          }}
-                          className="flex flex-col items-center space-y-3 p-6 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                        >
-                          <div className="p-3 bg-blue-100 rounded-lg">
-                            <Pill className="h-8 w-8 text-blue-600" />
-                          </div>
-                          <div className="text-center">
-                            <p className="font-medium">İlaç</p>
-                            <p className="text-xs text-gray-500 mt-1">GTIN ile ekleme</p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedCategory('itriyat');
-                            setDialogStep(3);
-                          }}
-                          className="flex flex-col items-center space-y-3 p-6 border-2 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-colors"
-                        >
-                          <div className="p-3 bg-cyan-100 rounded-lg">
-                            <Droplet className="h-8 w-8 text-cyan-600" />
-                          </div>
-                          <div className="text-center">
-                            <p className="font-medium">İtriyat</p>
-                            <p className="text-xs text-gray-500 mt-1">İsim, sayı, tarih</p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedCategory('diger');
-                            setDialogStep(3);
-                          }}
-                          className="flex flex-col items-center space-y-3 p-6 border-2 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="p-3 bg-gray-100 rounded-lg">
-                            <Package className="h-8 w-8 text-gray-600" />
-                          </div>
-                          <div className="text-center">
-                            <p className="font-medium">Diğer</p>
-                            <p className="text-xs text-gray-500 mt-1">Malzeme, ekipman</p>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* ADIM 3: STOK BİLGİLERİ */}
-                  {(dialogStep === 3 || editMode) && (
-                    <div className="space-y-4 pt-4">
-                      {/* Seçilen Lokasyon ve Kategori Gösterimi */}
-                      {!editMode && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-5 w-5 text-green-600" />
-                              <span className="font-medium text-green-800">Lokasyon: {formData.location}</span>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => setDialogStep(1)}>
-                              <ArrowLeft className="h-4 w-4 mr-1" />
-                              Değiştir
-                            </Button>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-5 w-5 text-blue-600" />
-                              <span className="font-medium text-blue-800">Kategori: {categoryLabels[selectedCategory]}</span>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => setDialogStep(2)}>
-                              <ArrowLeft className="h-4 w-4 mr-1" />
-                              Değiştir
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {editMode && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <span className="font-medium text-blue-800">Lokasyon: {formData.location}</span>
-                        </div>
-                      )}
-
-                      {/* İlaç Formu */}
-                      {selectedCategory === 'ilac' && !editMode && (
-                        <>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>İlaç Adı * {itsDrug && <Badge variant="secondary" className="ml-2 text-xs">İTS</Badge>}</Label>
-                              <Input
-                                value={formData.name}
-                                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                disabled={!!itsDrug}
-                                placeholder="İlaç adı"
-                                className={itsDrug ? 'bg-green-50 border-green-300' : ''}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="flex items-center space-x-2">
-                                <QrCode className="h-4 w-4" />
-                                <span>GTIN *</span>
-                                {barcodeLoading && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-                              </Label>
-                              <Input
-                                ref={barcodeInputRef}
-                                value={formData.gtin || formData.code}
-                                onChange={(e) => handleBarcodeChange(e.target.value)}
-                                placeholder="GTIN kodu"
-                                className={itsDrug ? 'border-green-500 bg-green-50' : ''}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label>Raf Kodu *</Label>
-                            <Input
-                              value={formData.shelf_code}
-                              onChange={(e) => setFormData({...formData, shelf_code: e.target.value})}
-                              placeholder="Raf kodu (örn: A-1-2)"
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Miktar</Label>
-                              <Input
-                                type="number"
-                                value={formData.quantity}
-                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Minimum Miktar (Uyarı)</Label>
-                              <Input
-                                type="number"
-                                value={formData.min_quantity}
-                                onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* İtriyat/Diger Formu */}
-                      {(selectedCategory === 'itriyat' || selectedCategory === 'diger') && !editMode && (
-                        <>
-                          <div className="space-y-2">
-                            <Label>Ürün Adı *</Label>
-                            <Input
-                              value={formData.name}
-                              onChange={(e) => setFormData({...formData, name: e.target.value})}
-                              placeholder={selectedCategory === 'itriyat' ? 'İtriyat adı' : 'Malzeme adı'}
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Miktar *</Label>
-                              <Input
-                                type="number"
-                                value={formData.quantity}
-                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Minimum Miktar (Uyarı)</Label>
-                              <Input
-                                type="number"
-                                value={formData.min_quantity}
-                                onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Son Kullanma Tarihi</Label>
-                              <Input
-                                type="date"
-                                value={formData.expiry_date}
-                                onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Raf Kodu *</Label>
-                              <Input
-                                value={formData.shelf_code}
-                                onChange={(e) => setFormData({...formData, shelf_code: e.target.value})}
-                                placeholder="Raf kodu (örn: A-1-2)"
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Edit Mode Formu (eski form) */}
-                      {editMode && (
-                        <>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Malzeme Adı *</Label>
-                              <Input
-                                value={formData.name}
-                                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                disabled
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Kod</Label>
-                              <Input
-                                value={formData.code}
-                                onChange={(e) => setFormData({...formData, code: e.target.value})}
-                                disabled
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Miktar</Label>
-                              <Input
-                                type="number"
-                                value={formData.quantity}
-                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Minimum Miktar</Label>
-                              <Input
-                                type="number"
-                                value={formData.min_quantity}
-                                onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      <div className="flex space-x-3 pt-2">
-                        {!editMode && (
-                          <Button variant="outline" onClick={() => setDialogStep(2)} className="flex-1">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Geri
-                          </Button>
-                        )}
-                        <Button 
-                          onClick={editMode ? handleUpdate : handleCreate} 
-                          className="flex-1 bg-red-600 hover:bg-red-700"
-                        >
-                          {editMode ? 'Güncelle' : 'Stok Ekle'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Özet Bilgi */}
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>
-                {allStockGroups.length} çeşit ürün, toplam{' '}
-                {allStockGroups.reduce((sum, g) => sum + g.total_quantity, 0)} adet
-              </span>
-            </div>
-
-            {/* Ürün Listesi - Gruplu Görünüm */}
-            {allStockLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
-            ) : allStockGroups.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-gray-500">
-                  <Box className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Stokta ürün bulunamadı</p>
+        {/* LOKASYONLAR TAB */}
+        <TabsContent value="locations" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {locations.length === 0 ? (
+              <Card className="col-span-full">
+                <CardContent className="py-12 text-center">
+                  <MapPin className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">Henüz lokasyon stoğu yok</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Sistem başlatıldığında otomatik oluşturulacak
+                  </p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {allStockGroups.map((group) => {
-                  const CategoryIcon = categoryIcons[group.category] || Package;
-                  const expiryStatus = getExpiryStatus(group.earliest_expiry);
-                  
-                  return (
-                    <Card 
-                      key={group.name}
-                      className={`cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border-l-4 ${
-                        expiryStatus?.status === 'expired' ? 'border-l-red-500 bg-red-50/50' :
-                        expiryStatus?.status === 'expiring' ? 'border-l-orange-500 bg-orange-50/50' :
-                        'border-l-green-500'
-                      }`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <CategoryIcon className={`h-5 w-5 flex-shrink-0 ${
-                                group.category === 'ilac' ? 'text-blue-600' :
-                                group.category === 'itriyat' ? 'text-cyan-600' :
-                                'text-gray-600'
-                              }`} />
-                              <h4 className="font-semibold text-sm truncate" title={group.name}>
-                                {group.name}
-                              </h4>
-                            </div>
-                            
-                            {group.manufacturer_name && (
-                              <p className="text-xs text-gray-500 mb-2 truncate">
-                                {group.manufacturer_name}
-                              </p>
-                            )}
-                            
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              <Badge className={`${
-                                group.category === 'ilac' ? 'bg-blue-600' :
-                                group.category === 'itriyat' ? 'bg-cyan-600' :
-                                'bg-gray-600'
-                              } text-white`}>
-                                {categoryLabels[group.category] || 'Diğer'}
-                              </Badge>
-                              <Badge className="bg-gray-600 text-white">
-                                {group.total_quantity} adet
-                              </Badge>
-                              
-                              {expiryStatus && (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    expiryStatus.status === 'expired' ? 'border-red-300 text-red-700 bg-red-50' :
-                                    expiryStatus.status === 'expiring' ? 'border-orange-300 text-orange-700 bg-orange-50' :
-                                    expiryStatus.status === 'warning' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
-                                    'border-green-300 text-green-700 bg-green-50'
-                                  }`}
-                                >
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  {expiryStatus.label}
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            {group.locations.length > 0 && (
-                              <p className="text-xs text-gray-500 mt-2">
-                                Lokasyonlar: {group.locations.slice(0, 3).join(', ')}
-                                {group.locations.length > 3 && ` +${group.locations.length - 3}`}
-                              </p>
-                            )}
-                          </div>
+              locations.map((loc) => (
+                <Card 
+                  key={loc.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => openLocationDetail(loc)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          loc.location_type === 'vehicle' 
+                            ? 'bg-blue-100' 
+                            : 'bg-purple-100'
+                        }`}>
+                          {loc.location_type === 'vehicle' ? (
+                            <Truck className="h-5 w-5 text-blue-600" />
+                          ) : (
+                            <Building2 className="h-5 w-5 text-purple-600" />
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                        <div>
+                          <h3 className="font-semibold">{loc.location_name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {loc.location_type === 'vehicle' ? 'Ambulans' : 'Bekleme Noktası'}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                    
+                    <div className="mt-4 flex items-center gap-4 text-sm">
+                      <span className="text-gray-600">
+                        {loc.total_items || 0} ürün
+                      </span>
+                      {loc.critical_count > 0 && (
+                        <Badge variant="destructive">
+                          {loc.critical_count} kritik
+                        </Badge>
+                      )}
+                      {loc.missing_count > 0 && loc.critical_count === 0 && (
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                          {loc.missing_count} eksik
+                        </Badge>
+                      )}
+                      {loc.critical_count === 0 && loc.missing_count === 0 && (
+                        <Badge className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Tam
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
           </div>
         </TabsContent>
 
-        {/* Karekod Bazlı Stok Sekmesi */}
-        <TabsContent value="barcode">
-          <div className="space-y-4">
-            {/* Filtreler */}
-            <div className="flex gap-4 flex-wrap items-end">
-              <div className="flex-1 min-w-[200px]">
-                <Label className="text-sm text-gray-500 mb-1 block">İlaç Ara</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* STOK LİSTESİ TAB */}
+        <TabsContent value="stock" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Tüm Stoklar</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="İlaç adı ara..."
-                    value={barcodeSearch}
-                    onChange={(e) => setBarcodeSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && loadBarcodeGroups()}
-                    className="pl-10"
+                    placeholder="Ürün ara..."
+                    value={stockSearch}
+                    onChange={(e) => setStockSearch(e.target.value)}
+                    className="w-64"
                   />
                 </div>
               </div>
-              
-              <div className="w-[200px]">
-                <Label className="text-sm text-gray-500 mb-1 block">Lokasyon</Label>
-                <Select value={barcodeLocationFilter} onValueChange={setBarcodeLocationFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                    {/* Sabit lokasyonlar */}
-                    {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
-                      <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
-                    ))}
-                    {/* Araçlar */}
-                    {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
-                      <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
-                    ))}
-                    {/* Bekleme noktaları */}
-                    {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
-                      <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={loadBarcodeGroups} disabled={barcodeLoading2}>
-                {barcodeLoading2 ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Yenile
-              </Button>
-            </div>
-
-            {/* Özet Bilgi */}
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>
-                {barcodeGroups.length} çeşit ilaç, toplam{' '}
-                {barcodeGroups.reduce((sum, g) => sum + g.count, 0)} adet karekod
-              </span>
-            </div>
-
-            {/* İlaç Listesi - Gruplu Görünüm */}
-            {barcodeLoading2 ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
-            ) : barcodeGroups.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-gray-500">
-                  <Box className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Stokta ürün bulunamadı</p>
-                  <p className="text-sm mt-2">Karekod okutarak stok ekleyebilirsiniz</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {barcodeGroups.map((group) => {
-                  const expiryStatus = getExpiryStatus(group.earliest_expiry);
-                  
-                  return (
-                    <Card 
-                      key={group.name}
-                      className={`cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border-l-4 ${
-                        expiryStatus?.status === 'expired' ? 'border-l-red-500 bg-red-50/50' :
-                        expiryStatus?.status === 'expiring' ? 'border-l-orange-500 bg-orange-50/50' :
-                        'border-l-green-500'
-                      }`}
-                      onClick={() => loadMedicationDetails(group)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Pill className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                              <h4 className="font-semibold text-sm truncate" title={group.name}>
-                                {group.name}
-                              </h4>
-                            </div>
-                            
-                            {group.manufacturer_name && (
-                              <p className="text-xs text-gray-500 mb-2 truncate">
-                                {group.manufacturer_name}
-                              </p>
-                            )}
-                            
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              <Badge className="bg-blue-600 text-white">
-                                {group.count} adet
-                              </Badge>
-                              
-                              {expiryStatus && (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    expiryStatus.status === 'expired' ? 'border-red-300 text-red-700 bg-red-50' :
-                                    expiryStatus.status === 'expiring' ? 'border-orange-300 text-orange-700 bg-orange-50' :
-                                    expiryStatus.status === 'warning' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
-                                    'border-green-300 text-green-700 bg-green-50'
-                                  }`}
-                                >
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  {expiryStatus.label}
-                                </Badge>
-                              )}
-                            </div>
+            </CardHeader>
+            <CardContent>
+              {filteredStock.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Package className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">Stok bulunamadı</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredStock.map((item, idx) => {
+                    const CategoryIcon = categoryIcons[item.category] || Package;
+                    const colorClass = categoryColors[item.category] || categoryColors.sarf;
+                    
+                    return (
+                      <div 
+                        key={idx}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${colorClass}`}>
+                            <CategoryIcon className="h-4 w-4" />
                           </div>
-                          
-                          <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {item.locations?.length || 0} lokasyonda mevcut
+                            </p>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* İlaç Detay Popup */}
-          <Dialog open={medicationDetailsOpen} onOpenChange={setMedicationDetailsOpen}>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-              <DialogHeader>
-                <DialogTitle className="flex items-center space-x-2">
-                  <QrCode className="h-5 w-5 text-blue-600" />
-                  <span className="truncate">{selectedMedication?.name}</span>
-                </DialogTitle>
-                <DialogDescription>İlaç stok detayları ve geçmiş işlemler</DialogDescription>
-              </DialogHeader>
-              
-              {loadingDetails ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : medicationDetails ? (
-                <div className="flex-1 overflow-hidden flex flex-col">
-                  {/* Özet Bilgi */}
-                  <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg mb-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-600">{medicationDetails.count}</p>
-                      <p className="text-xs text-gray-500">Toplam Adet</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-gray-700">
-                        {selectedMedication?.gtin || '-'}
-                      </p>
-                      <p className="text-xs text-gray-500">GTIN</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-gray-700">
-                        {selectedMedication?.manufacturer_name || '-'}
-                      </p>
-                      <p className="text-xs text-gray-500">Üretici</p>
-                    </div>
-                  </div>
-
-                  {/* QR Kod Listesi */}
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Karekod Detayları</p>
-                    <ScrollArea className="h-[350px] pr-2">
-                      <div className="space-y-2">
-                        {medicationDetails.items?.map((item, idx) => {
-                          const itemExpiry = getExpiryStatus(item.expiry_date);
-                          
-                          return (
-                            <div 
-                              key={item.id || idx}
-                              className={`p-3 rounded-lg border transition-colors ${
-                                item.is_expired ? 'bg-red-50 border-red-200' :
-                                item.is_expiring_soon ? 'bg-orange-50 border-orange-200' :
-                                'bg-white border-gray-200 hover:bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start space-x-3 flex-1 min-w-0">
-                                  <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0">
-                                    <QrCode className="h-5 w-5 text-gray-600" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                      <Badge variant="outline" className="text-xs font-mono">
-                                        #{idx + 1}
-                                      </Badge>
-                                      <span className="text-xs text-gray-500">
-                                        {item.location_detail || item.location}
-                                      </span>
-                                    </div>
-                                    
-                                    <p className="font-mono text-xs text-gray-600 truncate" title={item.serial_number}>
-                                      SN: {item.serial_number || 'N/A'}
-                                    </p>
-                                    
-                                    {item.lot_number && (
-                                      <p className="text-xs text-gray-500 flex items-center mt-1">
-                                        <Hash className="h-3 w-3 mr-1" />
-                                        LOT: {item.lot_number}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                <div className="flex flex-col items-end gap-2 flex-shrink-0 ml-3">
-                                  <div className="flex items-center gap-2">
-                                    {itemExpiry && (
-                                      <Badge 
-                                        className={`text-xs ${
-                                          itemExpiry.status === 'expired' ? 'bg-red-500' :
-                                          itemExpiry.status === 'expiring' ? 'bg-orange-500' :
-                                          itemExpiry.status === 'warning' ? 'bg-yellow-500' :
-                                          'bg-green-500'
-                                        }`}
-                                      >
-                                        <Calendar className="h-3 w-3 mr-1" />
-                                        {formatDate(item.expiry_date)}
-                                      </Badge>
-                                    )}
-                                    
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openSplitDialog(item);
-                                      }}
-                                    >
-                                      <Scissors className="h-3 w-3 mr-1" />
-                                      Parçala
-                                    </Button>
-                                  </div>
-                                  
-                                  {item.days_until_expiry !== undefined && (
-                                    <p className={`text-xs ${
-                                      item.days_until_expiry < 0 ? 'text-red-600' :
-                                      item.days_until_expiry <= 30 ? 'text-orange-600' :
-                                      'text-gray-500'
-                                    }`}>
-                                      {item.days_until_expiry < 0 
-                                        ? `${Math.abs(item.days_until_expiry)} gün geçti`
-                                        : `${item.days_until_expiry} gün kaldı`
-                                      }
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                        <div className="text-right">
+                          <p className="font-bold text-lg">{item.total_quantity}</p>
+                          <p className="text-xs text-gray-500">toplam</p>
+                        </div>
                       </div>
-                    </ScrollArea>
-                  </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  Detay bilgisi bulunamadı
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-
-        {/* YENİ: Açılmış İlaçlar (Adet Bazlı) Sekmesi */}
-        <TabsContent value="opened">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Pill className="h-5 w-5 text-green-600" />
-                  Açılmış İlaçlar (Adet Bazlı Stok)
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Select value={unitStockLocationFilter} onValueChange={(v) => { setUnitStockLocationFilter(v); loadUnitStock(v); }}>
-                    <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Tüm Lokasyonlar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                      {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
-                      ))}
-                      {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
-                      ))}
-                      {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="sm" onClick={loadUnitStock}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {unitStockLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : unitStockItems.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Pill className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Açılmış ilaç bulunamadı</p>
-                  <p className="text-sm mt-2">Karekod sekmesinden bir kutu açarak adet bazlı stok oluşturabilirsiniz</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>İlaç Adı</TableHead>
-                      <TableHead>Lokasyon</TableHead>
-                      <TableHead className="text-center">Kalan Adet</TableHead>
-                      <TableHead className="text-center">Toplam</TableHead>
-                      <TableHead>Lot No</TableHead>
-                      <TableHead>SKT</TableHead>
-                      <TableHead>Açılma Tarihi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {unitStockItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.location_name || item.location}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={item.remaining_units <= 2 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                            {item.remaining_units}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center text-gray-500">
-                          {item.original_unit_count}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{item.lot_number || '-'}</TableCell>
-                        <TableCell>{item.expiry_date ? formatDate(item.expiry_date) : '-'}</TableCell>
-                        <TableCell>{item.opened_at ? formatDate(item.opened_at) : '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* YENİ: İtriyat Sekmesi */}
-        <TabsContent value="itriyat">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Droplet className="h-5 w-5 text-blue-600" />
-                  İtriyat Stokları
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Select value={itriyatLocationFilter} onValueChange={(v) => { setItriyatLocationFilter(v); loadItriyat(v); }}>
-                    <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Tüm Lokasyonlar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                      {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
-                      ))}
-                      {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
-                      ))}
-                      {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="sm" onClick={loadItriyat}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {itriyatLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : itriyatItems.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Droplet className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>İtriyat ürünü bulunamadı</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ürün Kodu</TableHead>
-                      <TableHead>Ürün Adı</TableHead>
-                      <TableHead>Lokasyon</TableHead>
-                      <TableHead className="text-center">Miktar</TableHead>
-                      <TableHead className="text-center">Min. Miktar</TableHead>
-                      <TableHead>Durum</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {itriyatItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono text-sm">{item.code}</TableCell>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.location_name || item.location}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={item.quantity <= item.min_quantity ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}>
-                            {item.quantity}
+        {/* TALEPLER TAB */}
+        <TabsContent value="requests" className="mt-4">
+          {requestsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          ) : requests.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Send className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">Henüz talep yok</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {requests.map((req) => (
+                <Card 
+                  key={req.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedRequest(req);
+                    setRequestDetailOpen(true);
+                  }}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={
+                            req.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            req.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                            req.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }>
+                            {req.status === 'pending' ? 'Beklemede' :
+                             req.status === 'approved' ? 'Onaylandı' :
+                             req.status === 'delivered' ? 'Teslim Edildi' : 'Reddedildi'}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-center text-gray-500">{item.min_quantity}</TableCell>
-                        <TableCell>
-                          {item.quantity <= item.min_quantity ? (
-                            <Badge className="bg-red-100 text-red-700">Kritik</Badge>
-                          ) : (
-                            <Badge className="bg-green-100 text-green-700">Normal</Badge>
+                          {req.case_no && (
+                            <Badge variant="outline">Vaka #{req.case_no}</Badge>
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* YENİ: Sarf Malzeme Sekmesi */}
-        <TabsContent value="sarf">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Scissors className="h-5 w-5 text-purple-600" />
-                  Sarf Malzeme Stokları
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Select value={sarfLocationFilter} onValueChange={(v) => { setSarfLocationFilter(v); loadSarf(v); }}>
-                    <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Tüm Lokasyonlar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
-                      {stockLocations.filter(l => l.type === 'warehouse' || l.type === 'emergency_bag').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>🏢 {loc.name}</SelectItem>
-                      ))}
-                      {stockLocations.filter(l => l.type === 'vehicle').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>🚑 {loc.name}</SelectItem>
-                      ))}
-                      {stockLocations.filter(l => l.type === 'waiting_point').map((loc) => (
-                        <SelectItem key={loc.id} value={loc.name}>📍 {loc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="sm" onClick={loadSarf}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {sarfLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : sarfItems.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Scissors className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Sarf malzeme bulunamadı</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ürün Kodu</TableHead>
-                      <TableHead>Ürün Adı</TableHead>
-                      <TableHead>Lokasyon</TableHead>
-                      <TableHead className="text-center">Miktar</TableHead>
-                      <TableHead className="text-center">Min. Miktar</TableHead>
-                      <TableHead>Durum</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sarfItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono text-sm">{item.code}</TableCell>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.location_name || item.location}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={item.quantity <= item.min_quantity ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}>
-                            {item.quantity}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center text-gray-500">{item.min_quantity}</TableCell>
-                        <TableCell>
-                          {item.quantity <= item.min_quantity ? (
-                            <Badge className="bg-red-100 text-red-700">Kritik</Badge>
-                          ) : (
-                            <Badge className="bg-green-100 text-green-700">Normal</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Lokasyonlar Sekmesi */}
-        <TabsContent value="locations">
-          <StockLocationSummary />
+                        </div>
+                        <h3 className="font-semibold">{req.location_name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {req.items?.length || 0} ürün • {req.requester_name}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm text-gray-500">
+                        {new Date(req.created_at).toLocaleDateString('tr-TR')}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Alerts */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-red-600">{alerts.critical_stock || 0}</p>
-              <p className="text-sm text-gray-500">Kritik Stok</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{alerts.expired || 0}</p>
-              <p className="text-sm text-gray-500">Süresi Geçmiş</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">{alerts.expiring_soon || 0}</p>
-              <p className="text-sm text-gray-500">Yakında Dolacak</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Stock Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Stok Listesi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Malzeme</TableHead>
-                <TableHead>Kod</TableHead>
-                <TableHead>Miktar</TableHead>
-                <TableHead>Min</TableHead>
-                <TableHead>Lokasyon</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead>İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stocks.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    Henüz stok kaydı yok
-                  </TableCell>
-                </TableRow>
-              ) : (
-                stocks.map((stock) => (
-                  <TableRow key={stock.id}>
-                    <TableCell className="font-medium">{stock.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{stock.code}</TableCell>
-                    <TableCell>
-                      <span className={stock.quantity < stock.min_quantity ? 'text-red-600 font-bold' : ''}>
-                        {stock.quantity}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-gray-500">{stock.min_quantity}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{getLocationName(stock.location)}</p>
-                        {stock.location_detail && (
-                          <p className="text-xs text-gray-500">{stock.location_detail}</p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {stock.quantity < stock.min_quantity ? (
-                        <Badge variant="destructive">Kritik</Badge>
-                      ) : stock.quantity < stock.min_quantity * 1.5 ? (
-                        <Badge variant="secondary">Düşük</Badge>
-                      ) : (
-                        <Badge className="bg-green-600">Yeterli</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => openEditDialog(stock)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Stok Parçalama Dialog */}
-      <Dialog open={splitDialogOpen} onOpenChange={setSplitDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Lokasyon Detay Dialog */}
+      <Dialog open={locationDetailOpen} onOpenChange={setLocationDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Scissors className="h-5 w-5 text-orange-600" />
-              <span>Stok Parçala</span>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedLocation?.location_type === 'vehicle' ? (
+                <Truck className="h-5 w-5" />
+              ) : (
+                <Building2 className="h-5 w-5" />
+              )}
+              {selectedLocation?.location_name}
             </DialogTitle>
-            <DialogDescription>Mevcut stok paketini parçalayın</DialogDescription>
           </DialogHeader>
           
-          {selectedItemForSplit && (
-            <div className="space-y-4">
-              {/* Ürün Bilgisi */}
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="font-medium text-blue-900">{selectedMedication?.name}</p>
-                <p className="text-xs text-blue-700 mt-1">
-                  SN: {selectedItemForSplit.serial_number || 'N/A'}
-                </p>
-                {selectedItemForSplit.lot_number && (
-                  <p className="text-xs text-blue-700">
-                    LOT: {selectedItemForSplit.lot_number}
-                  </p>
-                )}
-                {selectedItemForSplit.expiry_date && (
-                  <p className="text-xs text-blue-700">
-                    SKT: {formatDate(selectedItemForSplit.expiry_date)}
-                  </p>
-                )}
-              </div>
-
-              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                <p className="text-sm text-amber-800">
-                  <strong>Dikkat:</strong> Bu işlem karekodu sistemden düşürecek ve adet bazlı stoğa dönüştürecektir.
-                </p>
-              </div>
-
-              {/* Kutu İçi Adet */}
-              <div className="space-y-2">
-                <Label>Kutu İçindeki Adet Sayısı *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={splitQuantity}
-                  onChange={(e) => setSplitQuantity(parseInt(e.target.value) || 1)}
-                  placeholder="Örn: 10, 20, 30..."
-                />
-                <p className="text-xs text-gray-500">
-                  Kutunun/ambalajın içinde kaç adet ürün var?
-                </p>
-              </div>
-
-              {/* Hedef Lokasyon */}
-              <div className="space-y-2">
-                <Label>Hedef Lokasyon *</Label>
-                <Select value={splitTargetLocation} onValueChange={setSplitTargetLocation}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Lokasyon seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Merkez Depo">Merkez Depo</SelectItem>
-                    <SelectItem value="Acil Çanta">Acil Çanta</SelectItem>
-                    {stockLocations.filter(l => l.type === 'vehicle').map(loc => (
-                      <SelectItem key={loc.id} value={loc.name}>
-                        🚑 {loc.name}
-                      </SelectItem>
-                    ))}
-                    {stockLocations.filter(l => l.type === 'waiting_point').map(loc => (
-                      <SelectItem key={loc.id} value={loc.name}>
-                        📍 {loc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* İşlem Butonu */}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setSplitDialogOpen(false)}>
-                  İptal
-                </Button>
-                <Button 
-                  onClick={handleSplitStock}
-                  disabled={splitLoading || !splitTargetLocation || splitQuantity < 1}
-                  className="bg-orange-600 hover:bg-orange-700"
-                >
-                  {splitLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Scissors className="h-4 w-4 mr-2" />
-                  )}
-                  Parçala ({splitQuantity} adet)
-                </Button>
-              </div>
+          {loadingDetail ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
+          ) : locationStock ? (
+            <div className="space-y-4">
+              {/* Kategorilere göre listele */}
+              {Object.entries(locationStock.items_by_category || {}).map(([category, items]) => {
+                if (!items || items.length === 0) return null;
+                const CategoryIcon = categoryIcons[category] || Package;
+                
+                return (
+                  <div key={category}>
+                    <h4 className="font-medium mb-2 flex items-center gap-2 text-gray-700">
+                      <CategoryIcon className="h-4 w-4" />
+                      {category === 'ilac' ? 'İlaçlar' :
+                       category === 'sarf' ? 'Sarf Malzemeleri' :
+                       category === 'serum' ? 'Serumlar' :
+                       category === 'tibbi_cihaz' ? 'Tıbbi Cihazlar' :
+                       category === 'malzeme' ? 'Malzemeler' : 'Diğer'}
+                      <Badge variant="outline">{items.length}</Badge>
+                    </h4>
+                    <div className="grid gap-2">
+                      {items.map((item, idx) => (
+                        <div 
+                          key={idx}
+                          className={`flex items-center justify-between p-2 rounded-lg ${
+                            item.is_critical ? 'bg-red-50' :
+                            item.is_low ? 'bg-yellow-50' : 'bg-gray-50'
+                          }`}
+                        >
+                          <span className={item.is_critical ? 'text-red-700' : ''}>
+                            {item.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${
+                              item.is_critical ? 'text-red-600' :
+                              item.is_low ? 'text-yellow-600' : ''
+                            }`}>
+                              {item.quantity}
+                            </span>
+                            <span className="text-gray-400">/</span>
+                            <span className="text-gray-500 text-sm">
+                              {item.min_quantity}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-8">Veri bulunamadı</p>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Stok Hareketleri Dialog */}
-      <Dialog open={movementsDialogOpen} onOpenChange={setMovementsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+      {/* Talep Detay Dialog */}
+      <Dialog open={requestDetailOpen} onOpenChange={setRequestDetailOpen}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <History className="h-5 w-5 text-purple-600" />
-              <span>Stok Hareketleri</span>
-            </DialogTitle>
-            <DialogDescription>Tüm stok hareketlerini görüntüleyin</DialogDescription>
+            <DialogTitle>Talep Detayı</DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-hidden">
-            {movementsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge className={
+                  selectedRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  selectedRequest.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                  selectedRequest.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                  'bg-red-100 text-red-800'
+                }>
+                  {selectedRequest.status === 'pending' ? 'Beklemede' :
+                   selectedRequest.status === 'approved' ? 'Onaylandı' :
+                   selectedRequest.status === 'delivered' ? 'Teslim Edildi' : 'Reddedildi'}
+                </Badge>
+                {selectedRequest.case_no && (
+                  <Badge variant="outline">Vaka #{selectedRequest.case_no}</Badge>
+                )}
               </div>
-            ) : stockMovements.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <History className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>Henüz stok hareketi yok</p>
+              
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p><strong>Lokasyon:</strong> {selectedRequest.location_name}</p>
+                <p><strong>Talep Eden:</strong> {selectedRequest.requester_name}</p>
+                <p><strong>Tarih:</strong> {new Date(selectedRequest.created_at).toLocaleString('tr-TR')}</p>
               </div>
-            ) : (
-              <ScrollArea className="h-[400px] pr-2">
+              
+              <div>
+                <h4 className="font-medium mb-2">Talep Edilen Ürünler</h4>
                 <div className="space-y-2">
-                  {stockMovements.map((movement) => (
-                    <div 
-                      key={movement.id}
-                      className={`p-3 rounded-lg border ${
-                        movement.type === 'split' ? 'bg-orange-50 border-orange-200' :
-                        movement.type === 'transfer' ? 'bg-blue-50 border-blue-200' :
-                        'bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-lg ${
-                            movement.type === 'split' ? 'bg-orange-100' :
-                            movement.type === 'transfer' ? 'bg-blue-100' :
-                            'bg-gray-100'
-                          }`}>
-                            {movement.type === 'split' ? (
-                              <Scissors className="h-4 w-4 text-orange-600" />
-                            ) : (
-                              <ArrowRightLeft className="h-4 w-4 text-blue-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{movement.item_name}</p>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {movement.type === 'split' ? 'Parçalama' : 'Transfer'}: {movement.quantity} {movement.unit || 'adet'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {movement.from_location} → {movement.to_location}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right text-xs text-gray-500">
-                          <p>{new Date(movement.created_at).toLocaleDateString('tr-TR')}</p>
-                          <p>{new Date(movement.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</p>
-                          <p className="mt-1 text-gray-400">{movement.performed_by_name}</p>
-                        </div>
-                      </div>
+                  {selectedRequest.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between p-2 bg-gray-50 rounded">
+                      <span>{item.name}</span>
+                      <span className="font-medium">{item.quantity} {item.unit}</span>
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t">
-            <Button variant="outline" onClick={loadStockMovements} disabled={movementsLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${movementsLoading ? 'animate-spin' : ''}`} />
-              Yenile
-            </Button>
-            <Button variant="outline" onClick={() => setMovementsDialogOpen(false)}>
-              Kapat
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Stok Hareketi Ekleme Dialog */}
-      <Dialog open={addMovementDialogOpen} onOpenChange={(open) => {
-        setAddMovementDialogOpen(open);
-        if (!open) {
-          setMovementStep(1);
-          setMovementCategory('');
-          setMovementItems([]);
-          setMovementFromLocation('');
-          setMovementToLocation('');
-          setMovementShelfCode('');
-        }
-      }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Send className="h-5 w-5 text-blue-600" />
-              <span>
-                {movementStep === 1 ? 'Adım 1: Kategori Seç' :
-                 movementStep === 2 ? 'Adım 2: Ürün Seç' :
-                 'Adım 3: Lokasyon ve Detaylar'}
-              </span>
-            </DialogTitle>
-            <DialogDescription>
-              Stok hareketi eklemek için adımları takip edin
-            </DialogDescription>
-          </DialogHeader>
-          
-          {/* Adım 1: Kategori Seçimi */}
-          {movementStep === 1 && (
-            <div className="space-y-4 pt-4">
-              <p className="text-sm text-gray-500">Hangi kategoride stok hareketi yapılacak?</p>
-              <div className="grid grid-cols-3 gap-4">
-                <button
-                  onClick={() => { setMovementCategory('ilac'); setMovementStep(2); }}
-                  className="p-4 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center"
-                >
-                  <Pill className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                  <p className="font-medium">İlaç</p>
-                  <p className="text-xs text-gray-500">GTIN bazlı ilaçlar</p>
-                </button>
-                <button
-                  onClick={() => { setMovementCategory('itriyat'); setMovementStep(2); }}
-                  className="p-4 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-center"
-                >
-                  <Package className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                  <p className="font-medium">İtriyat</p>
-                  <p className="text-xs text-gray-500">Sarf malzemeleri</p>
-                </button>
-                <button
-                  onClick={() => { setMovementCategory('diger'); setMovementStep(2); }}
-                  className="p-4 border-2 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors text-center"
-                >
-                  <Box className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-                  <p className="font-medium">Diğer</p>
-                  <p className="text-xs text-gray-500">Diğer malzemeler</p>
-                </button>
               </div>
             </div>
           )}
           
-          {/* Adım 2: Ürün Seçimi */}
-          {movementStep === 2 && (
-            <div className="space-y-4 pt-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <span className="font-medium text-blue-800">
-                  Kategori: {movementCategory === 'ilac' ? 'İlaç' : movementCategory === 'itriyat' ? 'İtriyat' : 'Diğer'}
-                </span>
-                <Button variant="ghost" size="sm" onClick={() => setMovementStep(1)}>
-                  Değiştir
-                </Button>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Ürün Seçin</Label>
-                <Select 
-                  onValueChange={(value) => {
-                    const group = allStockGroups.find(g => g.name === value);
-                    if (group) {
-                      setSelectedItemForMovement(group);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ürün seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allStockGroups
-                      .filter(g => g.category === movementCategory)
-                      .map(group => (
-                        <SelectItem key={group.name} value={group.name}>
-                          {group.name} ({group.total_quantity} adet)
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {selectedItemForMovement && (
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="font-medium text-green-800">{selectedItemForMovement.name}</p>
-                  <p className="text-sm text-green-600">Mevcut: {selectedItemForMovement.total_quantity} adet</p>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label>Miktar</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={selectedItemForMovement?.total_quantity || 1}
-                  value={movementQuantity}
-                  onChange={(e) => setMovementQuantity(parseInt(e.target.value) || 1)}
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <Button variant="outline" onClick={() => setMovementStep(1)} className="flex-1">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Geri
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (selectedItemForMovement) {
-                      setMovementItems([{
-                        name: selectedItemForMovement.name,
-                        quantity: movementQuantity,
-                        category: movementCategory
-                      }]);
-                      setMovementStep(3);
-                    }
-                  }}
-                  disabled={!selectedItemForMovement}
-                  className="flex-1"
-                >
-                  Devam
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </div>
+          {canManage && selectedRequest?.status === 'pending' && (
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="destructive" 
+                onClick={() => handleRejectRequest(selectedRequest.id)}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Reddet
+              </Button>
+              <Button 
+                onClick={() => handleApproveRequest(selectedRequest.id)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Onayla
+              </Button>
+            </DialogFooter>
           )}
           
-          {/* Adım 3: Lokasyon ve Detaylar */}
-          {movementStep === 3 && (
-            <div className="space-y-4 pt-4">
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="font-medium text-green-800">
-                  {movementItems[0]?.name} - {movementItems[0]?.quantity} adet
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Kaynak Lokasyon</Label>
-                  <Select onValueChange={setMovementFromLocation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nereden?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
-                      <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
-                      {vehicles.map(v => (
-                        <SelectItem key={v.id} value={v.plate}>{v.plate}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Hedef Lokasyon</Label>
-                  <Select onValueChange={setMovementToLocation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nereye?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="merkez_depo">Merkez Depo</SelectItem>
-                      <SelectItem value="saglik_merkezi">Sağlık Merkezi</SelectItem>
-                      {vehicles.map(v => (
-                        <SelectItem key={v.id} value={v.plate}>{v.plate}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Raf Kodu (Opsiyonel)</Label>
-                <Input
-                  value={movementShelfCode}
-                  onChange={(e) => setMovementShelfCode(e.target.value)}
-                  placeholder="Örn: A-01-03"
-                />
-              </div>
-              
-              <div className="flex space-x-3">
-                <Button variant="outline" onClick={() => setMovementStep(2)} className="flex-1">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Geri
-                </Button>
-                <Button 
-                  onClick={async () => {
-                    if (!movementFromLocation || !movementToLocation) {
-                      toast.error('Kaynak ve hedef lokasyon seçiniz');
-                      return;
-                    }
-                    
-                    setMovementLoading(true);
-                    try {
-                      await stockAPI.createStockMovement({
-                        from_location: movementFromLocation,
-                        to_location: movementToLocation,
-                        items: movementItems,
-                        shelf_code: movementShelfCode
-                      });
-                      toast.success('Stok hareketi başarıyla oluşturuldu');
-                      setAddMovementDialogOpen(false);
-                      setMovementStep(1);
-                      setMovementCategory('');
-                      setMovementItems([]);
-                      setMovementFromLocation('');
-                      setMovementToLocation('');
-                      setMovementShelfCode('');
-                      loadAllStockGroups();
-                    } catch (error) {
-                      console.error('Stok hareketi oluşturulurken hata:', error);
-                      toast.error('Stok hareketi oluşturulamadı');
-                    } finally {
-                      setMovementLoading(false);
-                    }
-                  }}
-                  disabled={!movementFromLocation || !movementToLocation || movementLoading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  {movementLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Hareketi Oluştur
-                </Button>
-              </div>
-            </div>
+          {canManage && selectedRequest?.status === 'approved' && (
+            <DialogFooter>
+              <Button onClick={() => handleDeliverRequest(selectedRequest.id)}>
+                <Truck className="h-4 w-4 mr-2" />
+                Teslim Edildi
+              </Button>
+            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>
@@ -2415,4 +637,3 @@ const StockManagement = () => {
 };
 
 export default StockManagement;
-

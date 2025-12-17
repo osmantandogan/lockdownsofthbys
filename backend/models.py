@@ -911,6 +911,8 @@ class MaterialRequestCreate(BaseModel):
 # ==================== HEALMEDY LOKASYONLARI ====================
 
 # Sabit Healmedy Lokasyonları
+# Araç Bekleme Noktaları (Sadece saha lokasyonları)
+# Merkez Ofis, Liman Girişi, Ana Depo kaldırıldı - bunlar stok lokasyonları olarak yönetilecek
 HEALMEDY_LOCATIONS = [
     {"id": "osman_gazi_fpu", "name": "Osman Gazi/FPU"},
     {"id": "green_zone_ronesans", "name": "Green Zone/Rönesans"},
@@ -918,9 +920,6 @@ HEALMEDY_LOCATIONS = [
     {"id": "red_zone_kara", "name": "Red Zone/Kara Tesisleri"},
     {"id": "dogu_rihtimi", "name": "Doğu Rıhtımı"},
     {"id": "filyos_saglik_merkezi", "name": "Filyos Sağlık Merkezi"},
-    {"id": "merkez_ofis", "name": "Merkez Ofis"},
-    {"id": "liman_giris", "name": "Liman Girişi"},
-    {"id": "ana_depo", "name": "Ana Depo"},
 ]
 
 # Lokasyon tipi
@@ -1247,3 +1246,125 @@ class PdfTemplateUpdate(BaseModel):
     usage_types: Optional[List[PdfTemplateUsage]] = None
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
+
+
+# ============ YENİ STOK SİSTEMİ MODELLERİ ============
+
+# Stok Kategorileri
+StockCategory = Literal["ilac", "sarf", "serum", "tibbi_cihaz", "malzeme"]
+
+# Lokasyon Tipleri
+LocationType = Literal["vehicle", "waiting_point", "warehouse"]
+
+# Talep Durumları
+StockRequestStatus = Literal["pending", "approved", "rejected", "delivered"]
+
+
+class StockTemplateItem(BaseModel):
+    """Şablon stok listesindeki tek bir malzeme"""
+    name: str
+    min_quantity: int = 1
+    unit: str = "ADET"
+    category: StockCategory = "sarf"
+
+
+class StockTemplate(BaseModel):
+    """Araç/Lokasyon tipi için standart stok şablonu"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    name: str  # "Ambulans Standart Stok", "Bekleme Noktası Stok"
+    location_type: LocationType  # Bu şablon hangi lokasyon tipi için
+    description: Optional[str] = None
+    items: List[StockTemplateItem] = Field(default_factory=list)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
+
+
+class LocationStockItem(BaseModel):
+    """Bir lokasyondaki tek bir stok kalemi"""
+    name: str
+    current_quantity: int = 0
+    min_quantity: int = 1
+    unit: str = "ADET"
+    category: StockCategory = "sarf"
+    last_counted_at: Optional[datetime] = None
+    last_counted_by: Optional[str] = None
+
+
+class LocationStock(BaseModel):
+    """Bir lokasyonun (araç/bekleme noktası) stok durumu"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    location_id: str  # Araç ID veya lokasyon ID
+    location_type: LocationType  # vehicle, waiting_point, warehouse
+    location_name: str  # "34 ABC 123" veya "Osman Gazi FPU"
+    items: List[LocationStockItem] = Field(default_factory=list)
+    last_sync_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    updated_at: datetime = Field(default_factory=get_turkey_time)
+
+
+class StockRequestItem(BaseModel):
+    """Talep edilen tek bir malzeme"""
+    name: str
+    quantity: int = 1
+    unit: str = "ADET"
+    category: Optional[StockCategory] = None
+    used_from: Optional[str] = None  # "vehicle" veya "waiting_point"
+    used_from_name: Optional[str] = None  # Araç plakası veya lokasyon adı
+
+
+class StockRequest(BaseModel):
+    """Stok talebi"""
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    
+    # Talep eden
+    requester_id: str
+    requester_name: str
+    
+    # Hedef lokasyon (talep edilen yere)
+    target_location_id: str
+    target_location_type: LocationType
+    target_location_name: str
+    
+    # Talep edilen malzemeler
+    items: List[StockRequestItem] = Field(default_factory=list)
+    
+    # İlişkili vaka (varsa)
+    related_case_id: Optional[str] = None
+    related_case_no: Optional[str] = None
+    
+    # Durum
+    status: StockRequestStatus = "pending"
+    
+    # Notlar
+    requester_note: Optional[str] = None
+    approver_note: Optional[str] = None
+    
+    # Tarihler
+    created_at: datetime = Field(default_factory=get_turkey_time)
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
+    approved_by_name: Optional[str] = None
+    delivered_at: Optional[datetime] = None
+    delivered_by: Optional[str] = None
+    delivered_by_name: Optional[str] = None
+    rejected_at: Optional[datetime] = None
+    rejected_by: Optional[str] = None
+    rejected_by_name: Optional[str] = None
+
+
+class StockRequestCreate(BaseModel):
+    """Stok talebi oluşturma"""
+    target_location_id: str
+    target_location_type: LocationType
+    target_location_name: str
+    items: List[StockRequestItem]
+    related_case_id: Optional[str] = None
+    related_case_no: Optional[str] = None
+    requester_note: Optional[str] = None

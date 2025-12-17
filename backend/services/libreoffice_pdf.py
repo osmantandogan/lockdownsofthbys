@@ -12,6 +12,13 @@ import tempfile
 import logging
 from datetime import datetime
 from openpyxl import load_workbook
+from services.vaka_form_mapping import (
+    VAKA_FORM_CELL_MAPPING,
+    CHECKBOX_MAPPINGS,
+    PROCEDURE_MAPPINGS,
+    MEDICATION_MAPPINGS,
+    MATERIAL_MAPPINGS
+)
 
 logger = logging.getLogger(__name__)
 
@@ -284,7 +291,103 @@ def populate_excel_with_case_data(excel_path: str, output_path: str, case_data: 
             except Exception as e:
                 logger.warning(f"Hücreye yazılamadı {cell_ref}: {e}")
     
-    # Checkboxları işle - Vaka formu v2.xlsx yapısına göre
+    # VAKA_FORM_CELL_MAPPING'den eksik alanları doldur
+    def get_value_from_source(field_info, case_data, form_data):
+        """Kaynak tipine göre değer al"""
+        field = field_info.get('field', '')
+        source = field_info.get('source', 'form_data')
+        
+        # Form data'dan al
+        if source == 'form_data' or source.startswith('form_data.'):
+            value = form_data.get(field, '')
+            if value:
+                return str(value)
+        
+        # Case data'dan al
+        if source == 'case_data' or source.startswith('case_data.'):
+            parts = source.replace('case_data.', '').split('.')
+            if parts[0] == 'case_data':
+                parts = parts[1:]
+            
+            value = case_data
+            for part in parts:
+                if isinstance(value, dict):
+                    value = value.get(part, {})
+                else:
+                    value = ''
+                    break
+            
+            if value and not isinstance(value, dict):
+                return str(value)
+        
+        # Auto kaynak - tarih veya saat
+        if source == 'auto':
+            if 'date' in field.lower() or 'tarih' in field.lower():
+                if case_data.get('created_at'):
+                    try:
+                        created = case_data['created_at']
+                        if isinstance(created, str):
+                            from datetime import datetime as dt
+                            created = dt.fromisoformat(created.replace('Z', '+00:00'))
+                        return created.strftime('%d.%m.%Y')
+                    except:
+                        pass
+            if 'time' in field.lower() or 'saat' in field.lower():
+                if case_data.get('created_at'):
+                    try:
+                        created = case_data['created_at']
+                        if isinstance(created, str):
+                            from datetime import datetime as dt
+                            created = dt.fromisoformat(created.replace('Z', '+00:00'))
+                        return created.strftime('%H:%M')
+                    except:
+                        pass
+        
+        # Fallback
+        fallback_field = field_info.get('fallback')
+        if fallback_field:
+            return form_data.get(fallback_field, '') or case_data.get(fallback_field, '')
+        
+        return ''
+    
+    # VAKA_FORM_CELL_MAPPING'den değerleri uygula (mevcut hardcoded mapping'leri geçersiz kılmadan)
+    for cell_ref, field_info in VAKA_FORM_CELL_MAPPING.items():
+        # Zaten cell_mapping'de değer varsa atla
+        if cell_ref in cell_mapping and cell_mapping.get(cell_ref):
+            continue
+        
+        value = get_value_from_source(field_info, case_data, form_data)
+        if value:
+            try:
+                target_cell = merged_cells_map.get(cell_ref, cell_ref)
+                ws[target_cell] = str(value)
+            except Exception as e:
+                logger.warning(f"VAKA_FORM_CELL_MAPPING - Hücreye yazılamadı {cell_ref}: {e}")
+    
+    # Checkboxları işle - CHECKBOX_MAPPINGS kullanarak
+    def apply_checkbox_mapping(field_name, value, checkbox_config):
+        """Checkbox değerini uygula"""
+        if not value:
+            return
+        
+        options = checkbox_config.get('options', {})
+        normalized_value = str(value).lower().replace(' ', '_').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ş', 's').replace('ç', 'c')
+        
+        for option_key, cell_ref in options.items():
+            if normalized_value == option_key or normalized_value in option_key or option_key in normalized_value:
+                try:
+                    ws[cell_ref] = 'X'
+                except:
+                    pass
+                break
+    
+    # Tüm checkbox mapping'lerini uygula
+    for group_name, checkbox_config in CHECKBOX_MAPPINGS.items():
+        field_name = checkbox_config.get('field', '')
+        value = form_data.get(field_name, '') or extended_form.get(field_name, '')
+        apply_checkbox_mapping(field_name, value, checkbox_config)
+    
+    # Checkboxları işle - Vaka formu v2.xlsx yapısına göre (eski kod - geriye uyumluluk)
     
     # CİNSİYET - T4 ve T6 checkbox hücreleri
     if gender:

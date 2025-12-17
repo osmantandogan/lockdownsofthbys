@@ -1,7 +1,11 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "healmedy-ambulans",
+  "version": "1.0.0",
+  "description": "Healmedy Ambulans Yönetim Sistemi - Masaüstü Uygulaması",
+  "author": "Healmedy",
   "private": true,
+  "main": "electron/main.js",
+  "homepage": "/",
   "dependencies": {
     "@capacitor/android": "^7.4.4",
     "@capacitor/app": "^7.1.1",
@@ -92,7 +96,76 @@
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
     "android:build": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
-    "android:build:release": "npm run build && npx cap sync android && cd android && ./gradlew assembleRelease"
+    "android:build:release": "npm run build && npx cap sync android && cd android && ./gradlew assembleRelease",
+    "electron:dev": "concurrently \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && electron-builder --win --x64",
+    "electron:build:all": "npm run build && electron-builder --win --mac --linux",
+    "electron:build:portable": "npm run build && electron-builder --win portable",
+    "electron:pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.healmedy.ambulans.desktop",
+    "productName": "Healmedy Ambulans",
+    "copyright": "Copyright © 2024 Healmedy",
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "electron/resources"
+    },
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "node_modules/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/favicon.ico",
+      "artifactName": "Healmedy-Ambulans-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/favicon.ico",
+      "uninstallerIcon": "public/favicon.ico",
+      "installerHeaderIcon": "public/favicon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Healmedy Ambulans",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "public/favicon.ico",
+      "category": "public.app-category.medical",
+      "artifactName": "Healmedy-Ambulans-${version}-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "public/favicon.ico",
+      "category": "Medical",
+      "artifactName": "Healmedy-Ambulans-${version}-linux.${ext}"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://releases.healmedy.com"
+    }
   },
   "browserslist": {
     "production": [
@@ -111,6 +184,12 @@
     "@craco/craco": "^7.1.0",
     "@eslint/js": "9.23.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-is-dev": "^3.0.1",
+    "electron-updater": "^6.3.9",
     "eslint": "9.23.0",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-jsx-a11y": "6.10.2",
@@ -118,7 +197,8 @@
     "globals": "15.15.0",
     "postcss": "^8.4.49",
     "serve": "^14.2.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "wait-on": "^8.0.1"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

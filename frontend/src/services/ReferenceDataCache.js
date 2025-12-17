@@ -188,12 +188,24 @@ const cacheLocations = async () => {
  */
 const cacheMedications = async () => {
   try {
-    const response = await stockBarcodeAPI.searchMedications('');
-    const medications = response.data || [];
+    // stockBarcodeAPI.searchMedications {results: [], count: 0} formatında dönüyor
+    const response = await stockBarcodeAPI.searchMedications('a'); // 'a' ile başlayan ilaçları al
+    // Response formatı: {results: [...], count: X}
+    const medications = response.data?.results || response.data || [];
+    
+    // Array değilse boş array kullan
+    if (!Array.isArray(medications)) {
+      console.warn('[ReferenceDataCache] Medications data is not an array:', medications);
+      await OfflineStorage.cacheMedications([]);
+      return 0;
+    }
+    
     await OfflineStorage.cacheMedications(medications);
     return medications.length;
   } catch (error) {
     console.error('[ReferenceDataCache] Failed to cache medications:', error);
+    // Hata durumunda boş array cache'le (crash'i önle)
+    await OfflineStorage.cacheMedications([]);
     throw error;
   }
 };
@@ -203,16 +215,38 @@ const cacheMedications = async () => {
  */
 const cacheHospitals = async () => {
   try {
-    // Hastane verisi JSON dosyasından geliyorsa
-    const response = await fetch('/data/hospitals.json').catch(() => null);
-    if (response && response.ok) {
-      const hospitals = await response.json();
-      await OfflineStorage.cacheHospitals(hospitals);
-      return hospitals.length;
+    // API'den hastaneleri al - /reference/hospitals/grouped endpoint'i
+    const { referenceAPI } = await import('../api');
+    const response = await referenceAPI.getHospitalsGrouped();
+    
+    if (response.data) {
+      // Grouped format: {healmedy: [], zonguldak_devlet: [], ...}
+      // Tüm hastaneleri tek array'e dönüştür
+      const hospitalData = response.data;
+      const allHospitals = [];
+      
+      // Her kategoriden hastaneleri topla
+      if (Array.isArray(hospitalData.healmedy)) {
+        allHospitals.push(...hospitalData.healmedy);
+      }
+      if (Array.isArray(hospitalData.healmedy_bekleme_noktalari)) {
+        allHospitals.push(...hospitalData.healmedy_bekleme_noktalari);
+      }
+      if (Array.isArray(hospitalData.zonguldak_devlet)) {
+        allHospitals.push(...hospitalData.zonguldak_devlet);
+      }
+      if (Array.isArray(hospitalData.zonguldak_ozel)) {
+        allHospitals.push(...hospitalData.zonguldak_ozel);
+      }
+      
+      await OfflineStorage.cacheHospitals(allHospitals);
+      return allHospitals.length;
     }
     return 0;
   } catch (error) {
     console.error('[ReferenceDataCache] Failed to cache hospitals:', error);
+    // Hata durumunda boş array cache'le
+    await OfflineStorage.cacheHospitals([]);
     throw error;
   }
 };

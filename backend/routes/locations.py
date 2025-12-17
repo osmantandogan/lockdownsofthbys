@@ -1,4 +1,4 @@
-"""
+﻿"""
 Lokasyon Yönetimi API
 - Healmedy Lokasyonları (sabit)
 - Saha Lokasyonları (araç, carter, depo)
@@ -584,6 +584,380 @@ async def save_batch_locations(request: Request):
     logger.info(f"Toplu GPS kaydı: {saved_count}/{len(locations)} konum kaydedildi")
     
     return {"success": True, "saved_count": saved_count, "total": len(locations)}
+
+
+# ==================== MERKEZİ LOKASYON API ====================
+
+@router.get("/all")
+async def get_all_locations(request: Request, include_inactive: bool = False):
+    """
+    TÜM LOKASYONLARI tek endpoint'ten getir.
+    Lokasyon tipleri:
+    - healmedy: Bekleme noktaları (Osman Gazi, Green Zone vb.)
+    - vehicle: Ambulanslar (plaka bazlı)
+    - warehouse: Depo (Merkez Depo)
+    - carter: Carter/Dolap
+    - health_center: Sağlık merkezi
+    - custom: Kullanıcı tanımlı lokasyonlar
+    """
+    await get_current_user(request)
+    
+    all_locations = []
+    
+    # 1. HEALMEDY LOKASYONLARI (Bekleme Noktaları)
+    for loc in HEALMEDY_LOCATIONS:
+        all_locations.append({
+            "id": loc["id"],
+            "name": loc["name"],
+            "type": "healmedy",
+            "icon": "map-pin",
+            "is_active": True,
+            "source": "healmedy_static"
+        })
+    
+    # 2. ARAÇLAR (Ambulanslar)
+    vehicles = await vehicles_collection.find({"type": "ambulans"}).to_list(100)
+    for v in vehicles:
+        plate = v.get("plate", "")
+        station_code = v.get("station_code", "")
+        display_name = f"{plate} ({station_code})" if station_code else plate
+        
+        all_locations.append({
+            "id": f"vehicle_{v.get('_id')}",
+            "name": display_name,
+            "type": "vehicle",
+            "icon": "truck",
+            "vehicle_id": v.get("_id"),
+            "vehicle_plate": plate,
+            "station_code": station_code,
+            "is_active": v.get("status") != "kullanim_disi",
+            "source": "vehicles"
+        })
+    
+    # 3. STOK LOKASYONLARI (stock_locations collection)
+    stock_locations_col = db["stock_locations"]
+    query = {} if include_inactive else {"is_active": True}
+    stock_locs = await stock_locations_col.find(query).to_list(500)
+    
+    # Araç lokasyonlarını atla (zaten yukarıda eklendi)
+    seen_vehicle_plates = {v.get("plate") for v in vehicles}
+    
+    for loc in stock_locs:
+        loc_type = loc.get("type", "custom")
+        loc_name = loc.get("name", "")
+        
+        # Araç lokasyonunu tekrar ekleme
+        if loc_type == "vehicle" and loc.get("vehicle_plate") in seen_vehicle_plates:
+            continue
+        
+        # Healmedy lokasyonunu tekrar ekleme
+        if loc_type == "waiting_point" and any(h["name"] == loc_name for h in HEALMEDY_LOCATIONS):
+            continue
+        
+        all_locations.append({
+            "id": loc.get("_id"),
+            "name": loc_name,
+            "type": loc_type,  # vehicle, waiting_point, warehouse, emergency_bag
+            "icon": "warehouse" if loc_type == "warehouse" else "briefcase" if loc_type == "emergency_bag" else "map-pin",
+            "vehicle_id": loc.get("vehicle_id"),
+            "vehicle_plate": loc.get("vehicle_plate"),
+            "healmedy_location_id": loc.get("healmedy_location_id"),
+            "is_active": loc.get("is_active", True),
+            "source": "stock_locations"
+        })
+    
+    # 4. SAHA LOKASYONLARI (field_locations collection)
+    field_locs = await field_locations_collection.find({"is_active": True}).to_list(500)
+    
+    for loc in field_locs:
+        loc_name = loc.get("name", "")
+        loc_type = loc.get("location_type", "custom")
+        
+        # Zaten eklenmiş mi kontrol et
+        if any(l["name"] == loc_name for l in all_locations):
+            continue
+        
+        all_locations.append({
+            "id": loc.get("_id"),
+            "name": loc_name,
+            "type": loc_type,  # merkez_depo, arac, carter
+            "icon": "warehouse" if loc_type == "merkez_depo" else "truck" if loc_type == "arac" else "box",
+            "vehicle_id": loc.get("vehicle_id"),
+            "vehicle_plate": loc.get("vehicle_plate"),
+            "healmedy_location_id": loc.get("healmedy_location_id"),
+            "qr_code": loc.get("qr_code"),
+            "is_active": loc.get("is_active", True),
+            "source": "field_locations"
+        })
+    
+    # Merkez Depo yoksa ekle
+    if not any(l["name"] == "Merkez Depo" for l in all_locations):
+        all_locations.insert(0, {
+            "id": "merkez_depo",
+            "name": "Merkez Depo",
+            "type": "warehouse",
+            "icon": "warehouse",
+            "is_active": True,
+            "source": "default"
+        })
+    
+    # Acil Çanta yoksa ekle
+    if not any(l["name"] == "Acil Çanta" for l in all_locations):
+        all_locations.append({
+            "id": "acil_canta",
+            "name": "Acil Çanta",
+            "type": "emergency_bag",
+            "icon": "briefcase",
+            "is_active": True,
+            "source": "default"
+        })
+    
+    # İsme göre sırala (Merkez Depo her zaman en üstte)
+    def sort_key(loc):
+        if loc["name"] == "Merkez Depo":
+            return (0, "")
+        elif loc["type"] == "healmedy":
+            return (1, loc["name"])
+        elif loc["type"] == "vehicle":
+            return (2, loc["name"])
+        else:
+            return (3, loc["name"])
+    
+    all_locations.sort(key=sort_key)
+    
+    return {
+        "locations": all_locations,
+        "total": len(all_locations),
+        "by_type": {
+            "healmedy": len([l for l in all_locations if l["type"] == "healmedy"]),
+            "vehicle": len([l for l in all_locations if l["type"] == "vehicle"]),
+            "warehouse": len([l for l in all_locations if l["type"] == "warehouse"]),
+            "other": len([l for l in all_locations if l["type"] not in ["healmedy", "vehicle", "warehouse"]])
+        }
+    }
+
+
+@router.post("/create")
+async def create_location(request: Request):
+    """
+    Yeni lokasyon oluştur (dinamik)
+    """
+    user = await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi"])(request)
+    body = await request.json()
+    
+    name = body.get("name")
+    loc_type = body.get("type", "custom")
+    
+    if not name:
+        raise HTTPException(status_code=400, detail="Lokasyon adı gerekli")
+    
+    # stock_locations collection'a ekle
+    stock_locations_col = db["stock_locations"]
+    
+    # Aynı isimde lokasyon var mı kontrol et
+    existing = await stock_locations_col.find_one({"name": name, "is_active": True})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"'{name}' adında bir lokasyon zaten mevcut")
+    
+    import uuid
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    
+    new_location = {
+        "_id": str(uuid.uuid4()),
+        "name": name,
+        "type": loc_type,
+        "description": body.get("description", ""),
+        "healmedy_location_id": body.get("healmedy_location_id"),
+        "vehicle_id": body.get("vehicle_id"),
+        "vehicle_plate": body.get("vehicle_plate"),
+        "is_active": True,
+        "created_at": turkey_now,
+        "created_by": user.id,
+        "created_by_name": user.name
+    }
+    
+    await stock_locations_col.insert_one(new_location)
+    
+    logger.info(f"Yeni lokasyon oluşturuldu: {name} ({loc_type}) - {user.name}")
+    
+    new_location["id"] = new_location.pop("_id")
+    return new_location
+
+
+@router.patch("/update/{location_id}")
+async def update_location(location_id: str, request: Request):
+    """Lokasyonu güncelle"""
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    body = await request.json()
+    
+    stock_locations_col = db["stock_locations"]
+    
+    update_data = {}
+    if "name" in body:
+        update_data["name"] = body["name"]
+    if "type" in body:
+        update_data["type"] = body["type"]
+    if "description" in body:
+        update_data["description"] = body["description"]
+    if "is_active" in body:
+        update_data["is_active"] = body["is_active"]
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Güncellenecek veri yok")
+    
+    update_data["updated_at"] = datetime.utcnow() + timedelta(hours=3)
+    update_data["updated_by"] = user.id
+    
+    result = await stock_locations_col.update_one(
+        {"_id": location_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Lokasyon bulunamadı")
+    
+    logger.info(f"Lokasyon güncellendi: {location_id} - {user.name}")
+    
+    return {"message": "Lokasyon güncellendi"}
+
+
+@router.delete("/delete/{location_id}")
+async def delete_location(location_id: str, request: Request):
+    """Lokasyonu sil (soft delete)"""
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    stock_locations_col = db["stock_locations"]
+    
+    result = await stock_locations_col.update_one(
+        {"_id": location_id},
+        {"$set": {
+            "is_active": False,
+            "deleted_at": datetime.utcnow() + timedelta(hours=3),
+            "deleted_by": user.id
+        }}
+    )
+    
+    if result.modified_count == 0:
+        # Belki healmedy veya araç lokasyonudur, onları silemeyiz
+        raise HTTPException(status_code=400, detail="Bu lokasyon silinemez veya bulunamadı")
+    
+    logger.info(f"Lokasyon silindi: {location_id} - {user.name}")
+    
+    return {"message": "Lokasyon silindi"}
+
+
+@router.post("/sync")
+async def sync_all_locations(request: Request):
+    """
+    Tüm lokasyonları senkronize et:
+    - Araçları stock_locations'a ekle
+    - Healmedy lokasyonlarını stock_locations'a ekle
+    - Eksik varsayılan lokasyonları ekle
+    """
+    user = await require_roles(["merkez_ofis", "operasyon_muduru", "cagri_merkezi"])(request)
+    
+    import uuid
+    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    stock_locations_col = db["stock_locations"]
+    
+    created_count = 0
+    updated_count = 0
+    
+    # 1. Merkez Depo
+    merkez = await stock_locations_col.find_one({"name": "Merkez Depo"})
+    if not merkez:
+        await stock_locations_col.insert_one({
+            "_id": "merkez_depo",
+            "name": "Merkez Depo",
+            "type": "warehouse",
+            "is_active": True,
+            "created_at": turkey_now,
+            "created_by": user.id
+        })
+        created_count += 1
+    
+    # 2. Acil Çanta
+    acil = await stock_locations_col.find_one({"name": "Acil Çanta"})
+    if not acil:
+        await stock_locations_col.insert_one({
+            "_id": "acil_canta",
+            "name": "Acil Çanta",
+            "type": "emergency_bag",
+            "is_active": True,
+            "created_at": turkey_now,
+            "created_by": user.id
+        })
+        created_count += 1
+    
+    # 3. Healmedy Lokasyonları
+    for loc in HEALMEDY_LOCATIONS:
+        existing = await stock_locations_col.find_one({"healmedy_location_id": loc["id"]})
+        if not existing:
+            await stock_locations_col.insert_one({
+                "_id": str(uuid.uuid4()),
+                "name": loc["name"],
+                "type": "waiting_point",
+                "healmedy_location_id": loc["id"],
+                "is_active": True,
+                "created_at": turkey_now,
+                "created_by": user.id
+            })
+            created_count += 1
+        elif existing.get("name") != loc["name"]:
+            await stock_locations_col.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"name": loc["name"]}}
+            )
+            updated_count += 1
+    
+    # 4. Araçlar
+    vehicles = await vehicles_collection.find({"type": "ambulans"}).to_list(100)
+    for v in vehicles:
+        plate = v.get("plate", "")
+        station_code = v.get("station_code", "")
+        display_name = f"{plate} ({station_code})" if station_code else plate
+        vehicle_id = v.get("_id")
+        
+        existing = await stock_locations_col.find_one({
+            "$or": [
+                {"vehicle_id": vehicle_id},
+                {"vehicle_plate": plate}
+            ]
+        })
+        
+        if not existing:
+            await stock_locations_col.insert_one({
+                "_id": str(uuid.uuid4()),
+                "name": display_name,
+                "type": "vehicle",
+                "vehicle_id": vehicle_id,
+                "vehicle_plate": plate,
+                "station_code": station_code,
+                "is_active": True,
+                "created_at": turkey_now,
+                "created_by": user.id
+            })
+            created_count += 1
+        elif existing.get("name") != display_name:
+            await stock_locations_col.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {
+                    "name": display_name,
+                    "station_code": station_code,
+                    "vehicle_id": vehicle_id
+                }}
+            )
+            updated_count += 1
+    
+    logger.info(f"Lokasyon senkronizasyonu: {created_count} oluşturuldu, {updated_count} güncellendi - {user.name}")
+    
+    return {
+        "message": f"Senkronizasyon tamamlandı",
+        "created": created_count,
+        "updated": updated_count,
+        "total_vehicles": len(vehicles),
+        "total_healmedy": len(HEALMEDY_LOCATIONS)
+    }
 
 
 @router.get("/vehicles/all-gps")
