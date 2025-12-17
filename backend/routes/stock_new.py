@@ -172,15 +172,28 @@ async def seed_location_stock(location_id: str, location_type: str, location_nam
                 })
     else:
         # Bekleme noktası/Revir için
-        for key in ["revir_stok", "revir_ilac"]:
-            for item in stock_data.get(key, []):
-                items.append({
-                    "name": item["name"],
-                    "quantity": item["quantity"],
-                    "min_quantity": item["quantity"],
-                    "unit": item.get("unit", "ADET"),
-                    "category": item.get("category", "sarf")
-                })
+        # Filyos Sağlık Merkezi için özel liste
+        if location_id == "filyos_saglik_merkezi":
+            for key in ["saglik_merkezi_ilac", "saglik_merkezi_sarf"]:
+                for item in stock_data.get(key, []):
+                    items.append({
+                        "name": item["name"],
+                        "quantity": item["quantity"],
+                        "min_quantity": item["quantity"],
+                        "unit": item.get("unit", "ADET"),
+                        "category": item.get("category", "sarf")
+                    })
+        else:
+            # Diğer bekleme noktaları için standart liste
+            for key in ["revir_stok", "revir_ilac"]:
+                for item in stock_data.get(key, []):
+                    items.append({
+                        "name": item["name"],
+                        "quantity": item["quantity"],
+                        "min_quantity": item["quantity"],
+                        "unit": item.get("unit", "ADET"),
+                        "category": item.get("category", "sarf")
+                    })
     
     # Aynı isimli ürünleri birleştir
     unique_items = {}
