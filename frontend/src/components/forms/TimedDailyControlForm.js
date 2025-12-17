@@ -139,7 +139,7 @@ const formatTime = (seconds) => {
 /**
  * Zaman Kısıtlamalı Günlük Kontrol Formu (ATT/Paramedik için)
  */
-const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId, vehiclePlate, onComplete }) => {
+const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId, vehiclePlate, onComplete, onAlreadyFilled }) => {
   const { user } = useAuth();
   
   // Bölüm durumları
@@ -213,6 +213,10 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
           setAlreadyFilled(true);
           setFilledBy(response.data.filled_by_name);
           toast.info(`Bu form bugün ${response.data.filled_by_name} tarafından doldurulmuş.`);
+          // Parent'a bildir ki buton aktif olsun
+          if (onAlreadyFilled) {
+            onAlreadyFilled(response.data.filled_by_name);
+          }
         }
       } catch (error) {
         console.log('Form durumu kontrol edilemedi:', error.message);

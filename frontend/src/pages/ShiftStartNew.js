@@ -268,10 +268,25 @@ const ShiftStartNew = () => {
       // Şoför görevi kontrolü (atamadan al)
       setIsDriverDuty(todayAssignment.is_driver_duty || false);
       
-      // TODO: İlk giren kontrolü yapılacak (backend'den form durumu sorgulanacak)
-      // Şimdilik her zaman form doldurtuyoruz
-      setIsFirstPersonInShift(true);
-      setFormAlreadyFilled(false);
+      // Günlük form doldurulmuş mu kontrol et
+      try {
+        const formCheckRes = await shiftsAPI.checkDailyForm(vehicle.id || vehicle._id);
+        if (formCheckRes.data?.filled) {
+          // Form zaten doldurulmuş - diğer kişi direkt devam edebilir
+          setFormAlreadyFilled(true);
+          setIsFirstPersonInShift(false);
+          console.log('Form zaten doldurulmuş:', formCheckRes.data.filled_by_name);
+        } else {
+          // Form henüz doldurulmamış - bu kişi dolduracak
+          setFormAlreadyFilled(false);
+          setIsFirstPersonInShift(true);
+        }
+      } catch (formCheckErr) {
+        console.error('Form kontrolü hatası:', formCheckErr);
+        // Hata durumunda güvenli tarafta kal - form doldurtulsun
+        setFormAlreadyFilled(false);
+        setIsFirstPersonInShift(true);
+      }
       
       setValidating(false);
       return { vehicle, assignment: todayAssignment };
@@ -925,6 +940,10 @@ const ShiftStartNew = () => {
                     onComplete={(data) => {
                       setControlForm(data);
                       toast.success('✅ Günlük kontrol formu tamamlandı!');
+                    }}
+                    onAlreadyFilled={(fillerName) => {
+                      console.log('Form zaten doldurulmuş:', fillerName);
+                      setFormAlreadyFilled(true);
                     }}
                   />
                 </>
