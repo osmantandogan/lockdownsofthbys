@@ -764,8 +764,8 @@ const VakaFormMappingEditor = () => {
     // === ROW 1-5: LOGO VE BAŞLIK ===
     'A1': '__LOGO__',           // Logo (A1:C5 birleşik)
     'N1': 'atn_no',             // ATN NO değeri (N3:P5 birleşik)
-    'Q1': 'startKm',            // Başlangıç KM değeri (Q3:R5)
-    'S1': 'endKm',              // Bitiş KM değeri (S3:T5)
+    'Q3': 'startKm',            // Başlangıç KM değeri (Q3:R5)
+    'S3': 'endKm',              // Bitiş KM değeri (S3:T5)
     
     // === ROW 6-12: İSTASYON, SAATLER, HASTA ===
     'B7': 'caseNumber',         // PROTOKOL NO değeri
@@ -786,18 +786,18 @@ const VakaFormMappingEditor = () => {
     'G10': 'patientPickupAddress', // ALINDIĞI ADRES değeri (G10:L10)
     'G11': 'patientTcNo',       // TC KİMLİK NO değeri (G11:L11)
     'G12': 'patientPhone',      // TELEFON değeri (G12:L12)
-    'N11': 'patientAge',        // YAŞ değeri
+    'N10': 'patientAge',        // YAŞ değeri (N10)
     
     // Cinsiyet checkbox
     'M7': 'gender.erkek',       // ERKEK
     'M9': 'gender.kadin',       // KADIN
     
-    // Triyaj/Durumu checkbox
-    'O7': 'priority.kirmizi_kod',
-    'O8': 'priority.sari_kod',
-    'O9': 'priority.yesil_kod',
-    'O10': 'priority.siyah_kod',
-    'O11': 'priority.sosyal_endikasyon',
+    // Triyaj/Durumu checkbox (P sütunu)
+    'P7': 'priority.kirmizi_kod',
+    'P8': 'priority.sari_kod',
+    'P9': 'priority.yesil_kod',
+    'P10': 'priority.siyah_kod',
+    'P11': 'priority.sosyal_endikasyon',
     
     // Kronik hastalıklar ve şikayet
     'R6': 'chronicDiseases',    // KRONİK HASTALIKLAR (R6:T6)
@@ -894,7 +894,7 @@ const VakaFormMappingEditor = () => {
     'K25': 'resp.yok',
     
     // Kan şekeri ve ateş
-    'S18': 'kan_sekeri',
+    'S19': 'kan_sekeri',
     'S22': 'ates',
     
     // GKS Motor (L sütunu, satır numarası = skor)
@@ -926,14 +926,14 @@ const VakaFormMappingEditor = () => {
     'I26': 'aciklamalar',       // AÇIKLAMALAR değeri (I26:T26)
     
     // === ROW 27-32: SONUÇ ===
-    'H27': 'transferHospital',  // NAKLEDİLEN HASTANE (H27 birleşik)
+    'H28': 'transferHospital',  // NAKLEDİLEN HASTANE (H28 birleşik)
     'L28': 'crashVehicle1',
     'L29': 'crashVehicle2',
     'L30': 'crashVehicle3',
     'L31': 'crashVehicle4',
-    'P27': 'cpr.yapildi',       // CPR YAPILDI İSE
-    'S28': 'cprStartTime',      // BAŞLAMA ZAMANI
-    'S29': 'cprStopTime',       // BIRAKMA ZAMANI
+    'S28': 'cpr.yapildi',       // CPR YAPILDI İSE (S28:T28)
+    'S29': 'cprStartTime',      // BAŞLAMA ZAMANI
+    'S30': 'cprStopTime',       // BIRAKMA ZAMANI
     'P30': 'cprStopReason',     // BIRAKMA NEDENİ
     
     // Sonuç checkbox
