@@ -94,7 +94,14 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     
     # Helper: Nakil Hastanesi (object veya string olabilir)
     def get_transfer_hospital(d):
-        th = d.get('transfer_hospital', '') or d.get('extended_form', {}).get('transferHospital', '') or d.get('extended_form', {}).get('nakledilenHastane', '')
+        medical_form = d.get('medical_form', {}) or {}
+        extended_form = d.get('extended_form', {}) or medical_form.get('extended_form', {}) or {}
+        
+        th = (d.get('transfer_hospital', '') or 
+              extended_form.get('transferHospital', '') or 
+              extended_form.get('nakledilenHastane', '') or
+              medical_form.get('transfer_hospital', ''))
+        
         if isinstance(th, dict):
             # Frontend object olarak kaydediyor: {name, type, province}
             name = th.get('name', '')
@@ -102,24 +109,38 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
             return f"{name}{' (' + province + ')' if province else ''}"
         return str(th) if th else ''
     
-    # Helper: KM değerleri
+    # Helper: KM değerleri - medical_form.vehicle_info içinden de kontrol et
     def get_start_km(d):
+        vehicle_info = d.get('vehicle_info', {}) or {}
+        medical_form = d.get('medical_form', {}) or {}
+        mf_vehicle_info = medical_form.get('vehicle_info', {}) or {}
+        extended_form = d.get('extended_form', {}) or medical_form.get('extended_form', {}) or {}
+        
         return str(
             d.get('start_km', '') or 
-            d.get('vehicle_info', {}).get('start_km', '') or 
-            d.get('vehicle_info', {}).get('startKm', '') or 
-            d.get('vehicle_info', {}).get('baslangic_km', '') or
-            d.get('extended_form', {}).get('startKm', '') or
+            mf_vehicle_info.get('startKm', '') or  # medical_form.vehicle_info.startKm
+            mf_vehicle_info.get('start_km', '') or
+            vehicle_info.get('start_km', '') or 
+            vehicle_info.get('startKm', '') or 
+            vehicle_info.get('baslangic_km', '') or
+            extended_form.get('startKm', '') or
             ''
         )
     
     def get_end_km(d):
+        vehicle_info = d.get('vehicle_info', {}) or {}
+        medical_form = d.get('medical_form', {}) or {}
+        mf_vehicle_info = medical_form.get('vehicle_info', {}) or {}
+        extended_form = d.get('extended_form', {}) or medical_form.get('extended_form', {}) or {}
+        
         return str(
             d.get('end_km', '') or 
-            d.get('vehicle_info', {}).get('end_km', '') or 
-            d.get('vehicle_info', {}).get('endKm', '') or 
-            d.get('vehicle_info', {}).get('bitis_km', '') or
-            d.get('extended_form', {}).get('endKm', '') or
+            mf_vehicle_info.get('endKm', '') or  # medical_form.vehicle_info.endKm
+            mf_vehicle_info.get('end_km', '') or
+            vehicle_info.get('end_km', '') or 
+            vehicle_info.get('endKm', '') or 
+            vehicle_info.get('bitis_km', '') or
+            extended_form.get('endKm', '') or
             ''
         )
     
@@ -133,13 +154,21 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
             pass
         return str(d.get('total_km', '') or d.get('vehicle_info', {}).get('total_km', '') or '')
     
-    # Helper: Plaka - birden fazla kaynak
+    # Helper: Plaka - birden fazla kaynak (assigned_team.vehicle en güvenilir)
     def get_vehicle_plate(d):
-        plate = (d.get('vehicle_plate', '') or 
-                 d.get('assigned_team', {}).get('vehicle', '') or
-                 d.get('vehicle_info', {}).get('plate', '') or
-                 d.get('vehicle_info', {}).get('plaka', '') or
-                 d.get('extended_form', {}).get('vehiclePlate', ''))
+        assigned_team = d.get('assigned_team', {}) or {}
+        vehicle_info = d.get('vehicle_info', {}) or {}
+        medical_form = d.get('medical_form', {}) or {}
+        mf_vehicle_info = medical_form.get('vehicle_info', {}) or {}
+        extended_form = d.get('extended_form', {}) or medical_form.get('extended_form', {}) or {}
+        
+        plate = (assigned_team.get('vehicle', '') or  # En güvenilir kaynak
+                 d.get('vehicle_plate', '') or 
+                 mf_vehicle_info.get('plate', '') or
+                 mf_vehicle_info.get('plaka', '') or
+                 vehicle_info.get('plate', '') or
+                 vehicle_info.get('plaka', '') or
+                 extended_form.get('vehiclePlate', ''))
         return str(plate) if plate else ''
     
     # Helper: Vakayı Veren Kurum - boş değilse göster
@@ -457,23 +486,40 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     if field_key.startswith('priority.'):
         option = field_key.split('.')[1]  # kirmizi_kod, sari_kod, yesil_kod, siyah_kod, sosyal_endikasyon
         
-        # triageCode (frontend'de bu isimle kaydediliyor)
-        triage_code = extended_form.get('triageCode', '') or case_data.get('triage_code', '') or case_data.get('priority', '')
+        # triageCode - medical_form.extended_form içinden de al
+        medical_form = case_data.get('medical_form', {}) or {}
+        mf_extended = medical_form.get('extended_form', {}) or {}
+        triage_code = (extended_form.get('triageCode', '') or 
+                      mf_extended.get('triageCode', '') or
+                      case_data.get('triage_code', '') or 
+                      case_data.get('priority', '') or '')
         triage_code = triage_code.lower() if triage_code else ''
         
         # Object format kontrolü
-        priority_obj = extended_form.get('priority', {})
+        priority_obj = extended_form.get('priority', {}) or mf_extended.get('priority', {})
         if isinstance(priority_obj, dict):
             return '☑' if priority_obj.get(option) else '☐'
         
         # String format - triageCode ile karşılaştır
         option_clean = option.lower().replace('_kod', '').replace('_', '')  # kirmizi_kod -> kirmizi
         
-        # Eşleştirme
-        if option_clean == 'sosyalendikasyon' or option == 'sosyal_endikasyon':
-            return '☑' if triage_code == 'sosyal' or 'sosyal' in triage_code else '☐'
+        # Eşleştirme tablosu: "sarı (ciddi)" -> "sari"
+        triage_map = {
+            'kirmizi': ['kırmızı', 'kirmizi', 'red', 'acil'],
+            'sari': ['sarı', 'sari', 'yellow', 'ciddi', 'sarı (ciddi)'],
+            'yesil': ['yeşil', 'yesil', 'green', 'hafif'],
+            'siyah': ['siyah', 'black', 'ex'],
+            'sosyalendikasyon': ['sosyal', 'social', 'endikasyon', 'sosyal endikasyon']
+        }
         
-        return '☑' if option_clean in triage_code or triage_code == option_clean else '☐'
+        # Eşleştirme
+        for key, values in triage_map.items():
+            if option_clean == key or option.replace('_kod', '').replace('_', '') == key:
+                for val in values:
+                    if val in triage_code:
+                        return '☑'
+        
+        return '☐'
     
     # Çağrı nedeni - extended_form.callReasons object, callReason string, veya callReasonDetail array
     if field_key.startswith('callReason.'):
