@@ -56,10 +56,28 @@ allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
 
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
+# OPTIONS request'leri için özel handler (preflight)
+@app.options("/{full_path:path}")
+async def options_handler(request: Request, full_path: str):
+    """OPTIONS request'lerini handle et (CORS preflight)"""
+    origin = request.headers.get("origin", "")
+    
+    response = Response(status_code=200)
+    
+    # Tüm origin'lere izin ver (geçici - production'da kısıtla)
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "86400"
+    
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=allowed_origins,  # Sadece liste
+    allow_origins=["*"],  # Geçici olarak tüm origin'lere izin
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
