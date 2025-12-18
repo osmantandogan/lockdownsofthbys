@@ -1895,8 +1895,8 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
                             sig_bytes = base64.b64decode(encoded)
                             sig_buffer = BytesIO(sig_bytes)
                             sig_img = XLImage(sig_buffer)
-                            sig_img.width = 80
-                            sig_img.height = 30
+                            sig_img.width = 150   # Büyütüldü
+                            sig_img.height = 55   # Büyütüldü
                             ws.add_image(sig_img, cell_address)
                             continue  # Görüntü eklendi, metin ekleme
                         except Exception as e:
@@ -2155,9 +2155,9 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                                 sig_bytes = base64.b64decode(encoded)
                                 sig_buffer = BytesIO(sig_bytes)
                                 sig_img = XLImage(sig_buffer)
-                                # İmza boyutları - daha büyük ve kalın (yazıcıda net görünsün)
-                                sig_img.width = 130   # ~4cm genişlik
-                                sig_img.height = 50   # ~1.5cm yükseklik
+                                # İmza boyutları - büyük (yazıcıda net görünsün)
+                                sig_img.width = 150   # ~5cm genişlik
+                                sig_img.height = 55   # ~1.7cm yükseklik
                                 ws.add_image(sig_img, cell_address)
                                 continue
                         except Exception as e:
