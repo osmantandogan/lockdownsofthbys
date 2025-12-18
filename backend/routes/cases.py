@@ -1943,6 +1943,8 @@ async def export_case_pdf_debug(case_id: str, request: Request):
     assigned_team = case_doc.get("assigned_team") or {}
     vehicle_info = case_doc.get("vehicle_info") or {}
     mf_vehicle_info = medical_form.get("vehicle_info") or {}  # medical_form içindeki vehicle_info
+    mf_time_info = medical_form.get("time_info") or {}  # medical_form içindeki time_info
+    mf_cpr_data = medical_form.get("cpr_data") or {}  # medical_form içindeki cpr_data
     clinical_obs = medical_form.get("clinical_obs") or {}
     
     # Önemli alanları çıkar
@@ -1952,57 +1954,60 @@ async def export_case_pdf_debug(case_id: str, request: Request):
         
         # Plaka kaynakları
         "plaka_sources": {
-            "assigned_team.vehicle": assigned_team.get("vehicle"),
+            "assigned_team.vehicle": assigned_team.get("vehicle"),  # EN DOĞRU KAYNAK
             "vehicle_info.plate": vehicle_info.get("plate"),
-            "vehicle_info.plaka": vehicle_info.get("plaka"),
-            "extended_form.vehiclePlate": extended_form.get("vehiclePlate"),
-            "mf_vehicle_info.plate": mf_vehicle_info.get("plate"),
         },
         
-        # KM kaynakları - ÖNEMLİ: medical_form.vehicle_info içinde
+        # KM kaynakları - medical_form.vehicle_info içinde
         "km_sources": {
             "mf_vehicle_info.startKm": mf_vehicle_info.get("startKm"),  # EN DOĞRU KAYNAK
             "mf_vehicle_info.endKm": mf_vehicle_info.get("endKm"),      # EN DOĞRU KAYNAK
-            "extended_form.startKm": extended_form.get("startKm"),
-            "extended_form.endKm": extended_form.get("endKm"),
-            "vehicle_info.start_km": vehicle_info.get("start_km"),
-            "vehicle_info.end_km": vehicle_info.get("end_km"),
+        },
+        
+        # Saat bilgileri - medical_form.time_info içinde
+        "time_sources": {
+            "mf_time_info.callTime": mf_time_info.get("callTime"),  # EN DOĞRU KAYNAK
+            "mf_time_info.arrivalTime": mf_time_info.get("arrivalTime"),
+            "mf_time_info.departureTime": mf_time_info.get("departureTime"),
+        },
+        
+        # CPR verileri - medical_form.cpr_data içinde
+        "cpr_sources": {
+            "mf_cpr_data.cprBy": mf_cpr_data.get("cprBy"),  # EN DOĞRU KAYNAK
+            "mf_cpr_data.cprStart": mf_cpr_data.get("cprStart"),
+            "mf_cpr_data.cprEnd": mf_cpr_data.get("cprEnd"),
+            "mf_cpr_data.cprReason": mf_cpr_data.get("cprReason"),
+        },
+        
+        # Kan şekeri - extended_form içinde
+        "bloodSugar_sources": {
+            "extended_form.bloodSugar": extended_form.get("bloodSugar"),  # EN DOĞRU KAYNAK
+            "clinical_obs.blood_sugar": clinical_obs.get("blood_sugar"),
         },
         
         # Nakledilen hastane
-        "transfer_hospital_sources": {
-            "extended_form.transferHospital": extended_form.get("transferHospital"),  # EN DOĞRU KAYNAK
-            "extended_form.nakledilenHastane": extended_form.get("nakledilenHastane"),
-            "case_doc.transfer_hospital": case_doc.get("transfer_hospital"),
-        },
+        "transfer_hospital": extended_form.get("transferHospital"),  # EN DOĞRU KAYNAK
         
         # Triyaj kodu
-        "triage_sources": {
-            "extended_form.triageCode": extended_form.get("triageCode"),  # EN DOĞRU KAYNAK
-            "case_doc.priority": case_doc.get("priority"),
-        },
+        "triage_code": extended_form.get("triageCode"),  # EN DOĞRU KAYNAK
         
-        # Clinical obs
-        "clinical_obs_sample": {
-            "blood_sugar": clinical_obs.get("blood_sugar") or clinical_obs.get("bloodSugar"),
-            "temperature": clinical_obs.get("temperature") or clinical_obs.get("temp"),
-            "motorResponse": clinical_obs.get("motorResponse"),
-            "verbalResponse": clinical_obs.get("verbalResponse"),
-            "eyeOpening": clinical_obs.get("eyeOpening"),
-        },
-        
-        # Medical form içinde ne var
-        "medical_form_keys": list(medical_form.keys()) if medical_form else [],
-        
-        # Extended form içinde ne var
-        "extended_form_keys": list(extended_form.keys()) if extended_form else [],
-        "extended_form_sample": {k: extended_form.get(k) for k in list(extended_form.keys())[:10]} if extended_form else {},
+        # Notes/Aciklamalar
+        "notes": medical_form.get("notes"),  # EN DOĞRU KAYNAK
         
         # Assigned team
         "assigned_team": assigned_team,
         
-        # Vehicle info comparison
-        "mf_vehicle_info": mf_vehicle_info,  # medical_form.vehicle_info (DOĞRU KAYNAK)
+        # Tüm medical_form.vehicle_info
+        "mf_vehicle_info": mf_vehicle_info,
+        
+        # Tüm medical_form.time_info
+        "mf_time_info": mf_time_info,
+        
+        # Tüm medical_form.cpr_data
+        "mf_cpr_data": mf_cpr_data,
+        
+        # extended_form içindeki tüm veriler
+        "extended_form": extended_form,
     }
 
 

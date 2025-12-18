@@ -84,13 +84,20 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         # extended_form'dan
         return d.get('extended_form', {}).get('onTani', '') or d.get('extended_form', {}).get('preliminaryDiagnosis', '')
     
-    # Helper: Açıklamalar
+    # Helper: Açıklamalar - medical_form.notes en doğru kaynak
     def get_aciklamalar(d):
-        return (d.get('aciklamalar', '') or 
+        mf = d.get('medical_form', {}) or {}
+        mf_extended = mf.get('extended_form', {}) or {}
+        extended = d.get('extended_form', {}) or {}
+        
+        return (mf.get('notes', '') or  # EN DOĞRU KAYNAK - medical_form.notes
+                d.get('aciklamalar', '') or 
                 d.get('notes', '') or 
-                d.get('medical_form', {}).get('notes', '') or 
-                d.get('extended_form', {}).get('aciklamalar', '') or
-                d.get('extended_form', {}).get('generalNotes', ''))
+                mf_extended.get('aciklamalar', '') or
+                mf_extended.get('generalNotes', '') or
+                extended.get('aciklamalar', '') or
+                extended.get('generalNotes', '') or
+                '')
     
     # Helper: Nakil Hastanesi (object veya string olabilir)
     def get_transfer_hospital(d):
@@ -212,20 +219,27 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'si_ambulans_ucreti': lambda d: '☑' if d.get('extended_form', {}).get('siAmbulansUcreti') else '☐',
     }
     
-    # Saat alanları (V3 formatı)
+    # Helper: time_info'yu al (medical_form içinden veya doğrudan)
+    def get_time_info(d):
+        ti = d.get('time_info', {}) or {}
+        mf = d.get('medical_form', {}) or {}
+        mf_ti = mf.get('time_info', {}) or {}  # EN DOĞRU KAYNAK
+        return {**ti, **mf_ti}  # mf_ti öncelikli
+    
+    # Saat alanları (V3 formatı) - medical_form.time_info içinden al
     time_mappings = {
-        'callTime': lambda d: format_time(d.get('time_info', {}).get('callTime') or d.get('time_info', {}).get('call_time')),
-        'arrivalSceneTime': lambda d: format_time(d.get('time_info', {}).get('arrivalTime') or d.get('time_info', {}).get('arrival_time')),
-        'arrivalPatientTime': lambda d: format_time(d.get('time_info', {}).get('patientArrivalTime') or d.get('time_info', {}).get('patient_arrival_time')),
-        'departureSceneTime': lambda d: format_time(d.get('time_info', {}).get('departureTime') or d.get('time_info', {}).get('departure_time')),
-        'arrivalHospitalTime': lambda d: format_time(d.get('time_info', {}).get('hospitalArrivalTime') or d.get('time_info', {}).get('hospital_arrival_time')),
-        'returnStationTime': lambda d: format_time(d.get('time_info', {}).get('stationReturnTime') or d.get('time_info', {}).get('return_time')),
+        'callTime': lambda d: format_time(get_time_info(d).get('callTime') or get_time_info(d).get('call_time')),
+        'arrivalSceneTime': lambda d: format_time(get_time_info(d).get('arrivalTime') or get_time_info(d).get('arrival_time')),
+        'arrivalPatientTime': lambda d: format_time(get_time_info(d).get('patientArrivalTime') or get_time_info(d).get('patient_arrival_time')),
+        'departureSceneTime': lambda d: format_time(get_time_info(d).get('departureTime') or get_time_info(d).get('departure_time')),
+        'arrivalHospitalTime': lambda d: format_time(get_time_info(d).get('hospitalArrivalTime') or get_time_info(d).get('hospital_arrival_time')),
+        'returnStationTime': lambda d: format_time(get_time_info(d).get('stationReturnTime') or get_time_info(d).get('return_time')),
         # Eski isimler için uyumluluk
-        'departureTime': lambda d: format_time(d.get('time_info', {}).get('departureTime') or d.get('time_info', {}).get('departure_time')),
-        'arrivalTime': lambda d: format_time(d.get('time_info', {}).get('arrivalTime') or d.get('time_info', {}).get('arrival_time')),
-        'patientTime': lambda d: format_time(d.get('time_info', {}).get('patientArrivalTime') or d.get('time_info', {}).get('patient_arrival_time')),
-        'hospitalTime': lambda d: format_time(d.get('time_info', {}).get('hospitalArrivalTime') or d.get('time_info', {}).get('hospital_arrival_time')),
-        'returnTime': lambda d: format_time(d.get('time_info', {}).get('stationReturnTime') or d.get('time_info', {}).get('return_time')),
+        'departureTime': lambda d: format_time(get_time_info(d).get('departureTime') or get_time_info(d).get('departure_time')),
+        'arrivalTime': lambda d: format_time(get_time_info(d).get('arrivalTime') or get_time_info(d).get('arrival_time')),
+        'patientTime': lambda d: format_time(get_time_info(d).get('patientArrivalTime') or get_time_info(d).get('patient_arrival_time')),
+        'hospitalTime': lambda d: format_time(get_time_info(d).get('hospitalArrivalTime') or get_time_info(d).get('hospital_arrival_time')),
+        'returnTime': lambda d: format_time(get_time_info(d).get('stationReturnTime') or get_time_info(d).get('return_time')),
     }
     
     # Helper: TC Kimlik No - boş değil ve geçerli formatta olmalı
@@ -281,31 +295,41 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     }
     
     # Helper: CPR verilerini al (tüm kaynaklardan)
+    # Frontend: cprBy, cprStart, cprEnd, cprReason -> medical_form.cpr_data
     def get_cpr_data(d, field):
         cpr = d.get('cpr_data', {}) or {}
         extended = d.get('extended_form', {}) or {}
         medical_form = d.get('medical_form', {}) or {}
         mf_cpr = medical_form.get('cpr_data', {}) or {}
+        mf_extended = medical_form.get('extended_form', {}) or {}
         
-        # Tüm kaynaklardan birleştir
-        all_cpr = {**mf_cpr, **cpr}
+        # Tüm kaynaklardan birleştir (mf_cpr en doğru kaynak)
+        all_cpr = {**cpr, **mf_cpr}  # mf_cpr öncelikli
+        all_extended = {**extended, **mf_extended}
         
         field_map = {
-            'start_time': (all_cpr.get('start_time') or all_cpr.get('startTime') or 
-                          all_cpr.get('baslama_zamani') or extended.get('cprStartTime') or 
-                          extended.get('cpr_baslama') or ''),
-            'stop_time': (all_cpr.get('stop_time') or all_cpr.get('stopTime') or 
-                         all_cpr.get('end_time') or all_cpr.get('bitis_zamani') or 
-                         extended.get('cprStopTime') or extended.get('cpr_bitis') or ''),
-            'stop_reason': (all_cpr.get('stop_reason') or all_cpr.get('stopReason') or 
-                           all_cpr.get('reason') or all_cpr.get('neden') or 
-                           all_cpr.get('birakma_nedeni') or extended.get('cprStopReason') or 
-                           extended.get('cpr_neden') or ''),
-            'performed': (all_cpr.get('performed') or all_cpr.get('yapildi') or 
-                         all_cpr.get('applied') or extended.get('cprYapildi') or 
-                         extended.get('cpr_yapildi') or False),
-            'performer': (all_cpr.get('performer') or all_cpr.get('uygulayan') or 
-                         extended.get('cprUygulayan') or extended.get('cpr_uygulayan') or ''),
+            # Frontend: cprStart -> start_time
+            'start_time': (all_cpr.get('cprStart') or all_cpr.get('start_time') or 
+                          all_cpr.get('startTime') or all_cpr.get('baslama_zamani') or 
+                          all_extended.get('cprStartTime') or all_extended.get('cprStart') or ''),
+            # Frontend: cprEnd -> stop_time
+            'stop_time': (all_cpr.get('cprEnd') or all_cpr.get('stop_time') or 
+                         all_cpr.get('stopTime') or all_cpr.get('end_time') or 
+                         all_cpr.get('bitis_zamani') or all_extended.get('cprStopTime') or 
+                         all_extended.get('cprEnd') or ''),
+            # Frontend: cprReason -> stop_reason
+            'stop_reason': (all_cpr.get('cprReason') or all_cpr.get('stop_reason') or 
+                           all_cpr.get('stopReason') or all_cpr.get('reason') or 
+                           all_cpr.get('neden') or all_cpr.get('birakma_nedeni') or 
+                           all_extended.get('cprStopReason') or all_extended.get('cprReason') or ''),
+            # Frontend: cprBy -> performer (değer varsa CPR yapıldı)
+            'performed': bool(all_cpr.get('cprBy') or all_cpr.get('cprStart') or 
+                         all_cpr.get('performed') or all_cpr.get('yapildi') or 
+                         all_extended.get('cprYapildi') or False),
+            # Frontend: cprBy -> performer
+            'performer': (all_cpr.get('cprBy') or all_cpr.get('performer') or 
+                         all_cpr.get('uygulayan') or all_extended.get('cprUygulayan') or 
+                         all_extended.get('cprBy') or ''),
         }
         return field_map.get(field, '')
     
@@ -357,14 +381,17 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
     
     # Kan şekeri ve ateş - birden fazla kaynak
     def get_kan_sekeri(d):
-        clinical = d.get('clinical_observations', {})
-        extended = d.get('extended_form', {})
-        vital_signs = d.get('vital_signs', [])
+        clinical = d.get('clinical_observations', {}) or {}
+        extended = d.get('extended_form', {}) or {}
+        medical_form = d.get('medical_form', {}) or {}
+        mf_extended = medical_form.get('extended_form', {}) or {}  # EN DOĞRU KAYNAK
+        vital_signs = d.get('vital_signs', []) or []
         
-        # Öncelik sırası
-        val = (clinical.get('blood_sugar', '') or 
-               clinical.get('bloodSugar', '') or
+        # Öncelik sırası - medical_form.extended_form en güvenilir
+        val = (mf_extended.get('bloodSugar', '') or  # Frontend buraya kaydediyor
                extended.get('bloodSugar', '') or
+               clinical.get('blood_sugar', '') or 
+               clinical.get('bloodSugar', '') or
                extended.get('kanSekeri', '') or
                extended.get('blood_sugar', ''))
         
