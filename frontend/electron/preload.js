@@ -26,3 +26,4 @@ contextBridge.exposeInMainWorld('isElectron', true);
 
 console.log('Healmedy Ambulans Preload yüklendi');
 
+
