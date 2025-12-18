@@ -26,6 +26,7 @@ const WarehouseManagement = () => {
   const [warehouseStock, setWarehouseStock] = useState([]);
   const [stats, setStats] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // all, active, split, empty
   
   // QR Ekleme
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -276,7 +277,22 @@ const WarehouseManagement = () => {
         destination_type: splitDestination.type
       });
       
-      toast.success(response.data.message);
+      const internalQR = response.data.internal_qr;
+      
+      // Internal QR'ı göster
+      toast.success(
+        <div>
+          <p>{response.data.message}</p>
+          <p className="text-xs mt-2 font-mono bg-gray-100 p-2 rounded">
+            Internal QR: {internalQR}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">
+            Araç ekibi bu QR'ı kullanarak stok kullanabilir
+          </p>
+        </div>,
+        { duration: 8000 }
+      );
+      
       setShowSplitDialog(false);
       setSelectedItem(null);
       loadData();
@@ -301,12 +317,21 @@ const WarehouseManagement = () => {
   };
 
   // Filtreleme
-  const filteredStock = warehouseStock.filter(item =>
-    !searchQuery || 
-    item.item_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.gtin?.includes(searchQuery) ||
-    item.lot_number?.includes(searchQuery)
-  );
+  const filteredStock = warehouseStock.filter(item => {
+    // Arama filtresi
+    const matchesSearch = !searchQuery || 
+      item.item_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.gtin?.includes(searchQuery) ||
+      item.lot_number?.includes(searchQuery);
+    
+    // Durum filtresi
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && item.remaining_items === item.total_items) ||
+      (statusFilter === 'split' && item.is_opened && item.remaining_items > 0) ||
+      (statusFilter === 'empty' && item.remaining_items === 0);
+    
+    return matchesSearch && matchesStatus;
+  });
 
   // Durum badge
   const getStatusBadge = (item) => {
@@ -409,18 +434,55 @@ const WarehouseManagement = () => {
         </Card>
       </div>
 
-      {/* Arama */}
+      {/* Arama ve Filtre */}
       <Card>
-        <CardContent className="p-4">
-          <Label>Ürün Ara</Label>
-          <div className="relative mt-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="İlaç adı, GTIN veya lot numarası ile ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+        <CardContent className="p-4 space-y-4">
+          <div>
+            <Label>Ürün Ara</Label>
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="İlaç adı, GTIN veya lot numarası ile ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="mb-2 block">Durum Filtresi</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={statusFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('all')}
+              >
+                Tümü ({warehouseStock.length})
+              </Button>
+              <Button
+                variant={statusFilter === 'active' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('active')}
+              >
+                Tam ({warehouseStock.filter(i => i.remaining_items === i.total_items).length})
+              </Button>
+              <Button
+                variant={statusFilter === 'split' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('split')}
+                className="border-orange-500 text-orange-600"
+              >
+                Parçalı ({warehouseStock.filter(i => i.is_opened && i.remaining_items > 0).length})
+              </Button>
+              <Button
+                variant={statusFilter === 'empty' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('empty')}
+              >
+                Bitti ({warehouseStock.filter(i => i.remaining_items === 0).length})
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -443,7 +505,7 @@ const WarehouseManagement = () => {
               {filteredStock.map((item) => (
                 <div 
                   key={item.id}
-                  className="p-4 hover:bg-gray-50 cursor-pointer"
+                  className={`p-4 hover:bg-gray-50 cursor-pointer ${item.is_opened && item.remaining_items > 0 ? 'border-l-4 border-orange-400' : ''}`}
                   onClick={() => showDetail(item)}
                 >
                   <div className="flex items-center justify-between">
@@ -451,6 +513,12 @@ const WarehouseManagement = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{item.item_name}</span>
                         {getStatusBadge(item)}
+                        {item.is_opened && item.remaining_items > 0 && (
+                          <Badge className="bg-orange-100 text-orange-700">
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Parçalandı
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
                         GTIN: {item.gtin} | Lot: {item.lot_number} | 
