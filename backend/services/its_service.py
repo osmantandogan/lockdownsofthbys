@@ -392,8 +392,9 @@ def parse_datamatrix(barcode: str) -> Dict:
         if exp_match:
             result["expiry_date"] = _parse_expiry_date(exp_match.group(1))
         
-        # Kutudaki Adet (30) - değişken uzunluklu ama genelde 1-8 hane
-        qty_match = re.search(r'30(\d{1,8})', full_data)
+        # Kutudaki Adet (30) - değişken uzunluklu
+        # AI (30) dan sonra gelen sayıları al, ama başka AI ile karışmaması için dikkatli ol
+        qty_match = re.search(r'(?:^|[^\d])30(\d{1,8})(?:[^\d]|$)', full_data)
         if qty_match:
             result["quantity"] = int(qty_match.group(1))
         

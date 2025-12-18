@@ -35,6 +35,7 @@ const WarehouseManagement = () => {
   const [boxQuantity, setBoxQuantity] = useState(1);
   const [itemsPerBox, setItemsPerBox] = useState(1);
   const [warehouseLocation, setWarehouseLocation] = useState('');
+  const [manualItemName, setManualItemName] = useState('');
   
   // Parçalama
   const [showSplitDialog, setShowSplitDialog] = useState(false);
@@ -118,12 +119,15 @@ const WarehouseManagement = () => {
       setParsedQR(parsed);
       
       // Eğer QR'dan kutudaki adet bilgisi gelmişse otomatik doldur
-      if (parsed.quantity) {
+      if (parsed.quantity && parsed.quantity < 1000) {  // Makul bir değer kontrolü
         setItemsPerBox(parsed.quantity);
         toast.success(`QR okundu! Kutuda ${parsed.quantity} adet`);
       } else {
         toast.success('QR kod başarıyla okundu!');
       }
+      
+      // İlaç adını da set et
+      setManualItemName(parsed.drug_name || '');
     } catch (error) {
       console.error('QR parse hatası:', error);
       toast.error(error.response?.data?.detail || 'QR kod okunamadı');
@@ -137,6 +141,11 @@ const WarehouseManagement = () => {
       return;
     }
     
+    if (!manualItemName.trim()) {
+      toast.error('İlaç adı gerekli');
+      return;
+    }
+    
     setAddingStock(true);
     try {
       await warehouseAPI.addStock({
@@ -144,13 +153,14 @@ const WarehouseManagement = () => {
         box_quantity: boxQuantity,
         items_per_box: itemsPerBox,
         warehouse_location: warehouseLocation,
-        item_name: parsedQR.drug_name
+        item_name: manualItemName.trim()
       });
       
       toast.success('Depoya eklendi!');
       setShowAddDialog(false);
       setQrCode('');
       setParsedQR(null);
+      setManualItemName('');
       setBoxQuantity(1);
       setItemsPerBox(1);
       setWarehouseLocation('');
@@ -187,18 +197,34 @@ const WarehouseManagement = () => {
         const parseResponse = await warehouseAPI.parseQR({ qr_code: qr });
         const parsed = parseResponse.data;
         
-        // Depoya ekle - QR'dan gelen adet veya varsayılan 10
+        // İlaç adı yoksa atla
+        if (!parsed.drug_name) {
+          results.errors.push({
+            qr: qr,
+            error: 'İlaç adı İTS\'den alınamadı, manuel eklemelisiniz'
+          });
+          continue;
+        }
+        
+        // Adet kontrolü - makul bir değer mi
+        let itemsPerBox = 10; // varsayılan
+        if (parsed.quantity && parsed.quantity > 0 && parsed.quantity < 1000) {
+          itemsPerBox = parsed.quantity;
+        }
+        
+        // Depoya ekle
         await warehouseAPI.addStock({
           qr_code: qr,
           box_quantity: 1,
-          items_per_box: parsed.quantity || 10,  // QR'dan gelen veya varsayılan
+          items_per_box: itemsPerBox,
           warehouse_location: '',
           item_name: parsed.drug_name
         });
         
         results.success.push({
           qr: qr,
-          name: parsed.drug_name
+          name: parsed.drug_name,
+          quantity: itemsPerBox
         });
         
       } catch (error) {
@@ -498,15 +524,16 @@ const WarehouseManagement = () => {
                 <CardContent className="p-4">
                   <p className="font-medium text-green-800">✓ QR Kod Okundu</p>
                   <div className="text-sm text-gray-700 mt-2 space-y-1">
-                    <p><strong>İlaç:</strong> {parsedQR.drug_name || 'Bilinmiyor'}</p>
                     <p><strong>GTIN:</strong> {parsedQR.gtin}</p>
                     <p><strong>Lot:</strong> {parsedQR.lot_number}</p>
                     <p><strong>SKT:</strong> {parsedQR.expiry_date || '-'}</p>
-                    {parsedQR.quantity && (
+                    {parsedQR.quantity && parsedQR.quantity < 1000 && (
                       <p><strong>Kutudaki Adet (QR'dan):</strong> {parsedQR.quantity}</p>
                     )}
-                    {parsedQR.its_verified && (
+                    {parsedQR.its_verified ? (
                       <Badge className="bg-green-600 mt-2">İTS Doğrulandı</Badge>
+                    ) : (
+                      <Badge className="bg-yellow-500 mt-2">İTS Doğrulanamadı</Badge>
                     )}
                   </div>
                 </CardContent>
@@ -515,6 +542,20 @@ const WarehouseManagement = () => {
             
             {parsedQR && (
               <>
+                <div>
+                  <Label>İlaç Adı {!parsedQR.drug_name && <span className="text-red-600">*</span>}</Label>
+                  <Input
+                    placeholder="İlaç adını girin (İTS'den gelmedi)"
+                    value={manualItemName}
+                    onChange={(e) => setManualItemName(e.target.value)}
+                  />
+                  {!parsedQR.drug_name && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      İTS'den ilaç adı alınamadı, lütfen manuel girin
+                    </p>
+                  )}
+                </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Kutu Sayısı</Label>
@@ -533,6 +574,11 @@ const WarehouseManagement = () => {
                       value={itemsPerBox}
                       onChange={(e) => setItemsPerBox(parseInt(e.target.value) || 1)}
                     />
+                    {!parsedQR.quantity && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        QR'dan adet bilgisi gelmedi
+                      </p>
+                    )}
                   </div>
                 </div>
                 
