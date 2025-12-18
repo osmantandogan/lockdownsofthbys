@@ -1,6 +1,6 @@
 /**
  * MultiLoginScreen - Çoklu Giriş Ekranı
- * Ambulans ekibi için 3'lü rol seçim ekranı (Şoför, ATT, Paramedik)
+ * Ambulans ekibi için 3'lü rol seçim ekranı (Sürücü, ATT, Paramedik)
  * Alt kısımda Merkez Giriş butonu
  */
 
@@ -83,9 +83,11 @@ const MultiLoginScreen = () => {
       {/* Logo / Başlık */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-16 h-16 bg-red-600 rounded-xl flex items-center justify-center">
-            <Heart className="h-10 w-10 text-white" />
-          </div>
+          <img 
+            src="/healmedy-logo.png" 
+            alt="Healmedy Ambulans" 
+            className="h-24 w-auto object-contain"
+          />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">HEALMEDY</h1>
         <p className="text-slate-400">Saha Ekibi Giriş Paneli</p>

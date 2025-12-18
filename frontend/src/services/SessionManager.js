@@ -1,7 +1,7 @@
 /**
  * SessionManager - Çoklu Oturum Yönetimi
  * Ambulans ekibi için tek cihazda birden fazla rol oturumu yönetimi
- * Şoför, ATT, Paramedik aynı anda oturum açık tutabilir
+ * Sürücü, ATT, Paramedik aynı anda oturum açık tutabilir
  */
 
 const SESSIONS_KEY = 'healmedy_multi_sessions';
@@ -12,7 +12,7 @@ const FIELD_ROLES = ['sofor', 'att', 'paramedik'];
 
 // Rol etiketleri
 const ROLE_LABELS = {
-  sofor: 'Şoför',
+  sofor: 'Sürücü',
   att: 'ATT',
   paramedik: 'Paramedik',
   hemsire: 'Hemşire',

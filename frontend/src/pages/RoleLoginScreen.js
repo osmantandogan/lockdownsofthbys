@@ -1,6 +1,6 @@
 /**
  * RoleLoginScreen - Rol Bazlı Giriş Ekranı
- * Belirli bir rol için giriş ekranı (Şoför, ATT, Paramedik)
+ * Belirli bir rol için giriş ekranı (Sürücü, ATT, Paramedik)
  */
 
 import React, { useState, useEffect } from 'react';

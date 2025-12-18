@@ -20,8 +20,8 @@ export const ROLES = {
 
 // Rol etiketleri
 export const ROLE_LABELS = {
-  sofor: 'Şoför',
-  bas_sofor: 'Baş Şoför',
+  sofor: 'Sürücü',
+  bas_sofor: 'Baş Sürücü',
   hemsire: 'Hemşire',
   doktor: 'Doktor',
   paramedik: 'Paramedik',
