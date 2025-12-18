@@ -53,6 +53,15 @@ const WarehouseManagement = () => {
   // İtriyat listesi
   const [suppliesList, setSuppliesList] = useState([]);
   const [suppliesLoading, setSuppliesLoading] = useState(false);
+  const [showAddSupplyDialog, setShowAddSupplyDialog] = useState(false);
+  const [newSupply, setNewSupply] = useState({
+    item_name: '',
+    quantity: 1,
+    unit: 'ADET',
+    category: 'sarf',
+    warehouse_location: ''
+  });
+  const [addingSupply, setAddingSupply] = useState(false);
   
   // Toplu Giriş
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
@@ -80,6 +89,48 @@ const WarehouseManagement = () => {
       toast.error('İtriyat listesi yüklenemedi');
     } finally {
       setSuppliesLoading(false);
+    }
+  };
+  
+  const handleAddSupply = async () => {
+    if (!newSupply.item_name.trim()) {
+      toast.error('Ürün adı gerekli');
+      return;
+    }
+    
+    setAddingSupply(true);
+    try {
+      await warehouseAPI.addSupply(newSupply);
+      toast.success('İtriyat başarıyla eklendi');
+      setShowAddSupplyDialog(false);
+      setNewSupply({
+        item_name: '',
+        quantity: 1,
+        unit: 'ADET',
+        category: 'sarf',
+        warehouse_location: ''
+      });
+      loadSuppliesList();
+    } catch (error) {
+      console.error('İtriyat eklenemedi:', error);
+      toast.error(error.response?.data?.detail || 'İtriyat eklenemedi');
+    } finally {
+      setAddingSupply(false);
+    }
+  };
+  
+  const handleDeleteSupply = async (supplyId) => {
+    if (!confirm('Bu itriyatı silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+    
+    try {
+      await warehouseAPI.deleteSupply(supplyId);
+      toast.success('İtriyat silindi');
+      loadSuppliesList();
+    } catch (error) {
+      console.error('İtriyat silinemedi:', error);
+      toast.error(error.response?.data?.detail || 'İtriyat silinemedi');
     }
   };
 
@@ -629,6 +680,18 @@ const WarehouseManagement = () => {
         </TabsContent>
         
         <TabsContent value="supplies" className="space-y-4">
+          <div className="flex justify-end">
+            {canManage && (
+              <Button 
+                onClick={() => setShowAddSupplyDialog(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                İtriyat Ekle
+              </Button>
+            )}
+          </div>
+          
           <Card>
             <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2">
@@ -647,20 +710,37 @@ const WarehouseManagement = () => {
                 </div>
               ) : (
                 <div className="divide-y max-h-[600px] overflow-y-auto">
-                  {suppliesList.map((item, idx) => (
-                    <div key={idx} className="p-4 hover:bg-gray-50">
+                  {suppliesList.map((item) => (
+                    <div key={item.id || item._id} className="p-4 hover:bg-gray-50">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium">{item.name}</div>
+                          <div className="font-medium">{item.item_name}</div>
                           <div className="text-sm text-gray-500 mt-1">
-                            Kategori: {item.category} | Birim: {item.unit}
+                            Kategori: {item.category || 'sarf'} | Birim: {item.unit || 'ADET'}
+                            {item.warehouse_location && ` | Raf: ${item.warehouse_location}`}
                           </div>
+                          {item.expiry_date && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              SKT: {new Date(item.expiry_date).toLocaleDateString('tr-TR')}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-green-600">
-                            {item.quantity}
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-green-600">
+                              {item.remaining_items || item.total_items || 0}
+                            </div>
+                            <div className="text-xs text-gray-500">{item.unit || 'ADET'}</div>
                           </div>
-                          <div className="text-xs text-gray-500">{item.unit}</div>
+                          {canManage && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteSupply(item.id || item._id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1013,6 +1093,107 @@ Her satırda bir QR kod
                 )}
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* İtriyat Ekleme Dialog */}
+      <Dialog open={showAddSupplyDialog} onOpenChange={setShowAddSupplyDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>İtriyat/Sarf Malzemesi Ekle</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Ürün Adı *</Label>
+              <Input
+                placeholder="Örn: ASPİRASYON KATATERİ NO:6"
+                value={newSupply.item_name}
+                onChange={(e) => setNewSupply({ ...newSupply, item_name: e.target.value })}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Miktar *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={newSupply.quantity}
+                  onChange={(e) => setNewSupply({ ...newSupply, quantity: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div>
+                <Label>Birim</Label>
+                <Select
+                  value={newSupply.unit}
+                  onValueChange={(value) => setNewSupply({ ...newSupply, unit: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADET">ADET</SelectItem>
+                    <SelectItem value="PAKET">PAKET</SelectItem>
+                    <SelectItem value="KUTU">KUTU</SelectItem>
+                    <SelectItem value="ÇİFT">ÇİFT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label>Kategori</Label>
+              <Select
+                value={newSupply.category}
+                onValueChange={(value) => setNewSupply({ ...newSupply, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sarf">Sarf Malzemesi</SelectItem>
+                  <SelectItem value="tibbi_sarf">Tıbbi Sarf</SelectItem>
+                  <SelectItem value="tibbi_cihaz">Tıbbi Cihaz</SelectItem>
+                  <SelectItem value="temizlik">Temizlik</SelectItem>
+                  <SelectItem value="kiyafet">Kıyafet</SelectItem>
+                  <SelectItem value="malzeme">Malzeme</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Raf Konumu (Opsiyonel)</Label>
+              <Input
+                placeholder="örn: Raf-A-12"
+                value={newSupply.warehouse_location}
+                onChange={(e) => setNewSupply({ ...newSupply, warehouse_location: e.target.value })}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddSupplyDialog(false)}>
+              İptal
+            </Button>
+            <Button 
+              onClick={handleAddSupply}
+              disabled={addingSupply || !newSupply.item_name.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {addingSupply ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Ekleniyor...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ekle
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

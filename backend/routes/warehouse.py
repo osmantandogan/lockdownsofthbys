@@ -791,32 +791,111 @@ async def scan_internal_qr(request: Request):
 
 @router.get("/supplies/list")
 async def get_supplies_list(request: Request):
-    """Sarf malzemeleri ve itriyat listesi"""
-    import json
-    import os
+    """Sarf malzemeleri ve itriyat listesi (MongoDB'den)"""
+    user = await get_current_user(request)
     
     try:
-        # JSON dosyasını oku
-        json_path = os.path.join(os.path.dirname(__file__), "..", "data", "non_drug_supplies.json")
-        with open(json_path, "r", encoding="utf-8") as f:
-            supplies_data = json.load(f)
+        # MongoDB'den sarf malzemelerini getir
+        supplies = await warehouse_stock.find({
+            "category": {"$in": ["sarf", "tibbi_sarf", "tibbi_cihaz", "temizlik", "kiyafet", "malzeme"]}
+        }).to_list(length=1000)
         
-        # Tüm kategorileri birleştir
-        all_supplies = []
-        for category, items in supplies_data.items():
-            for item in items:
-                item["category"] = category
-                all_supplies.append(item)
+        # ObjectId'leri string'e çevir
+        for item in supplies:
+            item["id"] = str(item["_id"])
+            item["_id"] = str(item["_id"])
         
         return {
             "success": True,
-            "supplies": all_supplies,
-            "categories": list(supplies_data.keys()),
-            "total": len(all_supplies)
+            "supplies": supplies,
+            "total": len(supplies)
         }
     except Exception as e:
         logger.error(f"Sarf malzemeleri listesi yüklenemedi: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Liste yüklenemedi: {str(e)}")
+
+
+@router.post("/supplies/add")
+async def add_supply(request: Request):
+    """İtriyat/Sarf malzemesi ekle"""
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    data = await request.json()
+    
+    item_name = data.get("item_name", "").strip()
+    quantity = int(data.get("quantity", 1))
+    unit = data.get("unit", "ADET")
+    category = data.get("category", "sarf")
+    expiry_date = data.get("expiry_date")  # Opsiyonel
+    
+    if not item_name:
+        raise HTTPException(status_code=400, detail="Ürün adı gerekli")
+    
+    if quantity <= 0:
+        raise HTTPException(status_code=400, detail="Miktar 0'dan büyük olmalı")
+    
+    # Expiry date parse
+    expiry_dt = None
+    if expiry_date:
+        try:
+            expiry_dt = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
+        except:
+            pass
+    
+    # MongoDB'ye ekle
+    stock_item = {
+        "_id": str(uuid.uuid4()),
+        "qr_code": f"MANUAL-{uuid.uuid4().hex[:12]}",  # Manuel giriş için fake QR
+        "gtin": "",
+        "item_name": item_name,
+        "lot_number": "",
+        "expiry_date": expiry_dt,
+        "serial_number": None,
+        "box_quantity": 1,
+        "items_per_box": quantity,
+        "total_items": quantity,
+        "remaining_items": quantity,
+        "is_opened": False,
+        "unit": unit,
+        "warehouse_location": data.get("warehouse_location"),
+        "category": category,
+        "status": "active",
+        "added_by": user.id,
+        "added_by_name": user.name,
+        "added_at": get_turkey_time(),
+        "updated_at": get_turkey_time(),
+        "its_verified": False,
+        "its_data": None
+    }
+    
+    await warehouse_stock.insert_one(stock_item)
+    
+    logger.info(f"İtriyat eklendi: {item_name} x{quantity} - {user.name}")
+    
+    return {
+        "success": True,
+        "message": "İtriyat başarıyla eklendi",
+        "item": {**stock_item, "id": stock_item["_id"]}
+    }
+
+
+@router.delete("/supplies/{supply_id}")
+async def delete_supply(supply_id: str, request: Request):
+    """İtriyat/Sarf malzemesi sil"""
+    user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    item = await warehouse_stock.find_one({"_id": supply_id})
+    if not item:
+        raise HTTPException(status_code=404, detail="İtriyat bulunamadı")
+    
+    # Sadece sarf malzemeleri silinebilir
+    if item.get("category") not in ["sarf", "tibbi_sarf", "tibbi_cihaz", "temizlik", "kiyafet", "malzeme"]:
+        raise HTTPException(status_code=400, detail="Bu ürün itriyat değil")
+    
+    await warehouse_stock.delete_one({"_id": supply_id})
+    
+    logger.info(f"İtriyat silindi: {item.get('item_name')} - {user.name}")
+    
+    return {"success": True, "message": "İtriyat silindi"}
 
 
 @router.post("/internal-qr/{qr_id}/use")

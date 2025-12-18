@@ -300,6 +300,8 @@ export const warehouseAPI = {
   
   // Sarf Malzemeleri / İtriyat
   getSuppliesList: () => api.get('/warehouse/supplies/list'),
+  addSupply: (data) => api.post('/warehouse/supplies/add', data),
+  deleteSupply: (supplyId) => api.delete(`/warehouse/supplies/${supplyId}`),
   
   // Transfer Talepleri
   getTransfers: (params) => api.get('/warehouse/transfers', { params }),
