@@ -1938,11 +1938,12 @@ async def export_case_pdf_debug(case_id: str, request: Request):
     if not case_doc:
         return {"error": "Case not found"}
     
-    medical_form = case_doc.get("medical_form", {})
-    extended_form = medical_form.get("extended_form", {})
-    assigned_team = case_doc.get("assigned_team", {})
-    vehicle_info = case_doc.get("vehicle_info", {})
-    clinical_obs = medical_form.get("clinical_obs", {})
+    medical_form = case_doc.get("medical_form") or {}
+    extended_form = medical_form.get("extended_form") or {}
+    assigned_team = case_doc.get("assigned_team") or {}
+    vehicle_info = case_doc.get("vehicle_info") or {}
+    mf_vehicle_info = medical_form.get("vehicle_info") or {}  # medical_form içindeki vehicle_info
+    clinical_obs = medical_form.get("clinical_obs") or {}
     
     # Önemli alanları çıkar
     return {
@@ -1955,10 +1956,13 @@ async def export_case_pdf_debug(case_id: str, request: Request):
             "vehicle_info.plate": vehicle_info.get("plate"),
             "vehicle_info.plaka": vehicle_info.get("plaka"),
             "extended_form.vehiclePlate": extended_form.get("vehiclePlate"),
+            "mf_vehicle_info.plate": mf_vehicle_info.get("plate"),
         },
         
-        # KM kaynakları
+        # KM kaynakları - ÖNEMLİ: medical_form.vehicle_info içinde
         "km_sources": {
+            "mf_vehicle_info.startKm": mf_vehicle_info.get("startKm"),  # EN DOĞRU KAYNAK
+            "mf_vehicle_info.endKm": mf_vehicle_info.get("endKm"),      # EN DOĞRU KAYNAK
             "extended_form.startKm": extended_form.get("startKm"),
             "extended_form.endKm": extended_form.get("endKm"),
             "vehicle_info.start_km": vehicle_info.get("start_km"),
@@ -1967,26 +1971,38 @@ async def export_case_pdf_debug(case_id: str, request: Request):
         
         # Nakledilen hastane
         "transfer_hospital_sources": {
-            "extended_form.transferHospital": extended_form.get("transferHospital"),
+            "extended_form.transferHospital": extended_form.get("transferHospital"),  # EN DOĞRU KAYNAK
             "extended_form.nakledilenHastane": extended_form.get("nakledilenHastane"),
             "case_doc.transfer_hospital": case_doc.get("transfer_hospital"),
         },
         
         # Triyaj kodu
         "triage_sources": {
-            "extended_form.triageCode": extended_form.get("triageCode"),
+            "extended_form.triageCode": extended_form.get("triageCode"),  # EN DOĞRU KAYNAK
             "case_doc.priority": case_doc.get("priority"),
         },
         
         # Clinical obs
-        "clinical_obs_keys": list(clinical_obs.keys()) if clinical_obs else [],
-        "clinical_obs": clinical_obs,
+        "clinical_obs_sample": {
+            "blood_sugar": clinical_obs.get("blood_sugar") or clinical_obs.get("bloodSugar"),
+            "temperature": clinical_obs.get("temperature") or clinical_obs.get("temp"),
+            "motorResponse": clinical_obs.get("motorResponse"),
+            "verbalResponse": clinical_obs.get("verbalResponse"),
+            "eyeOpening": clinical_obs.get("eyeOpening"),
+        },
         
-        # Extended form keys
+        # Medical form içinde ne var
+        "medical_form_keys": list(medical_form.keys()) if medical_form else [],
+        
+        # Extended form içinde ne var
         "extended_form_keys": list(extended_form.keys()) if extended_form else [],
+        "extended_form_sample": {k: extended_form.get(k) for k in list(extended_form.keys())[:10]} if extended_form else {},
         
         # Assigned team
         "assigned_team": assigned_team,
+        
+        # Vehicle info comparison
+        "mf_vehicle_info": mf_vehicle_info,  # medical_form.vehicle_info (DOĞRU KAYNAK)
     }
 
 
