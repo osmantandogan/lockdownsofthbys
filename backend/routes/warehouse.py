@@ -201,12 +201,15 @@ async def add_warehouse_stock(request: Request):
     items_per_box = its_data.get("quantity") or data.get("items_per_box", 1)
     warehouse_location = data.get("warehouse_location", "")  # Raf konumu
     
+    # İlaç adı - manuel veya İTS'den
+    item_name = data.get("item_name") or its_data.get("drug_name") or "Bilinmeyen"
+    
     # Kaydet
     doc = {
         "_id": str(uuid.uuid4()),
         "qr_code": qr_code,
-        "gtin": its_data["gtin"],
-        "item_name": its_data.get("drug_name", data.get("item_name", "Bilinmeyen")),
+        "gtin": its_data.get("gtin", ""),
+        "item_name": item_name,
         "lot_number": its_data.get("lot_number", ""),
         "expiry_date": its_data.get("expiry_date"),
         "serial_number": its_data.get("serial_number"),
@@ -216,14 +219,14 @@ async def add_warehouse_stock(request: Request):
         "remaining_items": box_quantity * items_per_box,
         "is_opened": False,
         "unit": "KUTU",
-        "warehouse_location": warehouse_location,
+        "warehouse_location": warehouse_location or "",
         "category": data.get("category", "ilac"),
         "status": "active",
         "added_by": user.id,
         "added_by_name": user.name,
         "added_at": get_turkey_time(),
         "updated_at": get_turkey_time(),
-        "its_verified": its_data["its_verified"],
+        "its_verified": its_data.get("its_verified", False),
         "its_data": its_data.get("drug_info")
     }
     

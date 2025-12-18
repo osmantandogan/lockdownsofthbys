@@ -182,31 +182,17 @@ async def startup_event():
     # Initialize ITS (İlaç Takip Sistemi) service with credentials
     from services.its_service import configure_its_service
     
-    # Önce environment variable'lardan dene
-    its_username = os.environ.get('ITS_USERNAME')
-    its_password = os.environ.get('ITS_PASSWORD')
-    its_use_test = os.environ.get('ITS_USE_TEST', 'true').lower() == 'true'
+    # HARDCODED İTS Credentials (Geçici)
+    its_username = "86836847871710000"
+    its_password = "Ntpf405"
+    its_use_test = True
     
-    # Eğer env'de yoksa MongoDB'daki ayarları kontrol et
-    if not its_username or not its_password:
-        its_config = await db["settings"].find_one({"key": "its_config"})
-        if its_config:
-            its_username = its_config.get("username")
-            its_password = its_config.get("password")  # Eğer kaydetmişsek
-            its_use_test = its_config.get("use_test", True)
-            logger.info("İTS credentials loaded from MongoDB settings")
-    else:
-        logger.info("İTS credentials loaded from environment variables")
-    
-    if its_username and its_password:
-        configure_its_service(
-            username=its_username,
-            password=its_password,
-            use_test=its_use_test
-        )
-        logger.info(f"ITS service configured (test_mode={its_use_test})")
-    else:
-        logger.warning("İTS credentials not found in env or MongoDB. Please configure via Settings page.")
+    configure_its_service(
+        username=its_username,
+        password=its_password,
+        use_test=its_use_test
+    )
+    logger.info(f"İTS service configured (HARDCODED, test_mode={its_use_test})")
     
     # Eski stok verilerini temizle ve yeni sistemi başlat
     try:
