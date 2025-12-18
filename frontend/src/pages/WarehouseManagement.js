@@ -316,6 +316,22 @@ const WarehouseManagement = () => {
     }
   };
 
+  const handleDelete = async (itemId) => {
+    if (!confirm('Bu ürünü depodan silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+    
+    try {
+      await warehouseAPI.deleteStock(itemId);
+      toast.success('Ürün silindi');
+      setShowDetailDialog(false);
+      loadData();
+    } catch (error) {
+      console.error('Silme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Ürün silinemedi');
+    }
+  };
+
   // Filtreleme
   const filteredStock = warehouseStock.filter(item => {
     // Arama filtresi
@@ -966,6 +982,15 @@ Her satırda bir QR kod
           )}
           
           <DialogFooter>
+            {canManage && detailItem && (
+              <Button 
+                variant="destructive"
+                onClick={() => handleDelete(detailItem.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Sil
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
               Kapat
             </Button>

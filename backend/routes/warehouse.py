@@ -354,13 +354,10 @@ async def delete_warehouse_stock(stock_id: str, request: Request):
     if not item:
         raise HTTPException(status_code=404, detail="Stok kaydı bulunamadı")
     
-    # Eğer parçalanmışsa silinemesin
-    if item.get("remaining_items", 0) < item.get("total_items", 0):
-        raise HTTPException(status_code=400, detail="Parçalanmış ürün silinemez. Önce tüm transferleri iptal edin.")
-    
+    # Parçalanmış veya boş olsa bile silebilir (force delete)
     await warehouse_stock.delete_one({"_id": stock_id})
     
-    logger.info(f"Depo stok silindi: {item.get('item_name')} - {user.name}")
+    logger.info(f"Depo stok silindi: {item.get('item_name')} (Kalan: {item.get('remaining_items')}) - {user.name}")
     
     return {"success": True, "message": "Stok kaydı silindi"}
 

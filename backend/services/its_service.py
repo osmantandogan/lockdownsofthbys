@@ -377,10 +377,13 @@ def parse_datamatrix(barcode: str) -> Dict:
             exp_str = exp_match.group(1)
             result["expiry_date"] = _parse_expiry_date(exp_str)
         
-        # Kutudaki Adet (30)
+        # Kutudaki Adet (30) - parantezli format
         qty_match = re.search(r'\(30\)(\d+)', clean_barcode)
         if qty_match:
-            result["quantity"] = int(qty_match.group(1))
+            qty = int(qty_match.group(1))
+            # Makul değer kontrolü (1-1000 arası)
+            if 1 <= qty <= 1000:
+                result["quantity"] = qty
     
     # Yöntem 2: GS ayraçlı veya ayraçsız format
     # 01GTIN17SKT10LOT21SERIAL veya 01GTIN|17SKT|10LOT|21SERIAL
