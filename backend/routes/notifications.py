@@ -301,6 +301,50 @@ async def get_fcm_status(request: Request):
     }
 
 
+@router.get("/fcm/debug")
+async def get_fcm_debug(request: Request):
+    """
+    FCM debug bilgileri - Admin endpoint
+    Tüm kullanıcıların FCM durumunu ve Firebase init durumunu gösterir
+    """
+    from auth_utils import require_roles
+    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    from services.firebase_service import FIREBASE_AVAILABLE, _firebase_initialized, initialize_firebase
+    
+    # Firebase durumu
+    firebase_status = {
+        "firebase_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": _firebase_initialized,
+        "can_initialize": initialize_firebase() if not _firebase_initialized else True
+    }
+    
+    # Saha personeli (sofor, att, paramedik) FCM token durumu
+    field_users = await users_collection.find({
+        "role": {"$in": ["sofor", "bas_sofor", "att", "paramedik"]},
+        "is_active": True
+    }).to_list(100)
+    
+    user_fcm_status = []
+    for u in field_users:
+        fcm_tokens = u.get("fcm_tokens", [])
+        user_fcm_status.append({
+            "user_id": u["_id"],
+            "name": u.get("name"),
+            "role": u.get("role"),
+            "fcm_token_count": len(fcm_tokens),
+            "has_valid_token": any(t.get("token") for t in fcm_tokens),
+            "last_registered": fcm_tokens[0].get("registered_at") if fcm_tokens else None
+        })
+    
+    return {
+        "firebase_status": firebase_status,
+        "field_users_fcm": user_fcm_status,
+        "total_field_users": len(field_users),
+        "users_with_tokens": len([u for u in user_fcm_status if u["has_valid_token"]])
+    }
+
+
 # ==================== Bildirim Tercihleri ====================
 
 @router.get("/preferences")
