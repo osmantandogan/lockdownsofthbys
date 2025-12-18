@@ -789,6 +789,36 @@ async def scan_internal_qr(request: Request):
     return qr_item
 
 
+@router.get("/supplies/list")
+async def get_supplies_list(request: Request):
+    """Sarf malzemeleri ve itriyat listesi"""
+    import json
+    import os
+    
+    try:
+        # JSON dosyasını oku
+        json_path = os.path.join(os.path.dirname(__file__), "..", "data", "non_drug_supplies.json")
+        with open(json_path, "r", encoding="utf-8") as f:
+            supplies_data = json.load(f)
+        
+        # Tüm kategorileri birleştir
+        all_supplies = []
+        for category, items in supplies_data.items():
+            for item in items:
+                item["category"] = category
+                all_supplies.append(item)
+        
+        return {
+            "success": True,
+            "supplies": all_supplies,
+            "categories": list(supplies_data.keys()),
+            "total": len(all_supplies)
+        }
+    except Exception as e:
+        logger.error(f"Sarf malzemeleri listesi yüklenemedi: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Liste yüklenemedi: {str(e)}")
+
+
 @router.post("/internal-qr/{qr_id}/use")
 async def use_internal_qr_stock(qr_id: str, request: Request):
     """

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Lokasyon Yönetimi API
 - Healmedy Lokasyonları (sabit)
 - Saha Lokasyonları (araç, carter, depo)

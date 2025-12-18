@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { 
   Warehouse, QrCode, Package, TrendingDown, Clock, 
   AlertTriangle, Search, Plus, MapPin, ArrowRight,
-  Scissors, Truck, RefreshCw, BarChart3, Box
+  Scissors, Truck, RefreshCw, BarChart3, Box, Trash2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -50,6 +50,10 @@ const WarehouseManagement = () => {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   
+  // İtriyat listesi
+  const [suppliesList, setSuppliesList] = useState([]);
+  const [suppliesLoading, setSuppliesLoading] = useState(false);
+  
   // Toplu Giriş
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
   const [bulkQRText, setBulkQRText] = useState('');
@@ -63,7 +67,21 @@ const WarehouseManagement = () => {
   useEffect(() => {
     loadData();
     loadVehicles();
+    loadSuppliesList();
   }, []);
+  
+  const loadSuppliesList = async () => {
+    setSuppliesLoading(true);
+    try {
+      const response = await warehouseAPI.getSuppliesList();
+      setSuppliesList(response.data.supplies || []);
+    } catch (error) {
+      console.error('İtriyat listesi yüklenemedi:', error);
+      toast.error('İtriyat listesi yüklenemedi');
+    } finally {
+      setSuppliesLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -503,8 +521,16 @@ const WarehouseManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Stok Listesi */}
-      <Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="stock">İlaç Stoğu</TabsTrigger>
+          <TabsTrigger value="supplies">İtriyat Listesi</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="stock" className="space-y-4">
+          {/* Stok Listesi */}
+          <Card>
         <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -556,21 +582,42 @@ const WarehouseManagement = () => {
                         <div className="text-xs text-gray-500">
                           ({item.box_quantity} kutu)
                         </div>
+                        {item.items_per_box && (
+                          <div className="text-xs text-green-600 font-medium mt-1">
+                            Kutu başına: {item.items_per_box} adet
+                          </div>
+                        )}
                       </div>
                       
-                      {canSplit && item.remaining_items > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openSplitDialog(item);
-                          }}
-                        >
-                          <Scissors className="h-4 w-4 mr-1" />
-                          Parçala
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        {canSplit && item.remaining_items > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSplitDialog(item);
+                            }}
+                          >
+                            <Scissors className="h-4 w-4 mr-1" />
+                            Parçala
+                          </Button>
+                        )}
+                        {canManage && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+                                handleDelete(item.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -579,6 +626,51 @@ const WarehouseManagement = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+        
+        <TabsContent value="supplies" className="space-y-4">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                İtriyat ve Sarf Malzemeleri ({suppliesList.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {suppliesLoading ? (
+                <div className="p-8 text-center">
+                  <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                </div>
+              ) : suppliesList.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  İtriyat listesi bulunamadı
+                </div>
+              ) : (
+                <div className="divide-y max-h-[600px] overflow-y-auto">
+                  {suppliesList.map((item, idx) => (
+                    <div key={idx} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            Kategori: {item.category} | Birim: {item.unit}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-green-600">
+                            {item.quantity}
+                          </div>
+                          <div className="text-xs text-gray-500">{item.unit}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* QR Ekleme Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -611,8 +703,10 @@ const WarehouseManagement = () => {
                     <p><strong>GTIN:</strong> {parsedQR.gtin}</p>
                     <p><strong>Lot:</strong> {parsedQR.lot_number}</p>
                     <p><strong>SKT:</strong> {parsedQR.expiry_date || '-'}</p>
-                    {parsedQR.quantity && parsedQR.quantity < 1000 && (
-                      <p><strong>Kutudaki Adet (QR'dan):</strong> {parsedQR.quantity}</p>
+                    {parsedQR.quantity && parsedQR.quantity < 1000 ? (
+                      <p className="text-green-700"><strong>✓ Kutudaki Adet (QR'dan):</strong> {parsedQR.quantity}</p>
+                    ) : (
+                      <p className="text-orange-600"><strong>⚠ Kutudaki Adet:</strong> QR kodunda AI (30) bilgisi yok. Manuel girin.</p>
                     )}
                     {parsedQR.its_verified ? (
                       <Badge className="bg-green-600 mt-2">İTS Doğrulandı</Badge>

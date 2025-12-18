@@ -298,6 +298,9 @@ export const warehouseAPI = {
   // İstatistikler
   getStats: () => api.get('/warehouse/stats'),
   
+  // Sarf Malzemeleri / İtriyat
+  getSuppliesList: () => api.get('/warehouse/supplies/list'),
+  
   // Transfer Talepleri
   getTransfers: (params) => api.get('/warehouse/transfers', { params }),
   getTransferDetail: (transferId) => api.get(`/warehouse/transfers/${transferId}`),
