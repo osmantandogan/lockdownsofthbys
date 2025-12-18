@@ -1817,9 +1817,10 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
         # Logo - Önce dosyadan, yoksa mapping'den yükle
         logo_cell = logo_info.get("cell", "A1") if logo_info else "A1"
         
-        # Logo hücrelerindeki içeriği temizle
+        # Logo hücrelerindeki içeriği temizle (A1:C6 arası - sadece logo alanı)
+        # D sütunundan başlayan metinlere dokunma
         for row in range(1, 7):
-            for col in range(1, 5):
+            for col in range(1, 4):  # A-C sütunları (D dahil değil)
                 try:
                     cell = ws.cell(row=row, column=col)
                     cell.value = None
@@ -2021,9 +2022,10 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         # Logo - Önce dosyadan, yoksa mapping'den yükle
         logo_cell = logo_info.get("cell", "A1") if logo_info else "A1"
         
-        # Logo hücrelerindeki tüm içeriği temizle (A1:D6 arası - geniş alan)
+        # Logo hücrelerindeki tüm içeriği temizle (A1:C6 arası - sadece logo alanı)
+        # D sütunundan başlayan metinlere dokunma
         for row in range(1, 7):  # 1-6 satırları
-            for col in range(1, 5):  # A-D sütunları
+            for col in range(1, 4):  # A-C sütunları (D dahil değil)
                 try:
                     cell = ws.cell(row=row, column=col)
                     cell.value = None
