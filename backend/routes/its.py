@@ -66,7 +66,7 @@ async def configure_its(data: ITSConfigRequest, request: Request):
         {"$set": {
             "key": "its_config",
             "username": data.username,
-            # Şifreyi kaydetme - güvenlik
+            "password": data.password,  # Şifreyi de kaydet (MongoDB şifreli bağlantıda)
             "use_test": data.use_test,
             "configured": True
         }},
