@@ -16,9 +16,22 @@ from datetime import datetime, timedelta
 from services.its_service import parse_datamatrix, get_drug_info_from_barcode
 import uuid
 import logging
+import json
+import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# GTIN → İlaç Adı mapping yükle
+GTIN_DRUG_MAP = {}
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    gtin_file = os.path.join(script_dir, '..', 'data', 'gtin_drug_mapping.json')
+    with open(gtin_file, 'r', encoding='utf-8') as f:
+        GTIN_DRUG_MAP = json.load(f)
+    logger.info(f"GTIN drug mapping yüklendi: {len(GTIN_DRUG_MAP)} ilaç")
+except Exception as e:
+    logger.warning(f"GTIN mapping yüklenemedi: {e}")
 
 # Koleksiyonlar
 warehouse_stock = db.warehouse_stock              # Depo stoğu (kutular)
@@ -143,6 +156,17 @@ async def parse_its_qr(qr_code: str) -> dict:
                 its_verified = True
         except Exception as e:
             logger.warning(f"İTS ilaç bilgisi alınamadı (devam ediliyor): {str(e)}")
+        
+        # İTS'den gelmediyse local GTIN mapping'den bak
+        if not drug_name and parsed.get("gtin"):
+            gtin = parsed.get("gtin")
+            # GTIN'i 14 haneye normalize et
+            gtin_normalized = gtin.zfill(14)
+            drug_name = GTIN_DRUG_MAP.get(gtin_normalized) or GTIN_DRUG_MAP.get(gtin)
+            if drug_name:
+                logger.info(f"İlaç adı local mapping'den bulundu: {drug_name}")
+            else:
+                logger.warning(f"İlaç adı ne İTS'den ne de local mapping'den bulunamadı: GTIN {gtin}")
         
         return {
             "gtin": parsed.get("gtin"),
