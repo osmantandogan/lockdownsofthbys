@@ -1931,42 +1931,63 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
 
 @router.get("/{case_id}/export-pdf-debug")
 async def export_case_pdf_debug(case_id: str, request: Request):
-    """PDF export debug - her adımı kontrol eder"""
+    """PDF export debug - tüm verileri göster"""
     user = await get_current_user(request)
     
-    result = {"steps": []}
-    
-    # Step 1: Case kontrolü
     case_doc = await cases_collection.find_one({"_id": case_id})
-    result["steps"].append({"step": "case_found", "ok": case_doc is not None})
     if not case_doc:
-        return result
+        return {"error": "Case not found"}
     
-    # Step 2: Mapping kontrolü
-    mapping_doc = await db.vaka_form_mappings.find_one({"_id": "default"})
-    result["steps"].append({"step": "mapping_found", "ok": mapping_doc is not None})
-    result["steps"].append({"step": "flat_mappings_count", "count": len(mapping_doc.get("flat_mappings", {})) if mapping_doc else 0})
+    medical_form = case_doc.get("medical_form", {})
+    extended_form = medical_form.get("extended_form", {})
+    assigned_team = case_doc.get("assigned_team", {})
+    vehicle_info = case_doc.get("vehicle_info", {})
+    clinical_obs = medical_form.get("clinical_obs", {})
     
-    # Step 3: Template kontrolü
-    import os
-    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    template_path = os.path.join(backend_dir, "templates", "VAKA_FORMU_TEMPLATE.xlsx")
-    result["steps"].append({"step": "template_exists", "ok": os.path.exists(template_path), "path": template_path})
-    
-    # Step 4: LibreOffice kontrolü
-    import shutil
-    libreoffice_path = shutil.which("libreoffice")
-    result["steps"].append({"step": "libreoffice_found", "ok": libreoffice_path is not None, "path": libreoffice_path})
-    
-    # Step 5: Temp dir kontrolü
-    temp_dir = os.path.join(backend_dir, "temp")
-    result["steps"].append({"step": "temp_dir_exists", "ok": os.path.exists(temp_dir), "path": temp_dir})
-    
-    # Step 6: Logo kontrolü
-    logo_info = mapping_doc.get("logo", {}) if mapping_doc else {}
-    result["steps"].append({"step": "logo_url_exists", "ok": bool(logo_info.get("url"))})
-    
-    return result
+    # Önemli alanları çıkar
+    return {
+        "case_id": case_id,
+        "case_number": case_doc.get("case_number"),
+        
+        # Plaka kaynakları
+        "plaka_sources": {
+            "assigned_team.vehicle": assigned_team.get("vehicle"),
+            "vehicle_info.plate": vehicle_info.get("plate"),
+            "vehicle_info.plaka": vehicle_info.get("plaka"),
+            "extended_form.vehiclePlate": extended_form.get("vehiclePlate"),
+        },
+        
+        # KM kaynakları
+        "km_sources": {
+            "extended_form.startKm": extended_form.get("startKm"),
+            "extended_form.endKm": extended_form.get("endKm"),
+            "vehicle_info.start_km": vehicle_info.get("start_km"),
+            "vehicle_info.end_km": vehicle_info.get("end_km"),
+        },
+        
+        # Nakledilen hastane
+        "transfer_hospital_sources": {
+            "extended_form.transferHospital": extended_form.get("transferHospital"),
+            "extended_form.nakledilenHastane": extended_form.get("nakledilenHastane"),
+            "case_doc.transfer_hospital": case_doc.get("transfer_hospital"),
+        },
+        
+        # Triyaj kodu
+        "triage_sources": {
+            "extended_form.triageCode": extended_form.get("triageCode"),
+            "case_doc.priority": case_doc.get("priority"),
+        },
+        
+        # Clinical obs
+        "clinical_obs_keys": list(clinical_obs.keys()) if clinical_obs else [],
+        "clinical_obs": clinical_obs,
+        
+        # Extended form keys
+        "extended_form_keys": list(extended_form.keys()) if extended_form else [],
+        
+        # Assigned team
+        "assigned_team": assigned_team,
+    }
 
 
 @router.get("/{case_id}/export-pdf-mapped")
@@ -2038,11 +2059,11 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         if os.path.exists(logo_path):
             try:
                 img = XLImage(logo_path)
-                # Logo boyutları - orantılı ve net
-                img.width = 180   # Genişlik
-                img.height = 90   # Yükseklik (orantılı)
-                ws.add_image(img, logo_cell)
-                logger.info(f"Logo dosyadan eklendi: {logo_cell}, {img.width}x{img.height}")
+                # Logo boyutları - küçük ve orantılı (3 sütun x 5 satır alanına sığacak)
+                img.width = 120   # ~3 sütun genişliği
+                img.height = 60   # ~5 satır yüksekliği
+                ws.add_image(img, "A1")  # Sol üst köşeye sabitle
+                logger.info(f"Logo dosyadan eklendi: A1, {img.width}x{img.height}")
                 logo_added = True
             except Exception as e:
                 logger.warning(f"Logo dosyadan eklenemedi: {e}")
@@ -2054,13 +2075,12 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 if logo_url.startswith("data:image"):
                     header, encoded = logo_url.split(",", 1)
                     logo_data = base64.b64decode(encoded)
-                    from io import BytesIO
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
-                    img.width = 180
-                    img.height = 90
-                    ws.add_image(img, logo_cell)
-                    logger.info(f"Logo base64'ten eklendi: {logo_cell}")
+                    img.width = 120
+                    img.height = 60
+                    ws.add_image(img, "A1")
+                    logger.info(f"Logo base64'ten eklendi: A1")
             except Exception as e:
                 logger.warning(f"Logo base64'ten eklenemedi: {e}")
         
