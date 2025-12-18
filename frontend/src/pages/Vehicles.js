@@ -110,14 +110,31 @@ const Vehicles = () => {
 
   const handleCreate = async () => {
     try {
-      await vehiclesAPI.create(formData);
+      // Boş alanları temizle
+      const submitData = { ...formData };
+      if (!submitData.last_inspection_date || submitData.last_inspection_date === '') {
+        delete submitData.last_inspection_date;
+      }
+      if (!submitData.station_code || submitData.station_code === '') {
+        delete submitData.station_code;
+      }
+      
+      await vehiclesAPI.create(submitData);
       toast.success('Araç başarıyla oluşturuldu');
       setDialogOpen(false);
-      setFormData({ plate: '', type: 'ambulans', km: 0, fuel_level: 100, status: 'musait', last_inspection_date: '', next_maintenance_km: 0 });
+      setFormData({ plate: '', type: 'ambulans', km: 0, fuel_level: 100, status: 'musait', station_code: '', last_inspection_date: '', next_maintenance_km: 0 });
       setEditMode(false);
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Araç oluşturulamadı');
+      console.error('Create vehicle error:', error);
+      const errorDetail = error.response?.data?.detail;
+      if (Array.isArray(errorDetail)) {
+        // Validation errors
+        const errorMessages = errorDetail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+        toast.error(`Doğrulama hatası: ${errorMessages}`);
+      } else {
+        toast.error(errorDetail || 'Araç oluşturulamadı');
+      }
     }
   };
 

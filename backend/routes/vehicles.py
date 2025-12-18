@@ -12,7 +12,20 @@ async def create_vehicle(data: VehicleCreate, request: Request):
     """Create new vehicle (admin only)"""
     await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
     
-    new_vehicle = Vehicle(**data.model_dump())
+    # Parse last_inspection_date if it's a string
+    vehicle_data = data.model_dump()
+    if vehicle_data.get("last_inspection_date") and isinstance(vehicle_data["last_inspection_date"], str):
+        try:
+            from datetime import datetime as dt
+            vehicle_data["last_inspection_date"] = dt.fromisoformat(vehicle_data["last_inspection_date"].replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            # If parsing fails, try date format
+            try:
+                vehicle_data["last_inspection_date"] = dt.strptime(vehicle_data["last_inspection_date"], "%Y-%m-%d")
+            except (ValueError, AttributeError):
+                vehicle_data["last_inspection_date"] = None
+    
+    new_vehicle = Vehicle(**vehicle_data)
     vehicle_dict = new_vehicle.model_dump(by_alias=True)
     
     await vehicles_collection.insert_one(vehicle_dict)

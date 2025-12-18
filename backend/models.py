@@ -262,6 +262,7 @@ class Vehicle(BaseModel):
 class VehicleCreate(BaseModel):
     plate: str
     type: VehicleType
+    status: VehicleStatus = "musait"
     km: int = 0
     fuel_level: Optional[int] = None
     station_code: Optional[str] = None
