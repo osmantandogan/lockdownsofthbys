@@ -172,8 +172,7 @@ async def create_case(data: CaseCreate, request: Request):
                         "priority": case_dict.get("priority", "Normal"),
                         "created_at": datetime.now().strftime("%d.%m.%Y %H:%M"),
                         "url": f"/dashboard/cases/{case_dict['_id']}"
-                    },
-                    channels=[NotificationChannel.SMS, NotificationChannel.WEB_PUSH, NotificationChannel.IN_APP]
+                    }
                 )
                 logger.info(f"Sent case creation notifications to {len(recipients)} recipients")
         except Exception as e:
