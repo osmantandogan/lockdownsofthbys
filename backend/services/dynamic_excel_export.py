@@ -161,7 +161,7 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
             pass
         return str(d.get('total_km', '') or d.get('vehicle_info', {}).get('total_km', '') or '')
     
-    # Helper: Plaka - birden fazla kaynak (assigned_team.vehicle en güvenilir)
+    # Helper: Plaka - birden fazla kaynak (assigned_team.vehicle_plate en güvenilir)
     def get_vehicle_plate(d):
         assigned_team = d.get('assigned_team', {}) or {}
         vehicle_info = d.get('vehicle_info', {}) or {}
@@ -169,7 +169,9 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         mf_vehicle_info = medical_form.get('vehicle_info', {}) or {}
         extended_form = d.get('extended_form', {}) or medical_form.get('extended_form', {}) or {}
         
-        plate = (assigned_team.get('vehicle', '') or  # En güvenilir kaynak
+        # Debug: assigned_team'den plaka al - DOĞRU ALAN: vehicle_plate
+        plate = (assigned_team.get('vehicle_plate', '') or  # EN DOĞRU KAYNAK - vehicle_plate!
+                 assigned_team.get('vehicle', '') or  # Eski format
                  d.get('vehicle_plate', '') or 
                  mf_vehicle_info.get('plate', '') or
                  mf_vehicle_info.get('plaka', '') or

@@ -1833,8 +1833,9 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
         if os.path.exists(logo_path):
             try:
                 img = XLImage(logo_path)
-                img.width = 180
-                img.height = 90
+                img.width = 200   # Daha büyük ve net
+                img.height = 75   # Orantılı
+                img.anchor = logo_cell
                 ws.add_image(img, logo_cell)
                 logo_added = True
             except Exception as e:
@@ -1850,8 +1851,9 @@ async def export_case_with_vaka_form_mapping(case_id: str, request: Request):
                     from io import BytesIO
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
-                    img.width = 180
-                    img.height = 90
+                    img.width = 200   # Daha büyük ve net
+                    img.height = 75   # Orantılı
+                    img.anchor = logo_cell
                     ws.add_image(img, logo_cell)
             except Exception as e:
                 logger.warning(f"Logo base64'ten eklenemedi: {e}")
@@ -2080,9 +2082,15 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
         if os.path.exists(logo_path):
             try:
                 img = XLImage(logo_path)
-                # Logo boyutları - küçük ve orantılı (3 sütun x 5 satır alanına sığacak)
-                img.width = 120   # ~3 sütun genişliği
-                img.height = 60   # ~5 satır yüksekliği
+                # Logo boyutları - orantılı ve görünür (A1:C5 alanına sığacak)
+                # A4 Portrait için uygun boyut
+                img.width = 200   # ~4 sütun genişliği (daha büyük ve net)
+                img.height = 75   # ~5 satır yüksekliği (orantılı)
+                
+                # Anchor ile konumlandır - sol üst köşeye sabitle
+                from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, TwoCellAnchor
+                img.anchor = 'A1'  # A1 hücresine sabitle
+                
                 ws.add_image(img, "A1")  # Sol üst köşeye sabitle
                 logger.info(f"Logo dosyadan eklendi: A1, {img.width}x{img.height}")
                 logo_added = True
@@ -2098,10 +2106,11 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                     logo_data = base64.b64decode(encoded)
                     img_buffer = BytesIO(logo_data)
                     img = XLImage(img_buffer)
-                    img.width = 120
-                    img.height = 60
+                    img.width = 200   # Daha büyük ve net
+                    img.height = 75   # Orantılı
+                    img.anchor = 'A1'
                     ws.add_image(img, "A1")
-                    logger.info(f"Logo base64'ten eklendi: A1")
+                    logger.info(f"Logo base64'ten eklendi: A1, {img.width}x{img.height}")
             except Exception as e:
                 logger.warning(f"Logo base64'ten eklenemedi: {e}")
         
