@@ -555,80 +555,111 @@ async def create_stock_request(data: StockRequestCreate, request: Request):
 @router.post("/requests/from-case/{case_id}")
 async def create_request_from_case(case_id: str, request: Request):
     """Vakada kullanılan malzemelerden otomatik talep oluştur"""
-    user = await get_current_user(request)
-    
-    # Request body'yi güvenli şekilde al
     try:
-        data = await request.json()
-    except:
-        data = {}
-    
-    # Vaka bilgisini al
-    cases_collection = db.cases
-    case = await cases_collection.find_one({"_id": case_id})
-    if not case:
-        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
-    
-    # Kullanılan ilaçları al
-    medication_usage_collection = db.medication_usage
-    usages = await medication_usage_collection.find({"case_id": case_id}).to_list(100)
-    
-    if not usages:
-        raise HTTPException(status_code=400, detail="Bu vakada kullanılan malzeme bulunamadı")
-    
-    # Araç bilgisi
-    vehicle_id = case.get("assigned_team", {}).get("vehicle_id")
-    vehicle = None
-    if vehicle_id:
-        vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
-    
-    target_location_id = vehicle_id or case_id
-    target_location_type = "vehicle" if vehicle else "waiting_point"
-    target_location_name = vehicle.get("plate", "") if vehicle else "Bilinmeyen"
-    
-    # Talep öğelerini oluştur
-    items = []
-    for usage in usages:
-        item_name = usage.get("name") or usage.get("item_name") or "Bilinmeyen Malzeme"
-        if not item_name or item_name.strip() == "":
-            continue  # İsimsiz öğeleri atla
+        user = await get_current_user(request)
         
-        items.append(StockRequestItem(
-            name=item_name,
-            quantity=int(usage.get("quantity", 1)) or 1,
-            unit=usage.get("unit", "ADET"),
-            used_from=usage.get("source_type", "vehicle"),
-            used_from_name=usage.get("source_location_name") or usage.get("vehicle_plate") or ""
-        ))
-    
-    if not items:
-        raise HTTPException(status_code=400, detail="Geçerli malzeme bulunamadı")
-    
-    # Case number güvenli al
-    case_number = case.get("case_number") or "Bilinmeyen"
-    requester_note = data.get("note") or f"Vaka #{case_number} için otomatik talep"
-    
-    stock_request = StockRequest(
-        requester_id=user.id,
-        requester_name=user.name,
-        target_location_id=target_location_id,
-        target_location_type=target_location_type,
-        target_location_name=target_location_name,
-        items=items,
-        related_case_id=case_id,
-        related_case_no=case_number,
-        requester_note=requester_note
-    )
-    
-    await stock_requests_collection.insert_one(stock_request.model_dump(by_alias=True))
-    
-    logger.info(f"Vakadan otomatik talep oluşturuldu: {case_id} by {user.name} ({len(items)} malzeme)")
-    
-    return {
-        "success": True,
-        "message": f"{len(items)} malzeme için talep oluşturuldu",
-        "request_id": stock_request.id
-    }
+        # Request body'yi güvenli şekilde al
+        try:
+            data = await request.json()
+        except:
+            data = {}
+        
+        # Vaka bilgisini al
+        cases_collection = db.cases
+        case = await cases_collection.find_one({"_id": case_id})
+        if not case:
+            raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+        
+        # Kullanılan ilaçları al
+        medication_usage_collection = db.medication_usage
+        usages = await medication_usage_collection.find({"case_id": case_id}).to_list(100)
+        
+        if not usages:
+            raise HTTPException(status_code=400, detail="Bu vakada kullanılan malzeme bulunamadı")
+        
+        logger.info(f"Vakadan {len(usages)} kullanım kaydı bulundu: {case_id}")
+        
+        # Araç bilgisi
+        vehicle_id = case.get("assigned_team", {}).get("vehicle_id") if case.get("assigned_team") else None
+        vehicle = None
+        if vehicle_id:
+            vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
+        
+        target_location_id = vehicle_id or case_id
+        target_location_type: str = "vehicle" if vehicle else "waiting_point"
+        target_location_name = (vehicle.get("plate", "") if vehicle else "Bilinmeyen") or "Bilinmeyen"
+        
+        # Talep öğelerini oluştur
+        items = []
+        for usage in usages:
+            try:
+                item_name = usage.get("name") or usage.get("item_name") or "Bilinmeyen Malzeme"
+                if not item_name or item_name.strip() == "":
+                    logger.warning(f"İsimsiz kullanım kaydı atlandı: {usage}")
+                    continue
+                
+                quantity = usage.get("quantity", 1)
+                if isinstance(quantity, str):
+                    quantity = int(quantity) if quantity.isdigit() else 1
+                quantity = int(quantity) or 1
+                
+                items.append(StockRequestItem(
+                    name=item_name,
+                    quantity=quantity,
+                    unit=usage.get("unit", "ADET"),
+                    used_from=usage.get("source_type", "vehicle"),
+                    used_from_name=usage.get("source_location_name") or usage.get("vehicle_plate") or ""
+                ))
+            except Exception as e:
+                logger.error(f"Kullanım kaydı parse edilemedi: {usage}, hata: {str(e)}")
+                continue
+        
+        if not items:
+            raise HTTPException(status_code=400, detail="Geçerli malzeme bulunamadı")
+        
+        # Case number güvenli al
+        case_number = case.get("case_number") or "Bilinmeyen"
+        requester_note = data.get("note") or f"Vaka #{case_number} için otomatik talep"
+        
+        # StockRequest oluştur
+        try:
+            stock_request = StockRequest(
+                requester_id=user.id,
+                requester_name=user.name or "Bilinmeyen",
+                target_location_id=target_location_id,
+                target_location_type=target_location_type,  # type: ignore
+                target_location_name=target_location_name,
+                items=items,
+                related_case_id=case_id,
+                related_case_no=case_number,
+                requester_note=requester_note
+            )
+        except Exception as e:
+            logger.error(f"StockRequest oluşturulamadı: {str(e)}")
+            logger.error(f"Data: target_location_id={target_location_id}, target_location_type={target_location_type}, target_location_name={target_location_name}")
+            raise HTTPException(status_code=500, detail=f"Talep oluşturulamadı: {str(e)}")
+        
+        # MongoDB'ye kaydet
+        try:
+            request_dict = stock_request.model_dump(by_alias=True)
+            await stock_requests_collection.insert_one(request_dict)
+        except Exception as e:
+            logger.error(f"MongoDB insert hatası: {str(e)}")
+            logger.error(f"Request dict: {request_dict}")
+            raise HTTPException(status_code=500, detail=f"Veritabanı hatası: {str(e)}")
+        
+        logger.info(f"Vakadan otomatik talep oluşturuldu: {case_id} by {user.name} ({len(items)} malzeme)")
+        
+        return {
+            "success": True,
+            "message": f"{len(items)} malzeme için talep oluşturuldu",
+            "request_id": stock_request.id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Vakadan talep oluşturma hatası: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Beklenmeyen hata: {str(e)}")
 
 
 @router.patch("/requests/{request_id}/approve")
