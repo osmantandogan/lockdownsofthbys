@@ -160,13 +160,30 @@ async def parse_its_qr(qr_code: str) -> dict:
         # İTS'den gelmediyse local GTIN mapping'den bak
         if not drug_name and parsed.get("gtin"):
             gtin = parsed.get("gtin")
-            # GTIN'i 14 haneye normalize et
-            gtin_normalized = gtin.zfill(14)
-            drug_name = GTIN_DRUG_MAP.get(gtin_normalized) or GTIN_DRUG_MAP.get(gtin)
+            
+            # GTIN'i farklı formatlarda dene
+            # 1. Olduğu gibi
+            drug_name = GTIN_DRUG_MAP.get(gtin)
+            
+            # 2. Başındaki 0'ları kaldır
+            if not drug_name:
+                gtin_no_leading_zero = gtin.lstrip('0')
+                drug_name = GTIN_DRUG_MAP.get(gtin_no_leading_zero)
+            
+            # 3. 14 haneye doldur
+            if not drug_name:
+                gtin_14 = gtin.zfill(14)
+                drug_name = GTIN_DRUG_MAP.get(gtin_14)
+            
+            # 4. 13 haneye indir (EAN-13)
+            if not drug_name and len(gtin) == 14:
+                gtin_13 = gtin[1:]  # İlk rakamı at
+                drug_name = GTIN_DRUG_MAP.get(gtin_13)
+            
             if drug_name:
                 logger.info(f"İlaç adı local mapping'den bulundu: {drug_name}")
             else:
-                logger.warning(f"İlaç adı ne İTS'den ne de local mapping'den bulunamadı: GTIN {gtin}")
+                logger.warning(f"İlaç adı bulunamadı: GTIN {gtin} (denenen: {gtin}, {gtin.lstrip('0')}, {gtin.zfill(14)})")
         
         return {
             "gtin": parsed.get("gtin"),
