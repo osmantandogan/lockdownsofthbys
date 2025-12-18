@@ -88,15 +88,25 @@ class ITSService:
         
         # Yeni token al
         try:
+            # Access token URL'ini doğru oluştur
+            if self.use_test:
+                access_token_url = f"{ITS_TEST_BASE_URL}/token/app/accesstoken/"
+            else:
+                access_token_url = f"{ITS_BASE_URL}/token/app/accesstoken/"
+            
+            logger.info(f"İTS token alınıyor: {access_token_url}")
+            
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    self.token_url.replace("/token/", "/accesstoken/"),
+                    access_token_url,
                     json={
                         "username": self.username,
                         "password": self.password
                     },
                     headers={"Content-Type": "application/json"}
                 )
+                
+                logger.info(f"İTS token response: {response.status_code}")
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -110,14 +120,14 @@ class ITSService:
                     self.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
                     self.refresh_expires_at = datetime.utcnow() + timedelta(seconds=refresh_expires_in)
                     
-                    logger.info("İTS token alındı, geçerlilik: %s", self.token_expires_at)
+                    logger.info("İTS token alındı başarıyla!")
                     return self.access_token
                 else:
                     logger.error("İTS token alınamadı: %s - %s", response.status_code, response.text)
                     return None
                     
         except Exception as e:
-            logger.error("İTS token hatası: %s", str(e))
+            logger.error("İTS token hatası: %s", str(e), exc_info=True)
             return None
     
     async def _refresh_token(self) -> bool:

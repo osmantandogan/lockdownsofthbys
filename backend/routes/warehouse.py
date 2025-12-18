@@ -131,8 +131,18 @@ async def parse_its_qr(qr_code: str) -> dict:
         if not parsed or "gtin" not in parsed:
             raise ValueError("QR kod parse edilemedi")
         
-        # İTS'den ilaç bilgisi al
-        drug_info = get_drug_info_from_barcode(qr_code)
+        # İTS'den ilaç bilgisi al (opsiyonel - hata olsa da devam et)
+        drug_info = None
+        drug_name = None
+        its_verified = False
+        
+        try:
+            drug_info = get_drug_info_from_barcode(qr_code)
+            if drug_info:
+                drug_name = drug_info.get("name")
+                its_verified = True
+        except Exception as e:
+            logger.warning(f"İTS ilaç bilgisi alınamadı (devam ediliyor): {str(e)}")
         
         return {
             "gtin": parsed.get("gtin"),
@@ -140,13 +150,13 @@ async def parse_its_qr(qr_code: str) -> dict:
             "expiry_date": parsed.get("expiry_date"),
             "serial_number": parsed.get("serial_number"),
             "quantity": parsed.get("quantity"),  # AI (30) - Kutudaki adet
-            "drug_name": drug_info.get("name") if drug_info else None,
+            "drug_name": drug_name,
             "drug_info": drug_info,
             "parsed": parsed,
-            "its_verified": drug_info is not None
+            "its_verified": its_verified
         }
     except Exception as e:
-        logger.error(f"İTS QR parse hatası: {str(e)}")
+        logger.error(f"QR parse hatası: {str(e)}")
         raise HTTPException(status_code=400, detail=f"QR kod okunamadı: {str(e)}")
 
 
