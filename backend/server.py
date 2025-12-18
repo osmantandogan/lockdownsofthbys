@@ -64,12 +64,13 @@ async def options_handler(request: Request, full_path: str):
     
     response = Response(status_code=200)
     
-    # Tüm origin'lere izin ver (geçici - production'da kısıtla)
-    if origin:
+    # Origin kontrolü - allowed_origins listesinde veya .ldserp.com ile bitiyorsa izin ver
+    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
         response.headers["Access-Control-Max-Age"] = "86400"
     
     return response
@@ -77,7 +78,8 @@ async def options_handler(request: Request, full_path: str):
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],  # Geçici olarak tüm origin'lere izin
+    allow_origins=allowed_origins,  # Explicit origin list (["*"] ile credentials çalışmaz)
+    allow_origin_regex=r"https?://.*\.ldserp\.com",  # .ldserp.com ile biten tüm origin'lere izin ver
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
