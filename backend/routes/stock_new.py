@@ -719,7 +719,8 @@ async def create_request_from_case(case_id: str, request: Request):
         raise HTTPException(status_code=400, detail="Bu vakada kullanılan malzeme yok")
     
     # Araç bilgisi
-    vehicle_id = case.get("assigned_team", {}).get("vehicle_id")
+    assigned_team = case.get("assigned_team") or {}
+    vehicle_id = assigned_team.get("vehicle_id") if isinstance(assigned_team, dict) else None
     vehicle = await db.vehicles.find_one({"_id": vehicle_id}) if vehicle_id else None
     
     location_id = vehicle_id or case_id
@@ -991,7 +992,8 @@ async def get_case_available_stock(case_id: str, request: Request):
         vehicle_id = None
         case = await db.cases.find_one({"_id": case_id})
         if case and case.get("assigned_team"):
-            vehicle_id = case.get("assigned_team", {}).get("vehicle_id")
+            assigned_team = case.get("assigned_team") or {}
+            vehicle_id = assigned_team.get("vehicle_id") if isinstance(assigned_team, dict) else None
         
         # 2. Vakada araç yoksa, kullanıcının bugünkü vardiyasındaki aracı bul
         if not vehicle_id:
