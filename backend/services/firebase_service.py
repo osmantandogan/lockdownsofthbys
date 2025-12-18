@@ -87,7 +87,7 @@ async def send_fcm_notification(
     priority: str = "high"
 ) -> bool:
     """
-    Tek bir cihaza FCM bildirimi gönder
+    Tek bir cihaza FCM bildirimi gönder (DATA-ONLY)
     
     Args:
         token: FCM device token
@@ -105,36 +105,25 @@ async def send_fcm_notification(
         return False
     
     try:
-        # Android notification ayarları
+        # DATA-ONLY Android config - notification payload YOK!
         android_config = messaging.AndroidConfig(
-            priority="high" if priority == "high" else "normal",
-            notification=messaging.AndroidNotification(
-                title=title,
-                body=body,
-                icon="ic_notification",
-                color="#dc2626",
-                channel_id=f"{notification_type}_channel",
-                priority="max" if notification_type == "emergency" else "high"
-            )
+            priority="high",  # Her zaman high priority
+            ttl=0,  # Anında teslim
         )
         
-        # Data payload
+        # Data payload - tüm bildirim bilgisi burada
         notification_data = {
             "title": title,
             "body": body,
             "type": notification_type,
-            "priority": priority,
+            "priority": "critical" if notification_type in ["emergency", "new_case"] else priority,
             "timestamp": datetime.utcnow().isoformat()
         }
         if data:
             notification_data.update(data)
         
-        # Mesaj oluştur
+        # DATA-ONLY mesaj - notification payload yok
         message = messaging.Message(
-            notification=messaging.Notification(
-                title=title,
-                body=body
-            ),
             android=android_config,
             data=notification_data,
             token=token
@@ -142,7 +131,7 @@ async def send_fcm_notification(
         
         # Gönder
         response = messaging.send(message)
-        logger.info(f"FCM notification sent: {response}")
+        logger.info(f"FCM DATA-ONLY notification sent: {response}")
         return True
         
     except messaging.UnregisteredError:
@@ -164,6 +153,12 @@ async def send_fcm_to_multiple(
     """
     Birden fazla cihaza FCM bildirimi gönder
     
+    ÖNEMLİ: DATA-ONLY mesaj gönderiyoruz çünkü:
+    - notification payload olduğunda, uygulama arka plandayken
+      Android sistem bildirimi gösterir ve onMessageReceived çağrılmaz
+    - data-only mesajda her zaman onMessageReceived çağrılır
+    - Böylece custom alarm ses ve titreşim kodu çalışabilir
+    
     Returns:
         {"success_count": int, "failure_count": int, "failed_tokens": list}
     """
@@ -177,36 +172,31 @@ async def send_fcm_to_multiple(
         return {"success_count": 0, "failure_count": 0, "failed_tokens": []}
     
     try:
-        # Android notification ayarları
+        # DATA-ONLY mesaj için Android config - notification payload YOK!
+        # Bu sayede uygulama arka planda olsa bile onMessageReceived çağrılır
         android_config = messaging.AndroidConfig(
-            priority="high" if priority == "high" else "normal",
-            notification=messaging.AndroidNotification(
-                title=title,
-                body=body,
-                icon="ic_notification",
-                color="#dc2626",
-                channel_id=f"{notification_type}_channel",
-                priority="max" if notification_type == "emergency" else "high"
-            )
+            priority="high",  # Her zaman high priority (data mesajlar için önemli)
+            ttl=0,  # Anında teslim, cache'leme yok
+            # notification YOKK! Data-only mesaj olacak
         )
         
-        # Data payload
+        # Data payload - tüm bildirim bilgisi burada
         notification_data = {
             "title": title,
             "body": body,
             "type": notification_type,
-            "priority": priority,
-            "timestamp": datetime.utcnow().isoformat()
+            "priority": "critical" if notification_type in ["emergency", "new_case"] else priority,
+            "timestamp": datetime.utcnow().isoformat(),
+            "click_action": "FLUTTER_NOTIFICATION_CLICK"  # Compatibility
         }
         if data:
             notification_data.update(data)
         
-        # MulticastMessage oluştur
+        logger.info(f"📢 Sending FCM DATA-ONLY message: type={notification_type}, tokens={len(tokens)}")
+        
+        # MulticastMessage - NOTIFICATION PAYLOAD YOK, sadece DATA!
         message = messaging.MulticastMessage(
-            notification=messaging.Notification(
-                title=title,
-                body=body
-            ),
+            # notification=None -> Bu mesaj DATA-ONLY olacak
             android=android_config,
             data=notification_data,
             tokens=tokens
@@ -223,7 +213,7 @@ async def send_fcm_to_multiple(
                 if send_response.exception:
                     logger.warning(f"FCM send failed for token {tokens[idx][:20]}...: {send_response.exception}")
         
-        logger.info(f"FCM multicast: {response.success_count} success, {response.failure_count} failed")
+        logger.info(f"✅ FCM multicast: {response.success_count} success, {response.failure_count} failed (DATA-ONLY)")
         
         return {
             "success_count": response.success_count,

@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -43,18 +44,20 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     private static Vibrator emergencyVibrator;
     private static int emergencyNotificationId = -1;
     private static Handler alarmHandler;
+    private static PowerManager.WakeLock wakeLock;
     private static final long ALARM_DURATION_MS = 60000; // 60 saniye
 
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "🚀 HealmedyFirebaseMessagingService created");
         createNotificationChannels();
     }
 
     @Override
     public void onNewToken(@NonNull String token) {
         super.onNewToken(token);
-        Log.d(TAG, "New FCM Token: " + token);
+        Log.d(TAG, "🔑 New FCM Token: " + token.substring(0, Math.min(20, token.length())) + "...");
         
         // Token'ı backend'e gönder
         sendTokenToServer(token);
@@ -64,13 +67,24 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
         
-        Log.d(TAG, "Message received from: " + remoteMessage.getFrom());
+        Log.d(TAG, "═══════════════════════════════════════════════════════");
+        Log.d(TAG, "📬 MESSAGE RECEIVED from: " + remoteMessage.getFrom());
+        Log.d(TAG, "📬 Message ID: " + remoteMessage.getMessageId());
 
         // Data payload
         Map<String, String> data = remoteMessage.getData();
+        Log.d(TAG, "📬 Data payload size: " + data.size());
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            Log.d(TAG, "📬 Data: " + entry.getKey() + " = " + entry.getValue());
+        }
         
-        // Notification payload
+        // Notification payload (if any)
         RemoteMessage.Notification notification = remoteMessage.getNotification();
+        if (notification != null) {
+            Log.d(TAG, "📬 Notification payload: title=" + notification.getTitle() + ", body=" + notification.getBody());
+        } else {
+            Log.d(TAG, "📬 No notification payload (DATA-ONLY message) ✓");
+        }
 
         String title = "HealMedy Bildirimi";
         String body = "Yeni bildiriminiz var";
@@ -78,23 +92,57 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         String caseId = null;
         String priority = "normal";
 
-        // Data'dan al
+        // Data'dan al (DATA-ONLY mesajlarda tüm bilgi burada)
         if (data.size() > 0) {
             title = data.getOrDefault("title", title);
             body = data.getOrDefault("body", body);
             type = data.getOrDefault("type", type);
             caseId = data.get("case_id");
             priority = data.getOrDefault("priority", priority);
+            
+            Log.d(TAG, "📬 Parsed - type: " + type + ", priority: " + priority);
         }
 
-        // Notification payload'dan al (öncelikli)
+        // Notification payload'dan al (eğer varsa, öncelikli)
         if (notification != null) {
             if (notification.getTitle() != null) title = notification.getTitle();
             if (notification.getBody() != null) body = notification.getBody();
         }
 
+        // Wake lock al - ekran kapalıyken bile çalışması için
+        acquireWakeLock();
+
         // Bildirimi göster
         showNotification(title, body, type, caseId, priority);
+        
+        Log.d(TAG, "═══════════════════════════════════════════════════════");
+    }
+
+    private void acquireWakeLock() {
+        try {
+            if (wakeLock == null || !wakeLock.isHeld()) {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                wakeLock = pm.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "HealMedy:EmergencyAlarm"
+                );
+                wakeLock.acquire(ALARM_DURATION_MS + 10000); // Alarm süresi + 10 saniye
+                Log.d(TAG, "🔋 WakeLock acquired for emergency alarm");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error acquiring wake lock: " + e.getMessage());
+        }
+    }
+
+    private void releaseWakeLock() {
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+                Log.d(TAG, "🔋 WakeLock released");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error releasing wake lock: " + e.getMessage());
+        }
     }
 
     private void showNotification(String title, String body, String type, String caseId, String priority) {
@@ -117,11 +165,17 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         String channelId = CHANNEL_GENERAL;
         boolean isEmergency = false;
         
-        if ("emergency".equals(type) || "critical".equals(priority) || "new_case".equals(type)) {
+        // Emergency, critical, new_case veya priority=critical olduğunda acil alarm çal
+        if ("emergency".equals(type) || "critical".equals(priority) || 
+            "new_case".equals(type) || "case_assigned".equals(type)) {
             channelId = CHANNEL_EMERGENCY;
             isEmergency = true;
+            Log.d(TAG, "🚨 EMERGENCY notification detected! type=" + type + ", priority=" + priority);
         } else if ("case".equals(type)) {
             channelId = CHANNEL_CASE;
+            Log.d(TAG, "📋 Case notification detected");
+        } else {
+            Log.d(TAG, "🔔 General notification detected");
         }
 
         // Bildirim oluştur
@@ -136,6 +190,8 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             .setColor(Color.parseColor("#dc2626"));
 
         if (isEmergency) {
+            Log.d(TAG, "🚨 Building EMERGENCY notification...");
+            
             notificationBuilder
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -154,6 +210,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             notificationBuilder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "✓ ANLAŞILDI", dismissPendingIntent);
             
             // Acil alarm başlat
+            Log.d(TAG, "🚨 Starting emergency alarm...");
             startEmergencyAlarm();
             emergencyNotificationId = notificationId;
             
@@ -166,31 +223,77 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(notificationId, notificationBuilder.build());
         
-        Log.d(TAG, "Notification shown: " + title + " (emergency: " + isEmergency + ")");
+        Log.d(TAG, "✅ Notification shown: " + title + " (emergency: " + isEmergency + ", id: " + notificationId + ")");
     }
     
     private void startEmergencyAlarm() {
+        Log.d(TAG, "🔊 startEmergencyAlarm() called");
+        
+        // Önce mevcut alarmı durdur
         stopEmergencyAlarm();
+        
         try {
-            // Önce custom siren sesini dene (res/raw/emergency_siren.mp3)
+            // 1. Ses URI'sini belirle
             Uri sirenUri = null;
+            
+            // Önce custom siren sesini dene (res/raw/emergency_siren.mp3)
             int sirenResId = getResources().getIdentifier("emergency_siren", "raw", getPackageName());
             
             if (sirenResId != 0) {
                 sirenUri = Uri.parse("android.resource://" + getPackageName() + "/" + sirenResId);
-                Log.d(TAG, "Using custom siren sound");
+                Log.d(TAG, "🔊 Using CUSTOM siren sound: " + sirenUri);
             } else {
-                // Custom siren yoksa, alarm sesini kullan
+                // Custom siren yoksa, sistem alarm sesini kullan
                 sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                Log.d(TAG, "🔊 Custom siren not found, trying system alarm");
+                
                 if (sirenUri == null) {
                     sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+                    Log.d(TAG, "🔊 Alarm not found, trying ringtone");
                 }
                 if (sirenUri == null) {
                     sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    Log.d(TAG, "🔊 Ringtone not found, using notification");
                 }
-                Log.d(TAG, "Using system alarm sound");
+                Log.d(TAG, "🔊 Using SYSTEM sound: " + sirenUri);
             }
             
+            if (sirenUri == null) {
+                Log.e(TAG, "❌ No sound URI found! Cannot play alarm.");
+                return;
+            }
+            
+            // 2. Ses seviyesini MAKSIMUM yap
+            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            
+            // Önceki ses seviyelerini logla
+            Log.d(TAG, "🔊 Current volumes - Alarm: " + am.getStreamVolume(AudioManager.STREAM_ALARM) + 
+                       "/" + am.getStreamMaxVolume(AudioManager.STREAM_ALARM));
+            
+            // Tüm ses kanallarını maksimuma çek
+            try {
+                am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0);
+                am.setStreamVolume(AudioManager.STREAM_RING, am.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
+                am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, am.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION), 0);
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
+                Log.d(TAG, "🔊 All volumes set to MAX");
+            } catch (SecurityException e) {
+                Log.w(TAG, "⚠️ Cannot set volume: " + e.getMessage());
+            }
+            
+            // 3. Sessiz modu devre dışı bırak
+            try {
+                int currentMode = am.getRingerMode();
+                Log.d(TAG, "🔊 Current ringer mode: " + currentMode);
+                if (currentMode != AudioManager.RINGER_MODE_NORMAL) {
+                    am.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+                    Log.d(TAG, "🔊 Ringer mode set to NORMAL");
+                }
+            } catch (SecurityException e) {
+                Log.w(TAG, "⚠️ Cannot change ringer mode: " + e.getMessage());
+            }
+            
+            // 4. MediaPlayer oluştur
             emergencyMediaPlayer = new MediaPlayer();
             emergencyMediaPlayer.setDataSource(this, sirenUri);
             emergencyMediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
@@ -200,76 +303,118 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
                 .build());
             emergencyMediaPlayer.setLooping(true);
             
-            // Ses seviyesini MAKSIMUM yap
-            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            // Hata dinleyicisi
+            emergencyMediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e(TAG, "❌ MediaPlayer error: what=" + what + ", extra=" + extra);
+                return false;
+            });
             
-            // Tüm ses kanallarını maksimuma çek
-            am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0);
-            am.setStreamVolume(AudioManager.STREAM_RING, am.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
-            am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, am.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION), 0);
-            am.setStreamVolume(AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
+            // Hazırlık tamamlandı dinleyicisi
+            emergencyMediaPlayer.setOnPreparedListener(mp -> {
+                Log.d(TAG, "🔊 MediaPlayer prepared, starting playback...");
+                mp.start();
+                Log.d(TAG, "🚨🚨🚨 EMERGENCY ALARM PLAYING AT MAXIMUM VOLUME! 🚨🚨🚨");
+            });
             
-            // Sessiz modu devre dışı bırak (DND bypass)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                try {
-                    am.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
-                } catch (SecurityException e) {
-                    Log.w(TAG, "Cannot change ringer mode: " + e.getMessage());
-                }
-            }
+            // Async prepare
+            emergencyMediaPlayer.prepareAsync();
             
-            emergencyMediaPlayer.prepare();
-            emergencyMediaPlayer.start();
-            
-            // Titreşimi başlat
+            // 5. Titreşimi başlat
             startEmergencyVibration();
             
-            // 60 saniye sonra otomatik dur
+            // 6. 60 saniye sonra otomatik dur
             alarmHandler = new Handler(Looper.getMainLooper());
-            alarmHandler.postDelayed(HealmedyFirebaseMessagingService::stopEmergencyAlarm, ALARM_DURATION_MS);
+            alarmHandler.postDelayed(() -> {
+                Log.d(TAG, "⏰ Alarm timeout reached, stopping...");
+                stopEmergencyAlarm();
+            }, ALARM_DURATION_MS);
             
-            Log.d(TAG, "🚨 Emergency alarm started at MAXIMUM volume!");
+            Log.d(TAG, "✅ Emergency alarm setup complete");
+            
         } catch (Exception e) { 
-            Log.e(TAG, "Error starting alarm", e); 
+            Log.e(TAG, "❌ Error starting alarm: " + e.getMessage(), e); 
         }
     }
     
     private void startEmergencyVibration() {
         try {
+            Log.d(TAG, "📳 Starting emergency vibration...");
+            
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 VibratorManager vm = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
                 emergencyVibrator = vm.getDefaultVibrator();
             } else {
                 emergencyVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             }
+            
             if (emergencyVibrator != null && emergencyVibrator.hasVibrator()) {
-                long[] pattern = {0, 1000, 500, 1000, 500, 1000, 500};
+                // Güçlü titreşim deseni: 1sn titreşim, 0.5sn bekleme, tekrar
+                long[] pattern = {0, 1000, 500, 1000, 500, 1000, 500, 1000, 500};
+                
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    emergencyVibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
+                    emergencyVibrator.vibrate(VibrationEffect.createWaveform(pattern, 0)); // 0 = loop
                 } else {
                     emergencyVibrator.vibrate(pattern, 0);
                 }
+                Log.d(TAG, "📳 Vibration started");
+            } else {
+                Log.w(TAG, "📳 Vibrator not available");
             }
-        } catch (Exception e) { Log.e(TAG, "Error starting vibration", e); }
+        } catch (Exception e) { 
+            Log.e(TAG, "❌ Error starting vibration: " + e.getMessage()); 
+        }
     }
     
     public static void stopEmergencyAlarm() {
+        Log.d("HealmedyFCM", "🛑 stopEmergencyAlarm() called");
+        
         if (emergencyMediaPlayer != null) {
-            try { if (emergencyMediaPlayer.isPlaying()) emergencyMediaPlayer.stop(); emergencyMediaPlayer.release(); } catch (Exception e) {}
+            try { 
+                if (emergencyMediaPlayer.isPlaying()) {
+                    emergencyMediaPlayer.stop(); 
+                    Log.d("HealmedyFCM", "🛑 MediaPlayer stopped");
+                }
+                emergencyMediaPlayer.release(); 
+            } catch (Exception e) {
+                Log.e("HealmedyFCM", "❌ Error stopping MediaPlayer: " + e.getMessage());
+            }
             emergencyMediaPlayer = null;
         }
+        
         if (emergencyVibrator != null) {
-            try { emergencyVibrator.cancel(); } catch (Exception e) {}
+            try { 
+                emergencyVibrator.cancel(); 
+                Log.d("HealmedyFCM", "🛑 Vibrator cancelled");
+            } catch (Exception e) {
+                Log.e("HealmedyFCM", "❌ Error cancelling vibrator: " + e.getMessage());
+            }
             emergencyVibrator = null;
         }
-        if (alarmHandler != null) { alarmHandler.removeCallbacksAndMessages(null); alarmHandler = null; }
-        Log.d("HealmedyFCM", "Emergency alarm stopped");
+        
+        if (alarmHandler != null) { 
+            alarmHandler.removeCallbacksAndMessages(null); 
+            alarmHandler = null; 
+        }
+        
+        // WakeLock'u da serbest bırak
+        if (wakeLock != null && wakeLock.isHeld()) {
+            try {
+                wakeLock.release();
+                Log.d("HealmedyFCM", "🔋 WakeLock released");
+            } catch (Exception e) {
+                Log.e("HealmedyFCM", "❌ Error releasing wake lock: " + e.getMessage());
+            }
+        }
+        
+        Log.d("HealmedyFCM", "✅ Emergency alarm fully stopped");
     }
     
     public static int getEmergencyNotificationId() { return emergencyNotificationId; }
 
     private void createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.d(TAG, "📢 Creating notification channels...");
+            
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
             // Custom siren sesini kontrol et
@@ -277,12 +422,18 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             int sirenResId = getResources().getIdentifier("emergency_siren", "raw", getPackageName());
             if (sirenResId != 0) {
                 sirenUri = Uri.parse("android.resource://" + getPackageName() + "/" + sirenResId);
+                Log.d(TAG, "📢 Custom siren found for channel: " + sirenUri);
             } else {
                 sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                Log.d(TAG, "📢 Using system alarm for channel: " + sirenUri);
             }
 
             // 🚨 ACİL DURUM KANALI - EN YÜKSEK ÖNCELİK
-            NotificationChannel emergency = new NotificationChannel(CHANNEL_EMERGENCY, "🚨 Acil Vakalar", NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel emergency = new NotificationChannel(
+                CHANNEL_EMERGENCY, 
+                "🚨 Acil Vakalar", 
+                NotificationManager.IMPORTANCE_HIGH
+            );
             emergency.setDescription("Yeni vaka bildirimleri - Yüksek sesli alarm");
             emergency.enableVibration(true);
             emergency.setVibrationPattern(new long[]{0, 1000, 500, 1000, 500, 1000, 500, 1000});
@@ -297,21 +448,32 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             emergency.setLightColor(Color.RED);
             emergency.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
             nm.createNotificationChannel(emergency);
+            Log.d(TAG, "📢 Emergency channel created: " + CHANNEL_EMERGENCY);
 
             // 📋 Vaka Kanalı
-            NotificationChannel caseChannel = new NotificationChannel(CHANNEL_CASE, "📋 Vaka Bildirimleri", NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel caseChannel = new NotificationChannel(
+                CHANNEL_CASE, 
+                "📋 Vaka Bildirimleri", 
+                NotificationManager.IMPORTANCE_HIGH
+            );
             caseChannel.setDescription("Vaka güncellemeleri");
             caseChannel.enableVibration(true);
             caseChannel.enableLights(true);
             caseChannel.setLightColor(Color.BLUE);
             nm.createNotificationChannel(caseChannel);
+            Log.d(TAG, "📢 Case channel created: " + CHANNEL_CASE);
 
             // 🔔 Genel Kanal
-            NotificationChannel general = new NotificationChannel(CHANNEL_GENERAL, "🔔 Genel Bildirimler", NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel general = new NotificationChannel(
+                CHANNEL_GENERAL, 
+                "🔔 Genel Bildirimler", 
+                NotificationManager.IMPORTANCE_DEFAULT
+            );
             general.setDescription("Genel sistem bildirimleri");
             nm.createNotificationChannel(general);
+            Log.d(TAG, "📢 General channel created: " + CHANNEL_GENERAL);
 
-            Log.d(TAG, "Notification channels created");
+            Log.d(TAG, "✅ All notification channels created");
         }
     }
 
@@ -322,9 +484,8 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             .putString("fcm_token", token)
             .apply();
         
-        Log.d(TAG, "FCM Token saved to preferences");
+        Log.d(TAG, "💾 FCM Token saved to preferences");
         
         // TODO: Backend'e gönder (JavaScript tarafından yapılacak)
     }
 }
-
