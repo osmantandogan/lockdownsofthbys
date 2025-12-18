@@ -54,13 +54,16 @@ allowed_origins.extend([
 # Remove empty strings
 allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
 
+logger.info(f"CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],  # Tüm originlere izin ver (geçici)
-    allow_methods=["*"],
+    allow_origins=allowed_origins,  # Sadece liste
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=86400,  # 24 saat cache
 )
 
 # Global exception handler to ensure CORS headers on errors
