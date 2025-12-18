@@ -1624,278 +1624,34 @@ const CaseDetail = () => {
             </div>
           </div>
           
-          {/* PDF Export Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline"
-                className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                PDF İndir
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>PDF Formatı Seçin</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              {/* YENİ: Görsel Mapping ile (Tek Sayfa) */}
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    setExcelExporting(true);
-                    toast.info('PDF hazırlanıyor (Tek Sayfa - Görsel Mapping)...');
-                    const response = await casesAPI.exportPdfWithMapping(id);
-                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.pdf`;
-                    saveAs(response.data, fileName);
-                    toast.success('PDF indirildi! (Tek Sayfa)');
-                  } catch (error) {
-                    console.error('PDF hatası:', error);
-                    if (error.response?.status === 404) {
-                      toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
-                    } else {
-                      toast.error('PDF oluşturulamadı');
-                    }
-                  } finally {
-                    setExcelExporting(false);
-                  }
-                }}
-              >
-                <FileText className="h-4 w-4 mr-2 text-red-600" />
-                <span className="font-semibold">⭐ Görsel Mapping ile (Tek Sayfa - YENİ)</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (!caseData) {
-                    toast.error('Vaka verisi yüklenemedi');
-                    return;
-                  }
-                  try {
-                    toast.info('PDF oluşturuluyor...');
-                    const apiUrl = BACKEND_URL;
-                    const token = localStorage.getItem('healmedy_session_token');
-                    const response = await fetch(
-                      `${apiUrl}/api/pdf/case/${id}/with-form-data`, 
-                      {
-                        method: 'POST',
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify(medicalForm),
-                        credentials: 'include',
-                      }
-                    );
-                    if (!response.ok) throw new Error('PDF oluşturulamadı');
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Vaka_${caseData.case_number || id}_Standart.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    toast.success('PDF indirildi!');
-                  } catch (error) {
-                    toast.error('PDF oluşturulurken hata oluştu');
-                  }
-                }}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Standart Format
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (!caseData) {
-                    toast.error('Vaka verisi yüklenemedi');
-                    return;
-                  }
-                  try {
-                    toast.info('Özel şablon ile PDF oluşturuluyor...');
-                    const apiUrl = BACKEND_URL;
-                    const token = localStorage.getItem('healmedy_session_token');
-                    const response = await fetch(
-                      `${apiUrl}/api/pdf-template/case/${id}`, 
-                      {
-                        method: 'GET',
-                        headers: {
-                          'Authorization': `Bearer ${token}`
-                        },
-                        credentials: 'include',
-                      }
-                    );
-                    if (!response.ok) {
-                      const err = await response.json().catch(() => ({}));
-                      throw new Error(err.detail || 'PDF oluşturulamadı');
-                    }
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Vaka_${caseData.case_number || id}_Ozel.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    toast.success('PDF indirildi!');
-                  } catch (error) {
-                    console.error(error);
-                    toast.error(error.message || 'PDF oluşturulurken hata oluştu');
-                  }
-                }}
-              >
-                <Layout className="h-4 w-4 mr-2" />
-                Özel Şablon (Varsayılan)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (!caseData) {
-                    toast.error('Vaka verisi yüklenemedi');
-                    return;
-                  }
-                  try {
-                    toast.info('Tüm veriler ile PDF oluşturuluyor...');
-                    const apiUrl = BACKEND_URL;
-                    const token = localStorage.getItem('healmedy_session_token');
-                    const response = await fetch(
-                      `${apiUrl}/api/pdf-template/case/${id}/full`, 
-                      {
-                        method: 'GET',
-                        headers: {
-                          'Authorization': `Bearer ${token}`
-                        },
-                      }
-                    );
-                    if (!response.ok) {
-                      const errorData = await response.json();
-                      throw new Error(errorData.detail || 'PDF oluşturulamadı');
-                    }
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Vaka_${caseData.case_number || id}_TUM_VERILER.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    toast.success('Tam PDF indirildi!');
-                  } catch (error) {
-                    console.error(error);
-                    toast.error(error.message || 'PDF oluşturulurken hata oluştu');
-                  }
-                }}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                ⭐ Tüm Verileri İndir (Tam PDF)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {/* Excel Export Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-                disabled={excelExporting}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                {excelExporting ? 'İndiriliyor...' : 'Excel İndir'}
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>📊 Excel Şablonu Seçin</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              {/* Excel - Görsel Mapping ile */}
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    setExcelExporting(true);
-                    toast.info('Excel hazırlanıyor (Görsel Mapping)...');
-                    const response = await casesAPI.exportExcelWithMapping(id);
-                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    saveAs(response.data, fileName);
-                    toast.success('Excel indirildi!');
-                  } catch (error) {
-                    console.error('Excel hatası:', error);
-                    if (error.response?.status === 404) {
-                      toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
-                    } else {
-                      toast.error('Excel oluşturulamadı');
-                    }
-                  } finally {
-                    setExcelExporting(false);
-                  }
-                }}
-              >
-                <FileDown className="h-4 w-4 mr-2 text-amber-600" />
-                📊 Excel İndir (Görsel Mapping)
-              </DropdownMenuItem>
-              
-              {/* Varsayılan sistem şablonu */}
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    setExcelExporting(true);
-                    toast.info('Excel hazırlanıyor (Sistem Şablonu)...');
-                    const response = await casesAPI.exportExcel(id);
-                    const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    saveAs(response.data, fileName);
-                    toast.success('Excel indirildi!');
-                  } catch (error) {
-                    console.error('Excel hatası:', error);
-                    toast.error('Excel oluşturulamadı');
-                  } finally {
-                    setExcelExporting(false);
-                  }
-                }}
-              >
-                <FileDown className="h-4 w-4 mr-2 text-blue-600" />
-                🔧 Sistem Şablonu (Eski)
-              </DropdownMenuItem>
-              
-              {excelTemplates.length > 0 && <DropdownMenuSeparator />}
-              
-              {/* Kullanıcı şablonları */}
-              {excelTemplates.map((template) => (
-                <DropdownMenuItem
-                  key={template.id}
-                  onClick={async () => {
-                    try {
-                      setExcelExporting(true);
-                      toast.info(`Excel hazırlanıyor (${template.name})...`);
-                      const response = await casesAPI.exportExcelWithTemplate(id, template.id);
-                      const fileName = `VAKA_${caseData?.case_number || id}_${template.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
-                      saveAs(response.data, fileName);
-                      toast.success('Excel indirildi!');
-                    } catch (error) {
-                      console.error('Excel hatası:', error);
-                      toast.error('Excel oluşturulamadı');
-                    } finally {
-                      setExcelExporting(false);
-                    }
-                  }}
-                >
-                  <FileDown className="h-4 w-4 mr-2 text-green-600" />
-                  📄 {template.name}
-                  {template.is_default && <span className="ml-2 text-xs text-amber-600">⭐</span>}
-                </DropdownMenuItem>
-              ))}
-              
-              {excelTemplates.length === 0 && (
-                <div className="px-2 py-2 text-xs text-gray-500 text-center">
-                  Özel şablon bulunamadı
-                </div>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* PDF İndir Butonu - Görsel Mapping ile Tek Sayfa */}
+          <Button 
+            variant="outline"
+            className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+            disabled={excelExporting}
+            onClick={async () => {
+              try {
+                setExcelExporting(true);
+                toast.info('PDF hazırlanıyor...');
+                const response = await casesAPI.exportPdfWithMapping(id);
+                const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.pdf`;
+                saveAs(response.data, fileName);
+                toast.success('PDF indirildi!');
+              } catch (error) {
+                console.error('PDF hatası:', error);
+                if (error.response?.status === 404) {
+                  toast.error('Önce Vaka Form Mapping oluşturun (Form Şablonları > Mapping sekmesi)');
+                } else {
+                  toast.error('PDF oluşturulamadı: ' + (error.response?.data?.detail || error.message));
+                }
+              } finally {
+                setExcelExporting(false);
+              }
+            }}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {excelExporting ? 'İndiriliyor...' : 'PDF İndir'}
+          </Button>
 
           {videoCallActive ? (
             <Button 
