@@ -180,7 +180,7 @@ async def startup_event():
         logger.warning("Firebase Cloud Messaging not initialized (credentials missing or invalid)")
     
     # Initialize ITS (İlaç Takip Sistemi) service with credentials
-    from services.its_service import configure_its_service
+    from services.its_service import configure_its_service, get_its_service
     
     # HARDCODED İTS Credentials (Geçici)
     its_username = "86836847871710000"
@@ -193,6 +193,14 @@ async def startup_event():
         use_test=its_use_test
     )
     logger.info(f"İTS service configured (HARDCODED, test_mode={its_use_test})")
+    
+    # İlaç listesini çek ve cache'le
+    try:
+        its_service = get_its_service()
+        drugs = await its_service.fetch_drug_list(get_all=True)
+        logger.info(f"İTS ilaç listesi yüklendi: {len(drugs)} ilaç")
+    except Exception as e:
+        logger.error(f"İTS ilaç listesi yüklenemedi: {e}")
     
     # Eski stok verilerini temizle ve yeni sistemi başlat
     try:
