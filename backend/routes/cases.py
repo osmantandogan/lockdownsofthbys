@@ -2203,48 +2203,45 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                 except Exception as e:
                     logger.warning(f"Hücre yazma hatası {cell_address}: {e}")
         
-        # SAYFA AYARLARI: A4 Dikey (Portrait), SAYFAYI TAM DOLDUR
+        # SAYFA AYARLARI: A4 Dikey (Portrait), TEK SAYFAYA SIĞDIR
+        # Şablonun kendi boyutlandırmasını kullan - V4 şablonu A4'e uygun hazırlandı
         try:
             from openpyxl.worksheet.properties import PageSetupProperties
             
-            # Sayfa ayarları
+            # Sayfa ayarları - A4 Portrait
             ws.page_setup.orientation = 'portrait'  # Dikey
             ws.page_setup.paperSize = 9  # A4 (9 = A4)
             ws.page_setup.fitToWidth = 1  # 1 sayfa genişliğine sığdır
-            ws.page_setup.fitToHeight = 0  # Yükseklik sınırlaması YOK - içerik doğal boyutunda
+            ws.page_setup.fitToHeight = 1  # 1 sayfa yüksekliğine sığdır
             ws.page_setup.fitToPage = True  # FitToPage modunu etkinleştir
             
-            # Ölçek - %100'den büyük yaparak sayfayı doldur
-            ws.page_setup.scale = 115  # %115 ölçek - A4'ü dolduracak şekilde büyüt
+            # Scale ayarını kullanma - fitToPage ile otomatik ölçeklenir
+            # ws.page_setup.scale = None  # Ölçek kullanılmıyor, FitToPage aktif
             
             # Sheet properties
             if ws.sheet_properties.pageSetUpPr is None:
                 ws.sheet_properties.pageSetUpPr = PageSetupProperties()
             ws.sheet_properties.pageSetUpPr.fitToPage = True
             
-            # Print area: Sadece veri olan hücreler (79 satır x 20 sütun - şablon boyutu)
+            # Print area: Tüm şablon alanı (şablondaki max satır/sütun)
             from openpyxl.utils import get_column_letter
-            max_row = min(ws.max_row, 79) if ws.max_row else 79
-            max_col = min(ws.max_column, 20) if ws.max_column else 20
+            max_row = ws.max_row or 79
+            max_col = ws.max_column or 20
             print_area = f"A1:{get_column_letter(max_col)}{max_row}"
             ws.print_area = print_area
             
-            # Kenar boşlukları - minimum (inç cinsinden, sayfanın tamamını kullan)
-            ws.page_margins.left = 0.15  # ~0.4cm
-            ws.page_margins.right = 0.15
-            ws.page_margins.top = 0.15
-            ws.page_margins.bottom = 0.15
+            # Kenar boşlukları - minimum (sayfayı tam kullan)
+            ws.page_margins.left = 0.1    # ~0.25cm
+            ws.page_margins.right = 0.1
+            ws.page_margins.top = 0.1
+            ws.page_margins.bottom = 0.1
             ws.page_margins.header = 0
             ws.page_margins.footer = 0
             
-            # Satır yüksekliklerini artır - A4'ü doldurmak için
-            # 79 satır için ortalama yükseklik: 29.7cm / 79 satır = ~10.5 point
-            for row_num in range(1, max_row + 1):
-                current_height = ws.row_dimensions[row_num].height
-                if current_height is None or current_height < 12:
-                    ws.row_dimensions[row_num].height = 12  # Minimum 12 point yükseklik
+            # Şablonun satır yüksekliklerini KORU - değiştirme
+            # V4 şablonu zaten A4'e uygun hazırlandı
             
-            logger.info(f"Sayfa ayarları: A4 Portrait, Scale=115%, PrintArea={print_area}")
+            logger.info(f"Sayfa ayarları: A4 Portrait, FitToPage=1x1, PrintArea={print_area}, MaxRow={max_row}")
         except Exception as e:
             logger.warning(f"Sayfa ayarları yapılamadı: {e}")
         
@@ -2294,21 +2291,20 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
                         styles_xml = re.sub(r'style:print-orientation="[^"]*"', 'style:print-orientation="portrait"', styles_xml)
                         
                         # Kenar boşluklarını minimize et (A4'ü doldurmak için)
-                        styles_xml = re.sub(r'fo:margin-top="[^"]*"', 'fo:margin-top="0.3cm"', styles_xml)
-                        styles_xml = re.sub(r'fo:margin-bottom="[^"]*"', 'fo:margin-bottom="0.3cm"', styles_xml)
-                        styles_xml = re.sub(r'fo:margin-left="[^"]*"', 'fo:margin-left="0.3cm"', styles_xml)
-                        styles_xml = re.sub(r'fo:margin-right="[^"]*"', 'fo:margin-right="0.3cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-top="[^"]*"', 'fo:margin-top="0.25cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-bottom="[^"]*"', 'fo:margin-bottom="0.25cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-left="[^"]*"', 'fo:margin-left="0.25cm"', styles_xml)
+                        styles_xml = re.sub(r'fo:margin-right="[^"]*"', 'fo:margin-right="0.25cm"', styles_xml)
                         
-                        # Ölçekleme - %115 (sayfayı tam doldursun)
-                        # scale-to değerini kaldır ve scale-to-X/Y kullan
+                        # Tek sayfaya sığdır (1x1 sayfa)
                         styles_xml = re.sub(r'style:scale-to="[^"]*"', '', styles_xml)
                         styles_xml = re.sub(r'style:scale-to-pages="[^"]*"', '', styles_xml)
                         
-                        # Yüzde ölçeği ekle (115%)
+                        # FitToPage: 1 sayfa genişlik x 1 sayfa yükseklik
                         if 'style:scale-to-X' not in styles_xml:
                             styles_xml = styles_xml.replace(
                                 'style:print-orientation="portrait"',
-                                'style:print-orientation="portrait" style:scale-to-X="1" style:scale-to-Y="0"'
+                                'style:print-orientation="portrait" style:scale-to-X="1" style:scale-to-Y="1"'
                             )
                         
                         content['styles.xml'] = styles_xml.encode('utf-8')
