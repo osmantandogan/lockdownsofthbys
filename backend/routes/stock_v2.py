@@ -556,7 +556,12 @@ async def create_stock_request(data: StockRequestCreate, request: Request):
 async def create_request_from_case(case_id: str, request: Request):
     """Vakada kullanılan malzemelerden otomatik talep oluştur"""
     user = await get_current_user(request)
-    data = await request.json()
+    
+    # Request body'yi güvenli şekilde al
+    try:
+        data = await request.json()
+    except:
+        data = {}
     
     # Vaka bilgisini al
     cases_collection = db.cases
@@ -584,13 +589,24 @@ async def create_request_from_case(case_id: str, request: Request):
     # Talep öğelerini oluştur
     items = []
     for usage in usages:
+        item_name = usage.get("name") or usage.get("item_name") or "Bilinmeyen Malzeme"
+        if not item_name or item_name.strip() == "":
+            continue  # İsimsiz öğeleri atla
+        
         items.append(StockRequestItem(
-            name=usage.get("name", ""),
-            quantity=usage.get("quantity", 1),
+            name=item_name,
+            quantity=int(usage.get("quantity", 1)) or 1,
             unit=usage.get("unit", "ADET"),
             used_from=usage.get("source_type", "vehicle"),
-            used_from_name=usage.get("source_location_name") or usage.get("vehicle_plate", "")
+            used_from_name=usage.get("source_location_name") or usage.get("vehicle_plate") or ""
         ))
+    
+    if not items:
+        raise HTTPException(status_code=400, detail="Geçerli malzeme bulunamadı")
+    
+    # Case number güvenli al
+    case_number = case.get("case_number") or "Bilinmeyen"
+    requester_note = data.get("note") or f"Vaka #{case_number} için otomatik talep"
     
     stock_request = StockRequest(
         requester_id=user.id,
@@ -600,13 +616,13 @@ async def create_request_from_case(case_id: str, request: Request):
         target_location_name=target_location_name,
         items=items,
         related_case_id=case_id,
-        related_case_no=case.get("case_number"),
-        requester_note=data.get("note", f"Vaka #{case.get('case_number')} için otomatik talep")
+        related_case_no=case_number,
+        requester_note=requester_note
     )
     
     await stock_requests_collection.insert_one(stock_request.model_dump(by_alias=True))
     
-    logger.info(f"Vakadan otomatik talep oluşturuldu: {case_id} by {user.name}")
+    logger.info(f"Vakadan otomatik talep oluşturuldu: {case_id} by {user.name} ({len(items)} malzeme)")
     
     return {
         "success": True,
