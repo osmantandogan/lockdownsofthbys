@@ -908,22 +908,80 @@ async def assign_multiple_teams(case_id: str, request: Request):
         }
     )
     
-    # Bildirimleri gönder
+    # Bildirimleri gönder (OneSignal)
     if NOTIFICATIONS_ENABLED and all_recipient_ids:
         try:
-            recipients = await users_collection.find({"_id": {"$in": all_recipient_ids}}).to_list(100)
-            await onesignal_service.send_notification_to_users(
-                recipients,
-                title=f"🚨 Vaka: {case_doc.get('case_number')}",
-                message=f"Yeni vaka atandı. {len(assigned_teams)} araç görevlendirildi.",
-                data={
-                    "type": "case_assigned",
-                    "case_id": case_id,
-                    "url": f"/dashboard/cases/{case_id}"
-                }
+            # notification_service kullan (onesignal_service yerine)
+            await notification_service.send_to_users(
+                NotificationType.CASE_ASSIGNED,
+                all_recipient_ids,
+                {
+                    "case_number": case_doc.get("case_number"),
+                    "patient_name": f"{case_doc.get('patient', {}).get('name', '')} {case_doc.get('patient', {}).get('surname', '')}".strip() or "Belirtilmemiş",
+                    "vehicle_plate": ", ".join([t.get("vehicle_plate", "") for t in assigned_teams]),
+                    "case_id": case_id
+                },
+                url=f"/dashboard/cases/{case_id}"
             )
+            logger.info(f"[OneSignal] Notification sent to {len(all_recipient_ids)} users for multiple team assignment")
         except Exception as e:
-            logger.error(f"Error sending notifications: {e}")
+            logger.error(f"Error sending OneSignal notifications: {e}")
+    
+    # ========== FCM BİLDİRİMİ - ATT/PARAMEDİK/ŞOFÖR İÇİN ACİL ALARM ==========
+    logger.info(f"[FCM-MultiTeam] FCM_ENABLED: {FCM_ENABLED}, all_recipient_ids: {all_recipient_ids}")
+    if FCM_ENABLED and all_recipient_ids:
+        try:
+            patient_info = case_doc.get("patient", {})
+            location_info = case_doc.get("location", {})
+            
+            # Saha personelinin FCM token'larını topla
+            fcm_tokens = []
+            for user_id in all_recipient_ids:
+                user_doc = await users_collection.find_one({"_id": user_id})
+                if user_doc:
+                    # Sadece saha personeli için alarm gönder
+                    user_role = user_doc.get("role", "")
+                    if user_role in ["sofor", "bas_sofor", "att", "paramedik"]:
+                        user_fcm_tokens = user_doc.get("fcm_tokens", [])
+                        logger.info(f"[FCM-MultiTeam] User {user_doc.get('name')} ({user_role}) has {len(user_fcm_tokens)} FCM tokens")
+                        for token_obj in user_fcm_tokens:
+                            if isinstance(token_obj, dict) and token_obj.get("token"):
+                                fcm_tokens.append(token_obj["token"])
+                                logger.info(f"[FCM-MultiTeam] Added token: ...{token_obj['token'][-20:]}")
+                            elif isinstance(token_obj, str):
+                                fcm_tokens.append(token_obj)
+                                logger.info(f"[FCM-MultiTeam] Added token (string): ...{token_obj[-20:]}")
+            
+            logger.info(f"[FCM-MultiTeam] Total FCM tokens collected: {len(fcm_tokens)}")
+            
+            if fcm_tokens:
+                patient_name = f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş"
+                address = location_info.get("address", "Belirtilmemiş")
+                priority = case_doc.get("priority", "Normal")
+                
+                result = await send_fcm_to_multiple(
+                    tokens=fcm_tokens,
+                    title=f"🚨 YENİ VAKA - {priority.upper()}",
+                    body=f"{patient_name}\n📍 {address}",
+                    data={
+                        "case_id": case_id,
+                        "case_number": case_doc.get("case_number", ""),
+                        "navigate_to": f"/dashboard/cases/{case_id}",
+                        "target_roles": "att,paramedik,sofor"
+                    },
+                    notification_type="new_case",
+                    priority="high"
+                )
+                logger.info(f"[FCM-MultiTeam] Emergency sent to {len(fcm_tokens)} tokens: {result}")
+            else:
+                logger.warning(f"[FCM-MultiTeam] No FCM tokens found for field personnel!")
+        except Exception as e:
+            logger.error(f"[FCM-MultiTeam] Error sending FCM: {e}", exc_info=True)
+    else:
+        if not FCM_ENABLED:
+            logger.warning("[FCM-MultiTeam] FCM is disabled")
+        if not all_recipient_ids:
+            logger.warning("[FCM-MultiTeam] No recipients to notify")
     
     return {
         "message": f"{len(assigned_teams)} araç başarıyla görevlendirildi",
