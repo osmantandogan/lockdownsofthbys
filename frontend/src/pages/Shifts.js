@@ -82,6 +82,10 @@ const Shifts = () => {
   };
 
   const canManageAssignments = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+  
+  // Sağlık merkezi çalışanları için otomatik başlatma var, manuel başlatma butonu gösterme
+  const healthCenterRoles = ['hemsire', 'cagri_merkezi', 'bas_sofor', 'doktor', 'operasyon_muduru', 'merkez_ofis'];
+  const isHealthCenterEmployee = healthCenterRoles.includes(user?.role);
 
   if (loading) {
     return (
@@ -176,6 +180,10 @@ const Shifts = () => {
             const currentMonthAssignments = myAssignments.filter(a => isCurrentMonth(a.shift_date));
             const todayAssignment = currentMonthAssignments.find(a => isToday(a.shift_date) && a.status === 'pending');
             
+            // Sağlık merkezi çalışanı ve sağlık merkezi ataması varsa manuel başlatma butonunu gizle
+            const isHealthCenterAssignment = todayAssignment?.location_type === 'saglik_merkezi';
+            const shouldHideStartButton = isHealthCenterEmployee && isHealthCenterAssignment;
+            
             return currentMonthAssignments.length > 0 ? (
               <Card className="border-green-500">
                 <CardHeader>
@@ -187,7 +195,7 @@ const Shifts = () => {
                 <CardContent className="space-y-3">
                   {currentMonthAssignments.map((assignment) => {
                     const isTodayShift = isToday(assignment.shift_date);
-                    const canStart = isTodayShift && assignment.status === 'pending';
+                    const isHealthCenter = assignment.location_type === 'saglik_merkezi';
                     
                     return (
                       <div 
@@ -210,8 +218,17 @@ const Shifts = () => {
                               {isTodayShift && <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full">BUGÜN</span>}
                             </p>
                             <p className="text-sm text-gray-600">
-                              Araç: {assignment.vehicle_plate || assignment.vehicle?.plate || 'Atanmadı'}
+                              {isHealthCenter ? (
+                                <>Lokasyon: {assignment.health_center_name || 'Sağlık Merkezi'}</>
+                              ) : (
+                                <>Araç: {assignment.vehicle_plate || assignment.vehicle?.plate || 'Atanmadı'}</>
+                              )}
                             </p>
+                            {isHealthCenter && isTodayShift && assignment.status === 'pending' && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                ⏰ Vardiyanız çalışma saati geldiğinde otomatik başlatılacak
+                              </p>
+                            )}
                           </div>
                           <Badge className={
                             isTodayShift && assignment.status === 'pending'
@@ -221,7 +238,7 @@ const Shifts = () => {
                               : 'bg-gray-100 text-gray-600'
                           }>
                             {assignment.status === 'pending' 
-                              ? (isTodayShift ? 'Başlatılabilir' : 'Bekliyor') 
+                              ? (isTodayShift ? (isHealthCenter ? 'Otomatik Başlatılacak' : 'Başlatılabilir') : 'Bekliyor') 
                               : assignment.status === 'started' 
                               ? 'Başladı' 
                               : assignment.status}
@@ -231,11 +248,22 @@ const Shifts = () => {
                     );
                   })}
                   
-                  {todayAssignment ? (
+                  {/* Sağlık merkezi çalışanları için vardiya başlat butonunu gizle */}
+                  {todayAssignment && !shouldHideStartButton ? (
                     <Button onClick={() => navigate('/dashboard/shift-start')} className="w-full bg-green-600 hover:bg-green-700" data-testid="start-shift-button">
                       <QrCode className="h-4 w-4 mr-2" />
                       Bugünkü Vardiyayı Başlat (QR)
                     </Button>
+                  ) : todayAssignment && shouldHideStartButton ? (
+                    <div className="text-center py-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-700 font-medium">
+                        <Clock className="h-4 w-4 inline mr-1" />
+                        Vardiyanız çalışma saati geldiğinde otomatik olarak başlatılacaktır
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Manuel başlatma gerekmez
+                      </p>
+                    </div>
                   ) : (
                     <div className="text-center py-3 bg-gray-100 rounded-lg">
                       <p className="text-sm text-gray-500">

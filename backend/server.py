@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 import os
 import logging
 from pathlib import Path
@@ -182,6 +184,9 @@ async def health_check():
 # Include the router in the main app
 app.include_router(api_router)
 
+# Scheduler instance
+scheduler = AsyncIOScheduler()
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
@@ -243,7 +248,28 @@ async def startup_event():
             logger.info("Stok seed: Tüm lokasyonlar zaten mevcut")
     except Exception as e:
         logger.warning(f"Stok sistemi başlatma hatası: {e}")
+    
+    # Otomatik vardiya başlatma scheduler'ını başlat
+    try:
+        from routes.shifts import auto_start_health_center_shifts
+        
+        # Her dakika çalışacak şekilde ayarla
+        scheduler.add_job(
+            auto_start_health_center_shifts,
+            trigger=IntervalTrigger(minutes=1),
+            id="auto_start_health_center_shifts",
+            name="Sağlık Merkezi Otomatik Vardiya Başlatma",
+            replace_existing=True
+        )
+        scheduler.start()
+        logger.info("Otomatik vardiya başlatma scheduler'ı başlatıldı (her 1 dakikada bir)")
+    except Exception as e:
+        logger.error(f"Otomatik vardiya başlatma scheduler'ı başlatılamadı: {e}", exc_info=True)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    # Scheduler'ı durdur
+    if scheduler.running:
+        scheduler.shutdown()
+        logger.info("Scheduler durduruldu")
     client.close()

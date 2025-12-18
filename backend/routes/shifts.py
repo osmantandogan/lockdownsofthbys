@@ -2672,3 +2672,151 @@ async def get_shift_logs(
             log["action_taken_at_formatted"] = log["action_taken_at"].strftime("%d.%m.%Y %H:%M:%S") if isinstance(log["action_taken_at"], datetime) else str(log["action_taken_at"])
     
     return logs
+
+
+# ============================================================================
+# OTOMATIK VARDIYA BAŞLATMA - SAĞLIK MERKEZİ ÇALIŞANLARI İÇİN
+# ============================================================================
+
+async def auto_start_health_center_shifts():
+    """
+    Sağlık merkezinde çalışanlar için otomatik vardiya başlatma
+    Çalışma saati geldiğinde pending olan vardiyaları otomatik başlatır
+    Sadece sağlık merkezi lokasyonunda görevli olanlar için (location_type="saglik_merkezi")
+    """
+    try:
+        turkey_now = get_turkey_time()
+        today = turkey_now.date()
+        current_time = turkey_now.time()
+        
+        logger.info(f"[AUTO_SHIFT_START] Kontrol başlatıldı - Tarih: {today}, Saat: {current_time}")
+        
+        # Bugün için pending olan ve sağlık merkezi atamalarını bul
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = datetime.combine(today + timedelta(days=1), datetime.min.time())
+        
+        assignments = await shift_assignments_collection.find({
+            "shift_date": {
+                "$gte": today_start,
+                "$lt": today_end
+            },
+            "status": "pending",
+            "location_type": "saglik_merkezi"
+        }).to_list(1000)
+        
+        if not assignments:
+            logger.debug(f"[AUTO_SHIFT_START] Başlatılacak vardiya bulunamadı")
+            return
+        
+        logger.info(f"[AUTO_SHIFT_START] {len(assignments)} adet pending sağlık merkezi ataması bulundu")
+        
+        started_count = 0
+        skipped_count = 0
+        
+        for assignment in assignments:
+            try:
+                # Kullanıcı bilgisini al ve rolünü kontrol et
+                user_id = assignment.get("user_id")
+                user = await users_collection.find_one({"_id": user_id})
+                if not user:
+                    logger.warning(f"[AUTO_SHIFT_START] Kullanıcı {user_id} bulunamadı, atlanıyor")
+                    skipped_count += 1
+                    continue
+                
+                user_role = user.get("role")
+                # Sadece sağlık merkezi çalışanları için otomatik başlat (hemsire, cagri_merkezi, bas_sofor, doktor, operasyon_muduru)
+                health_center_roles = ["hemsire", "cagri_merkezi", "bas_sofor", "doktor", "operasyon_muduru", "merkez_ofis"]
+                if user_role not in health_center_roles:
+                    logger.debug(f"[AUTO_SHIFT_START] Kullanıcı {user.get('name')} ({user_role}) sağlık merkezi çalışanı değil, atlanıyor")
+                    skipped_count += 1
+                    continue
+                
+                # start_time kontrolü
+                start_time_str = assignment.get("start_time")
+                if not start_time_str:
+                    logger.debug(f"[AUTO_SHIFT_START] Atama {assignment['_id']} için start_time yok, atlanıyor")
+                    skipped_count += 1
+                    continue
+                
+                # start_time'ı parse et (HH:MM format)
+                try:
+                    start_hour, start_minute = map(int, start_time_str.split(':'))
+                    from datetime import time as dt_time
+                    shift_start_time = dt_time(hour=start_hour, minute=start_minute)
+                except (ValueError, AttributeError) as e:
+                    logger.warning(f"[AUTO_SHIFT_START] Atama {assignment['_id']} için geçersiz start_time: {start_time_str}, hata: {e}")
+                    skipped_count += 1
+                    continue
+                
+                # Çalışma saati geldi mi? (0-30 dakika aralığında)
+                time_diff_minutes = (current_time.hour * 60 + current_time.minute) - (shift_start_time.hour * 60 + shift_start_time.minute)
+                
+                if time_diff_minutes < 0:
+                    # Henüz çalışma saati gelmemiş
+                    logger.debug(f"[AUTO_SHIFT_START] Atama {assignment['_id']} için henüz zaman gelmedi. Başlangıç: {shift_start_time}, Şu an: {current_time}")
+                    skipped_count += 1
+                    continue
+                
+                if time_diff_minutes > 30:
+                    # Çalışma saati 30 dakikadan fazla geçmiş, atla (muhtemelen manuel başlatılmalı)
+                    logger.debug(f"[AUTO_SHIFT_START] Atama {assignment['_id']} için çalışma saati çok geçmiş ({time_diff_minutes} dakika), atlanıyor")
+                    skipped_count += 1
+                    continue
+                
+                # Kullanıcının aktif vardiyası var mı kontrol et
+                active_shift = await shifts_collection.find_one({
+                    "user_id": user_id,
+                    "status": {"$in": ["active", "on_break"]}
+                })
+                
+                if active_shift:
+                    logger.info(f"[AUTO_SHIFT_START] Kullanıcı {user.get('name')} zaten aktif vardiyaya sahip, atlanıyor")
+                    skipped_count += 1
+                    continue
+                
+                # Vardiyayı otomatik başlat
+                logger.info(f"[AUTO_SHIFT_START] Vardiya otomatik başlatılıyor - Kullanıcı: {user.get('name')}, Rol: {user_role}, Atama ID: {assignment['_id']}")
+                
+                # Shift oluştur
+                new_shift = Shift(
+                    assignment_id=assignment["_id"],
+                    user_id=user_id,
+                    vehicle_id=assignment.get("vehicle_id"),
+                    vehicle_plate=None,  # Sağlık merkezi için araç yok
+                    start_time=get_turkey_time(),
+                    status="active",
+                    location_type="saglik_merkezi",
+                    health_center_name=assignment.get("health_center_name"),
+                    started_by_admin=False,  # Otomatik başlatıldı
+                    admin_note="Çalışma saati geldiğinde otomatik olarak başlatıldı"
+                )
+                
+                shift_dict = new_shift.model_dump(by_alias=True)
+                await shifts_collection.insert_one(shift_dict)
+                
+                # Assignment durumunu güncelle
+                await shift_assignments_collection.update_one(
+                    {"_id": assignment["_id"]},
+                    {
+                        "$set": {
+                            "status": "started",
+                            "started_at": get_turkey_time(),
+                            "auto_started": True,
+                            "auto_started_at": get_turkey_time()
+                        }
+                    }
+                )
+                
+                started_count += 1
+                logger.info(f"[AUTO_SHIFT_START] Vardiya başarıyla başlatıldı - Shift ID: {shift_dict['_id']}, Kullanıcı: {user.get('name')}")
+                
+            except Exception as e:
+                logger.error(f"[AUTO_SHIFT_START] Atama {assignment.get('_id')} için hata: {e}", exc_info=True)
+                skipped_count += 1
+                continue
+        
+        if started_count > 0:
+            logger.info(f"[AUTO_SHIFT_START] Tamamlandı - Başlatılan: {started_count}, Atlanan: {skipped_count}")
+        
+    except Exception as e:
+        logger.error(f"[AUTO_SHIFT_START] Genel hata: {e}", exc_info=True)

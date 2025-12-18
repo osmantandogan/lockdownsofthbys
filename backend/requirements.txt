@@ -127,3 +127,4 @@ firebase-admin==6.5.0
 openpyxl==3.1.2
 reportlab==4.2.5
 PyMuPDF==1.24.0
+APScheduler==3.10.4
