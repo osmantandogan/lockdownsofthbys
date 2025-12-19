@@ -80,6 +80,9 @@ async def add_cors_headers_backup(request: Request, call_next):
     """Add CORS headers to all responses as backup for Railway reverse proxy"""
     origin = request.headers.get("origin", "")
     
+    # Log all requests for debugging
+    logger.info(f"Request: {request.method} {request.url.path}, Origin: {origin}, Headers: {dict(request.headers)}")
+    
     # OPTIONS request'leri için özel handling - TÜM origin'lere izin ver (Railway için)
     if request.method == "OPTIONS":
         logger.info(f"OPTIONS request intercepted in middleware for path: {request.url.path}, origin: {origin}")
@@ -93,6 +96,12 @@ async def add_cors_headers_backup(request: Request, call_next):
             response.headers["Access-Control-Expose-Headers"] = "*"
             response.headers["Access-Control-Max-Age"] = "86400"
             logger.info(f"CORS headers added in middleware for origin: {origin}")
+        else:
+            # Origin yoksa bile CORS header'ları ekle
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            logger.info(f"CORS headers added in middleware (no origin)")
         return response
     
     response = await call_next(request)
@@ -105,6 +114,11 @@ async def add_cors_headers_backup(request: Request, call_next):
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Expose-Headers"] = "*"
         response.headers["Access-Control-Max-Age"] = "86400"
+    else:
+        # Origin yoksa bile CORS header'ları ekle
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
     
     return response
 
