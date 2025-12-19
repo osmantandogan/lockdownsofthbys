@@ -178,20 +178,34 @@ async def login(data: LoginRequest, response: Response, request: Request):
     user_doc["id"] = user_doc.pop("_id")
     user = User(**user_doc)
     
-    # Add CORS headers to response
+    # Add CORS headers to response - Tüm origin'lere izin ver (Railway için)
     origin = request.headers.get("origin", "")
-    if origin and (origin.endswith('.ldserp.com') or origin.endswith('.railway.app') or 'abro.ldserp.com' in origin):
+    if origin:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Expose-Headers"] = "*"
+    else:
+        # Origin yoksa bile CORS header'ları ekle (Railway için)
+        response.headers["Access-Control-Allow-Origin"] = "*"
     
     return {"user": user, "session_token": access_token}
 
 # Get current user
 @router.get("/me")
-async def get_me(request: Request):
+async def get_me(request: Request, response: Response):
     """Get current authenticated user"""
     user = await get_current_user(request)
+    
+    # Add CORS headers to response
+    origin = request.headers.get("origin", "")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+    else:
+        # Origin yoksa bile CORS header'ları ekle (Railway için)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    
     return user
 
 # Logout

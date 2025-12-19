@@ -34,10 +34,13 @@ const Login = () => {
     try {
       await login(email, password);
       toast.success('Giriş başarılı!');
-      navigate('/dashboard');
+      // State'in yayılması için kısa bir gecikme, sonra tam sayfa yenileme ile yönlendir
+      // Bu, AuthContext'in state'ini doğru şekilde kontrol etmesini sağlar
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 100);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Giriş başarısız');
-    } finally {
       setLoading(false);
     }
   };
@@ -47,10 +50,12 @@ const Login = () => {
     try {
       await login(testEmail, 'test123');
       toast.success('Giriş başarılı!');
-      navigate('/dashboard');
+      // State'in yayılması için kısa bir gecikme, sonra tam sayfa yenileme ile yönlendir
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 100);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Giriş başarısız');
-    } finally {
       setLoading(false);
     }
   };
