@@ -28,14 +28,18 @@ export const OfflineProvider = ({ children }) => {
   // Pending item sayısını güncelle
   const updatePendingCount = useCallback(async () => {
     try {
-      const [forms, locations, queue] = await Promise.all([
+      const [forms, locations, queue, pendingCases] = await Promise.all([
         OfflineStorage.getPendingForms(),
         OfflineStorage.getPendingLocations(),
-        OfflineStorage.getSyncQueue()
+        OfflineStorage.getSyncQueue(),
+        OfflineStorage.getPendingCases()
       ]);
       
-      const total = forms.length + locations.length + queue.length;
+      const total = forms.length + locations.length + queue.length + pendingCases.length;
       setPendingCount(total);
+      
+      console.log(`[Offline] Pending counts - Forms: ${forms.length}, Locations: ${locations.length}, Queue: ${queue.length}, Cases: ${pendingCases.length}, Total: ${total}`);
+      
       return total;
     } catch (error) {
       console.error('[Offline] Failed to count pending items:', error);
@@ -56,29 +60,87 @@ export const OfflineProvider = ({ children }) => {
     console.log('[Offline] Starting sync...');
     
     try {
-      // Sync queue'daki öğeleri işle
-      const queue = await OfflineStorage.getSyncQueue();
       let successCount = 0;
       let failCount = 0;
+      
+      // 1. Pending CASES işle (en önce vakalar)
+      const pendingCases = await OfflineStorage.getPendingCases();
+      console.log(`[Offline] Syncing ${pendingCases.length} pending cases...`);
+      
+      for (const pendingCase of pendingCases) {
+        if (pendingCase.status === 'pending' || (pendingCase.status === 'failed' && (pendingCase.retryCount || 0) < 3)) {
+          try {
+            console.log('[Offline] Syncing case:', pendingCase.id);
+            
+            // Vaka oluştur - offline id'yi çıkar
+            const caseData = { ...pendingCase };
+            delete caseData.id;
+            delete caseData.status;
+            delete caseData.createdAt;
+            delete caseData.isOffline;
+            delete caseData.retryCount;
+            
+            const response = await api.post('/cases', caseData);
+            console.log('[Offline] Case synced successfully:', response.data?.id || response.data?._id);
+            
+            await OfflineStorage.removePendingCase(pendingCase.id);
+            successCount++;
+            
+            toast.success(`Çevrimdışı vaka senkronize edildi: ${response.data?.case_number || 'Yeni Vaka'}`);
+          } catch (error) {
+            console.error('[Offline] Failed to sync case:', error);
+            
+            // Retry count güncelle
+            await OfflineStorage.put(OfflineStorage.STORES.PENDING_CASES, {
+              ...pendingCase,
+              status: 'failed',
+              retryCount: (pendingCase.retryCount || 0) + 1,
+              lastError: error.response?.data?.detail || error.message
+            });
+            
+            failCount++;
+            toast.error(`Vaka senkronize edilemedi: ${error.response?.data?.detail || error.message}`);
+          }
+        }
+      }
+      
+      // 2. Sync queue'daki öğeleri işle
+      const queue = await OfflineStorage.getSyncQueue();
+      console.log(`[Offline] Syncing ${queue.length} queue items...`);
       
       for (const item of queue) {
         if (item.status === 'pending' || (item.status === 'failed' && item.retryCount < 3)) {
           try {
             const method = item.action.toLowerCase();
-            if (api[method]) {
-              await api[method](item.endpoint, item.data);
-              await OfflineStorage.removeSyncItem(item.id);
-              successCount++;
+            console.log(`[Offline] Queue item: ${method} ${item.endpoint}`);
+            
+            // API method'unu doğru şekilde çağır
+            if (method === 'post') {
+              await api.post(item.endpoint, item.data);
+            } else if (method === 'put') {
+              await api.put(item.endpoint, item.data);
+            } else if (method === 'patch') {
+              await api.patch(item.endpoint, item.data);
+            } else if (method === 'delete') {
+              await api.delete(item.endpoint);
+            } else if (method === 'get') {
+              await api.get(item.endpoint);
             }
+            
+            await OfflineStorage.removeSyncItem(item.id);
+            successCount++;
           } catch (error) {
-            await OfflineStorage.updateSyncItem(item.id, 'failed', error.message);
+            console.error('[Offline] Queue sync failed:', error);
+            await OfflineStorage.updateSyncItem(item.id, 'failed', error.response?.data?.detail || error.message);
             failCount++;
           }
         }
       }
       
-      // Pending formları işle
+      // 3. Pending formları işle
       const forms = await OfflineStorage.getPendingForms();
+      console.log(`[Offline] Syncing ${forms.length} pending forms...`);
+      
       for (const form of forms) {
         if (form.status === 'pending' || (form.status === 'failed' && form.retryCount < 3)) {
           try {
@@ -87,27 +149,46 @@ export const OfflineProvider = ({ children }) => {
               endpoint = `/cases/${form.caseId}/forms`;
             }
             
-            await api.post(endpoint, form.data);
+            console.log(`[Offline] Syncing form: ${form.type} to ${endpoint}`);
+            
+            await api.post(endpoint, {
+              type: form.type,
+              data: form.data,
+              submitted_at: form.createdAt
+            });
+            
             await OfflineStorage.removePendingForm(form.id);
             successCount++;
           } catch (error) {
-            await OfflineStorage.updatePendingFormStatus(form.id, 'failed', error.message);
+            console.error('[Offline] Form sync failed:', error);
+            await OfflineStorage.updatePendingFormStatus(form.id, 'failed', error.response?.data?.detail || error.message);
             failCount++;
           }
         }
       }
       
-      // Pending locations işle
+      // 4. Pending locations işle
       const locations = await OfflineStorage.getPendingLocations();
       if (locations.length > 0) {
-        try {
-          await api.post('/locations/batch', { locations });
-          for (const loc of locations) {
+        console.log(`[Offline] Syncing ${locations.length} pending locations...`);
+        
+        // Lokasyonları tek tek gönder (batch endpoint yoksa)
+        for (const loc of locations) {
+          try {
+            if (loc.vehicleId) {
+              await api.put(`/vehicles/${loc.vehicleId}/gps`, {
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                accuracy: loc.accuracy,
+                timestamp: loc.timestamp
+              });
+            }
             await OfflineStorage.removePendingLocation(loc.id);
+            successCount++;
+          } catch (error) {
+            console.warn('[Offline] Location sync failed:', error);
+            failCount++;
           }
-          successCount += locations.length;
-        } catch (error) {
-          failCount += locations.length;
         }
       }
       
@@ -124,12 +205,14 @@ export const OfflineProvider = ({ children }) => {
       
       if (failCount > 0) {
         console.warn(`[Offline] Sync incomplete: ${failCount} items failed`);
+        toast.warning(`${failCount} veri senkronize edilemedi, tekrar denenecek`);
       }
       
       return true;
     } catch (error) {
       console.error('[Offline] Sync error:', error);
       setSyncError(error.message);
+      toast.error('Senkronizasyon hatası: ' + error.message);
       return false;
     } finally {
       setIsSyncing(false);
