@@ -756,17 +756,21 @@ async def deliver_stock_request(request_id: str, request: Request):
             qty = req_item["quantity"]
             
             if name in item_map:
+                # Mevcut ürünü güncelle - item_map referansı items listesindeki objeyi gösteriyor
                 item_map[name]["current_quantity"] += qty
             else:
                 # Yeni ürün ekle
-                items.append({
+                new_item = {
                     "name": name,
                     "current_quantity": qty,
                     "min_quantity": qty,
                     "unit": req_item.get("unit", "ADET"),
                     "category": req_item.get("category", "sarf")
-                })
+                }
+                items.append(new_item)
+                item_map[name] = new_item  # Map'e de ekle
         
+        # Items listesi zaten güncellenmiş (item_map referansları sayesinde)
         await location_stocks_collection.update_one(
             {"_id": location["_id"]},
             {"$set": {"items": items, "updated_at": get_turkey_time()}}

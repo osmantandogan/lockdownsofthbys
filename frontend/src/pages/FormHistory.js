@@ -19,6 +19,8 @@ import InjectionConsentForm from '../components/forms/InjectionConsentForm';
 import PunctureConsentForm from '../components/forms/PunctureConsentForm';
 import MinorSurgeryConsentForm from '../components/forms/MinorSurgeryConsentForm';
 import GeneralConsentForm from '../components/forms/GeneralConsentForm';
+import DailyControlFormFull from '../components/forms/DailyControlFormFull';
+import HandoverFormFull from '../components/forms/HandoverFormFull';
 
 const FormHistory = () => {
   const { user } = useAuth();
@@ -146,11 +148,8 @@ const FormHistory = () => {
         formsAPI.getStats()
       ];
       
-      // Yetkili roller için fotoğrafları da yükle
-      const canViewPhotos = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
-      if (canViewPhotos) {
-        apiCalls.push(shiftsAPI.getPhotos({ limit: 100 }));
-      }
+      // Tüm roller için fotoğrafları yükle (form geçmişi için)
+      apiCalls.push(shiftsAPI.getPhotos({ limit: 200 }));
       
       const results = await Promise.all(apiCalls);
       
@@ -482,6 +481,8 @@ const FormHistory = () => {
       initialData: selectedForm?.form_data || {}
     };
     
+    const formData = selectedForm?.form_data || {};
+    
     switch(formType) {
       case 'kvkk':
         return <KVKKConsentForm {...formProps} />;
@@ -493,10 +494,50 @@ const FormHistory = () => {
         return <MinorSurgeryConsentForm {...formProps} />;
       case 'general_consent':
         return <GeneralConsentForm {...formProps} />;
+      case 'daily_control':
+        // Günlük kontrol formu için özel render
+        return (
+          <DailyControlFormFull 
+            formData={formData} 
+            onChange={() => {}} 
+          />
+        );
+      case 'handover':
+        // Devir teslim formu için özel render
+        return (
+          <HandoverFormFull 
+            formData={formData} 
+            onChange={() => {}} 
+            vehiclePlate={selectedForm?.vehicle_plate || ''}
+            vehicleKm={formData.km || 0}
+          />
+        );
       default:
+        // Diğer formlar için JSON gösterimi yerine daha okunabilir format
+        // Eğer checks objesi varsa (daily_control gibi), özel render yap
+        if (formData.checks && typeof formData.checks === 'object') {
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(formData.checks).map(([key, value]) => (
+                  <div key={key} className="p-3 bg-gray-50 rounded border">
+                    <p className="text-sm font-medium text-gray-700 mb-1">{key}</p>
+                    <p className="text-base font-semibold">{String(value)}</p>
+                  </div>
+                ))}
+              </div>
+              {formData.plaka && (
+                <div className="mt-4 p-3 bg-blue-50 rounded">
+                  <p className="text-sm text-gray-600">Plaka: <span className="font-semibold">{formData.plaka}</span></p>
+                </div>
+              )}
+            </div>
+          );
+        }
+        
         return (
           <div className="space-y-4">
-            {Object.entries(selectedForm?.form_data || {}).map(([key, value]) => (
+            {Object.entries(formData).map(([key, value]) => (
               <div key={key} className="border-b pb-2">
                 <p className="text-sm font-medium text-gray-500">{formatFieldLabel(key)}</p>
                 {key === 'signature' && value ? (

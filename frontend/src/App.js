@@ -35,7 +35,6 @@ import Vehicles from "./pages/Vehicles";
 import StockManagement from "./pages/StockManagement";
 import WarehouseManagement from "./pages/WarehouseManagement";
 import WarehouseTransfers from "./pages/WarehouseTransfers";
-import StockBarcodeEntry from "./pages/StockBarcodeEntry";
 import StockRequests from "./pages/StockRequests";
 import Shifts from "./pages/Shifts";
 import ShiftAssignments from "./pages/ShiftAssignments";
@@ -176,7 +175,6 @@ function App() {
             <Route path="stock" element={<StockManagement />} />
             <Route path="warehouse" element={<WarehouseManagement />} />
             <Route path="warehouse-transfers" element={<WarehouseTransfers />} />
-            <Route path="stock-barcode-entry" element={<StockBarcodeEntry />} />
             <Route path="stock-requests" element={<StockRequests />} />
             <Route path="shifts" element={<Shifts />} />
             <Route path="shift-assignments" element={<ShiftAssignments />} />

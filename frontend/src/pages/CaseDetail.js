@@ -688,6 +688,14 @@ const CaseDetail = () => {
       }
       
       setCaseData(caseRes.data);
+      
+      // TC varsa hasta bilgilerini otomatik getir
+      const tcNo = caseRes.data?.patient?.tc_no || caseRes.data?.patient?.tcNo || '';
+      if (tcNo && tcNo.length === 11) {
+        // Hasta bilgilerini otomatik getir (async, hata görmezden gel)
+        lookupPatientByTc(tcNo).catch(() => {});
+      }
+      
       // Sadece ambulans tipindeki araçları göster
       const ambulances = (vehiclesData || []).filter(v => v.type === 'ambulans');
       setVehicles(ambulances);
@@ -1695,7 +1703,7 @@ const CaseDetail = () => {
       
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className={`grid w-full ${['att', 'paramedik'].includes(user?.role?.toLowerCase()) ? 'grid-cols-6' : 'grid-cols-7'}`}>
           <TabsTrigger value="form" className="flex items-center space-x-2">
             <FileText className="h-4 w-4" />
             <span>Temel Bilgiler</span>
@@ -1720,10 +1728,12 @@ const CaseDetail = () => {
             <FileSignature className="h-4 w-4" />
             <span>Onam Formları</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center space-x-2">
-            <Clock className="h-4 w-4" />
-            <span>Geçmiş</span>
-          </TabsTrigger>
+          {!['att', 'paramedik'].includes(user?.role?.toLowerCase()) && (
+            <TabsTrigger value="history" className="flex items-center space-x-2">
+              <Clock className="h-4 w-4" />
+              <span>Geçmiş</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Doctor Approval Banner */}

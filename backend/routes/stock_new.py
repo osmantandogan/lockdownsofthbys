@@ -538,8 +538,9 @@ async def get_my_location_stock(request: Request):
     
     # Eğer araç yoksa sağlık merkezi olabilir
     if not target_id and assignment.get("location_type") == "saglik_merkezi":
-        target_id = assignment.get("health_center_name", "saglik_merkezi")
-        target_name = assignment.get("health_center_name", "Sağlık Merkezi")
+        # Önce healmedy_location_id'yi kontrol et, yoksa health_center_name kullan
+        target_id = assignment.get("healmedy_location_id") or assignment.get("health_center_name") or "filyos_saglik_merkezi"
+        target_name = assignment.get("health_center_name") or assignment.get("location_name") or "Sağlık Merkezi"
         target_type = "waiting_point"
     
     if not target_id:

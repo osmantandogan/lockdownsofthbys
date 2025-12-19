@@ -1325,13 +1325,9 @@ async def get_shift_photos(
 ):
     """
     Vardiya fotoğraflarını getir
-    Baş Şoför, Operasyon Müdürü ve Merkez Ofis erişebilir
+    Tüm roller erişebilir (form geçmişi için)
     """
     current_user = await get_current_user(request)
-    
-    # Sadece yetkili roller erişebilir
-    if current_user.role not in ["merkez_ofis", "operasyon_muduru", "bas_sofor"]:
-        raise HTTPException(status_code=403, detail="Bu sayfaya erişim yetkiniz yok")
     
     from database import db
     shift_photos_collection = db["shift_photos"]
@@ -1354,27 +1350,50 @@ async def get_shift_photos(
 
 @router.get("/photos/{shift_id}")
 async def get_shift_photos_by_id(shift_id: str, request: Request):
-    """Belirli bir vardiyaya ait fotoğrafları getir"""
+    """Belirli bir vardiyaya ait fotoğrafları getir - Tüm roller erişebilir
+    Hem shift_photos collection'ından hem de shift'in kendisinden (end_photos) fotoğrafları getirir
+    """
     current_user = await get_current_user(request)
-    
-    # Sadece yetkili roller erişebilir
-    if current_user.role not in ["merkez_ofis", "operasyon_muduru", "bas_sofor"]:
-        raise HTTPException(status_code=403, detail="Bu sayfaya erişim yetkiniz yok")
     
     from database import db
     shift_photos_collection = db["shift_photos"]
     
+    # Önce shift_photos collection'ından ara
     photo_doc = await shift_photos_collection.find_one({"shift_id": shift_id})
-    if not photo_doc:
+    
+    # Shift'in kendisinden de fotoğrafları al (ATT/Paramedik için end_photos)
+    shift = await shifts_collection.find_one({"_id": shift_id})
+    
+    if not photo_doc and not shift:
         return None
     
-    photo_doc["id"] = photo_doc.pop("_id")
+    # Eğer photo_doc yoksa ama shift varsa, shift'ten fotoğrafları al
+    if not photo_doc and shift:
+        end_photos = shift.get("end_photos") or {}
+        photos = shift.get("photos") or {}
+        
+        # End photos ve photos'u birleştir
+        all_photos = {**photos, **end_photos}
+        
+        if all_photos:
+            photo_doc = {
+                "id": shift_id,
+                "shift_id": shift_id,
+                "user_id": shift.get("user_id"),
+                "vehicle_id": shift.get("vehicle_id"),
+                "vehicle_plate": shift.get("vehicle_plate"),
+                "photos": all_photos,
+                "created_at": shift.get("start_time")
+            }
     
-    # Kullanıcı bilgisini ekle
-    user_doc = await users_collection.find_one({"_id": photo_doc.get("user_id")})
-    if user_doc:
-        photo_doc["user_name"] = user_doc.get("name", "Bilinmiyor")
-        photo_doc["user_role"] = user_doc.get("role", "")
+    if photo_doc:
+        photo_doc["id"] = photo_doc.pop("_id", photo_doc.get("id"))
+        
+        # Kullanıcı bilgisini ekle
+        user_doc = await users_collection.find_one({"_id": photo_doc.get("user_id")})
+        if user_doc:
+            photo_doc["user_name"] = user_doc.get("name", "Bilinmiyor")
+            photo_doc["user_role"] = user_doc.get("role", "")
     
     return photo_doc
 
@@ -1423,6 +1442,7 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
     """
     Bu araç için bugün günlük kontrol formu doldurulmuş mu?
     ATT/Paramedik'ten biri doldurduysa diğerinin doldurmasına gerek yok
+    SADECE AYNI VARDİYA ATAMASINDA OLAN EKİP ÜYELERİ DOLDURABİLİR
     """
     user = await get_current_user(request)
     
@@ -1440,17 +1460,71 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
     day_start = datetime(target_date.year, target_date.month, target_date.day)
     day_end = day_start + timedelta(days=1)
     
-    # Bu araç ve bu gün için günlük form doldurulmuş mı?
+    # Kullanıcının bugünkü vardiya assignment'ını bul
+    from database import db
+    shift_assignments_collection = db["shift_assignments"]
+    
+    today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    
+    user_assignment = await shift_assignments_collection.find_one({
+        "user_id": user.id,
+        "vehicle_id": vehicle_id,
+        "status": {"$in": ["pending", "started"]},
+        "$or": [
+            {"shift_date": {"$gte": today, "$lt": tomorrow}},
+            {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+        ]
+    })
+    
+    if not user_assignment:
+        # Kullanıcının bu araç için aktif vardiya ataması yok
+        return {
+            "filled": False,
+            "message": "Bu araç için aktif vardiya atamanız bulunmuyor",
+            "no_assignment": True
+        }
+    
+    # Bu vardiya assignment'ındaki diğer kullanıcıları bul (aynı araç, aynı tarih)
+    assignment_date = user_assignment.get("shift_date")
+    assignment_end_date = user_assignment.get("end_date") or assignment_date
+    
+    # Aynı assignment'taki diğer kullanıcıların user_id'lerini al
+    same_assignment_users = await shift_assignments_collection.find({
+        "vehicle_id": vehicle_id,
+        "status": {"$in": ["pending", "started"]},
+        "$or": [
+            {"shift_date": assignment_date, "end_date": assignment_end_date},
+            {"shift_date": {"$gte": today, "$lt": tomorrow}},
+            {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+        ]
+    }).to_list(100)
+    
+    team_user_ids = [a.get("user_id") for a in same_assignment_users]
+    
+    # Bu araç ve bu gün için günlük form doldurulmuş mu?
+    # SADECE AYNI EKİPTEKİ KULLANICILARIN DOLDURDUĞU FORMLARI KONTROL ET
     filled_shift = await shifts_collection.find_one({
         "vehicle_id": vehicle_id,
-        "daily_control_filled_by": {"$ne": None},
-        "daily_control_filled_at": {"$gte": day_start, "$lt": day_end}
+        "daily_control_filled_by": {"$in": team_user_ids},  # Sadece ekip üyeleri
+        "daily_control_filled_at": {"$gte": day_start, "$lt": day_end},
+        "start_time": {"$gte": day_start, "$lt": day_end}  # Aynı gün başlatılan vardiya
     })
     
     if filled_shift:
         # Dolduran kişi bilgisini al
         filler = await users_collection.find_one({"_id": filled_shift.get("daily_control_filled_by")})
         filler_name = filler.get("name") if filler else "Bilinmiyor"
+        filler_role = filler.get("role") if filler else ""
+        
+        # Dolduran kişi ATT veya Paramedik mi kontrol et
+        if filler_role not in ["att", "paramedik"]:
+            # Şoför veya başka biri doldurmuş, ATT/Paramedik yeniden doldurmalı
+            return {
+                "filled": False,
+                "message": f"Bu form {filler_name} tarafından doldurulmuş, ancak ATT/Paramedik tarafından doldurulması gerekiyor",
+                "can_fill": True
+            }
         
         return {
             "filled": True,

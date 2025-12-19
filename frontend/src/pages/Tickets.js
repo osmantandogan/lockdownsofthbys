@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { casesAPI, shiftsAPI, vehiclesAPI, ticketsAPI } from '../api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import PhotoCapture from '../components/PhotoCapture';
 
 const Tickets = () => {
   const { user } = useAuth();
@@ -24,6 +26,8 @@ const Tickets = () => {
   const [vehicles, setVehicles] = useState([]);
   const [recentCases, setRecentCases] = useState([]);
   const [currentShift, setCurrentShift] = useState(null);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+  const [photoDialogType, setPhotoDialogType] = useState(null); // 'bildirim' veya 'hasar'
 
   // Bildirim formu
   const [bildirimForm, setBildirimForm] = useState({
@@ -248,42 +252,34 @@ const Tickets = () => {
     }
   };
 
-  const handleCameraCapture = async (formType) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.play();
-      
-      // Wait for video to be ready
-      await new Promise(resolve => video.onloadedmetadata = resolve);
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-      
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      
-      stream.getTracks().forEach(track => track.stop());
-      
-      if (formType === 'bildirim') {
-        setBildirimForm(prev => ({
-          ...prev,
-          photos: [...prev.photos, { name: `foto_${Date.now()}.jpg`, data: imageData }]
-        }));
-      } else if (formType === 'hasar') {
-        setHasarForm(prev => ({
-          ...prev,
-          photos: [...prev.photos, { name: `foto_${Date.now()}.jpg`, data: imageData }]
-        }));
-      }
-      toast.success('Fotoğraf çekildi');
-    } catch (error) {
-      console.error('Kamera hatası:', error);
-      toast.error('Kamera açılamadı. Lütfen izin verin.');
+  const handleOpenPhotoDialog = (formType) => {
+    setPhotoDialogType(formType);
+    setShowPhotoDialog(true);
+  };
+
+  const handlePhotoCapture = (photoData) => {
+    if (!photoData) return;
+    
+    const photoObj = {
+      name: `foto_${Date.now()}.jpg`,
+      data: photoData
+    };
+    
+    if (photoDialogType === 'bildirim') {
+      setBildirimForm(prev => ({
+        ...prev,
+        photos: [...prev.photos, photoObj]
+      }));
+    } else if (photoDialogType === 'hasar') {
+      setHasarForm(prev => ({
+        ...prev,
+        photos: [...prev.photos, photoObj]
+      }));
     }
+    
+    setShowPhotoDialog(false);
+    setPhotoDialogType(null);
+    toast.success('Fotoğraf eklendi');
   };
 
   const removeHasarPhoto = (index) => {
@@ -536,16 +532,13 @@ const Tickets = () => {
                       </button>
                     </div>
                   ))}
-                  <label className="w-20 h-20 border-2 border-dashed rounded flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => handlePhotoUpload(e, 'bildirim')}
-                    />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPhotoDialog('bildirim')}
+                    className="w-20 h-20 border-2 border-dashed rounded flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors"
+                  >
                     <Camera className="h-6 w-6 text-gray-400" />
-                  </label>
+                  </button>
                 </div>
               </div>
 
@@ -895,7 +888,7 @@ const Tickets = () => {
                   ))}
                   <button
                     type="button"
-                    onClick={() => handleCameraCapture('hasar')}
+                    onClick={() => handleOpenPhotoDialog('hasar')}
                     className="w-20 h-20 border-2 border-dashed rounded flex flex-col items-center justify-center text-gray-400 hover:border-red-500 hover:text-red-500 transition-colors"
                   >
                     <Camera className="h-6 w-6" />
@@ -933,6 +926,24 @@ const Tickets = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Fotoğraf Çekme Popup Dialog */}
+      <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {photoDialogType === 'bildirim' ? 'Bildirim Fotoğrafı Çek' : 'Hasar Fotoğrafı Çek'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <PhotoCapture
+              title={photoDialogType === 'bildirim' ? 'Bildirim Fotoğrafı' : 'Hasar Fotoğrafı'}
+              onPhotoCapture={handlePhotoCapture}
+              required={false}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
