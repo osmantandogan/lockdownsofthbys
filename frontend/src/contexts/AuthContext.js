@@ -69,18 +69,38 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('[Auth] === LOGIN START ===');
+      console.log('[Auth] Calling authAPI.login...');
+      
       const response = await authAPI.login(email, password);
+      
+      console.log('[Auth] === LOGIN RESPONSE ===');
+      console.log('[Auth] Full response:', response);
+      console.log('[Auth] response.data:', response?.data);
+      console.log('[Auth] response.data.user:', response?.data?.user);
+      console.log('[Auth] response.data.session_token:', response?.data?.session_token ? '...' + response.data.session_token.slice(-10) : 'MISSING');
       
       // Token'ı kaydet (response'da session_token var)
       if (response.data.session_token) {
         setAuthToken(response.data.session_token);
         console.log('[Auth] Token saved to localStorage');
+      } else {
+        console.error('[Auth] ⚠️ NO SESSION TOKEN IN RESPONSE!');
       }
       
-      setUser(response.data.user);
+      if (response.data.user) {
+        setUser(response.data.user);
+        console.log('[Auth] User set:', response.data.user.name, response.data.user.role);
+      } else {
+        console.error('[Auth] ⚠️ NO USER IN RESPONSE!');
+      }
+      
       return response.data;
     } catch (error) {
-      console.error('[Auth] Login failed:', error);
+      console.error('[Auth] === LOGIN ERROR ===');
+      console.error('[Auth] Error:', error);
+      console.error('[Auth] Error message:', error.message);
+      console.error('[Auth] Error response:', error.response);
       throw error;
     }
   };
