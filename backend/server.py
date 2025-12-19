@@ -64,7 +64,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_origins=allowed_origins,  # Explicit origin list
     allow_origin_regex=r"https?://.*\.ldserp\.com",  # .ldserp.com ile biten tüm origin'lere izin ver
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=86400,  # 24 saat cache
