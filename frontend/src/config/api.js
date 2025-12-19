@@ -1,12 +1,18 @@
 // Merkezi API yapılandırması
 // Tüm API çağrıları bu dosyadan URL'yi almalı
 
-// Backend URL - Environment variable'dan al, yoksa localhost kullan
+// Backend URL - Environment variable'dan al, yoksa production URL kullan
 const getBackendUrl = () => {
   // Environment variable'dan al (REACT_APP_BACKEND_URL)
   if (process.env.REACT_APP_BACKEND_URL) {
     return process.env.REACT_APP_BACKEND_URL;
   }
+  
+  // Production ortamında (localhost değilse) production backend URL'ini kullan
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+    return 'https://courteous-renewal-production-5ab5.up.railway.app';
+  }
+  
   // Local development için localhost
   return 'http://localhost:8001';
 };
