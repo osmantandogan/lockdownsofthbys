@@ -36,25 +36,6 @@ db = client[db_name]
 # Create the main app
 app = FastAPI(title="HealMedy HBYS API")
 
-# Middleware to add CORS headers to all responses (backup for Railway)
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    """Add CORS headers to all responses as backup for Railway reverse proxy"""
-    origin = request.headers.get("origin", "")
-    
-    response = await call_next(request)
-    
-    # Eğer origin .ldserp.com ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
-    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Expose-Headers"] = "*"
-        response.headers["Access-Control-Max-Age"] = "86400"
-    
-    return response
-
 # CORS middleware - MUST be added BEFORE routes
 # Get allowed origins from env or use defaults
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', '').split(',') if os.environ.get('ALLOWED_ORIGINS') else []
@@ -90,6 +71,28 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=86400,  # 24 saat cache
 )
+
+# HTTP middleware to add CORS headers as backup (AFTER CORS middleware)
+# This ensures CORS headers are always present even if middleware fails
+@app.middleware("http")
+async def add_cors_headers_backup(request: Request, call_next):
+    """Add CORS headers to all responses as backup for Railway reverse proxy"""
+    origin = request.headers.get("origin", "")
+    
+    response = await call_next(request)
+    
+    # Eğer origin .ldserp.com ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
+    # Sadece eğer CORS middleware header eklememişse ekle (backup)
+    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
+        if "Access-Control-Allow-Origin" not in response.headers:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Expose-Headers"] = "*"
+            response.headers["Access-Control-Max-Age"] = "86400"
+    
+    return response
 
 # Global exception handler to ensure CORS headers on errors
 @app.exception_handler(Exception)
