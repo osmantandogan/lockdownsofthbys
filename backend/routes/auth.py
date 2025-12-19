@@ -105,8 +105,21 @@ async def register(data: RegisterRequest, response: Response):
     )
 
 # JWT-based Login
+@router.options("/login")
+async def login_options(request: Request):
+    """Handle OPTIONS for login endpoint"""
+    origin = request.headers.get("origin", "")
+    from fastapi.responses import Response as FastAPIResponse
+    resp = FastAPIResponse(status_code=200)
+    if origin and (origin.endswith('.ldserp.com') or 'abro.ldserp.com' in origin):
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "*"
+    return resp
+
 @router.post("/login")
-async def login(data: LoginRequest, response: Response):
+async def login(data: LoginRequest, response: Response, request: Request):
     """Login with email/password or name/password"""
     import re
     
@@ -164,6 +177,13 @@ async def login(data: LoginRequest, response: Response):
     
     user_doc["id"] = user_doc.pop("_id")
     user = User(**user_doc)
+    
+    # Add CORS headers to response
+    origin = request.headers.get("origin", "")
+    if origin and (origin.endswith('.ldserp.com') or 'abro.ldserp.com' in origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Expose-Headers"] = "*"
     
     return {"user": user, "session_token": access_token}
 

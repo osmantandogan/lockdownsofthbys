@@ -187,6 +187,25 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "healmedy-backend"}
 
+# OPTIONS handler for all routes (CORS preflight)
+@app.options("/{full_path:path}")
+async def options_handler(request: Request, full_path: str):
+    """Handle OPTIONS requests for CORS preflight"""
+    origin = request.headers.get("origin", "")
+    
+    response = Response(status_code=200)
+    
+    # Eğer origin .ldserp.com ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
+    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "86400"
+    
+    return response
+
 # Include the router in the main app
 app.include_router(api_router)
 
