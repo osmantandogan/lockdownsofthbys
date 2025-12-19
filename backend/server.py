@@ -80,23 +80,25 @@ async def add_cors_headers_backup(request: Request, call_next):
     """Add CORS headers to all responses as backup for Railway reverse proxy"""
     origin = request.headers.get("origin", "")
     
-    # OPTIONS request'leri için özel handling
+    # OPTIONS request'leri için özel handling - TÜM origin'lere izin ver (Railway için)
     if request.method == "OPTIONS":
+        logger.info(f"OPTIONS request intercepted in middleware for path: {request.url.path}, origin: {origin}")
         response = Response(status_code=200)
-        if origin and (origin in allowed_origins or origin.endswith('.ldserp.com') or origin.endswith('.railway.app')):
+        # Tüm origin'lere izin ver (Railway reverse proxy için geçici çözüm)
+        if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
             response.headers["Access-Control-Allow-Headers"] = "*"
             response.headers["Access-Control-Expose-Headers"] = "*"
             response.headers["Access-Control-Max-Age"] = "86400"
+            logger.info(f"CORS headers added in middleware for origin: {origin}")
         return response
     
     response = await call_next(request)
     
-    # Eğer origin .ldserp.com, .railway.app ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
-    # Her zaman ekle (override)
-    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com') or origin.endswith('.railway.app')):
+    # Eğer origin varsa CORS header'ları ekle (her zaman - override)
+    if origin:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
