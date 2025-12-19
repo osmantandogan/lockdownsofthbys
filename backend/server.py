@@ -36,6 +36,25 @@ db = client[db_name]
 # Create the main app
 app = FastAPI(title="HealMedy HBYS API")
 
+# Middleware to add CORS headers to all responses (backup for Railway)
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    """Add CORS headers to all responses as backup for Railway reverse proxy"""
+    origin = request.headers.get("origin", "")
+    
+    response = await call_next(request)
+    
+    # Eğer origin .ldserp.com ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
+    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "86400"
+    
+    return response
+
 # CORS middleware - MUST be added BEFORE routes
 # Get allowed origins from env or use defaults
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', '').split(',') if os.environ.get('ALLOWED_ORIGINS') else []
