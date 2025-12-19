@@ -111,7 +111,7 @@ async def login_options(request: Request):
     origin = request.headers.get("origin", "")
     from fastapi.responses import Response as FastAPIResponse
     resp = FastAPIResponse(status_code=200)
-    if origin and (origin.endswith('.ldserp.com') or 'abro.ldserp.com' in origin):
+    if origin and (origin.endswith('.ldserp.com') or origin.endswith('.railway.app') or 'abro.ldserp.com' in origin):
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
         resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
@@ -180,7 +180,7 @@ async def login(data: LoginRequest, response: Response, request: Request):
     
     # Add CORS headers to response
     origin = request.headers.get("origin", "")
-    if origin and (origin.endswith('.ldserp.com') or 'abro.ldserp.com' in origin):
+    if origin and (origin.endswith('.ldserp.com') or origin.endswith('.railway.app') or 'abro.ldserp.com' in origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Expose-Headers"] = "*"

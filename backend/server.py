@@ -45,6 +45,7 @@ allowed_origins.extend([
     "http://127.0.0.1:3001",
     "https://frontend-production-cd55.up.railway.app",
     "https://abro.ldserp.com",
+    "https://courteous-renewal-production-5ab5.up.railway.app",  # Backend URL (Railway)
     # Capacitor Android/iOS origins
     "https://localhost",
     "capacitor://localhost",
@@ -58,14 +59,14 @@ allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
 
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
-# CORS middleware - .ldserp.com domain'lerine ve tüm allowed origins'e izin ver
+# CORS middleware - .ldserp.com ve .railway.app domain'lerine ve tüm allowed origins'e izin ver
 # Railway reverse proxy için özel CORS ayarları
 # allow_origin_regex ve allow_origins birlikte kullanıldığında OR mantığıyla çalışır
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=allowed_origins,  # Explicit origin list
-    allow_origin_regex=r"https?://.*\.ldserp\.com",  # .ldserp.com ile biten tüm origin'lere izin ver (OR mantığı)
+    allow_origin_regex=r"https?://.*\.(ldserp\.com|railway\.app)",  # .ldserp.com ve .railway.app ile biten tüm origin'lere izin ver
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],  # Tüm metodlara izin ver
     allow_headers=["*"],
     expose_headers=["*"],
@@ -81,9 +82,9 @@ async def add_cors_headers_backup(request: Request, call_next):
     
     response = await call_next(request)
     
-    # Eğer origin .ldserp.com ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
+    # Eğer origin .ldserp.com, .railway.app ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
     # Sadece eğer CORS middleware header eklememişse ekle (backup)
-    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
+    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com') or origin.endswith('.railway.app')):
         if "Access-Control-Allow-Origin" not in response.headers:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -187,7 +188,7 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "healmedy-backend"}
 
-# OPTIONS handler for all routes (CORS preflight)
+# OPTIONS handler for all routes (CORS preflight) - MUST be before router inclusion
 @app.options("/{full_path:path}")
 async def options_handler(request: Request, full_path: str):
     """Handle OPTIONS requests for CORS preflight"""
@@ -195,8 +196,8 @@ async def options_handler(request: Request, full_path: str):
     
     response = Response(status_code=200)
     
-    # Eğer origin .ldserp.com ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
-    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com')):
+    # Eğer origin .ldserp.com ile bitiyorsa, .railway.app ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
+    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com') or origin.endswith('.railway.app')):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
