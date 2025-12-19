@@ -45,7 +45,8 @@ allowed_origins.extend([
     "http://127.0.0.1:3001",
     "https://frontend-production-cd55.up.railway.app",
     "https://abro.ldserp.com",
-    "https://courteous-renewal-production-5ab5.up.railway.app",  # Backend URL (Railway)
+    "https://courteous-renewal-production-5ab5.up.railway.app",  # Backend URL (Railway - old)
+    "https://lockdownsofthbys-backend-production.up.railway.app",  # Backend URL (Railway - new)
     # Capacitor Android/iOS origins
     "https://localhost",
     "capacitor://localhost",
