@@ -110,14 +110,23 @@ const Vehicles = () => {
 
   const handleCreate = async () => {
     try {
-      // Boş alanları temizle
+      // Boş alanları temizle ve veriyi hazırla
       const submitData = { ...formData };
+      
+      // Boş string'leri null yap (backend bunları handle edecek)
       if (!submitData.last_inspection_date || submitData.last_inspection_date === '') {
-        delete submitData.last_inspection_date;
+        submitData.last_inspection_date = null;
       }
       if (!submitData.station_code || submitData.station_code === '') {
-        delete submitData.station_code;
+        submitData.station_code = null;
       }
+      
+      // Sayısal değerleri kontrol et
+      submitData.km = parseInt(submitData.km) || 0;
+      submitData.fuel_level = submitData.fuel_level !== null && submitData.fuel_level !== '' ? parseInt(submitData.fuel_level) : null;
+      submitData.next_maintenance_km = parseInt(submitData.next_maintenance_km) || 0;
+      
+      console.log('Sending vehicle data:', submitData);
       
       await vehiclesAPI.create(submitData);
       toast.success('Araç başarıyla oluşturuldu');
@@ -127,6 +136,7 @@ const Vehicles = () => {
       loadData();
     } catch (error) {
       console.error('Create vehicle error:', error);
+      console.error('Error response:', error.response?.data);
       const errorDetail = error.response?.data?.detail;
       if (Array.isArray(errorDetail)) {
         // Validation errors

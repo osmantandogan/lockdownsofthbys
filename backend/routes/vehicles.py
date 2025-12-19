@@ -8,29 +8,94 @@ from datetime import datetime
 router = APIRouter()
 
 @router.post("", response_model=Vehicle)
-async def create_vehicle(data: VehicleCreate, request: Request):
+async def create_vehicle(request: Request):
     """Create new vehicle (admin only)"""
     await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
     
+    from pydantic import ValidationError
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        body = await request.json()
+        logger.info(f"Received vehicle creation request: {body}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    
+    # Boş string'leri None'a çevir ve temizle
+    cleaned_body = {}
+    for key, value in body.items():
+        if value == "" or value is None:
+            if key in ["last_inspection_date", "station_code", "fuel_level"]:
+                cleaned_body[key] = None
+            else:
+                # Diğer alanlar için varsayılan değerleri kullan
+                continue
+        else:
+            cleaned_body[key] = value
+    
     # Parse last_inspection_date if it's a string
-    vehicle_data = data.model_dump()
-    if vehicle_data.get("last_inspection_date") and isinstance(vehicle_data["last_inspection_date"], str):
+    if cleaned_body.get("last_inspection_date") and isinstance(cleaned_body["last_inspection_date"], str):
         try:
             from datetime import datetime as dt
-            vehicle_data["last_inspection_date"] = dt.fromisoformat(vehicle_data["last_inspection_date"].replace('Z', '+00:00'))
+            cleaned_body["last_inspection_date"] = dt.fromisoformat(cleaned_body["last_inspection_date"].replace('Z', '+00:00'))
         except (ValueError, AttributeError):
             # If parsing fails, try date format
             try:
-                vehicle_data["last_inspection_date"] = dt.strptime(vehicle_data["last_inspection_date"], "%Y-%m-%d")
+                cleaned_body["last_inspection_date"] = dt.strptime(cleaned_body["last_inspection_date"], "%Y-%m-%d")
             except (ValueError, AttributeError):
-                vehicle_data["last_inspection_date"] = None
+                cleaned_body["last_inspection_date"] = None
     
-    new_vehicle = Vehicle(**vehicle_data)
-    vehicle_dict = new_vehicle.model_dump(by_alias=True)
+    # Sayısal değerleri kontrol et
+    if "km" in cleaned_body:
+        try:
+            cleaned_body["km"] = int(cleaned_body["km"])
+        except (ValueError, TypeError):
+            cleaned_body["km"] = 0
     
-    await vehicles_collection.insert_one(vehicle_dict)
+    if "next_maintenance_km" in cleaned_body:
+        try:
+            cleaned_body["next_maintenance_km"] = int(cleaned_body["next_maintenance_km"]) if cleaned_body["next_maintenance_km"] else 0
+        except (ValueError, TypeError):
+            cleaned_body["next_maintenance_km"] = 0
     
-    return new_vehicle
+    if "fuel_level" in cleaned_body and cleaned_body["fuel_level"] is not None:
+        try:
+            cleaned_body["fuel_level"] = int(cleaned_body["fuel_level"])
+        except (ValueError, TypeError):
+            cleaned_body["fuel_level"] = None
+    
+    logger.info(f"Cleaned vehicle data: {cleaned_body}")
+    
+    # Validate with Pydantic
+    try:
+        vehicle_create = VehicleCreate(**cleaned_body)
+    except ValidationError as e:
+        error_messages = []
+        for error in e.errors():
+            field = ".".join(str(loc) for loc in error["loc"])
+            error_messages.append(f"{field}: {error['msg']}")
+        logger.error(f"Validation error: {error_messages}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Validation error: {', '.join(error_messages)}"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error creating vehicle: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Vehicle creation failed: {str(e)}")
+    
+    # Create vehicle
+    try:
+        new_vehicle = Vehicle(**vehicle_create.model_dump())
+        vehicle_dict = new_vehicle.model_dump(by_alias=True)
+        
+        await vehicles_collection.insert_one(vehicle_dict)
+        
+        logger.info(f"Vehicle created successfully: {new_vehicle.id}")
+        return new_vehicle
+    except Exception as e:
+        logger.error(f"Database error creating vehicle: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Vehicle creation failed: {str(e)}")
 
 @router.get("")
 async def get_vehicles(
