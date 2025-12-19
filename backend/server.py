@@ -223,12 +223,12 @@ async def options_handler(request: Request, full_path: str):
     """Handle OPTIONS requests for CORS preflight - catches all paths"""
     origin = request.headers.get("origin", "")
     
-    logger.info(f"OPTIONS request received for path: {full_path}, origin: {origin}")
+    logger.info(f"OPTIONS request received for path: {full_path}, origin: {origin}, headers: {dict(request.headers)}")
     
     response = Response(status_code=200)
     
-    # Eğer origin .ldserp.com ile bitiyorsa, .railway.app ile bitiyorsa veya allowed_origins'de varsa CORS header'ları ekle
-    if origin and (origin in allowed_origins or origin.endswith('.ldserp.com') or origin.endswith('.railway.app')):
+    # TÜM origin'lere izin ver (Railway için geçici çözüm)
+    if origin:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
@@ -237,7 +237,11 @@ async def options_handler(request: Request, full_path: str):
         response.headers["Access-Control-Max-Age"] = "86400"
         logger.info(f"CORS headers added for origin: {origin}")
     else:
-        logger.warning(f"Origin not allowed: {origin}")
+        # Origin yoksa bile CORS header'ları ekle
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        logger.info(f"CORS headers added (no origin)")
     
     return response
 
