@@ -200,10 +200,13 @@ async def health_check():
     return {"status": "healthy", "service": "healmedy-backend"}
 
 # OPTIONS handler for all routes (CORS preflight) - MUST be before router inclusion
+# This handler catches ALL OPTIONS requests before they reach the router
 @app.options("/{full_path:path}")
 async def options_handler(request: Request, full_path: str):
-    """Handle OPTIONS requests for CORS preflight"""
+    """Handle OPTIONS requests for CORS preflight - catches all paths"""
     origin = request.headers.get("origin", "")
+    
+    logger.info(f"OPTIONS request received for path: {full_path}, origin: {origin}")
     
     response = Response(status_code=200)
     
@@ -215,6 +218,9 @@ async def options_handler(request: Request, full_path: str):
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Expose-Headers"] = "*"
         response.headers["Access-Control-Max-Age"] = "86400"
+        logger.info(f"CORS headers added for origin: {origin}")
+    else:
+        logger.warning(f"Origin not allowed: {origin}")
     
     return response
 
