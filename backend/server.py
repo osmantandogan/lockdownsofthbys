@@ -80,8 +80,9 @@ async def add_cors_headers_backup(request: Request, call_next):
     """Add CORS headers to all responses as backup for Railway reverse proxy"""
     origin = request.headers.get("origin", "")
     
-    # Log all requests for debugging
-    logger.info(f"Request: {request.method} {request.url.path}, Origin: {origin}, Headers: {dict(request.headers)}")
+    # Log only OPTIONS and POST requests for debugging (to avoid spam)
+    if request.method in ["OPTIONS", "POST"]:
+        logger.info(f"Request: {request.method} {request.url.path}, Origin: {origin}")
     
     # OPTIONS request'leri için özel handling - TÜM origin'lere izin ver (Railway için)
     if request.method == "OPTIONS":
