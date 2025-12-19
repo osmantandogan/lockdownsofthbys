@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ChevronDown, CheckCircle, Fuel, MapPin, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { locationsAPI } from '../../api';
+import { getTurkeyDate } from '../../utils/timezone';
 
 /**
  * Şoför için Araç Günlük Kontrol ve Devir Alma Formu
@@ -22,7 +23,7 @@ const DailyControlFormForDriver = ({ formData: externalFormData, onChange, vehic
     istasyonAdi: '',
     plaka: vehiclePlate || '',
     km: '',
-    tarih: new Date().toISOString().split('T')[0],
+    tarih: getTurkeyDate(),
     aciklama: '',
     teslimAlan: user?.name || ''
   });

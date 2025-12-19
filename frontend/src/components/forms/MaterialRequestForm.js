@@ -11,6 +11,7 @@ import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { shiftsAPI, vehiclesAPI } from '../../api';
+import { getTurkeyDate } from '../../utils/timezone';
 
 
   const handleSave = async () => {
@@ -34,7 +35,7 @@ import { shiftsAPI, vehiclesAPI } from '../../api';
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     consciousnessStatus: 'conscious',
-    date: new Date().toISOString().split('T')[0],
+    date: getTurkeyDate(),
     managerName: '',
     managerTitle: '',
     requestType: '', // ilac, medikal, ofis, personel, arac

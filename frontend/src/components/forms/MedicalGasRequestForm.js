@@ -7,6 +7,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { getTurkeyDate } from '../../utils/timezone';
 
 
   const handleSave = async () => {
@@ -28,7 +29,7 @@ import { toast } from 'sonner';
   ]);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getTurkeyDate(),
     managerName: '',
     managerTitle: ''
   });

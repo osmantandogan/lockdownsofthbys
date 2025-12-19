@@ -9,6 +9,7 @@ import SignaturePad from '../SignaturePad';
 import { toast } from 'sonner';
 import { CheckCircle, FileText, Scissors } from 'lucide-react';
 import { casesAPI } from '../../api';
+import { getTurkeyDate, getTurkeyTimeString, getTurkeyTimeISO } from '../../utils/timezone';
 
 const MinorSurgeryConsentForm = ({ 
   readOnly = false, 
@@ -42,8 +43,8 @@ const MinorSurgeryConsentForm = ({
     doctorName: '',
     translatorName: '',
     translatorPhone: '',
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0,5)
+    date: getTurkeyDate(),
+    time: getTurkeyTimeString()
   });
 
   // Hasta bilgilerini otomatik doldur
@@ -106,8 +107,8 @@ const MinorSurgeryConsentForm = ({
         doctorSignature: doctorSignature,
         translatorSignature: translatorSignature,
         caseId: caseId,
-        savedAt: new Date().toISOString(),
-        consentAcceptedAt: new Date().toISOString()
+        savedAt: getTurkeyTimeISO(),
+        consentAcceptedAt: getTurkeyTimeISO()
       };
 
       if (caseId) {

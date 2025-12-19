@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import PDFExportButton from '../PDFExportButton';
 import { AlertTriangle, CheckCircle, FileText, Shield } from 'lucide-react';
 import { casesAPI } from '../../api';
+import { getTurkeyDate, getTurkeyTimeISO } from '../../utils/timezone';
 
 const KVKKConsentForm = ({ 
   readOnly = false, 
@@ -36,7 +37,7 @@ const KVKKConsentForm = ({
     approvedRelatives: initialData.approvedRelatives || '',
     approvedEntities: initialData.approvedEntities || '',
     signatoryName: initialData.signatoryName || '',
-    signDate: initialData.signDate || new Date().toISOString().split('T')[0],
+    signDate: initialData.signDate || getTurkeyDate(),
     signature: initialData.signature || null
   });
 
@@ -92,8 +93,8 @@ const KVKKConsentForm = ({
         signature: patientSignature || formData.signature,
         caseId: caseId,
         caseNumber: caseNumber,
-        savedAt: new Date().toISOString(),
-        consentAcceptedAt: new Date().toISOString()
+        savedAt: getTurkeyTimeISO(),
+        consentAcceptedAt: getTurkeyTimeISO()
       };
 
       if (caseId) {
@@ -130,7 +131,7 @@ const KVKKConsentForm = ({
         approvedRelatives: '',
         approvedEntities: '',
         signatoryName: '',
-        signDate: new Date().toISOString().split('T')[0],
+        signDate: getTurkeyDate(),
         signature: null
       });
       setConsentAccepted(false);

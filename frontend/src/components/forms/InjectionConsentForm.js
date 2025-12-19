@@ -8,6 +8,7 @@ import SignaturePad from '../SignaturePad';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, FileText, Syringe } from 'lucide-react';
 import { casesAPI } from '../../api';
+import { getTurkeyDate, getTurkeyTimeString, getTurkeyTimeISO } from '../../utils/timezone';
 
 const InjectionConsentForm = ({ 
   readOnly = false, 
@@ -31,8 +32,8 @@ const InjectionConsentForm = ({
     patientAddress: initialData.patientAddress || '',
     patientPhone: initialData.patientPhone || '',
     injectionType: initialData.injectionType || '',
-    date: initialData.date || new Date().toISOString().split('T')[0],
-    time: initialData.time || new Date().toTimeString().slice(0,5),
+    date: initialData.date || getTurkeyDate(),
+    time: initialData.time || getTurkeyTimeString(),
     staffName: initialData.staffName || '',
     patientSignature: initialData.patientSignature || null,
     staffSignature: initialData.staffSignature || null
@@ -101,8 +102,8 @@ const InjectionConsentForm = ({
         patientSignature: patientSignature || formData.patientSignature,
         staffSignature: staffSignature,
         caseId: caseId,
-        savedAt: new Date().toISOString(),
-        consentAcceptedAt: new Date().toISOString()
+        savedAt: getTurkeyTimeISO(),
+        consentAcceptedAt: getTurkeyTimeISO()
       };
 
       if (caseId) {
@@ -135,8 +136,8 @@ const InjectionConsentForm = ({
         patientAddress: '',
         patientPhone: '',
         injectionType: '',
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toTimeString().slice(0,5),
+        date: getTurkeyDate(),
+        time: getTurkeyTimeString(),
         staffName: '',
         patientSignature: null,
         staffSignature: null

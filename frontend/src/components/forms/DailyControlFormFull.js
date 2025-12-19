@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { shiftsAPI, vehiclesAPI } from '../../api';
 import PDFExportButton from '../PDFExportButton';
 import { exportDailyControlForm } from '../../utils/pdfExport';
+import { getTurkeyDate } from '../../utils/timezone';
 
 const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
     istasyonAdi: '',
     plaka: '',
     km: '',
-    tarih: new Date().toISOString().split('T')[0],
+    tarih: getTurkeyDate(),
     aciklama: '',
     teslimEden: '',
     teslimAlan: ''
@@ -331,7 +332,7 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
             istasyonAdi: '',
             plaka: '',
             km: '',
-            tarih: new Date().toISOString().split('T')[0],
+            tarih: getTurkeyDate(),
             aciklama: '',
             teslimEden: '',
             teslimAlan: ''

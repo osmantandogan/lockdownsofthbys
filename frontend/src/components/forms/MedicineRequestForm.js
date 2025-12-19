@@ -9,6 +9,7 @@ import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { getTurkeyDate } from '../../utils/timezone';
 
 
   const handleSave = async () => {
@@ -31,7 +32,7 @@ import { useAuth } from '../../contexts/AuthContext';
   ]);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getTurkeyDate(),
     managerName: '',
     managerTitle: '',
     requesterSignature: null

@@ -15,6 +15,7 @@ import { shiftsAPI, vehiclesAPI, approvalsAPI } from '../../api';
 import PDFExportButton from '../PDFExportButton';
 import { exportHandoverForm } from '../../utils/pdfExport';
 import { CheckCircle, XCircle, Clock, Phone, Mail, User, Send, Shield, Loader2 } from 'lucide-react';
+import { getTurkeyDate, getTurkeyTimeString } from '../../utils/timezone';
 
 const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
 
   const [localFormData, setLocalFormData] = useState({
     aracPlakasi: vehiclePlate || '',
-    kayitTarihi: new Date().toISOString().split('T')[0],
+    kayitTarihi: getTurkeyDate(),
     kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
     teslimAlinanKm: vehicleKm || '',
     servisYapilacakKm: '',
@@ -52,7 +53,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
     teslimAlan: '',
     teslimAlanTelefon: '',
     birimYoneticisi: '',
-    onayTarihi: new Date().toISOString().split('T')[0],
+    onayTarihi: getTurkeyDate(),
     teslimEdenSignature: null,
     teslimAlanSignature: null,
     vehicleId: ''
@@ -81,7 +82,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
             ...prev,
             teslimEden: user?.name || '',
             teslimEdenTelefon: user?.phone || '',
-            kayitTarihi: new Date().toISOString().split('T')[0],
+            kayitTarihi: getTurkeyDate(),
             kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
           }));
           setLoading(false);
@@ -115,7 +116,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
             
             const newData = {
               aracPlakasi: vehicle?.plate || shift.vehicle_plate || '',
-              kayitTarihi: handoverData.data.date || new Date().toISOString().split('T')[0],
+              kayitTarihi: handoverData.data.date || getTurkeyDate(),
               kayitSaati: handoverData.data.time || new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
               teslimAlinanKm: vehicle?.km || shift.start_km || '',
               servisYapilacakKm: vehicle?.next_maintenance_km || '',
@@ -132,7 +133,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
               teslimEdenNotlar: '',
               hasarBildirimi: '',
               birimYoneticisi: '',
-              onayTarihi: new Date().toISOString().split('T')[0],
+              onayTarihi: getTurkeyDate(),
               teslimAlanSignature: null
             };
             
@@ -150,7 +151,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
           // Fallback: Vardiya bilgisinden araç plakasını kullan
           const newData = {
             aracPlakasi: shift.vehicle_plate || '',
-            kayitTarihi: new Date().toISOString().split('T')[0],
+            kayitTarihi: getTurkeyDate(),
             kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
             teslimAlinanKm: shift.start_km || '',
             teslimEden: user?.name || '',
@@ -166,7 +167,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
             teslimAlan: '',
             teslimAlanTelefon: '',
             birimYoneticisi: '',
-            onayTarihi: new Date().toISOString().split('T')[0],
+            onayTarihi: getTurkeyDate(),
             teslimAlanSignature: null,
             servisYapilacakKm: ''
           };
@@ -740,7 +741,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
         <Button variant="outline" onClick={() => {
           const initialData = {
             aracPlakasi: vehiclePlate || '',
-            kayitTarihi: new Date().toISOString().split('T')[0],
+            kayitTarihi: getTurkeyDate(),
             kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
             teslimAlinanKm: vehicleKm || '',
             servisYapilacakKm: '',
@@ -753,7 +754,7 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
             teslimEden: '',
             teslimAlan: '',
             birimYoneticisi: '',
-            onayTarihi: new Date().toISOString().split('T')[0],
+            onayTarihi: getTurkeyDate(),
             teslimEdenSignature: null,
             teslimAlanSignature: null
           };

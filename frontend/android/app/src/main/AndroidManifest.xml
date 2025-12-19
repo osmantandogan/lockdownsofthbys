@@ -62,6 +62,17 @@
 
         </activity>
 
+        <!-- Emergency Popup Activity - Full screen alarm -->
+        <activity
+            android:name=".EmergencyPopupActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:exported="false">
+        </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

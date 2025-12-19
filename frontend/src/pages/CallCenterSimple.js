@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { Phone, MapPin, User, Truck, Calendar } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { getTurkeyDate, getTurkeyTimeString } from '../utils/timezone';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -40,9 +41,9 @@ const CallCenterSimple = () => {
   const [position, setPosition] = useState({ lat: 41.578342, lng: 32.078179 }); // Bartın-Zonguldak çalışma sahası merkezi
   const [formData, setFormData] = useState({
     // Otomatik alanlar
-    caseNumber: `${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Date.now().toString().slice(-6)}`,
-    date: new Date().toISOString().split('T')[0],
-    callTime: new Date().toTimeString().slice(0, 5),
+    caseNumber: `${getTurkeyDate().replace(/-/g, '')}-${Date.now().toString().slice(-6)}`,
+    date: getTurkeyDate(),
+    callTime: getTurkeyTimeString(),
     
     // Zorunlu alanlar
     callerPhone: '',

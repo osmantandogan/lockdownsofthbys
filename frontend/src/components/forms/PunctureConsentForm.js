@@ -9,6 +9,7 @@ import SignaturePad from '../SignaturePad';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, FileText, Droplet } from 'lucide-react';
 import { casesAPI } from '../../api';
+import { getTurkeyDate, getTurkeyTimeString, getTurkeyTimeISO } from '../../utils/timezone';
 
 const PunctureConsentForm = ({ 
   readOnly = false, 
@@ -39,8 +40,8 @@ const PunctureConsentForm = ({
     doctorName: initialData.doctorName || '',
     witnessName: initialData.witnessName || '',
     injectionType: initialData.injectionType || '',
-    date: initialData.date || new Date().toISOString().split('T')[0],
-    time: initialData.time || new Date().toTimeString().slice(0,5)
+    date: initialData.date || getTurkeyDate(),
+    time: initialData.time || getTurkeyTimeString()
   });
 
   // Hasta bilgilerini otomatik doldur
@@ -98,8 +99,8 @@ const PunctureConsentForm = ({
         doctorSignature: doctorSignature,
         witnessSignature: witnessSignature,
         caseId: caseId,
-        savedAt: new Date().toISOString(),
-        consentAcceptedAt: new Date().toISOString()
+        savedAt: getTurkeyTimeISO(),
+        consentAcceptedAt: getTurkeyTimeISO()
       };
 
       if (caseId) {

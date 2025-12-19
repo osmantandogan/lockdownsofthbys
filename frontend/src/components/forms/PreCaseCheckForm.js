@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { getTurkeyDate, getTurkeyTimeString } from '../../utils/timezone';
 
 
   const handleSave = async () => {
@@ -25,8 +26,8 @@ import { toast } from 'sonner';
   const PreCaseCheckForm = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0,5),
+    date: getTurkeyDate(),
+    time: getTurkeyTimeString(),
     staffName: ''
   });
 

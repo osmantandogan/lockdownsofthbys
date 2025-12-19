@@ -14,6 +14,7 @@ import { User, MapPin, AlertCircle, Hash, Building2, UserPlus, Stethoscope, Sear
 import { useAuth } from '../contexts/AuthContext';
 import { useOffline } from '../contexts/OfflineContext';
 import ReferenceDataCache from '../services/ReferenceDataCache';
+import { getTurkeyTimeISO } from '../utils/timezone';
 
 // Türkiye İl/İlçe Verileri
 const TURKEY_PROVINCES = [
@@ -338,8 +339,8 @@ const PatientRegistration = () => {
         };
       }
 
-      // Form oluşturma zamanını kaydet
-      const callTime = formCreatedAt.toISOString();
+      // Form oluşturma zamanını kaydet (Türkiye saati)
+      const callTime = getTurkeyTimeISO();
       
       const caseData = {
         caller: {

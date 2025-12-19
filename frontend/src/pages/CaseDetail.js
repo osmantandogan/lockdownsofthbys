@@ -1642,7 +1642,7 @@ const CaseDetail = () => {
                 setExcelExporting(true);
                 toast.info('PDF hazırlanıyor...');
                 const response = await casesAPI.exportPdfWithMapping(id);
-                const fileName = `VAKA_FORMU_${caseData?.case_number || id}_${new Date().toISOString().split('T')[0]}.pdf`;
+                const fileName = `VAKA_FORMU_${caseData?.case_number || id}.pdf`;
                 saveAs(response.data, fileName);
                 toast.success('PDF indirildi!');
               } catch (error) {

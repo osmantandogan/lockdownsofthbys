@@ -17,6 +17,7 @@ import { useParams } from 'react-router-dom';
 import PDFExportButton from '../PDFExportButton';
 import { exportAmbulanceCaseForm, downloadPDF } from '../../utils/pdfExport';
 import { Check } from 'lucide-react';
+import { getTurkeyDate, getTurkeyTimeISO } from '../../utils/timezone';
 
 /**
  * Otomatik İmza Bileşeni
@@ -103,7 +104,7 @@ const AmbulanceCaseFormFull = () => {
   });
   
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getTurkeyDate(),
     atnNo: '',
     healmedyProtocol: '',
     caseCode: '', // Vaka Kodu
@@ -361,7 +362,7 @@ const AmbulanceCaseFormFull = () => {
         // Meta bilgiler
         savedBy: user?.name || user?.username,
         savedRole: user?.role,
-        savedAt: new Date().toISOString()
+        savedAt: getTurkeyTimeISO()
       };
 
       // Eğer caseId varsa, vakayı güncelle
@@ -991,7 +992,7 @@ const AmbulanceCaseFormFull = () => {
       <div className="flex justify-end space-x-2 pt-4 border-t">
         <Button variant="outline" onClick={() => {
           setFormData({
-            date: new Date().toISOString().split('T')[0],
+            date: getTurkeyDate(),
             atnNo: '', healmedyProtocol: '', caseCode: '', patientName: '', tcNo: '', gender: '', age: '',
             callTime: '', arrivalSceneTime: '', arrivalPatientTime: '', departureTime: '', hospitalArrivalTime: '', returnStationTime: '',
             phone: '', address: '', pickupLocation: '', transfer1: '', transfer2: '',

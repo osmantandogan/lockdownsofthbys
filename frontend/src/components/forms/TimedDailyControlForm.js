@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { shiftsAPI, locationsAPI } from '../../api';
 import { Clock, Lock, CheckCircle, Timer, MapPin, Search } from 'lucide-react';
+import { getTurkeyDate } from '../../utils/timezone';
 
 // Bölüm süreleri (saniye cinsinden)
 const SECTION_TIMES = {
@@ -153,7 +154,7 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
   const [formInfo, setFormInfo] = useState({
     istasyonAdi: '',
     plaka: vehiclePlate || '',
-    tarih: new Date().toISOString().split('T')[0],
+    tarih: getTurkeyDate(),
     aciklama: ''
   });
   
@@ -206,7 +207,7 @@ const TimedDailyControlForm = ({ formData: externalFormData, onChange, vehicleId
       if (!vehicleId) return;
       
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTurkeyDate();
         const response = await shiftsAPI.checkDailyForm(vehicleId, today);
         
         if (response.data?.filled) {

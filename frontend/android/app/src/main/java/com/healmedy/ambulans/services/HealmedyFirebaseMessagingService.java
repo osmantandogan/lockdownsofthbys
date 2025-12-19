@@ -102,6 +102,11 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         String body = "Yeni bildiriminiz var";
         String type = "general";
         String caseId = null;
+        String caseNumber = null;
+        String patientName = null;
+        String patientPhone = null;
+        String patientComplaint = null;
+        String address = null;
         String priority = "normal";
 
         // Data'dan al (DATA-ONLY mesajlarda tüm bilgi burada)
@@ -110,9 +115,15 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             body = data.getOrDefault("body", body);
             type = data.getOrDefault("type", type);
             caseId = data.get("case_id");
+            caseNumber = data.get("case_number");
+            patientName = data.get("patient_name");
+            patientPhone = data.get("patient_phone");
+            patientComplaint = data.get("patient_complaint");
+            address = data.get("address");
             priority = data.getOrDefault("priority", priority);
             
             Log.d(TAG, "📬 Parsed - type: " + type + ", priority: " + priority);
+            Log.d(TAG, "📬 Case: " + caseNumber + ", Patient: " + patientName);
         }
 
         // Notification payload'dan al (eğer varsa, öncelikli)
@@ -125,7 +136,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         acquireWakeLock();
 
         // Bildirimi göster
-        showNotification(title, body, type, caseId, priority);
+        showNotification(title, body, type, caseId, caseNumber, patientName, patientPhone, patientComplaint, address, priority);
         
         Log.d(TAG, "═══════════════════════════════════════════════════════");
     }
@@ -157,7 +168,29 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
-    private void showNotification(String title, String body, String type, String caseId, String priority) {
+    private void showNotification(String title, String body, String type, String caseId, 
+            String caseNumber, String patientName, String patientPhone, 
+            String patientComplaint, String address, String priority) {
+        
+        int notificationId = (int) System.currentTimeMillis();
+        
+        // Kanal ve acil durum belirleme
+        String channelId = CHANNEL_GENERAL;
+        boolean isEmergency = false;
+        
+        // Emergency, critical, new_case veya priority=critical olduğunda acil alarm çal
+        if ("emergency".equals(type) || "critical".equals(priority) || 
+            "new_case".equals(type) || "case_assigned".equals(type)) {
+            isEmergency = true;
+        }
+        
+        // Acil durum ise popup activity başlat
+        if (isEmergency) {
+            Log.d(TAG, "🚨 EMERGENCY! Launching popup activity...");
+            launchEmergencyPopup(caseId, caseNumber, patientName, patientPhone, patientComplaint, address);
+        }
+        
+        // Normal intent
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         
@@ -166,22 +199,14 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             intent.putExtra("navigate_to", "/dashboard/cases/" + caseId);
         }
 
-        int notificationId = (int) System.currentTimeMillis();
-
         PendingIntent pendingIntent = PendingIntent.getActivity(
             this, notificationId, intent,
             PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE
         );
-
-        // Kanal ve acil durum belirleme
-        String channelId = CHANNEL_GENERAL;
-        boolean isEmergency = false;
         
-        // Emergency, critical, new_case veya priority=critical olduğunda acil alarm çal
-        if ("emergency".equals(type) || "critical".equals(priority) || 
-            "new_case".equals(type) || "case_assigned".equals(type)) {
+        // Kanal belirleme
+        if (isEmergency) {
             channelId = CHANNEL_EMERGENCY;
-            isEmergency = true;
             Log.d(TAG, "🚨 EMERGENCY notification detected! type=" + type + ", priority=" + priority);
         } else if ("case".equals(type)) {
             channelId = CHANNEL_CASE;
@@ -517,6 +542,35 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         }
         
         Log.d("HealmedyFCM", "✅ Emergency siren alarm fully stopped");
+    }
+    
+    /**
+     * Acil durum popup activity'sini başlat
+     */
+    private void launchEmergencyPopup(String caseId, String caseNumber, String patientName, 
+            String patientPhone, String patientComplaint, String address) {
+        try {
+            Log.d(TAG, "🚨 Launching EmergencyPopupActivity...");
+            
+            Intent popupIntent = new Intent(this, com.healmedy.ambulans.EmergencyPopupActivity.class);
+            popupIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
+                                 Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                                 Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+            
+            // Vaka bilgilerini ekle
+            if (caseId != null) popupIntent.putExtra("case_id", caseId);
+            if (caseNumber != null) popupIntent.putExtra("case_number", caseNumber);
+            if (patientName != null) popupIntent.putExtra("patient_name", patientName);
+            if (patientPhone != null) popupIntent.putExtra("patient_phone", patientPhone);
+            if (patientComplaint != null) popupIntent.putExtra("patient_complaint", patientComplaint);
+            if (address != null) popupIntent.putExtra("address", address);
+            
+            startActivity(popupIntent);
+            Log.d(TAG, "✅ EmergencyPopupActivity started");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error launching popup: " + e.getMessage(), e);
+        }
     }
     
     public static int getEmergencyNotificationId() { return emergencyNotificationId; }

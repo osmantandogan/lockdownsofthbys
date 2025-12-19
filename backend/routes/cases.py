@@ -753,6 +753,8 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             
             if fcm_tokens:
                 patient_name = f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş"
+                patient_phone = patient_info.get("phone") or case_doc.get("caller", {}).get("phone", "Belirtilmemiş")
+                patient_complaint = patient_info.get("complaint", "Belirtilmemiş")
                 address = location_info.get("address", "Belirtilmemiş")
                 priority = case_doc.get("priority", "Normal")
                 
@@ -766,6 +768,10 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
                     data={
                         "case_id": case_id,
                         "case_number": case_doc.get("case_number", ""),
+                        "patient_name": patient_name,
+                        "patient_phone": patient_phone,
+                        "patient_complaint": patient_complaint,
+                        "address": address,
                         "navigate_to": f"/dashboard/cases/{case_id}",
                         "target_roles": "att,paramedik,sofor"
                     },
@@ -955,6 +961,8 @@ async def assign_multiple_teams(case_id: str, request: Request):
             
             if fcm_tokens:
                 patient_name = f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş"
+                patient_phone = patient_info.get("phone") or case_doc.get("caller", {}).get("phone", "Belirtilmemiş")
+                patient_complaint = patient_info.get("complaint", "Belirtilmemiş")
                 address = location_info.get("address", "Belirtilmemiş")
                 priority = case_doc.get("priority", "Normal")
                 
@@ -965,6 +973,10 @@ async def assign_multiple_teams(case_id: str, request: Request):
                     data={
                         "case_id": case_id,
                         "case_number": case_doc.get("case_number", ""),
+                        "patient_name": patient_name,
+                        "patient_phone": patient_phone,
+                        "patient_complaint": patient_complaint,
+                        "address": address,
                         "navigate_to": f"/dashboard/cases/{case_id}",
                         "target_roles": "att,paramedik,sofor"
                     },

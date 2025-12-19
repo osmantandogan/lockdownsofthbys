@@ -9,6 +9,7 @@ import { Progress } from '../ui/progress';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
+import { getTurkeyDate, getTurkeyTimeString } from '../../utils/timezone';
 
 
   const handleSave = async () => {
@@ -29,8 +30,8 @@ import { toast } from 'sonner';
   const [formData, setFormData] = useState({
     vehiclePlate: '',
     lockNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0,5),
+    date: getTurkeyDate(),
+    time: getTurkeyTimeString(),
     notes: '',
     staffName: ''
   });

@@ -10,6 +10,7 @@ import SignaturePad from '../SignaturePad';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { casesAPI } from '../../api';
+import { getTurkeyDate, getTurkeyTimeISO } from '../../utils/timezone';
 
 const GeneralConsentForm = ({ caseId, caseData, patientInfo, patientSignature, onSave, onClose }) => {
   const [saving, setSaving] = useState(false);
@@ -23,7 +24,7 @@ const GeneralConsentForm = ({ caseId, caseData, patientInfo, patientSignature, o
     procedureName: '',
     acceptTerms: false,
     doctorName: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTurkeyDate(),
     notes: ''
   });
 
@@ -83,8 +84,8 @@ const GeneralConsentForm = ({ caseId, caseData, patientInfo, patientSignature, o
         patientSignature: patientSignature || formData.patientSignature,
         doctorSignature: doctorSignature,
         caseId: caseId,
-        savedAt: new Date().toISOString(),
-        consentAcceptedAt: new Date().toISOString()
+        savedAt: getTurkeyTimeISO(),
+        consentAcceptedAt: getTurkeyTimeISO()
       };
 
       if (caseId) {

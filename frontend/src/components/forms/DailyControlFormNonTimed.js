@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/colla
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChevronDown, ChevronUp, CheckCircle, Sparkles } from 'lucide-react';
+import { getTurkeyDate } from '../../utils/timezone';
 
 // ATT/Paramedik için Cihaz, Malzeme ve İlaç Kontrol Kategorileri
 const CATEGORIES = [
@@ -130,7 +131,7 @@ const DailyControlFormNonTimed = ({ formData: externalFormData, onChange, onQuic
     istasyonAdi: '',
     plaka: '',
     km: '',
-    tarih: new Date().toISOString().split('T')[0],
+    tarih: getTurkeyDate(),
     aciklama: ''
   });
   
