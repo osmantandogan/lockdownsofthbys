@@ -58,13 +58,15 @@ allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
 
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
-# CORS middleware - allow_origin_regex kullanarak .ldserp.com domain'lerine izin ver
+# CORS middleware - .ldserp.com domain'lerine ve tüm allowed origins'e izin ver
+# Railway reverse proxy için özel CORS ayarları
+# allow_origin_regex ve allow_origins birlikte kullanıldığında OR mantığıyla çalışır
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=allowed_origins,  # Explicit origin list
-    allow_origin_regex=r"https?://.*\.ldserp\.com",  # .ldserp.com ile biten tüm origin'lere izin ver
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+    allow_origin_regex=r"https?://.*\.ldserp\.com",  # .ldserp.com ile biten tüm origin'lere izin ver (OR mantığı)
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],  # Tüm metodlara izin ver
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=86400,  # 24 saat cache
