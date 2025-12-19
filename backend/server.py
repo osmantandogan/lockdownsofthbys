@@ -58,6 +58,9 @@ allowed_origins.extend([
 # Remove empty strings
 allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
 
+# Explicit allowed headers list - Content-Type MUST be included for JSON requests
+ALLOWED_HEADERS = "Accept, Accept-Language, Content-Language, Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Origin, Cache-Control, Pragma, Expires"
+
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
 # CORS middleware - .ldserp.com ve .railway.app domain'lerine ve tüm allowed origins'e izin ver
@@ -69,7 +72,20 @@ app.add_middleware(
     allow_origins=allowed_origins,  # Explicit origin list
     allow_origin_regex=r"https?://.*\.(ldserp\.com|railway\.app)",  # .ldserp.com ve .railway.app ile biten tüm origin'lere izin ver
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],  # Tüm metodlara izin ver
-    allow_headers=["*"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "X-CSRF-Token",
+        "Origin",
+        "Cache-Control",
+        "Pragma",
+        "Expires",
+        "*"
+    ],
     expose_headers=["*"],
     max_age=86400,  # 24 saat cache
 )
@@ -94,7 +110,7 @@ async def add_cors_headers_backup(request: Request, call_next):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
             response.headers["Access-Control-Expose-Headers"] = "*"
             response.headers["Access-Control-Max-Age"] = "86400"
             logger.info(f"CORS headers added in middleware for origin: {origin}")
@@ -102,7 +118,7 @@ async def add_cors_headers_backup(request: Request, call_next):
             # Origin yoksa bile CORS header'ları ekle
             response.headers["Access-Control-Allow-Origin"] = "*"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
             logger.info(f"CORS headers added in middleware (no origin)")
         return response
     
@@ -113,14 +129,14 @@ async def add_cors_headers_backup(request: Request, call_next):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
         response.headers["Access-Control-Expose-Headers"] = "*"
         response.headers["Access-Control-Max-Age"] = "86400"
     else:
         # Origin yoksa bile CORS header'ları ekle
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
     
     return response
 
@@ -143,7 +159,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
     
     return response
 
@@ -166,7 +182,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
     
     return response
 
@@ -233,7 +249,7 @@ async def options_handler(request: Request, full_path: str):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
         response.headers["Access-Control-Expose-Headers"] = "*"
         response.headers["Access-Control-Max-Age"] = "86400"
         logger.info(f"CORS headers added for origin: {origin}")
@@ -241,7 +257,7 @@ async def options_handler(request: Request, full_path: str):
         # Origin yoksa bile CORS header'ları ekle
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS
         logger.info(f"CORS headers added (no origin)")
     
     return response
