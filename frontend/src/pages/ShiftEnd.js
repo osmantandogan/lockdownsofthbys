@@ -222,11 +222,8 @@ const ShiftEnd = () => {
       }
     }
     
-    // Şoför için devralan imza kontrolü - sadece devralan adı varsa zorunlu
-    if (isDriver && formData.devralanAdi && !formData.devralanImza) {
-      toast.error('Devralan kişinin imzası gerekli');
-      return;
-    }
+    // Devralan imza kontrolü kaldırıldı - opsiyonel
+    // Vardiya devir olmadan da bitirilebilir
     
     // Onay kontrolü kaldırıldı - direkt bitirebilir
     // if (!managerApproved) {
