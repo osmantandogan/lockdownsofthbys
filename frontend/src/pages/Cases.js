@@ -78,12 +78,6 @@ const Cases = () => {
     }
   }, [getPendingCases]);
 
-  // Use debounced values for API calls
-  useEffect(() => {
-    loadCases();
-    loadOfflineCases();
-  }, [loadCases, loadOfflineCases]);
-
   const loadCases = useCallback(async () => {
     // Pending tab'ında API çağrısı yapma
     if (activeTab === 'pending') {
@@ -169,6 +163,12 @@ const Cases = () => {
     archivePage,
     isOnline
   ]);
+
+  // Use debounced values for API calls
+  useEffect(() => {
+    loadCases();
+    loadOfflineCases();
+  }, [loadCases, loadOfflineCases]);
 
   const loadMoreArchive = () => {
     setArchivePage(prev => prev + 1);
