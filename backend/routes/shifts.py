@@ -2399,8 +2399,18 @@ async def get_pending_shift_start_approvals(request: Request, role_type: Optiona
     
     approvals = await shift_start_approvals_collection.find(query).sort("created_at", -1).to_list(100)
     
+    # Her onay için shift verilerini de ekle (fotoğraflar ve form)
     for approval in approvals:
         approval["id"] = approval.pop("_id")
+        
+        # İlgili shift'i bul ve form/foto bilgilerini ekle
+        shift_id = approval.get("shift_id")
+        if shift_id:
+            shift = await shifts_collection.find_one({"_id": shift_id})
+            if shift:
+                approval["photos"] = shift.get("photos")  # Başlatma fotoğrafları
+                approval["daily_control"] = shift.get("daily_control")  # Günlük kontrol formu
+                approval["handover_form"] = shift.get("handover_form")  # Devir teslim formu
     
     return approvals
 
@@ -2557,12 +2567,32 @@ async def get_pending_shift_approvals(request: Request):
     for a in start_approvals:
         a["id"] = a.pop("_id")
         a["type"] = "start"
+        
+        # İlgili shift'i bul ve form/foto bilgilerini ekle
+        shift_id = a.get("shift_id")
+        if shift_id:
+            shift = await shifts_collection.find_one({"_id": shift_id})
+            if shift:
+                a["photos"] = shift.get("photos")  # Başlatma fotoğrafları
+                a["daily_control"] = shift.get("daily_control")  # Günlük kontrol formu
+                a["handover_form"] = shift.get("handover_form")  # Devir teslim formu
     
     # Bitirme onayları
     end_approvals = await shift_end_approvals_collection.find({"status": "pending"}).sort("created_at", -1).to_list(100)
     for a in end_approvals:
         a["id"] = a.pop("_id")
         a["type"] = "end"
+        
+        # İlgili shift'i bul ve bitiş foto/form bilgilerini ekle
+        shift_id = a.get("shift_id")
+        if shift_id:
+            shift = await shifts_collection.find_one({"_id": shift_id})
+            if shift:
+                a["end_photos"] = shift.get("end_photos")  # Bitiş fotoğrafları (4 köşe)
+                a["photos"] = shift.get("photos")  # Başlatma fotoğrafları da göster
+                a["daily_control"] = shift.get("daily_control")  # Günlük kontrol formu
+                a["handover_form"] = shift.get("handover_form")  # Devir teslim formu
+                a["end_signature"] = shift.get("end_signature")  # Bitiş imzası
     
     return start_approvals + end_approvals
 

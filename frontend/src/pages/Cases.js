@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { casesAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -14,6 +14,23 @@ import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X,
 import { useAuth } from '../contexts/AuthContext';
 import { useOffline } from '../contexts/OfflineContext';
 import OfflineStorage from '../services/OfflineStorage';
+
+// Debounce hook
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
 
 const Cases = () => {
   const navigate = useNavigate();
@@ -43,6 +60,11 @@ const Cases = () => {
     has_hospital_transfer: ''
   });
 
+  // Debounce search input to avoid too many API calls
+  const debouncedSearch = useDebounce(filters.search, 500);
+  const debouncedUserIdSearch = useDebounce(advancedFilters.user_id, 500);
+  const debouncedMedicationSearch = useDebounce(advancedFilters.medication_name, 500);
+
   // Pending ve cached vakaları yükle
   const loadOfflineCases = useCallback(async () => {
     try {
@@ -56,12 +78,13 @@ const Cases = () => {
     }
   }, [getPendingCases]);
 
+  // Use debounced values for API calls
   useEffect(() => {
     loadCases();
     loadOfflineCases();
-  }, [filters, activeTab, archivePage, loadOfflineCases]);
+  }, [loadCases, loadOfflineCases]);
 
-  const loadCases = async () => {
+  const loadCases = useCallback(async () => {
     // Pending tab'ında API çağrısı yapma
     if (activeTab === 'pending') {
       setLoading(false);
@@ -73,7 +96,7 @@ const Cases = () => {
       const params = {};
       if (filters.status) params.status = filters.status;
       if (filters.priority) params.priority = filters.priority;
-      if (filters.search) params.search = filters.search;
+      if (debouncedSearch) params.search = debouncedSearch;  // Use debounced value
       if (filters.source) params.source = filters.source;
       
       if (activeTab === 'recent') {
@@ -87,9 +110,9 @@ const Cases = () => {
         params.limit = 30;
       }
       
-      // Advanced filters
-      if (advancedFilters.user_id) params.user_id = advancedFilters.user_id;
-      if (advancedFilters.medication_name) params.medication_name = advancedFilters.medication_name;
+      // Advanced filters - use debounced values
+      if (debouncedUserIdSearch) params.user_id = debouncedUserIdSearch;
+      if (debouncedMedicationSearch) params.medication_name = debouncedMedicationSearch;
       if (advancedFilters.has_hospital_transfer && advancedFilters.has_hospital_transfer !== 'all') {
         params.has_hospital_transfer = advancedFilters.has_hospital_transfer === 'true';
       }
@@ -131,7 +154,21 @@ const Cases = () => {
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line
+  }, [
+    activeTab, 
+    filters.status, 
+    filters.priority, 
+    debouncedSearch, 
+    filters.source, 
+    filters.start_date, 
+    filters.end_date, 
+    debouncedUserIdSearch, 
+    debouncedMedicationSearch, 
+    advancedFilters.has_hospital_transfer, 
+    archivePage,
+    isOnline
+  ]);
 
   const loadMoreArchive = () => {
     setArchivePage(prev => prev + 1);
@@ -433,36 +470,50 @@ const Cases = () => {
                         </div>
                         {/* Atanan Ekip Bilgisi */}
                         {caseItem.assigned_team && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Truck className="h-4 w-4 text-blue-600" />
-                              <span className="font-semibold text-blue-800">
-                                {caseItem.assigned_team.vehicle_plate || 'Plaka Yok'}
-                              </span>
-                              {caseItem.assigned_team.driver_name && (
-                                <span className="text-sm text-blue-700">
-                                  | Şoför: {caseItem.assigned_team.driver_name}
+                          <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Truck className="h-4 w-4 text-blue-600" />
+                                <span className="font-semibold text-blue-800">
+                                  {caseItem.assigned_team.vehicle_plate || 'Plaka Yok'}
                                 </span>
-                              )}
-                              {caseItem.assigned_team.paramedic_name && (
-                                <span className="text-sm text-blue-700">
-                                  | Paramedik: {caseItem.assigned_team.paramedic_name}
-                                </span>
-                              )}
-                              {caseItem.assigned_team.att_name && (
-                                <span className="text-sm text-blue-700">
-                                  | ATT: {caseItem.assigned_team.att_name}
-                                </span>
-                              )}
-                              {caseItem.assigned_team.nurse_name && (
-                                <span className="text-sm text-blue-700">
-                                  | Hemşire: {caseItem.assigned_team.nurse_name}
-                                </span>
-                              )}
-                              {caseItem.assigned_team.doctor_name && (
-                                <span className="text-sm text-blue-700">
-                                  | Doktor: {caseItem.assigned_team.doctor_name}
-                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                {caseItem.assigned_team.driver_name && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600">Şoför:</span>
+                                    <span className="font-medium text-blue-700">{caseItem.assigned_team.driver_name}</span>
+                                  </div>
+                                )}
+                                {caseItem.assigned_team.paramedic_name && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600">Paramedik:</span>
+                                    <span className="font-medium text-blue-700">{caseItem.assigned_team.paramedic_name}</span>
+                                  </div>
+                                )}
+                                {caseItem.assigned_team.att_name && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600">ATT:</span>
+                                    <span className="font-medium text-blue-700">{caseItem.assigned_team.att_name}</span>
+                                  </div>
+                                )}
+                                {caseItem.assigned_team.nurse_name && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600">Hemşire:</span>
+                                    <span className="font-medium text-blue-700">{caseItem.assigned_team.nurse_name}</span>
+                                  </div>
+                                )}
+                                {caseItem.assigned_team.doctor_name && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600">Doktor:</span>
+                                    <span className="font-medium text-blue-700">{caseItem.assigned_team.doctor_name}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {caseItem.assigned_team.assigned_by_name && (
+                                <div className="text-xs text-gray-500 border-t border-blue-200 pt-2 mt-2">
+                                  Atayan: {caseItem.assigned_team.assigned_by_name} ({caseItem.assigned_team.assigned_by_role || 'Rol Yok'})
+                                </div>
                               )}
                             </div>
                           </div>
@@ -525,36 +576,50 @@ const Cases = () => {
                           </div>
                           {/* Atanan Ekip Bilgisi */}
                           {caseItem.assigned_team && (
-                            <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Truck className="h-4 w-4 text-blue-600" />
-                                <span className="font-semibold text-blue-800">
-                                  {caseItem.assigned_team.vehicle_plate || 'Plaka Yok'}
-                                </span>
-                                {caseItem.assigned_team.driver_name && (
-                                  <span className="text-sm text-blue-700">
-                                    | Şoför: {caseItem.assigned_team.driver_name}
+                            <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Truck className="h-4 w-4 text-blue-600" />
+                                  <span className="font-semibold text-blue-800">
+                                    {caseItem.assigned_team.vehicle_plate || 'Plaka Yok'}
                                   </span>
-                                )}
-                                {caseItem.assigned_team.paramedic_name && (
-                                  <span className="text-sm text-blue-700">
-                                    | Paramedik: {caseItem.assigned_team.paramedic_name}
-                                  </span>
-                                )}
-                                {caseItem.assigned_team.att_name && (
-                                  <span className="text-sm text-blue-700">
-                                    | ATT: {caseItem.assigned_team.att_name}
-                                  </span>
-                                )}
-                                {caseItem.assigned_team.nurse_name && (
-                                  <span className="text-sm text-blue-700">
-                                    | Hemşire: {caseItem.assigned_team.nurse_name}
-                                  </span>
-                                )}
-                                {caseItem.assigned_team.doctor_name && (
-                                  <span className="text-sm text-blue-700">
-                                    | Doktor: {caseItem.assigned_team.doctor_name}
-                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  {caseItem.assigned_team.driver_name && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600">Şoför:</span>
+                                      <span className="font-medium text-blue-700">{caseItem.assigned_team.driver_name}</span>
+                                    </div>
+                                  )}
+                                  {caseItem.assigned_team.paramedic_name && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600">Paramedik:</span>
+                                      <span className="font-medium text-blue-700">{caseItem.assigned_team.paramedic_name}</span>
+                                    </div>
+                                  )}
+                                  {caseItem.assigned_team.att_name && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600">ATT:</span>
+                                      <span className="font-medium text-blue-700">{caseItem.assigned_team.att_name}</span>
+                                    </div>
+                                  )}
+                                  {caseItem.assigned_team.nurse_name && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600">Hemşire:</span>
+                                      <span className="font-medium text-blue-700">{caseItem.assigned_team.nurse_name}</span>
+                                    </div>
+                                  )}
+                                  {caseItem.assigned_team.doctor_name && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600">Doktor:</span>
+                                      <span className="font-medium text-blue-700">{caseItem.assigned_team.doctor_name}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {caseItem.assigned_team.assigned_by_name && (
+                                  <div className="text-xs text-gray-500 border-t border-blue-200 pt-2 mt-2">
+                                    Atayan: {caseItem.assigned_team.assigned_by_name} ({caseItem.assigned_team.assigned_by_role || 'Rol Yok'})
+                                  </div>
                                 )}
                               </div>
                             </div>

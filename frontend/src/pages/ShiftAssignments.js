@@ -483,19 +483,56 @@ const ShiftAssignments = () => {
               ) : startApprovals.map(a => (
                 <Card key={a.id} className={`border-l-4 ${a.role_type === 'medical' ? 'border-l-blue-500' : 'border-l-amber-500'}`}>
                   <CardContent className="py-4">
-                    <div className="flex justify-between items-center">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          {a.role_type === 'medical' ? <Badge className="bg-blue-100 text-blue-800"><Stethoscope className="h-3 w-3 mr-1" />ATT/Paramedik</Badge> : <Badge className="bg-amber-100 text-amber-800"><Car className="h-3 w-3 mr-1" />Şoför</Badge>}
-                          <span className="font-bold">{a.vehicle_plate}</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {a.role_type === 'medical' ? <Badge className="bg-blue-100 text-blue-800"><Stethoscope className="h-3 w-3 mr-1" />ATT/Paramedik</Badge> : <Badge className="bg-amber-100 text-amber-800"><Car className="h-3 w-3 mr-1" />Şoför</Badge>}
+                            <span className="font-bold">{a.vehicle_plate}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span>{a.assigned_role ? <><Badge variant="outline" className="line-through text-gray-400">{getRoleLabel(a.user_role)}</Badge><span>→</span><Badge className="bg-orange-100 text-orange-700">{getRoleLabel(a.assigned_role)}</Badge></> : <Badge variant="outline">{getRoleLabel(a.user_role)}</Badge>}</div>
+                          <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span>{a.assigned_role ? <><Badge variant="outline" className="line-through text-gray-400">{getRoleLabel(a.user_role)}</Badge><span>→</span><Badge className="bg-orange-100 text-orange-700">{getRoleLabel(a.assigned_role)}</Badge></> : <Badge variant="outline">{getRoleLabel(a.user_role)}</Badge>}</div>
-                        <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
+                        <div className="flex gap-2">
+                          <Button variant="destructive" size="sm" onClick={() => { const r = prompt('Red sebebi:'); handleRejectStart(a.id, r); }}><X className="h-4 w-4" /></Button>
+                          <Button size="sm" className="bg-green-600" onClick={() => handleApproveStart(a.id)}><Check className="h-4 w-4" /></Button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="destructive" size="sm" onClick={() => { const r = prompt('Red sebebi:'); handleRejectStart(a.id, r); }}><X className="h-4 w-4" /></Button>
-                        <Button size="sm" className="bg-green-600" onClick={() => handleApproveStart(a.id)}><Check className="h-4 w-4" /></Button>
-                      </div>
+                      
+                      {/* Başlatma Fotoğrafları */}
+                      {a.photos && Object.keys(a.photos).length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Çekilen Fotoğraflar ({Object.keys(a.photos).length}):</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {Object.entries(a.photos).map(([key, value]) => value && (
+                              <div key={key} className="relative">
+                                <img src={value} alt={key} className="w-full h-20 object-cover rounded border" />
+                                <p className="text-xs text-center mt-1 text-gray-600">{key}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Günlük Kontrol Formu */}
+                      {a.daily_control && Object.keys(a.daily_control).length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Günlük Kontrol Formu:</p>
+                          <div className="bg-gray-50 p-3 rounded text-xs">
+                            <p className="text-green-600">✓ Form doldurulmuş ({Object.keys(a.daily_control).length} alan)</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Devir Teslim Formu */}
+                      {a.handover_form && Object.keys(a.handover_form).length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Devir Teslim Formu:</p>
+                          <div className="bg-gray-50 p-3 rounded text-xs">
+                            <p className="text-green-600">✓ Form doldurulmuş ({Object.keys(a.handover_form).length} alan)</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -511,19 +548,69 @@ const ShiftAssignments = () => {
               ) : endApprovals.map(a => (
                 <Card key={a.id} className={`border-l-4 ${a.role_type === 'medical' ? 'border-l-blue-500' : 'border-l-amber-500'}`}>
                   <CardContent className="py-4">
-                    <div className="flex justify-between items-center">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="destructive">Bitirme</Badge>
-                          <span className="font-bold">{a.vehicle_plate}</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="destructive">Bitirme</Badge>
+                            <span className="font-bold">{a.vehicle_plate}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span></div>
+                          <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{a.user_name}</span></div>
-                        <div className="text-xs text-gray-500"><Clock className="h-3 w-3 inline mr-1" />{formatDateTime(a.created_at)}</div>
+                        <div className="flex gap-2">
+                          <Button variant="destructive" size="sm" onClick={() => { const r = prompt('Red sebebi:'); handleRejectEnd(a.id, r); }}><X className="h-4 w-4" /></Button>
+                          <Button size="sm" className="bg-green-600" onClick={() => handleApproveEnd(a.id)}><Check className="h-4 w-4" /></Button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="destructive" size="sm" onClick={() => { const r = prompt('Red sebebi:'); handleRejectEnd(a.id, r); }}><X className="h-4 w-4" /></Button>
-                        <Button size="sm" className="bg-green-600" onClick={() => handleApproveEnd(a.id)}><Check className="h-4 w-4" /></Button>
-                      </div>
+                      
+                      {/* Bitiş Fotoğrafları (4 Köşe Arka Kabin) */}
+                      {a.end_photos && Object.keys(a.end_photos).length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Bitiş Fotoğrafları - 4 Köşe Arka Kabin ({Object.keys(a.end_photos).length}):</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {Object.entries(a.end_photos).map(([key, value]) => value && (
+                              <div key={key} className="relative">
+                                <img src={value} alt={key} className="w-full h-32 object-cover rounded border" />
+                                <p className="text-xs text-center mt-1 text-gray-600">{key.replace('rear_cabin_corner_', 'Köşe ')}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Başlatma Fotoğrafları */}
+                      {a.photos && Object.keys(a.photos).length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Başlatma Fotoğrafları ({Object.keys(a.photos).length}):</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {Object.entries(a.photos).map(([key, value]) => value && (
+                              <div key={key} className="relative">
+                                <img src={value} alt={key} className="w-full h-20 object-cover rounded border" />
+                                <p className="text-xs text-center mt-1 text-gray-600">{key}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Günlük Kontrol Formu */}
+                      {a.daily_control && Object.keys(a.daily_control).length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Günlük Kontrol Formu:</p>
+                          <div className="bg-gray-50 p-3 rounded text-xs">
+                            <p className="text-green-600">✓ Form doldurulmuş ({Object.keys(a.daily_control).length} alan)</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* İmza */}
+                      {a.end_signature && (
+                        <div className="border-t pt-3">
+                          <p className="text-sm font-medium mb-2">Bitiş İmzası:</p>
+                          <img src={a.end_signature} alt="İmza" className="h-16 border rounded" />
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

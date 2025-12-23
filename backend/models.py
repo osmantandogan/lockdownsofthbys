@@ -96,10 +96,20 @@ class LocationInfo(BaseModel):
 
 class AssignedTeam(BaseModel):
     vehicle_id: str
+    vehicle_plate: Optional[str] = None  # Araç plakası
     driver_id: Optional[str] = None
+    driver_name: Optional[str] = None
     paramedic_id: Optional[str] = None
+    paramedic_name: Optional[str] = None
     att_id: Optional[str] = None
+    att_name: Optional[str] = None
     nurse_id: Optional[str] = None
+    nurse_name: Optional[str] = None
+    doctor_id: Optional[str] = None
+    doctor_name: Optional[str] = None
+    assigned_by: Optional[str] = None  # Kim atadı (user_id)
+    assigned_by_name: Optional[str] = None  # Kim atadı (isim)
+    assigned_by_role: Optional[str] = None  # Kim atadı (rol)
     assigned_at: datetime = Field(default_factory=get_turkey_time)
 
 class CaseStatusUpdate(BaseModel):
@@ -174,6 +184,7 @@ class Case(BaseModel):
     assigned_teams: List[AssignedTeam] = Field(default_factory=list)  # YENİ: Birden fazla ekip desteği
     status_history: List[CaseStatusUpdate] = Field(default_factory=list)
     case_details: Optional[dict] = None  # Extra form fields
+    source: Optional[str] = None  # "call_center" or "registration" - Vaka kaynağı
     
     # Real-time collaboration
     medical_form: Optional[MedicalFormData] = None

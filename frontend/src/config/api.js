@@ -29,8 +29,8 @@ const getBackendUrl = () => {
   }
   
   // Local development için localhost
-  console.log('[API Config] Using localhost:8001');
-  return 'http://localhost:8001';
+  console.log('[API Config] Using localhost:8000');
+  return 'http://localhost:8000';
 };
 
 export const BACKEND_URL = getBackendUrl();

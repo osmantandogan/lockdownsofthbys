@@ -116,6 +116,10 @@ async def create_case(data: CaseCreate, request: Request):
         # Varsayılan olarak çağrı saatini şimdi olarak ayarla
         timestamps_data = {"call_received": datetime.now().isoformat()}
     
+    # Kaynak belirle: case_details.type == 'ayaktan_basvuru' ise 'registration', yoksa 'call_center'
+    case_details = data.case_details if hasattr(data, 'case_details') else None
+    source = "registration" if (case_details and case_details.get("type") == "ayaktan_basvuru") else "call_center"
+    
     # Create case
     new_case = Case(
         case_number=case_number,
@@ -123,7 +127,8 @@ async def create_case(data: CaseCreate, request: Request):
         patient=data.patient,
         location=data.location,
         priority=data.priority,
-        case_details=data.case_details if hasattr(data, 'case_details') else None,
+        case_details=case_details,
+        source=source,
         timestamps=timestamps_data,
         created_by=user.id
     )
@@ -276,8 +281,8 @@ async def get_cases(
     # Pagination
     skip = (page - 1) * limit if page > 0 else 0
     
-    # Get cases
-    cases_cursor = cases_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    # Get cases - vaka numarasına göre azalan sıralama (en yeni vaka en üstte)
+    cases_cursor = cases_collection.find(query).sort("case_number", -1).skip(skip).limit(limit)
     cases = await cases_cursor.to_list(limit)
     
     # Advanced filters (user_id, medication_name, has_hospital_transfer)
@@ -621,6 +626,10 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     
     logger.info(f"Final assigned_team: {assigned_team}")
     assigned_team["assigned_at"] = get_turkey_time()
+    assigned_team["vehicle_plate"] = vehicle.get("plate", "")  # Araç plakasını ekle
+    assigned_team["assigned_by"] = user.id  # Kim atadı
+    assigned_team["assigned_by_name"] = user.name  # Kim atadı (isim)
+    assigned_team["assigned_by_role"] = user.role  # Kim atadı (rol)
     
     status_update = CaseStatusUpdate(
         status="ekip_bilgilendirildi",
