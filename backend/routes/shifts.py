@@ -1082,6 +1082,7 @@ async def start_shift(data: ShiftStart, request: Request):
     approval_id = str(uuid.uuid4())
     approval = {
         "_id": approval_id,
+        "shift_id": new_shift.id,  # Shift referansı ekle
         "user_id": user.id,
         "user_name": user.name,
         "user_role": user.role,
@@ -2399,18 +2400,36 @@ async def get_pending_shift_start_approvals(request: Request, role_type: Optiona
     
     approvals = await shift_start_approvals_collection.find(query).sort("created_at", -1).to_list(100)
     
-    # Her onay için shift verilerini de ekle (fotoğraflar ve form)
+    # Onay kayıtlarını düzenle ve shift'ten verileri çek
     for approval in approvals:
         approval["id"] = approval.pop("_id")
         
-        # İlgili shift'i bul ve form/foto bilgilerini ekle
+        # Shift'ten fotoğraf ve form verilerini al
         shift_id = approval.get("shift_id")
         if shift_id:
+            # Shift kaydından verileri al
             shift = await shifts_collection.find_one({"_id": shift_id})
             if shift:
-                approval["photos"] = shift.get("photos")  # Başlatma fotoğrafları
-                approval["daily_control"] = shift.get("daily_control")  # Günlük kontrol formu
-                approval["handover_form"] = shift.get("handover_form")  # Devir teslim formu
+                # Shift kaydındaki photos ve daily_control kullan (onay kaydındakiler değil!)
+                approval["photos"] = shift.get("photos")
+                approval["daily_control"] = shift.get("daily_control")
+                
+                # Fotoğraflar shift_photos collection'da da olabilir
+                if not approval.get("photos"):
+                    shift_photos_collection = db["shift_photos"]
+                    photo_doc = await shift_photos_collection.find_one({"shift_id": shift_id})
+                    if photo_doc:
+                        approval["photos"] = photo_doc.get("photos")
+                
+                # Günlük kontrol formu forms collection'da da olabilir
+                if not approval.get("daily_control"):
+                    from database import forms_collection
+                    daily_control_form = await forms_collection.find_one({
+                        "shift_id": shift_id,
+                        "form_type": "daily_control"
+                    })
+                    if daily_control_form:
+                        approval["daily_control"] = daily_control_form.get("form_data")
     
     return approvals
 
@@ -2568,14 +2587,9 @@ async def get_pending_shift_approvals(request: Request):
         a["id"] = a.pop("_id")
         a["type"] = "start"
         
-        # İlgili shift'i bul ve form/foto bilgilerini ekle
-        shift_id = a.get("shift_id")
-        if shift_id:
-            shift = await shifts_collection.find_one({"_id": shift_id})
-            if shift:
-                a["photos"] = shift.get("photos")  # Başlatma fotoğrafları
-                a["daily_control"] = shift.get("daily_control")  # Günlük kontrol formu
-                a["handover_form"] = shift.get("handover_form")  # Devir teslim formu
+        # Onay kaydında zaten photos ve daily_control_data var
+        if "daily_control_data" in a and a["daily_control_data"]:
+            a["daily_control"] = a["daily_control_data"]
     
     # Bitirme onayları
     end_approvals = await shift_end_approvals_collection.find({"status": "pending"}).sort("created_at", -1).to_list(100)
@@ -2583,16 +2597,28 @@ async def get_pending_shift_approvals(request: Request):
         a["id"] = a.pop("_id")
         a["type"] = "end"
         
-        # İlgili shift'i bul ve bitiş foto/form bilgilerini ekle
+        # Bitirme onayında shift_id var, shift'ten verileri alalım
         shift_id = a.get("shift_id")
         if shift_id:
             shift = await shifts_collection.find_one({"_id": shift_id})
             if shift:
                 a["end_photos"] = shift.get("end_photos")  # Bitiş fotoğrafları (4 köşe)
-                a["photos"] = shift.get("photos")  # Başlatma fotoğrafları da göster
-                a["daily_control"] = shift.get("daily_control")  # Günlük kontrol formu
-                a["handover_form"] = shift.get("handover_form")  # Devir teslim formu
                 a["end_signature"] = shift.get("end_signature")  # Bitiş imzası
+                
+                # Başlatma fotoğraflarını shift_photos collection'dan al
+                shift_photos_collection = db["shift_photos"]
+                photo_doc = await shift_photos_collection.find_one({"shift_id": shift_id})
+                if photo_doc:
+                    a["photos"] = photo_doc.get("photos")
+                
+                # Günlük kontrol formunu forms collection'dan al
+                from database import forms_collection
+                daily_control_form = await forms_collection.find_one({
+                    "shift_id": shift_id,
+                    "form_type": "daily_control"
+                })
+                if daily_control_form:
+                    a["daily_control"] = daily_control_form.get("form_data")
     
     return start_approvals + end_approvals
 
