@@ -156,7 +156,8 @@ const FormHistory = () => {
       setForms(results[0].data);
       setStats(results[1].data);
       
-      if (canViewPhotos && results[2]) {
+      // Vardiya fotoğraflarını yükle
+      if (results[2]) {
         setShiftPhotos(results[2].data || []);
       }
     } catch (error) {
