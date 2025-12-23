@@ -62,6 +62,16 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
   const formData = externalFormData || localFormData;
   const setFormData = onChange || setLocalFormData;
 
+  // External formData'dan form field'larını yükle (FormHistory'den görüntüleme için)
+  useEffect(() => {
+    if (externalFormData && Object.keys(externalFormData).length > 0) {
+      setLocalFormData(prev => ({
+        ...prev,
+        ...externalFormData
+      }));
+    }
+  }, [externalFormData]);
+
   // Otomatik vardiya ve araç bilgisi yükleme
   useEffect(() => {
     const loadShiftData = async () => {

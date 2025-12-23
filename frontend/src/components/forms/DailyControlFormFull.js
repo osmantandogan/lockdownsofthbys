@@ -49,6 +49,13 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
   const formData = externalFormData || localFormData;
   const setFormData = onChange || setLocalFormData;
 
+  // External formData'dan checks'i yükle (FormHistory'den görüntüleme için)
+  useEffect(() => {
+    if (externalFormData && externalFormData.checks) {
+      setChecks(externalFormData.checks);
+    }
+  }, [externalFormData]);
+
   // Otomatik araç ve KM bilgisi yükleme
   useEffect(() => {
     const loadVehicleData = async () => {
