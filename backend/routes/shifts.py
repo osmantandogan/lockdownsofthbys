@@ -2400,36 +2400,32 @@ async def get_pending_shift_start_approvals(request: Request, role_type: Optiona
     
     approvals = await shift_start_approvals_collection.find(query).sort("created_at", -1).to_list(100)
     
-    # Onay kayıtlarını düzenle ve shift'ten verileri çek
+    # Onay kayıtlarını düzenle
     for approval in approvals:
         approval["id"] = approval.pop("_id")
         
-        # Shift'ten fotoğraf ve form verilerini al
+        # Onay kaydında zaten photos ve daily_control_data var!
+        # Ama frontend "daily_control" bekliyor, "daily_control_data" değil
+        if "daily_control_data" in approval:
+            approval["daily_control"] = approval["daily_control_data"]
+        
+        # Eğer onay kaydında photos yoksa, shift_photos collection'dan al
         shift_id = approval.get("shift_id")
-        if shift_id:
-            # Shift kaydından verileri al
-            shift = await shifts_collection.find_one({"_id": shift_id})
-            if shift:
-                # Shift kaydındaki photos ve daily_control kullan (onay kaydındakiler değil!)
-                approval["photos"] = shift.get("photos")
-                approval["daily_control"] = shift.get("daily_control")
-                
-                # Fotoğraflar shift_photos collection'da da olabilir
-                if not approval.get("photos"):
-                    shift_photos_collection = db["shift_photos"]
-                    photo_doc = await shift_photos_collection.find_one({"shift_id": shift_id})
-                    if photo_doc:
-                        approval["photos"] = photo_doc.get("photos")
-                
-                # Günlük kontrol formu forms collection'da da olabilir
-                if not approval.get("daily_control"):
-                    from database import forms_collection
-                    daily_control_form = await forms_collection.find_one({
-                        "shift_id": shift_id,
-                        "form_type": "daily_control"
-                    })
-                    if daily_control_form:
-                        approval["daily_control"] = daily_control_form.get("form_data")
+        if shift_id and not approval.get("photos"):
+            shift_photos_collection = db["shift_photos"]
+            photo_doc = await shift_photos_collection.find_one({"shift_id": shift_id})
+            if photo_doc:
+                approval["photos"] = photo_doc.get("photos")
+        
+        # Eğer onay kaydında daily_control yoksa, forms collection'dan al
+        if shift_id and not approval.get("daily_control"):
+            from database import forms_collection
+            daily_control_form = await forms_collection.find_one({
+                "shift_id": shift_id,
+                "form_type": "daily_control"
+            })
+            if daily_control_form:
+                approval["daily_control"] = daily_control_form.get("form_data")
     
     return approvals
 
