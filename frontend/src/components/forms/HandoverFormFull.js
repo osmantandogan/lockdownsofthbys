@@ -5,16 +5,17 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import SignaturePad from '../SignaturePad';
 import { handleFormSave } from '../../utils/formHelpers';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { shiftsAPI, vehiclesAPI, approvalsAPI } from '../../api';
+import { shiftsAPI, vehiclesAPI, approvalsAPI, locationsAPI } from '../../api';
 import PDFExportButton from '../PDFExportButton';
 import { exportHandoverForm } from '../../utils/pdfExport';
-import { CheckCircle, XCircle, Clock, Phone, Mail, User, Send, Shield, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Phone, Mail, User, Send, Shield, Loader2, MapPin } from 'lucide-react';
 import { getTurkeyDate, getTurkeyTimeString } from '../../utils/timezone';
 
 const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, vehicleKm }) => {
@@ -36,8 +37,11 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalDialogType, setApprovalDialogType] = useState('receiver'); // 'receiver' veya 'manager'
 
+  const [healmedyLocations, setHealmedyLocations] = useState([]);
+  
   const [localFormData, setLocalFormData] = useState({
     aracPlakasi: vehiclePlate || '',
+    aracLokasyonu: '', // YENİ: Araç lokasyonu
     kayitTarihi: getTurkeyDate(),
     kayitSaati: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
     teslimAlinanKm: vehicleKm || '',
@@ -71,6 +75,19 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
       }));
     }
   }, [externalFormData]);
+
+  // Healmedy lokasyonlarını yükle
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const res = await locationsAPI.getHealmedy();
+        setHealmedyLocations(res.data || []);
+      } catch (error) {
+        console.log('Lokasyonlar yüklenemedi');
+      }
+    };
+    loadLocations();
+  }, []);
 
   // Otomatik vardiya ve araç bilgisi yükleme
   useEffect(() => {
@@ -369,7 +386,29 @@ const HandoverFormFull = ({ formData: externalFormData, onChange, vehiclePlate, 
               />
             </div>
             <div className="space-y-2">
-              <Label>Kayıt Tarihi</Label>
+              <Label className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Araç Lokasyonu
+              </Label>
+              <Select 
+                value={formData.aracLokasyonu} 
+                onValueChange={(v) => handleChange('aracLokasyonu', v)}
+                disabled={!!handoverInfo}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Lokasyon seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {healmedyLocations.map(loc => (
+                    <SelectItem key={loc.id} value={loc.name}>
+                      {loc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Kayıt Tarihi (GG/AA/YYYY)</Label>
               <Input 
                 type="date"
                 value={formData.kayitTarihi}

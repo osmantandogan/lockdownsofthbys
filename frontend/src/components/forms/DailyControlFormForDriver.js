@@ -268,7 +268,7 @@ const DailyControlFormForDriver = ({ formData: externalFormData, onChange, vehic
               />
             </div>
             <div className="space-y-2">
-              <Label>Tarih</Label>
+              <Label>Tarih (GG/AA/YYYY)</Label>
               <Input 
                 type="date"
                 value={formData.tarih}

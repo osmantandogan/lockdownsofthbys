@@ -222,8 +222,8 @@ const ShiftEnd = () => {
       }
     }
     
-    // Şoför için devralan imza kontrolü
-    if (isDriver && !formData.devralanImza) {
+    // Şoför için devralan imza kontrolü - sadece devralan adı varsa zorunlu
+    if (isDriver && formData.devralanAdi && !formData.devralanImza) {
       toast.error('Devralan kişinin imzası gerekli');
       return;
     }
