@@ -1047,14 +1047,17 @@ const FormHistory = () => {
                 {/* Fotoğraflar Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {Object.entries(selectedPhotos.photos || {}).map(([key, value]) => {
-                    // Fotoğraf validasyonu
-                    const isValidPhoto = value && (
-                      typeof value === 'string' && (
-                        value.startsWith('data:image/') ||
-                        value.startsWith('http://') ||
-                        value.startsWith('https://') ||
-                        value.startsWith('blob:')
-                      )
+                    // damages array olabilir, skip et
+                    if (key === 'damages' || Array.isArray(value)) return null;
+                    
+                    // Fotoğraf validasyonu - typeof kontrolü daha önce
+                    if (typeof value !== 'string' || !value) return null;
+                    
+                    const isValidPhoto = (
+                      value.startsWith('data:image/') ||
+                      value.startsWith('http://') ||
+                      value.startsWith('https://') ||
+                      value.startsWith('blob:')
                     ) && value.length > 100; // Minimum uzunluk kontrolü
                     
                     if (!isValidPhoto) return null;

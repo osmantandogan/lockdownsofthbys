@@ -44,7 +44,8 @@ const DailyControlFormFull = ({ formData: externalFormData, onChange }) => {
     teslimAlan: ''
   });
 
-  const [checks, setChecks] = useState({});
+  // Initial checks with default values to prevent controlled/uncontrolled warning
+  const [checks, setChecks] = useState(externalFormData?.checks || {});
 
   const formData = externalFormData || localFormData;
   const setFormData = onChange || setLocalFormData;
