@@ -662,10 +662,13 @@ async def admin_end_shift(assignment_id: str, request: Request):
     })
     
     if active_shift:
-        # End the shift
+        # End the shift - Türkiye saati kullan
         end_time = get_turkey_time()
         start_time = active_shift.get("start_time", end_time)
-        duration_minutes = int((end_time - start_time).total_seconds() / 60) if start_time else 0
+        if isinstance(start_time, datetime):
+            duration_minutes = int((end_time - start_time).total_seconds() / 60)
+        else:
+            duration_minutes = 0
         
         await shifts_collection.update_one(
             {"_id": active_shift["_id"]},
@@ -1154,10 +1157,14 @@ async def end_shift(data: ShiftEnd, request: Request):
         await shift_logs_collection.insert_one(log_entry)
         logger.info(f"Vardiya bitirme formu açıldı: {user.name} - {form_opened_at}")
     
-    # Calculate duration
-    end_time = datetime.utcnow()
+    # Calculate duration - Türkiye saati kullan
+    end_time = get_turkey_time()
     start_time = shift_doc["start_time"]
-    duration_minutes = int((end_time - start_time).total_seconds() / 60)
+    # start_time zaten UTC+3 olarak kaydedilmiş
+    if isinstance(start_time, datetime):
+        duration_minutes = int((end_time - start_time).total_seconds() / 60)
+    else:
+        duration_minutes = 0
     
     # Update shift
     result = await shifts_collection.find_one_and_update(
