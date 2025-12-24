@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { casesAPI, otpAPI } from '../api';
+import { casesAPI, approvalsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -243,7 +243,7 @@ const Cases = () => {
 
   const canCreateCase = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'doktor'].includes(user?.role);
 
-  // OTP ile arşiv erişimi doğrulama
+  // OTP ile arşiv erişimi doğrulama (Operasyon Müdürü/Baş Şoför OTP'si)
   const handleVerifyOTP = async () => {
     if (!archivePassword || archivePassword.length !== 6) {
       toast.error('Lütfen 6 haneli OTP kodunu girin');
@@ -252,14 +252,18 @@ const Cases = () => {
     
     setVerifyingOTP(true);
     try {
-      // otpAPI.verify(code, userId) - archivePassword direkt code olarak gönderilir
-      const response = await otpAPI.verify(archivePassword);
+      // approvalsAPI.verify - TÜM yöneticilerin OTP'lerini kontrol eder
+      const response = await approvalsAPI.verify({ 
+        code: archivePassword, 
+        approval_type: 'archive_access' 
+      });
+      
       if (response.data?.valid) {
         setArchiveUnlocked(true);
         setActiveTab('archive');
         setArchivePasswordDialog(false);
         setArchivePassword('');
-        toast.success(`Arşiv erişimi sağlandı (${response.data.message || 'Onaylandı'})`);
+        toast.success(`Arşiv erişimi sağlandı (${response.data.approver || 'Onaylandı'})`);
       } else {
         toast.error(response.data?.message || 'Geçersiz OTP kodu');
       }
