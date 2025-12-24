@@ -761,7 +761,6 @@ export const stockV2API = {
   
   // Seed - Tüm lokasyonlara stok ekle
   seedAll: () => api.post('/stock/seed-all'),
-  seedHealthCenters: () => api.post('/stock/seed-health-centers'),
   
   // Lokasyon Stokları
   getAllLocationStocks: (locationType) => api.get('/stock/locations', { params: { location_type: locationType } }),

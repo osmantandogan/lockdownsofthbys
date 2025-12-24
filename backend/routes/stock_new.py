@@ -222,8 +222,8 @@ async def seed_location_stock(location_id: str, location_type: str, location_nam
 
 
 async def seed_all_locations():
-    """Tüm araç, bekleme noktaları ve sağlık merkezlerine stok ekle"""
-    results = {"vehicles": [], "waiting_points": [], "health_centers": []}
+    """Tüm araç ve bekleme noktalarına stok ekle"""
+    results = {"vehicles": [], "waiting_points": []}
     
     # Araçları al
     vehicles = await db.vehicles.find({"type": "ambulans"}).to_list(100)
@@ -252,19 +252,6 @@ async def seed_all_locations():
             location_name=loc["name"]
         )
         results["waiting_points"].append(result)
-    
-    # Sağlık Merkezleri
-    HEALTH_CENTERS = [
-        {"id": "merkez_ofis", "name": "Merkez Ofis"},
-    ]
-    
-    for hc in HEALTH_CENTERS:
-        result = await seed_location_stock(
-            location_id=hc["id"],
-            location_type="saglik_merkezi",
-            location_name=hc["name"]
-        )
-        results["health_centers"].append(result)
     
     return results
 
@@ -1116,16 +1103,7 @@ async def get_case_available_stock(case_id: str, request: Request):
                         logger.info(f"[STOCK DEBUG] Returning health center stock for nurse: {len(hc_items)} items from {hc_stock.get('location_name')}")
                         return result
                     else:
-                        # Sağlık merkezi stoğu yok - boş döndür, araç stoğuna düşme!
-                        logger.warning(f"[STOCK DEBUG] No health center stock found for nurse {user.name} - returning empty (NOT falling back to vehicle)")
-                        result["location"] = {
-                            "id": health_center_id,
-                            "name": health_center_name or "Sağlık Merkezi",
-                            "type": "saglik_merkezi",
-                            "items": [],
-                            "message": "Bu lokasyon için stok kaydı henüz oluşturulmamış. Lütfen yöneticinize bildirin."
-                        }
-                        return result
+                        logger.warning(f"[STOCK DEBUG] No health center stock found for nurse {user.name}")
             else:
                 logger.info(f"[STOCK DEBUG] Nurse {user.name} has no health center assignment, checking vehicle assignments")
         
@@ -1599,78 +1577,9 @@ async def remove_case_stock_usage(case_id: str, request: Request):
     return {"success": True, "message": "Kullanım iptal edildi ve stoğa iade edildi"}
 
 
-# ============ SAĞLIK MERKEZİ STOK OLUŞTURMA ============
-@router.post("/seed-health-centers")
-async def seed_health_centers_endpoint(request: Request):
-    """Sağlık merkezleri için stok oluştur - tek seferlik"""
-    user = await get_current_user(request)
-    if user.role not in ["operasyon_muduru", "merkez_ofis", "admin"]:
-        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
-    
-    results = []
-    HEALTH_CENTERS = [
-        {"id": "merkez_ofis", "name": "Merkez Ofis"},
-    ]
-    
-    for hc in HEALTH_CENTERS:
-        result = await seed_location_stock(
-            location_id=hc["id"],
-            location_type="saglik_merkezi",
-            location_name=hc["name"]
-        )
-        results.append({"location": hc["name"], "result": result})
-    
-    return {"success": True, "message": "Sağlık merkezi stokları oluşturuldu", "results": results}
-
-
-@router.post("/create-health-center-stock")
-async def create_health_center_stock(request: Request):
-    """Sağlık merkezi için boş stok kaydı oluştur"""
-    user = await get_current_user(request)
-    if user.role not in ["operasyon_muduru", "merkez_ofis", "admin"]:
-        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
-    
-    body = await request.json()
-    location_name = body.get("location_name", "Merkez Ofis")
-    location_id = body.get("location_id", f"hc_{location_name.lower().replace(' ', '_')}")
-    
-    # Zaten var mı kontrol et
-    existing = await location_stocks.find_one({
-        "$or": [
-            {"location_id": location_id},
-            {"location_name": location_name}
-        ]
-    })
-    
-    if existing:
-        return {
-            "success": False,
-            "message": f"Bu lokasyon için zaten stok kaydı var: {existing.get('location_name')}",
-            "stock_id": existing.get("_id")
-        }
-    
-    # Yeni stok oluştur
-    new_stock = {
-        "_id": str(uuid.uuid4()),
-        "location_id": location_id,
-        "location_name": location_name,
-        "location_type": "saglik_merkezi",
-        "items": [],
-        "created_at": datetime.utcnow(),
-        "created_by": user.id
-    }
-    
-    await location_stocks.insert_one(new_stock)
-    logger.info(f"Sağlık merkezi stoğu oluşturuldu: {location_name} by {user.name}")
-    
-    return {
-        "success": True,
-        "message": f"Sağlık merkezi stoğu oluşturuldu: {location_name}",
-        "stock_id": new_stock["_id"]
-    }
-
-
 # ============ DEBUG ENDPOINT ============
+from utils.timezone import get_turkey_time
+
 @router.get("/debug/nurse-stock")
 async def debug_nurse_stock(request: Request):
     """Hemşire stok debug - atama ve stok verilerini göster"""
