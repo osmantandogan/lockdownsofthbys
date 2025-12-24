@@ -58,6 +58,7 @@ import MaterialRequests from "./pages/MaterialRequests";
 import Tickets from "./pages/Tickets";
 import TicketsApprovals from "./pages/TicketsApprovals";
 import Feedback from "./pages/Feedback";
+import FeedbackAdmin from "./pages/FeedbackAdmin";
 import VehicleLocationManagement from "./pages/VehicleLocationManagement";
 import PdfTemplates from "./pages/PdfTemplates";
 import PdfTemplateEditor from "./pages/PdfTemplateEditor";
@@ -188,6 +189,7 @@ function App() {
             <Route path="tickets" element={<Tickets />} />
             <Route path="tickets-approvals" element={<TicketsApprovals />} />
             <Route path="feedback" element={<Feedback />} />
+            <Route path="feedback-admin" element={<FeedbackAdmin />} />
             <Route path="forms" element={<Forms />} />
             <Route path="form-history" element={<FormHistory />} />
             <Route path="patient-cards" element={<PatientCards />} />
