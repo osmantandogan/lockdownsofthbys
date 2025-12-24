@@ -1017,60 +1017,95 @@ async def get_case_available_stock(case_id: str, request: Request):
             today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
             tomorrow = today + timedelta(days=1)
             
-            nurse_assignment = await db.shift_assignments.find_one({
+            # Hemşirenin tüm aktif atamalarını bul
+            nurse_assignments = await db.shift_assignments.find({
                 "user_id": user.id,
                 "status": {"$in": ["pending", "started"]},
                 "$or": [
                     {"shift_date": {"$gte": today, "$lt": tomorrow}},
                     {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
                 ]
-            })
+            }).to_list(10)
             
-            logger.info(f"[STOCK DEBUG] Nurse {user.name} assignment: {nurse_assignment}")
+            logger.info(f"[STOCK DEBUG] Nurse {user.name} (id={user.id}) found {len(nurse_assignments)} assignments")
             
-            if nurse_assignment:
-                # Hemşire sağlık merkezine mi atanmış?
-                location_type = nurse_assignment.get("location_type", "")
+            # Sağlık merkezine atama var mı kontrol et
+            hc_assignment = None
+            for assignment in nurse_assignments:
+                loc_type = assignment.get("location_type", "")
+                hc_name = assignment.get("health_center_name", "")
+                logger.info(f"[STOCK DEBUG] Assignment: location_type={loc_type}, health_center_name={hc_name}, vehicle_id={assignment.get('vehicle_id')}")
                 
-                if location_type == "saglik_merkezi":
-                    # Sağlık merkezi ID ve adını al
-                    health_center_id = nurse_assignment.get("healmedy_location_id") or nurse_assignment.get("location_id")
-                    health_center_name = nurse_assignment.get("health_center_name") or nurse_assignment.get("location_name")
+                # Sağlık merkezi ataması mı?
+                if loc_type == "saglik_merkezi" or hc_name:
+                    hc_assignment = assignment
+                    break
+            
+            if hc_assignment:
+                # Sağlık merkezi ID ve adını al
+                health_center_id = hc_assignment.get("healmedy_location_id") or hc_assignment.get("location_id")
+                health_center_name = hc_assignment.get("health_center_name") or hc_assignment.get("location_name")
+                
+                logger.info(f"[STOCK DEBUG] Nurse health center: id={health_center_id}, name={health_center_name}")
+                
+                if health_center_id or health_center_name:
+                    # Sağlık merkezi stoğunu bul - birden fazla yöntemle ara
+                    hc_stock = None
                     
-                    logger.info(f"[STOCK DEBUG] Nurse health center: id={health_center_id}, name={health_center_name}")
+                    # 1. location_id ile ara
+                    if health_center_id:
+                        hc_stock = await location_stocks.find_one({"location_id": health_center_id})
+                        logger.info(f"[STOCK DEBUG] Search by location_id={health_center_id}: found={hc_stock is not None}")
                     
-                    if health_center_id or health_center_name:
-                        # Sağlık merkezi stoğunu bul
-                        hc_stock = None
-                        if health_center_id:
-                            hc_stock = await location_stocks.find_one({"location_id": health_center_id})
-                        if not hc_stock and health_center_name:
-                            hc_stock = await location_stocks.find_one({"location_name": health_center_name})
+                    # 2. location_name ile ara
+                    if not hc_stock and health_center_name:
+                        hc_stock = await location_stocks.find_one({"location_name": health_center_name})
+                        logger.info(f"[STOCK DEBUG] Search by location_name={health_center_name}: found={hc_stock is not None}")
+                    
+                    # 3. location_type = saglik_merkezi olan stokları ara
+                    if not hc_stock:
+                        hc_stock = await location_stocks.find_one({
+                            "location_type": "saglik_merkezi",
+                            "$or": [
+                                {"location_name": {"$regex": health_center_name or "merkez", "$options": "i"}},
+                                {"location_id": {"$regex": "merkez|office|saglik", "$options": "i"}}
+                            ]
+                        })
+                        logger.info(f"[STOCK DEBUG] Search by regex/type: found={hc_stock is not None}")
+                    
+                    # 4. Tüm saglik_merkezi stoklarını listele
+                    if not hc_stock:
+                        all_hc_stocks = await location_stocks.find({"location_type": "saglik_merkezi"}).to_list(10)
+                        logger.info(f"[STOCK DEBUG] All saglik_merkezi stocks: {[s.get('location_name') for s in all_hc_stocks]}")
+                        if all_hc_stocks:
+                            hc_stock = all_hc_stocks[0]  # İlkini kullan
+                    
+                    if hc_stock:
+                        hc_items = []
+                        for item in hc_stock.get("items", []):
+                            if isinstance(item, dict) and item.get("quantity", 0) > 0:
+                                hc_items.append({
+                                    "name": item.get("name", ""),
+                                    "quantity": item.get("quantity", 0),
+                                    "category": item.get("category", "sarf"),
+                                    "source": "location",
+                                    "source_name": hc_stock.get("location_name", health_center_name)
+                                })
                         
-                        logger.info(f"[STOCK DEBUG] Health center stock found: {hc_stock is not None}")
+                        result["location"] = {
+                            "id": health_center_id or hc_stock.get("location_id"),
+                            "name": hc_stock.get("location_name", health_center_name),
+                            "type": "saglik_merkezi",
+                            "items": hc_items
+                        }
                         
-                        if hc_stock:
-                            hc_items = []
-                            for item in hc_stock.get("items", []):
-                                if isinstance(item, dict) and item.get("quantity", 0) > 0:
-                                    hc_items.append({
-                                        "name": item.get("name", ""),
-                                        "quantity": item.get("quantity", 0),
-                                        "category": item.get("category", "sarf"),
-                                        "source": "location",
-                                        "source_name": hc_stock.get("location_name", health_center_name)
-                                    })
-                            
-                            result["location"] = {
-                                "id": health_center_id or hc_stock.get("location_id"),
-                                "name": hc_stock.get("location_name", health_center_name),
-                                "type": "saglik_merkezi",
-                                "items": hc_items
-                            }
-                            
-                            # Hemşire için sadece sağlık merkezi stoğu göster, araç yok
-                            logger.info(f"[STOCK DEBUG] Returning health center stock for nurse: {len(hc_items)} items")
-                            return result
+                        # Hemşire için sadece sağlık merkezi stoğu göster, araç yok
+                        logger.info(f"[STOCK DEBUG] Returning health center stock for nurse: {len(hc_items)} items from {hc_stock.get('location_name')}")
+                        return result
+                    else:
+                        logger.warning(f"[STOCK DEBUG] No health center stock found for nurse {user.name}")
+            else:
+                logger.info(f"[STOCK DEBUG] Nurse {user.name} has no health center assignment, checking vehicle assignments")
         
         # ========== NORMAL AKIŞ (ATT, PARAMEDİK, ŞOFÖR) ==========
         # 1. Önce vakadan araç ID'sini almayı dene
@@ -1540,4 +1575,69 @@ async def remove_case_stock_usage(case_id: str, request: Request):
     logger.info(f"Vaka stok iadesi: {user.name} - {case_id} - {med_to_remove['name']}")
     
     return {"success": True, "message": "Kullanım iptal edildi ve stoğa iade edildi"}
+
+
+# ============ DEBUG ENDPOINT ============
+from utils.timezone import get_turkey_time
+
+@router.get("/debug/nurse-stock")
+async def debug_nurse_stock(request: Request):
+    """Hemşire stok debug - atama ve stok verilerini göster"""
+    user = await get_current_user(request)
+    
+    today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    
+    # Kullanıcının atamaları
+    assignments = await db.shift_assignments.find({
+        "user_id": user.id,
+        "status": {"$in": ["pending", "started"]}
+    }).to_list(20)
+    
+    # Tüm sağlık merkezi stokları
+    hc_stocks = await location_stocks.find({"location_type": "saglik_merkezi"}).to_list(20)
+    
+    # Tüm stok lokasyonları
+    all_stocks = await location_stocks.find({}).to_list(50)
+    
+    return {
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "role": user.role
+        },
+        "today": today.isoformat(),
+        "assignments": [
+            {
+                "id": a.get("_id"),
+                "shift_date": str(a.get("shift_date")),
+                "end_date": str(a.get("end_date")),
+                "status": a.get("status"),
+                "location_type": a.get("location_type"),
+                "health_center_name": a.get("health_center_name"),
+                "vehicle_id": a.get("vehicle_id"),
+                "vehicle_plate": a.get("vehicle_plate"),
+                "healmedy_location_id": a.get("healmedy_location_id")
+            }
+            for a in assignments
+        ],
+        "health_center_stocks": [
+            {
+                "location_id": s.get("location_id"),
+                "location_name": s.get("location_name"),
+                "location_type": s.get("location_type"),
+                "item_count": len(s.get("items", []))
+            }
+            for s in hc_stocks
+        ],
+        "all_stock_locations": [
+            {
+                "location_id": s.get("location_id"),
+                "location_name": s.get("location_name"),
+                "location_type": s.get("location_type"),
+                "item_count": len(s.get("items", []))
+            }
+            for s in all_stocks
+        ]
+    }
 
