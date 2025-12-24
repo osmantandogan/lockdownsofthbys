@@ -73,21 +73,26 @@ async def verify_approval_code(data: VerifyCodeRequest, request: Request):
     
     # Yöntem 1: Herhangi bir yöneticinin internal OTP'sini kontrol et (EN ÖNCELİKLİ)
     managers = await users_collection.find({
-        "role": {"$in": ["bas_sofor", "operasyon_muduru"]}
+        "role": {"$in": ["bas_sofor", "operasyon_muduru", "merkez_ofis"]}
     }).to_list(50)
     
     logger.info(f"Found {len(managers)} managers to check OTP")
     
     for manager in managers:
         otp_secret = manager.get("otp_secret")
+        
+        # Secret yoksa oluştur ama bu turda doğrulama YAPMA
+        # Çünkü yönetici yeni kodu henüz görmemiş olacak
         if not otp_secret:
-            otp_secret = generate_user_otp_secret()
+            new_secret = generate_user_otp_secret()
             await users_collection.update_one(
                 {"_id": manager.get("_id")},
-                {"$set": {"otp_secret": otp_secret}}
+                {"$set": {"otp_secret": new_secret}}
             )
-            logger.info(f"Generated new OTP secret for manager: {manager.get('name')}")
+            logger.info(f"Generated new OTP secret for manager: {manager.get('name')} - will be usable on next attempt")
+            continue  # Bu yöneticiyi atla, sonrakine geç
         
+        # Mevcut secret ile doğrula
         if verify_user_otp(otp_secret, data.code):
             logger.info(f"✅ OTP verified for manager: {manager.get('name')}")
             
