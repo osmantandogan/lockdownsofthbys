@@ -1,6 +1,7 @@
 package com.healmedy.ambulans;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -49,6 +50,9 @@ public class MainActivity extends BridgeActivity {
         
         // Status bar rengini ayarla
         window.setStatusBarColor(Color.parseColor("#dc2626"));
+        
+        // Intent'ten gelen navigasyon verisini kontrol et
+        handleNavigationIntent(getIntent());
         
         // Navigation bar rengini ayarla
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -146,6 +150,43 @@ public class MainActivity extends BridgeActivity {
             String script = "window.dispatchEvent(new CustomEvent('fcmToken', { detail: '" + token + "' }));";
             webView.post(() -> webView.evaluateJavascript(script, null));
             Log.d(TAG, "FCM token sent to WebView");
+        }
+    }
+    
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "📬 onNewIntent called");
+        setIntent(intent);
+        handleNavigationIntent(intent);
+    }
+    
+    /**
+     * Intent'ten gelen navigasyon verisini işle
+     * EmergencyPopupActivity'den "Vakaya Git" butonuna tıklandığında çağrılır
+     */
+    private void handleNavigationIntent(Intent intent) {
+        if (intent == null) return;
+        
+        String navigateTo = intent.getStringExtra("navigate_to");
+        String caseId = intent.getStringExtra("case_id");
+        
+        Log.d(TAG, "📍 handleNavigationIntent - navigate_to: " + navigateTo + ", case_id: " + caseId);
+        
+        if (navigateTo != null && !navigateTo.isEmpty()) {
+            // WebView yüklendikten sonra navigasyonu gerçekleştir
+            WebView webView = getBridge().getWebView();
+            if (webView != null) {
+                // Biraz bekle - WebView'un hazır olduğundan emin ol
+                webView.postDelayed(() -> {
+                    String script = "if (window.location.pathname !== '" + navigateTo + "') { window.location.href = '" + navigateTo + "'; }";
+                    webView.evaluateJavascript(script, (result) -> {
+                        Log.d(TAG, "📍 Navigation script executed - result: " + result);
+                    });
+                }, 500);
+                
+                Log.d(TAG, "📍 Navigation to: " + navigateTo);
+            }
         }
     }
 }

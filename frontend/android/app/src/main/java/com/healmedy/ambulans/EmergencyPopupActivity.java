@@ -24,6 +24,10 @@ public class EmergencyPopupActivity extends AppCompatActivity {
     
     private static final String TAG = "EmergencyPopup";
     
+    // Birden fazla popup oluşmasını engelle
+    private static volatile boolean isPopupActive = false;
+    private static EmergencyPopupActivity currentInstance = null;
+    
     private String caseId;
     private String caseNumber;
     private String patientName;
@@ -31,11 +35,28 @@ public class EmergencyPopupActivity extends AppCompatActivity {
     private String patientComplaint;
     private String address;
     
+    // UI hazır mı kontrolü
+    private boolean isUIReady = false;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        Log.d(TAG, "🚨 EmergencyPopupActivity created");
+        Log.d(TAG, "🚨 EmergencyPopupActivity created - isPopupActive: " + isPopupActive);
+        
+        // Eğer başka bir popup aktifse, eski olanı kapat ve bu yeni olanı kullan
+        if (currentInstance != null && currentInstance != this) {
+            Log.d(TAG, "🔄 Closing previous popup instance");
+            try {
+                currentInstance.finish();
+            } catch (Exception e) {
+                Log.w(TAG, "⚠️ Error closing previous instance: " + e.getMessage());
+            }
+        }
+        
+        // Bu instance'ı aktif olarak işaretle
+        isPopupActive = true;
+        currentInstance = this;
         
         try {
             // Ekranı aç ve kilit ekranının üstünde göster
@@ -54,11 +75,18 @@ public class EmergencyPopupActivity extends AppCompatActivity {
             
             Log.d(TAG, "Case: " + caseNumber + ", Patient: " + patientName);
             
-            // UI oluştur
-            createUI();
+            // UI oluştur (kısa gecikme ile - white screen önleme)
+            getWindow().getDecorView().post(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    createUI();
+                    isUIReady = true;
+                }
+            });
         } catch (Exception e) {
             Log.e(TAG, "❌ Error in onCreate: " + e.getMessage(), e);
             // Hata durumunda activity'yi kapat
+            isPopupActive = false;
+            currentInstance = null;
             finish();
         }
     }
@@ -69,7 +97,7 @@ public class EmergencyPopupActivity extends AppCompatActivity {
         Log.d(TAG, "🚨 EmergencyPopupActivity onNewIntent");
         
         // Yeni vaka geldiğinde verileri güncelle
-        if (intent != null) {
+        if (intent != null && !isFinishing() && !isDestroyed()) {
             setIntent(intent);
             caseId = intent.getStringExtra("case_id");
             caseNumber = intent.getStringExtra("case_number");
@@ -80,8 +108,12 @@ public class EmergencyPopupActivity extends AppCompatActivity {
             
             Log.d(TAG, "Updated - Case: " + caseNumber + ", Patient: " + patientName);
             
-            // UI'ı yeniden oluştur
-            createUI();
+            // UI'ı yeniden oluştur (güvenli şekilde)
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    createUI();
+                }
+            });
         }
     }
     
@@ -101,6 +133,12 @@ public class EmergencyPopupActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "🚨 EmergencyPopupActivity onDestroy");
+        
+        // Bu instance kapanıyorsa flag'leri temizle
+        if (currentInstance == this) {
+            isPopupActive = false;
+            currentInstance = null;
+        }
     }
     
     private void setupWindowFlags() {
@@ -278,6 +316,33 @@ public class EmergencyPopupActivity extends AppCompatActivity {
     public void onBackPressed() {
         // Geri tuşunu devre dışı bırak
         // Kullanıcı mutlaka bir buton seçmeli
+    }
+    
+    /**
+     * Popup aktif mi kontrol et
+     */
+    public static boolean isActive() {
+        return isPopupActive && currentInstance != null;
+    }
+    
+    /**
+     * Aktif popup'ı kapat (dışarıdan çağrılabilir)
+     */
+    public static void closeActivePopup() {
+        if (currentInstance != null) {
+            try {
+                currentInstance.runOnUiThread(() -> {
+                    if (!currentInstance.isFinishing()) {
+                        HealmedyFirebaseMessagingService.stopEmergencyAlarm();
+                        currentInstance.finish();
+                    }
+                });
+            } catch (Exception e) {
+                Log.w("EmergencyPopup", "Error closing popup: " + e.getMessage());
+            }
+        }
+        isPopupActive = false;
+        currentInstance = null;
     }
 }
 

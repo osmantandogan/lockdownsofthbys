@@ -28,6 +28,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.healmedy.ambulans.EmergencyPopupActivity;
 import com.healmedy.ambulans.MainActivity;
 import com.healmedy.ambulans.R;
 
@@ -51,7 +52,8 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     private static int emergencyNotificationId = -1;
     private static Handler alarmHandler;
     private static PowerManager.WakeLock wakeLock;
-    private static final long ALARM_DURATION_MS = 60000; // 60 saniye
+    // WakeLock süresi - Vakaya Git butonuna basılana kadar devam edecek (10 dakika max)
+    private static final long WAKELOCK_TIMEOUT_MS = 10 * 60 * 1000; // 10 dakika
     
     // Siren parameters - Avrupa ambulans siren sesi için
     private static final int SIREN_SAMPLE_RATE = 44100;
@@ -155,7 +157,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
                 PowerManager.ON_AFTER_RELEASE,
                 "HealMedy:EmergencyAlarm"
             );
-            wakeLock.acquire(ALARM_DURATION_MS + 10000); // Alarm süresi + 10 saniye
+            wakeLock.acquire(WAKELOCK_TIMEOUT_MS);
             Log.d(TAG, "🔋 FULL WakeLock acquired - screen should turn on!");
             
         } catch (Exception e) {
@@ -167,7 +169,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
                     PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
                     "HealMedy:EmergencyAlarmFallback"
                 );
-                wakeLock.acquire(ALARM_DURATION_MS + 10000);
+                wakeLock.acquire(WAKELOCK_TIMEOUT_MS);
                 Log.d(TAG, "🔋 Fallback PARTIAL WakeLock acquired");
             } catch (Exception e2) {
                 Log.e(TAG, "❌ Fallback wake lock also failed: " + e2.getMessage());
@@ -317,25 +319,16 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
                 Log.w(TAG, "⚠️ Cannot change ringer mode: " + e.getMessage());
             }
             
-            // 3. Programatik ambulans siren sesi oluştur ve çal
+            // 3. MP3 dosyasını MediaPlayer ile çal - Vakaya Git'e basılana kadar devam edecek
             sirenPlaying = true;
-            sirenThread = new Thread(() -> {
-                Log.d(TAG, "🚨 Siren thread started");
-                playSirenSound();
-            });
-            sirenThread.start();
+            playAlarmSound();
             
             // 4. Titreşimi başlat
             startEmergencyVibration();
             
-            // 5. 60 saniye sonra otomatik dur
-            alarmHandler = new Handler(Looper.getMainLooper());
-            alarmHandler.postDelayed(() -> {
-                Log.d(TAG, "⏰ Alarm timeout reached, stopping...");
-                stopEmergencyAlarm();
-            }, ALARM_DURATION_MS);
+            // NOT: Timeout kaldırıldı - Alarm Vakaya Git butonuna basılana kadar devam edecek
             
-            Log.d(TAG, "✅ Emergency siren alarm started");
+            Log.d(TAG, "✅ Emergency alarm started - will continue until 'Vakaya Git' is pressed");
             
         } catch (Exception e) { 
             Log.e(TAG, "❌ Error starting alarm: " + e.getMessage(), e); 
@@ -343,10 +336,62 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     }
     
     /**
+     * MP3 dosyasından alarm sesi çalar - Vakaya Git butonuna basılana kadar döngüde çalar
+     */
+    private void playAlarmSound() {
+        try {
+            // Önceki MediaPlayer'ı temizle
+            if (emergencyMediaPlayer != null) {
+                try {
+                    emergencyMediaPlayer.stop();
+                    emergencyMediaPlayer.release();
+                } catch (Exception e) {
+                    Log.w(TAG, "⚠️ Error releasing previous MediaPlayer: " + e.getMessage());
+                }
+                emergencyMediaPlayer = null;
+            }
+            
+            // MP3 dosyasını raw klasöründen yükle
+            emergencyMediaPlayer = MediaPlayer.create(this, R.raw.alarm_siren);
+            
+            if (emergencyMediaPlayer != null) {
+                // Alarm stream olarak ayarla
+                emergencyMediaPlayer.setAudioAttributes(
+                    new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                );
+                
+                // Döngüde çal - Vakaya Git'e basılana kadar
+                emergencyMediaPlayer.setLooping(true);
+                
+                // Ses seviyesini maksimum yap
+                emergencyMediaPlayer.setVolume(1.0f, 1.0f);
+                
+                // Çalmaya başla
+                emergencyMediaPlayer.start();
+                
+                Log.d(TAG, "🚨🚨🚨 ALARM SIREN PLAYING FROM MP3! 🚨🚨🚨");
+            } else {
+                Log.e(TAG, "❌ Failed to create MediaPlayer for alarm sound");
+                // Fallback: ToneGenerator kullan
+                playFallbackTone();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error playing alarm sound: " + e.getMessage(), e);
+            // Fallback: ToneGenerator kullan
+            playFallbackTone();
+        }
+    }
+    
+    /**
+     * [ESKI - KULLANILMIYOR] Programatik siren sesi
      * Avrupa tarzı ambulans siren sesi oluşturur (Hi-Lo pattern)
      * İki ton arasında sürekli geçiş yapar
      */
-    private void playSirenSound() {
+    private void playSirenSoundLegacy() {
         try {
             int bufferSize = AudioTrack.getMinBufferSize(
                 SIREN_SAMPLE_RATE,
@@ -590,16 +635,22 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     private void launchEmergencyPopup(String caseId, String caseNumber, String patientName, 
             String patientPhone, String patientComplaint, String address) {
         try {
-            Log.d(TAG, "🚨 Launching EmergencyPopupActivity...");
+            Log.d(TAG, "🚨 Launching EmergencyPopupActivity... isActive: " + EmergencyPopupActivity.isActive());
             
             // Önce alarmı başlat (popup açılmadan önce ses çalsın)
             startEmergencyAlarm();
             
-            Intent popupIntent = new Intent(this, com.healmedy.ambulans.EmergencyPopupActivity.class);
+            // Eğer zaten bir popup aktifse, önce onu kapat
+            if (EmergencyPopupActivity.isActive()) {
+                Log.d(TAG, "⚠️ Popup already active, will update it");
+            }
+            
+            Intent popupIntent = new Intent(this, EmergencyPopupActivity.class);
             popupIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
                                  Intent.FLAG_ACTIVITY_CLEAR_TOP |
                                  Intent.FLAG_ACTIVITY_SINGLE_TOP |
-                                 Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                                 Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS |
+                                 Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             
             // Vaka bilgilerini ekle
             if (caseId != null) popupIntent.putExtra("case_id", caseId);
