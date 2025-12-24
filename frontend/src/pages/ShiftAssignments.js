@@ -51,6 +51,7 @@ const ShiftAssignments = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [showPhotosDialog, setShowPhotosDialog] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState(null);
+  const [enlargedPhoto, setEnlargedPhoto] = useState(null); // Büyütülmüş fotoğraf için
   
   // Form state
   const getDefaultEndDate = () => {
@@ -510,11 +511,11 @@ const ShiftAssignments = () => {
                       {a.photos && Object.keys(a.photos).length > 0 && (
                         <div className="border-t pt-3">
                           <p className="text-sm font-medium mb-2">Çekilen Fotoğraflar ({Object.keys(a.photos).length}):</p>
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-3 gap-3">
                             {Object.entries(a.photos).map(([key, value]) => value && (
-                              <div key={key} className="relative">
-                                <img src={value} alt={key} className="w-full h-20 object-cover rounded border" />
-                                <p className="text-xs text-center mt-1 text-gray-600">{key}</p>
+                              <div key={key} className="relative cursor-pointer" onClick={() => setEnlargedPhoto({src: value, title: key})}>
+                                <img src={value} alt={key} className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all" />
+                                <p className="text-xs text-center mt-1 text-gray-600 font-medium">{key}</p>
                               </div>
                             ))}
                           </div>
@@ -575,11 +576,11 @@ const ShiftAssignments = () => {
                       {a.end_photos && Object.keys(a.end_photos).length > 0 && (
                         <div className="border-t pt-3">
                           <p className="text-sm font-medium mb-2">Bitiş Fotoğrafları - 4 Köşe Arka Kabin ({Object.keys(a.end_photos).length}):</p>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-3">
                             {Object.entries(a.end_photos).map(([key, value]) => value && (
-                              <div key={key} className="relative">
-                                <img src={value} alt={key} className="w-full h-32 object-cover rounded border" />
-                                <p className="text-xs text-center mt-1 text-gray-600">{key.replace('rear_cabin_corner_', 'Köşe ')}</p>
+                              <div key={key} className="relative cursor-pointer" onClick={() => setEnlargedPhoto({src: value, title: key.replace('rear_cabin_corner_', 'Köşe ')})}>
+                                <img src={value} alt={key} className="w-full h-40 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all" />
+                                <p className="text-xs text-center mt-1 text-gray-600 font-medium">{key.replace('rear_cabin_corner_', 'Köşe ')}</p>
                               </div>
                             ))}
                           </div>
@@ -699,8 +700,24 @@ const ShiftAssignments = () => {
           <DialogHeader><DialogTitle>Vardiya Fotoğrafları</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
             {selectedPhotos?.photos && Object.entries(selectedPhotos.photos).map(([key, value]) => value && (
-              <div key={key} className="space-y-2"><p className="text-sm font-medium">{key}</p><img src={value} alt={key} className="w-full h-40 object-cover rounded border" /></div>
+              <div key={key} className="space-y-2"><p className="text-sm font-medium">{key}</p><img src={value} alt={key} className="w-full h-40 object-cover rounded border cursor-pointer" onClick={() => setEnlargedPhoto({src: value, title: key})} /></div>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Büyütülmüş Fotoğraf Dialog */}
+      <Dialog open={!!enlargedPhoto} onOpenChange={() => setEnlargedPhoto(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader><DialogTitle>{enlargedPhoto?.title || 'Fotoğraf'}</DialogTitle></DialogHeader>
+          <div className="flex items-center justify-center p-4">
+            {enlargedPhoto && (
+              <img 
+                src={enlargedPhoto.src} 
+                alt={enlargedPhoto.title} 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" 
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
