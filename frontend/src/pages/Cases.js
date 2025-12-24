@@ -56,8 +56,8 @@ const Cases = () => {
   const [caseToDelete, setCaseToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   
-  // Arşive doğrudan erişebilen roller (doktor dahil)
-  const archiveAuthorizedRoles = ['doktor', 'operasyon_muduru', 'merkez_ofis', 'bas_sofor'];
+  // Arşive doğrudan erişebilen roller (OTP gerektirmez)
+  const archiveAuthorizedRoles = ['doktor', 'operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'];
   const canAccessArchive = archiveAuthorizedRoles.includes(user?.role);
   
   // Vaka silme yetkisi (sadece Operasyon Müdürü ve Merkez Ofis)
@@ -252,17 +252,19 @@ const Cases = () => {
     
     setVerifyingOTP(true);
     try {
-      const response = await otpAPI.verify({ code: archivePassword });
+      // otpAPI.verify(code, userId) - archivePassword direkt code olarak gönderilir
+      const response = await otpAPI.verify(archivePassword);
       if (response.data?.valid) {
         setArchiveUnlocked(true);
         setActiveTab('archive');
         setArchivePasswordDialog(false);
         setArchivePassword('');
-        toast.success(`Arşiv erişimi sağlandı (${response.data.approver || 'Onaylandı'})`);
+        toast.success(`Arşiv erişimi sağlandı (${response.data.message || 'Onaylandı'})`);
       } else {
-        toast.error('Geçersiz OTP kodu');
+        toast.error(response.data?.message || 'Geçersiz OTP kodu');
       }
     } catch (error) {
+      console.error('OTP verify error:', error);
       toast.error(error.response?.data?.detail || 'OTP doğrulama başarısız');
     } finally {
       setVerifyingOTP(false);
