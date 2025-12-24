@@ -1671,8 +1671,6 @@ async def create_health_center_stock(request: Request):
 
 
 # ============ DEBUG ENDPOINT ============
-from utils.timezone import get_turkey_time
-
 @router.get("/debug/nurse-stock")
 async def debug_nurse_stock(request: Request):
     """Hemşire stok debug - atama ve stok verilerini göster"""
