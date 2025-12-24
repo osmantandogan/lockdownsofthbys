@@ -265,9 +265,10 @@ const PatientRegistration = () => {
         gender: formData.patientGender || 'belirtilmemis'
       });
       
-      setSelectedPatientCard(newPatient.data);
+      // Hasta kartı oluşturuldu ama form alanları düzenlenebilir kalsın
+      // selectedPatientCard set edilmez ki alanlar kilitlenmesin
       setFormData(prev => ({ ...prev, patientTcNo: tcSearch }));
-      toast.success('Yeni hasta kartı oluşturuldu');
+      toast.success('Yeni hasta kartı oluşturuldu - bilgileri düzenleyebilirsiniz');
     } catch (error) {
       if (error.response?.data?.detail?.includes('zaten mevcut')) {
         toast.info('Bu TC ile kayıtlı hasta kartı zaten var');

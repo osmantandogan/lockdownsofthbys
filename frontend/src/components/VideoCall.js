@@ -25,6 +25,25 @@ const VideoCall = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState(null);
 
+  // Mikrofon ve kamera izni iste
+  const requestMediaPermissions = useCallback(async () => {
+    try {
+      console.log('Requesting media permissions...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      // İzinler alındıktan sonra stream'i kapat
+      stream.getTracks().forEach(track => track.stop());
+      console.log('Media permissions granted');
+      return true;
+    } catch (err) {
+      console.error('Media permission error:', err);
+      setError('Kamera ve mikrofon izni verilmedi. Lütfen tarayıcı ayarlarından izin verin.');
+      return false;
+    }
+  }, []);
+
   // Daily.co frame oluştur
   const createCallFrame = useCallback(async () => {
     if (!containerRef.current || !roomUrl) return;
@@ -36,6 +55,13 @@ const VideoCall = ({
     }
 
     try {
+      // Önce mikrofon ve kamera izni iste
+      const hasPermission = await requestMediaPermissions();
+      if (!hasPermission) {
+        setIsLoading(false);
+        return;
+      }
+
       // Daily.co kullan
       if (provider === 'daily') {
         // Container'ı temizle
@@ -100,7 +126,7 @@ const VideoCall = ({
       setIsLoading(false);
       onError?.(err);
     }
-  }, [roomUrl, userName, provider, onLeave, onError]);
+  }, [roomUrl, userName, provider, onLeave, onError, requestMediaPermissions]);
 
   const updateParticipantCount = useCallback(() => {
     if (callFrameRef.current && provider === 'daily') {

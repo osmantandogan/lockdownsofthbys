@@ -120,6 +120,13 @@ async def create_case(data: CaseCreate, request: Request):
     case_details = data.case_details if hasattr(data, 'case_details') else None
     source = "registration" if (case_details and case_details.get("type") == "ayaktan_basvuru") else "call_center"
     
+    # Oluşturulma lokasyonu - case_details'tan al veya lokasyondan
+    created_location = None
+    if case_details:
+        created_location = case_details.get("user_location")
+    if not created_location and data.location:
+        created_location = data.location.address
+    
     # Create case
     new_case = Case(
         case_number=case_number,
@@ -130,7 +137,10 @@ async def create_case(data: CaseCreate, request: Request):
         case_details=case_details,
         source=source,
         timestamps=timestamps_data,
-        created_by=user.id
+        created_by=user.id,
+        created_by_name=user.name,
+        created_by_role=user.role,
+        created_location=created_location
     )
     
     # Add initial status to history - kullanıcı adı ve rolü ile

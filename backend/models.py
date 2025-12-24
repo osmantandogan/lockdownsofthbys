@@ -204,6 +204,9 @@ class Case(BaseModel):
     timestamps: Optional[dict] = None  # {call_received, scene_arrival, patient_contact, scene_departure, hospital_arrival, station_return}
     
     created_by: str
+    created_by_name: Optional[str] = None  # Vakayı açan kişinin adı
+    created_by_role: Optional[str] = None  # Vakayı açan kişinin rolü
+    created_location: Optional[str] = None  # Vakanın açıldığı lokasyon
     created_at: datetime = Field(default_factory=get_turkey_time)
     updated_at: datetime = Field(default_factory=get_turkey_time)
 

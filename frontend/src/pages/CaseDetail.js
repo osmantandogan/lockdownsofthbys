@@ -1724,6 +1724,26 @@ const CaseDetail = () => {
             </Badge>
             <Badge variant="outline">{statusLabels[caseData.status]}</Badge>
           </div>
+          {/* Vakayı açan kişi ve lokasyon bilgisi */}
+          {(caseData.created_by_name || caseData.created_location) && (
+            <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+              <span>Oluşturan:</span>
+              <span className="font-medium text-gray-700">
+                {caseData.created_by_name || 'Bilinmiyor'}
+              </span>
+              {caseData.created_by_role && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0 uppercase">
+                  {caseData.created_by_role}
+                </Badge>
+              )}
+              {caseData.created_location && (
+                <>
+                  <span className="text-gray-400">•</span>
+                  <span>{caseData.created_location}</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
         </div>
         
