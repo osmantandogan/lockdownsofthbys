@@ -1108,7 +1108,6 @@ async def start_shift(data: ShiftStart, request: Request):
     
     # Araç fotoğraflarını kaydet (ayrı bir collection'da)
     if data.photos:
-        from database import db
         shift_photos_collection = db["shift_photos"]
         
         photos_doc = {
