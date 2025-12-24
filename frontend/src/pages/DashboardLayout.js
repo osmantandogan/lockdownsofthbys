@@ -72,17 +72,17 @@ const DashboardLayout = () => {
   };
 
   const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'att', 'paramedik', 'hemsire', 'sofor', 'mesul_mudur'] },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'att', 'paramedik', 'hemsire', 'sofor', 'mesul_mudur', 'bas_sofor'] },
     { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire'] },
     { path: '/dashboard/patient-registration', icon: UserPlus, label: 'Kayıt', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/my-stock', icon: Package, label: 'Lokasyon Stoğum', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi', 'bas_sofor', 'sofor'] },
     { path: '/dashboard/vehicles', icon: Truck, label: 'Araçlar', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
-    { path: '/dashboard/vehicle-locations', icon: MapPin, label: 'Araç Lokasyonları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi', 'hemsire'] },
+    { path: '/dashboard/vehicle-locations', icon: MapPin, label: 'Araç Lokasyonları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi'] },
     { path: '/dashboard/stock', icon: Package, label: 'Stok', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
     { path: '/dashboard/warehouse', icon: Package, label: 'Merkez Depo', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
     { path: '/dashboard/warehouse-transfers', icon: Send, label: 'Depo Transferleri', roles: ['operasyon_muduru', 'merkez_ofis', 'bas_sofor', 'cagri_merkezi'] },
-    { path: '/dashboard/stock-requests', icon: Send, label: 'Stok Talepleri', roles: ['operasyon_muduru', 'merkez_ofis', 'hemsire'] },
+    { path: '/dashboard/stock-requests', icon: Send, label: 'Stok Talepleri', roles: ['operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/shifts', icon: Clock, label: 'Vardiya', roles: ['att', 'paramedik', 'hemsire', 'sofor', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'mesul_mudur'] },
     { path: '/dashboard/tickets', icon: MessageSquare, label: 'Bildirim ve Talepler' },
@@ -97,7 +97,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/form-templates', icon: FileText, label: 'Form Şablonları', roles: ['operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/archive', icon: ArchiveIcon, label: 'Form Arşivi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/notifications', icon: Bell, label: 'Bildirim Ayarları' },
-    { path: '/dashboard/gps-settings', icon: MapPin, label: 'GPS Ayarları', roles: ['operasyon_muduru', 'merkez_ofis', 'att', 'paramedik', 'sofor', 'hemsire', 'bas_sofor', 'cagri_merkezi', 'doktor', 'mesul_mudur'] },
+    { path: '/dashboard/gps-settings', icon: MapPin, label: 'GPS Ayarları', roles: ['operasyon_muduru', 'merkez_ofis', 'att', 'paramedik', 'sofor', 'bas_sofor', 'cagri_merkezi', 'doktor', 'mesul_mudur'] },
     { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }
   ];
 

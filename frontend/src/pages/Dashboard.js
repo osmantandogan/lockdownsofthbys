@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { casesAPI, vehiclesAPI, stockAPI, shiftsAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Activity, Truck, Package, AlertTriangle, Users, Building2, Clock, FileText, Calendar } from 'lucide-react';
+import { Activity, Truck, Package, AlertTriangle, Users, Building2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -151,58 +151,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* 2. HIZLI AKSİYONLAR (Stat kartlarının hemen altında) */}
-      <Card className="border-0 shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold text-gray-800">Hızlı Aksiyonlar</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <button
-            onClick={() => navigate('/dashboard/call-center')}
-            className="p-4 text-left rounded-xl border-2 border-red-100 hover:border-red-500 hover:bg-red-50 transition-all group"
-            data-testid="quick-action-new-case"
-          >
-            <div className="p-2 w-fit rounded-lg bg-red-100 group-hover:bg-red-500 transition-colors mb-3">
-              <Activity className="h-5 w-5 text-red-600 group-hover:text-white transition-colors" />
-            </div>
-            <div className="font-semibold text-gray-900">Yeni Vaka</div>
-            <div className="text-xs text-gray-500 mt-1">Vaka oluştur</div>
-          </button>
-          <button
-            onClick={() => navigate('/dashboard/cases')}
-            className="p-4 text-left rounded-xl border-2 border-gray-100 hover:border-red-500 hover:bg-red-50 transition-all group"
-            data-testid="quick-action-cases"
-          >
-            <div className="p-2 w-fit rounded-lg bg-gray-100 group-hover:bg-red-500 transition-colors mb-3">
-              <FileText className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
-            </div>
-            <div className="font-semibold text-gray-900">Vakalar</div>
-            <div className="text-xs text-gray-500 mt-1">Vaka listesi</div>
-          </button>
-          <button
-            onClick={() => navigate('/dashboard/stock')}
-            className="p-4 text-left rounded-xl border-2 border-gray-100 hover:border-red-500 hover:bg-red-50 transition-all group"
-            data-testid="quick-action-stock"
-          >
-            <div className="p-2 w-fit rounded-lg bg-gray-100 group-hover:bg-red-500 transition-colors mb-3">
-              <Package className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
-            </div>
-            <div className="font-semibold text-gray-900">Stok</div>
-            <div className="text-xs text-gray-500 mt-1">Stok yönetimi</div>
-          </button>
-          <button
-            onClick={() => navigate('/dashboard/shifts')}
-            className="p-4 text-left rounded-xl border-2 border-gray-100 hover:border-red-500 hover:bg-red-50 transition-all group"
-            data-testid="quick-action-shift"
-          >
-            <div className="p-2 w-fit rounded-lg bg-gray-100 group-hover:bg-red-500 transition-colors mb-3">
-              <Calendar className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
-            </div>
-            <div className="font-semibold text-gray-900">Vardiya</div>
-            <div className="text-xs text-gray-500 mt-1">Vardiya başlat</div>
-          </button>
-        </CardContent>
-      </Card>
 
       {/* 3. BUGÜNKÜ GÖREVLİ PERSONEL (Kırmızı Tema) */}
       <Card className="overflow-hidden border-0 shadow-lg">
