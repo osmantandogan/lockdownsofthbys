@@ -568,8 +568,8 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     """Assign team to case (Operation Manager, Call Center, Nurse, Doctor)"""
     user = await get_current_user(request)
     
-    # Çağrı merkezi, hemşire ve doktor da ekip atayabilir
-    allowed_roles = ["merkez_ofis", "operasyon_muduru", "cagri_merkezi", "hemsire", "doktor"]
+    # Çağrı merkezi, hemşire, doktor ve baş şoför de ekip atayabilir
+    allowed_roles = ["merkez_ofis", "operasyon_muduru", "cagri_merkezi", "hemsire", "doktor", "bas_sofor"]
     if user.role not in allowed_roles:
         raise HTTPException(status_code=403, detail="Bu işlemi yapmaya yetkiniz yok")
     

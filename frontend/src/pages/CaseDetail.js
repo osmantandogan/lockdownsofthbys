@@ -1695,7 +1695,7 @@ const CaseDetail = () => {
     dusuk: 'Düşük'
   };
 
-  const canManageCase = ['merkez_ofis', 'operasyon_muduru'].includes(user?.role);
+  const canManageCase = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
   const isDoctor = user?.role === 'doktor';
   const canEditForm = ['doktor', 'hemsire', 'paramedik', 'att'].includes(user?.role);
 

@@ -1011,6 +1011,68 @@ async def get_case_available_stock(case_id: str, request: Request):
     }
     
     try:
+        # ========== HEMŞİRE İÇİN SAĞLIK MERKEZİ STOĞU ==========
+        # Hemşire sağlık merkezine atanmışsa, o merkezdeki stoğu göster
+        if user.role == "hemsire":
+            today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow = today + timedelta(days=1)
+            
+            nurse_assignment = await db.shift_assignments.find_one({
+                "user_id": user.id,
+                "status": {"$in": ["pending", "started"]},
+                "$or": [
+                    {"shift_date": {"$gte": today, "$lt": tomorrow}},
+                    {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+                ]
+            })
+            
+            logger.info(f"[STOCK DEBUG] Nurse {user.name} assignment: {nurse_assignment}")
+            
+            if nurse_assignment:
+                # Hemşire sağlık merkezine mi atanmış?
+                location_type = nurse_assignment.get("location_type", "")
+                
+                if location_type == "saglik_merkezi":
+                    # Sağlık merkezi ID ve adını al
+                    health_center_id = nurse_assignment.get("healmedy_location_id") or nurse_assignment.get("location_id")
+                    health_center_name = nurse_assignment.get("health_center_name") or nurse_assignment.get("location_name")
+                    
+                    logger.info(f"[STOCK DEBUG] Nurse health center: id={health_center_id}, name={health_center_name}")
+                    
+                    if health_center_id or health_center_name:
+                        # Sağlık merkezi stoğunu bul
+                        hc_stock = None
+                        if health_center_id:
+                            hc_stock = await location_stocks.find_one({"location_id": health_center_id})
+                        if not hc_stock and health_center_name:
+                            hc_stock = await location_stocks.find_one({"location_name": health_center_name})
+                        
+                        logger.info(f"[STOCK DEBUG] Health center stock found: {hc_stock is not None}")
+                        
+                        if hc_stock:
+                            hc_items = []
+                            for item in hc_stock.get("items", []):
+                                if isinstance(item, dict) and item.get("quantity", 0) > 0:
+                                    hc_items.append({
+                                        "name": item.get("name", ""),
+                                        "quantity": item.get("quantity", 0),
+                                        "category": item.get("category", "sarf"),
+                                        "source": "location",
+                                        "source_name": hc_stock.get("location_name", health_center_name)
+                                    })
+                            
+                            result["location"] = {
+                                "id": health_center_id or hc_stock.get("location_id"),
+                                "name": hc_stock.get("location_name", health_center_name),
+                                "type": "saglik_merkezi",
+                                "items": hc_items
+                            }
+                            
+                            # Hemşire için sadece sağlık merkezi stoğu göster, araç yok
+                            logger.info(f"[STOCK DEBUG] Returning health center stock for nurse: {len(hc_items)} items")
+                            return result
+        
+        # ========== NORMAL AKIŞ (ATT, PARAMEDİK, ŞOFÖR) ==========
         # 1. Önce vakadan araç ID'sini almayı dene
         vehicle_id = None
         case = await db.cases.find_one({"_id": case_id})

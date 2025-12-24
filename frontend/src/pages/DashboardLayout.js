@@ -73,7 +73,7 @@ const DashboardLayout = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Ana Sayfa', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'att', 'paramedik', 'hemsire', 'sofor', 'mesul_mudur', 'bas_sofor'] },
-    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire'] },
+    { path: '/dashboard/call-center', icon: Phone, label: 'Çağrı Merkezi', roles: ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'bas_sofor'] },
     { path: '/dashboard/patient-registration', icon: UserPlus, label: 'Kayıt', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/my-stock', icon: Package, label: 'Lokasyon Stoğum', roles: ['att', 'paramedik', 'hemsire', 'operasyon_muduru', 'merkez_ofis'] },
     { path: '/dashboard/cases', icon: Folder, label: 'Vakalar', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi', 'bas_sofor', 'sofor'] },
