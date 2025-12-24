@@ -60,6 +60,51 @@ import GeneralConsentForm from '../components/forms/GeneralConsentForm';
 // Jitsi server URL - kendi sunucunuzu kullanmak için değiştirin
 const JITSI_DOMAIN = process.env.REACT_APP_JITSI_DOMAIN || 'meet.jit.si';
 
+// ==================== OFFLİNE TASLAK KAYDETME ====================
+const DRAFT_KEY_PREFIX = 'healmedy_casedetail_draft_';
+
+const saveDraftToStorage = (caseId, data) => {
+  if (!caseId) return false;
+  try {
+    const key = DRAFT_KEY_PREFIX + caseId;
+    localStorage.setItem(key, JSON.stringify({
+      ...data,
+      savedAt: new Date().toISOString()
+    }));
+    console.log('[CaseDetail Draft] Saved for case:', caseId);
+    return true;
+  } catch (e) {
+    console.error('[CaseDetail Draft] Save error:', e);
+    return false;
+  }
+};
+
+const loadDraftFromStorage = (caseId) => {
+  if (!caseId) return null;
+  try {
+    const key = DRAFT_KEY_PREFIX + caseId;
+    const data = localStorage.getItem(key);
+    if (data) {
+      console.log('[CaseDetail Draft] Loaded for case:', caseId);
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('[CaseDetail Draft] Load error:', e);
+  }
+  return null;
+};
+
+const clearDraftFromStorage = (caseId) => {
+  if (!caseId) return;
+  try {
+    const key = DRAFT_KEY_PREFIX + caseId;
+    localStorage.removeItem(key);
+    console.log('[CaseDetail Draft] Cleared for case:', caseId);
+  } catch (e) {
+    console.error('[CaseDetail Draft] Clear error:', e);
+  }
+};
+
 // Fix leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -153,6 +198,12 @@ const CaseDetail = () => {
     driver_pilot_signature: null
   });
   const [savingConsents, setSavingConsents] = useState(false);
+  
+  // Offline taslak kaydetme
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [draftTime, setDraftTime] = useState(null);
+  const saveTimerRef = useRef(null);
+  const initialLoadDoneRef = useRef(false);
   
   // Medication/Materials state - YENİ V2 Stok Sistemi
   const [medications, setMedications] = useState([]);
@@ -560,6 +611,94 @@ const CaseDetail = () => {
       casesAPI.leaveCase(id).catch(() => {});
     };
   }, [id]);
+  
+  // ==================== OFFLINE TASLAK YÜKLEMESİ ====================
+  useEffect(() => {
+    if (!id || initialLoadDoneRef.current) return;
+    
+    // Sayfa yüklenirken localStorage'dan draft yükle
+    const timer = setTimeout(() => {
+      const draft = loadDraftFromStorage(id);
+      if (draft) {
+        console.log('[CaseDetail Draft] Loading draft data...');
+        
+        // İmzaları yükle
+        if (draft.inlineConsents) {
+          setInlineConsents(prev => ({
+            ...prev,
+            ...draft.inlineConsents
+          }));
+          console.log('[CaseDetail Draft] Loaded signatures from draft');
+        }
+        
+        // Vital signs yükle
+        if (draft.vitalSigns) {
+          setVitalSigns(draft.vitalSigns);
+        }
+        
+        // Clinical observations yükle
+        if (draft.clinicalObs) {
+          setClinicalObs(prev => ({ ...prev, ...draft.clinicalObs }));
+        }
+        
+        // Medical form yükle
+        if (draft.medicalForm) {
+          setMedicalForm(prev => ({ ...prev, ...draft.medicalForm }));
+        }
+        
+        // Transfers yükle
+        if (draft.transfers) {
+          setTransfers(draft.transfers);
+        }
+        
+        setDraftSaved(true);
+        setDraftTime(new Date(draft.savedAt));
+        toast.info('Kaydedilmiş taslak yüklendi');
+      }
+      initialLoadDoneRef.current = true;
+    }, 1500); // API yüklendikten sonra
+    
+    return () => clearTimeout(timer);
+  }, [id]);
+  
+  // ==================== OFFLINE TASLAK KAYDETME ====================
+  useEffect(() => {
+    if (!id || !initialLoadDoneRef.current) return;
+    
+    // Her değişiklikte 1.5 saniye sonra kaydet
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    
+    saveTimerRef.current = setTimeout(() => {
+      const draftData = {
+        inlineConsents,
+        vitalSigns,
+        clinicalObs,
+        medicalForm,
+        transfers
+      };
+      
+      // En az bir imza varsa kaydet
+      const hasSignature = Object.values(inlineConsents).some(
+        val => val && typeof val === 'string' && val.startsWith('data:image')
+      );
+      
+      if (hasSignature || Object.keys(medicalForm).length > 0) {
+        console.log('[CaseDetail Draft] Auto-saving...', { hasSignature });
+        if (saveDraftToStorage(id, draftData)) {
+          setDraftSaved(true);
+          setDraftTime(new Date());
+        }
+      }
+    }, 1500);
+    
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [id, inlineConsents, vitalSigns, clinicalObs, medicalForm, transfers]);
   
   // Start polling for real-time updates - only when page is visible and case is open
   useEffect(() => {
@@ -1440,6 +1579,9 @@ const CaseDetail = () => {
     try {
       await casesAPI.updateMedicalForm(id, { inline_consents: inlineConsents });
       toast.success('İmzalar kaydedildi');
+      // Başarılı kayıtta offline draft'ı temizle
+      clearDraftFromStorage(id);
+      setDraftSaved(false);
     } catch (error) {
       console.error('Error saving inline consents:', error);
       toast.error('İmzalar kaydedilemedi');
@@ -4228,6 +4370,17 @@ const CaseDetail = () => {
                         <Save className="h-4 w-4 mr-2" />
                         {savingConsents ? 'Kaydediliyor...' : 'Tüm İmzaları Kaydet'}
                       </Button>
+                      
+                      {/* Offline taslak göstergesi */}
+                      {draftSaved && (
+                        <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 py-2 px-3 rounded-lg">
+                          <Save className="h-3 w-3" />
+                          <span>
+                            Taslak kaydedildi 
+                            {draftTime && ` (${draftTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </CollapsibleContent>
