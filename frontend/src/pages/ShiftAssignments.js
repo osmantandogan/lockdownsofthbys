@@ -225,19 +225,21 @@ const ShiftAssignments = () => {
     finally { setExcelUploading(false); }
   };
 
-  // Toplu silme
+  // Toplu silme - Hem atamaları hem de aktif vardiyaları sıfırla
   const handleDeleteAll = async () => {
     setDeleteAllLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/shifts/assignments/delete-all`, { 
+      // Yeni reset-all endpoint'i: hem atamalar hem vardiyalar
+      const response = await fetch(`${BACKEND_URL}/api/shifts/reset-all`, { 
         method: 'DELETE', 
         credentials: 'include' 
       });
       const result = await response.json();
       if (response.ok) {
-        toast.success(`${result.deleted} vardiya silindi`);
+        toast.success(`${result.assignments_deleted} atama silindi, ${result.shifts_cancelled} aktif vardiya iptal edildi`);
         setAssignments([]);
         setDeleteAllDialogOpen(false);
+        loadAssignments(); // Yeniden yükle
       } else {
         toast.error(result.detail || 'Silme işlemi başarısız');
       }
@@ -329,10 +331,15 @@ const ShiftAssignments = () => {
           <Dialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
             <DialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" />Tümünü Sil</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>⚠️ Tüm Vardiyaları Sil</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>⚠️ Tüm Vardiyaları Sıfırla</DialogTitle></DialogHeader>
               <div className="py-4">
                 <p className="text-red-600 font-medium mb-4">Bu işlem geri alınamaz!</p>
-                <p className="text-gray-600">Sistemdeki TÜM vardiya atamalarını silmek istediğinizden emin misiniz?</p>
+                <p className="text-gray-600 mb-2">Bu işlem şunları yapacak:</p>
+                <ul className="list-disc list-inside text-gray-600 text-sm mb-2">
+                  <li>Tüm vardiya atamaları silinecek</li>
+                  <li>Tüm aktif vardiyalar iptal edilecek</li>
+                </ul>
+                <p className="text-gray-600">Devam etmek istediğinizden emin misiniz?</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setDeleteAllDialogOpen(false)}>İptal</Button>

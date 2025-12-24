@@ -350,6 +350,8 @@ export const shiftsAPI = {
   getTodayAssignments: () => api.get('/shifts/assignments/today'),
   deleteAssignment: (id) => api.delete(`/shifts/assignments/${id}`),
   deleteUserAssignments: (userId) => api.delete(`/shifts/assignments/user/${userId}`),
+  resetAll: () => api.delete('/shifts/reset-all'),  // Tüm atamalar + aktif vardiyalar
+  cancelActiveShifts: () => api.post('/shifts/cancel-active-shifts'),  // Sadece aktif vardiyaları iptal et
   startAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/start`),
   endAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/end`),
   

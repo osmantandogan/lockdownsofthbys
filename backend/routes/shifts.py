@@ -183,6 +183,50 @@ async def delete_all_assignments(request: Request):
         logger.error(f"Toplu silme hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/reset-all")
+async def reset_all_shifts_and_assignments(request: Request):
+    """TÜM vardiya atamalarını VE aktif vardiyaları sıfırla - TEHLİKELİ!"""
+    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    try:
+        # 1. Tüm atamaları sil
+        assignments_result = await shift_assignments_collection.delete_many({})
+        
+        # 2. Aktif ve beklemede vardiyaları "iptal" olarak işaretle veya sil
+        # Güvenlik için aktif vardiyaları silmek yerine "cancelled" olarak işaretleyelim
+        active_shifts = await shifts_collection.update_many(
+            {"status": {"$in": ["active", "on_break"]}},
+            {"$set": {"status": "cancelled", "end_time": get_turkey_time(), "admin_note": "Toplu sıfırlama ile iptal edildi"}}
+        )
+        
+        logger.info(f"Toplu sıfırlama: {assignments_result.deleted_count} atama silindi, {active_shifts.modified_count} vardiya iptal edildi")
+        
+        return {
+            "assignments_deleted": assignments_result.deleted_count,
+            "shifts_cancelled": active_shifts.modified_count,
+            "message": f"{assignments_result.deleted_count} atama silindi, {active_shifts.modified_count} aktif vardiya iptal edildi"
+        }
+    except Exception as e:
+        logger.error(f"Toplu sıfırlama hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cancel-active-shifts")
+async def cancel_all_active_shifts(request: Request):
+    """Tüm aktif vardiyaları iptal et (atamalar kalır)"""
+    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    try:
+        result = await shifts_collection.update_many(
+            {"status": {"$in": ["active", "on_break"]}},
+            {"$set": {"status": "cancelled", "end_time": get_turkey_time(), "admin_note": "Toplu iptal"}}
+        )
+        
+        logger.info(f"Tüm aktif vardiyalar iptal edildi: {result.modified_count}")
+        return {"cancelled": result.modified_count, "message": f"{result.modified_count} aktif vardiya iptal edildi"}
+    except Exception as e:
+        logger.error(f"Vardiya iptal hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/assignments/user/{user_id}")
 async def delete_user_assignments(user_id: str, request: Request):
     """Belirli bir kullanıcının tüm atamalarını sil - Çakışma temizliği için"""
