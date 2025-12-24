@@ -896,11 +896,11 @@ async def start_shift(data: ShiftStart, request: Request):
     yesterday = today - timedelta(days=1)  # Dün de kabul et (gece yarısı toleransı)
     logger.info(f"Vardiya başlatma kontrolü - Bugün (TR): {today}, Dün (TR): {yesterday}, Kullanıcı: {user.id}, Araç: {vehicle.get('plate')}")
     
-    # Get all pending assignments for this user and vehicle
+    # Get all active assignments for this user and vehicle (pending veya started)
     all_assignments = await shift_assignments_collection.find({
         "user_id": user.id,
         "vehicle_id": vehicle["_id"],
-        "status": "pending"
+        "status": {"$in": ["pending", "started"]}  # Başlatılmış vardiyalar da kabul
     }).to_list(100)
     
     # Filter to find an assignment that is valid for today

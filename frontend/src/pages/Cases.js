@@ -45,6 +45,15 @@ const Cases = () => {
   const [hasMoreArchive, setHasMoreArchive] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   
+  // Arşiv yetki kontrolü
+  const [archivePasswordDialog, setArchivePasswordDialog] = useState(false);
+  const [archivePassword, setArchivePassword] = useState('');
+  const [archiveUnlocked, setArchiveUnlocked] = useState(false);
+  
+  // Arşive doğrudan erişebilen roller
+  const archiveAuthorizedRoles = ['doctor', 'operations_manager', 'central_office', 'head_driver'];
+  const canAccessArchive = archiveAuthorizedRoles.includes(user?.role);
+  
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
@@ -240,15 +249,83 @@ const Cases = () => {
         )}
       </div>
 
+      {/* Arşiv Şifre Diyaloğu */}
+      <Dialog open={archivePasswordDialog} onOpenChange={setArchivePasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🔒 Arşiv Erişimi</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-gray-600">Arşive erişmek için yönetici şifresini girin.</p>
+            <Input
+              type="password"
+              placeholder="Şifre"
+              value={archivePassword}
+              onChange={(e) => setArchivePassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (archivePassword === '1234') {
+                    setArchiveUnlocked(true);
+                    setActiveTab('archive');
+                    setArchivePasswordDialog(false);
+                    setArchivePassword('');
+                    toast.success('Arşiv erişimi sağlandı');
+                  } else {
+                    toast.error('Hatalı şifre');
+                    setArchivePassword('');
+                  }
+                }
+              }}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setArchivePasswordDialog(false);
+                  setArchivePassword('');
+                }}
+                className="flex-1"
+              >
+                İptal
+              </Button>
+              <Button
+                onClick={() => {
+                  if (archivePassword === '1234') {
+                    setArchiveUnlocked(true);
+                    setActiveTab('archive');
+                    setArchivePasswordDialog(false);
+                    setArchivePassword('');
+                    toast.success('Arşiv erişimi sağlandı');
+                  } else {
+                    toast.error('Hatalı şifre');
+                    setArchivePassword('');
+                  }
+                }}
+                className="flex-1"
+              >
+                Giriş
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => {
+        // Arşiv sekmesi için yetki kontrolü
+        if (v === 'archive' && !canAccessArchive && !archiveUnlocked) {
+          setArchivePasswordDialog(true);
+          return;
+        }
         setActiveTab(v);
         setArchivePage(1);
         setCases([]);
       }}>
         <TabsList>
           <TabsTrigger value="recent">Son 24 Saat</TabsTrigger>
-          <TabsTrigger value="archive">Arşiv</TabsTrigger>
+          <TabsTrigger value="archive">
+            {!canAccessArchive && !archiveUnlocked && '🔒 '}Arşiv
+          </TabsTrigger>
           {pendingCases.length > 0 && (
             <TabsTrigger value="pending" className="text-orange-600">
               <WifiOff className="h-4 w-4 mr-1" />

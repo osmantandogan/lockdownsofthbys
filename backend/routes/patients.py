@@ -78,8 +78,9 @@ async def create_patient_card(data: PatientCardCreate, request: Request):
     """Yeni hasta kartı oluştur"""
     user = await get_current_user(request)
     
-    # Sadece yetkili roller oluşturabilir
-    if user.role not in DIRECT_ACCESS_ROLES + ["hemsire", "cagri_merkezi"]:
+    # Sadece yetkili roller oluşturabilir (ATT, Paramedik, Hemşire dahil)
+    PATIENT_CREATE_ROLES = DIRECT_ACCESS_ROLES + ["hemsire", "paramedik", "att", "cagri_merkezi"]
+    if user.role not in PATIENT_CREATE_ROLES:
         raise HTTPException(status_code=403, detail="Hasta kartı oluşturma yetkiniz yok")
     
     # TC kimlik kontrolü
