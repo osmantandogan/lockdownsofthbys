@@ -2422,3 +2422,42 @@ async def export_case_pdf_with_mapping(case_id: str, request: Request):
             "trace": error_trace[-500:] if len(error_trace) > 500 else error_trace
         }
         raise HTTPException(status_code=500, detail=f"PDF oluşturma hatası: {type(e).__name__}: {str(e)[:300]}")
+
+
+# ============================================================================
+# VAKA SİLME - OPERASYON MÜDÜRÜ YETKİSİ
+# ============================================================================
+
+@router.delete("/{case_id}")
+async def delete_case(case_id: str, request: Request):
+    """
+    Vakayı sistemden sil
+    Sadece Operasyon Müdürü ve Merkez Ofis yetkilidir
+    
+    Bu endpoint eski vakaları temizlemek için kullanılır
+    """
+    # Sadece operasyon_muduru ve merkez_ofis silebilir
+    user = await require_roles(["operasyon_muduru", "merkez_ofis"])(request)
+    
+    # Vakayı bul
+    case_doc = await cases_collection.find_one({"_id": case_id})
+    if not case_doc:
+        raise HTTPException(status_code=404, detail="Vaka bulunamadı")
+    
+    case_number = case_doc.get("case_number", case_id[:8])
+    
+    # Silme işlemi
+    result = await cases_collection.delete_one({"_id": case_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Silme işlemi başarısız oldu")
+    
+    logger.info(f"Vaka silindi: {case_number} (ID: {case_id}) - Silen: {user.name} ({user.role})")
+    
+    return {
+        "message": f"Vaka '{case_number}' başarıyla silindi",
+        "deleted_case_id": case_id,
+        "deleted_case_number": case_number,
+        "deleted_by": user.id,
+        "deleted_by_name": user.name
+    }

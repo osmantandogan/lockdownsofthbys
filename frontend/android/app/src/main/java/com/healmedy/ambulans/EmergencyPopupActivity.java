@@ -37,22 +37,70 @@ public class EmergencyPopupActivity extends AppCompatActivity {
         
         Log.d(TAG, "🚨 EmergencyPopupActivity created");
         
-        // Ekranı aç ve kilit ekranının üstünde göster
-        setupWindowFlags();
+        try {
+            // Ekranı aç ve kilit ekranının üstünde göster
+            setupWindowFlags();
+            
+            // Intent'ten verileri al
+            Intent intent = getIntent();
+            if (intent != null) {
+                caseId = intent.getStringExtra("case_id");
+                caseNumber = intent.getStringExtra("case_number");
+                patientName = intent.getStringExtra("patient_name");
+                patientPhone = intent.getStringExtra("patient_phone");
+                patientComplaint = intent.getStringExtra("patient_complaint");
+                address = intent.getStringExtra("address");
+            }
+            
+            Log.d(TAG, "Case: " + caseNumber + ", Patient: " + patientName);
+            
+            // UI oluştur
+            createUI();
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error in onCreate: " + e.getMessage(), e);
+            // Hata durumunda activity'yi kapat
+            finish();
+        }
+    }
+    
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "🚨 EmergencyPopupActivity onNewIntent");
         
-        // Intent'ten verileri al
-        Intent intent = getIntent();
-        caseId = intent.getStringExtra("case_id");
-        caseNumber = intent.getStringExtra("case_number");
-        patientName = intent.getStringExtra("patient_name");
-        patientPhone = intent.getStringExtra("patient_phone");
-        patientComplaint = intent.getStringExtra("patient_complaint");
-        address = intent.getStringExtra("address");
-        
-        Log.d(TAG, "Case: " + caseNumber + ", Patient: " + patientName);
-        
-        // UI oluştur
-        createUI();
+        // Yeni vaka geldiğinde verileri güncelle
+        if (intent != null) {
+            setIntent(intent);
+            caseId = intent.getStringExtra("case_id");
+            caseNumber = intent.getStringExtra("case_number");
+            patientName = intent.getStringExtra("patient_name");
+            patientPhone = intent.getStringExtra("patient_phone");
+            patientComplaint = intent.getStringExtra("patient_complaint");
+            address = intent.getStringExtra("address");
+            
+            Log.d(TAG, "Updated - Case: " + caseNumber + ", Patient: " + patientName);
+            
+            // UI'ı yeniden oluştur
+            createUI();
+        }
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "🚨 EmergencyPopupActivity onResume");
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "🚨 EmergencyPopupActivity onPause");
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "🚨 EmergencyPopupActivity onDestroy");
     }
     
     private void setupWindowFlags() {

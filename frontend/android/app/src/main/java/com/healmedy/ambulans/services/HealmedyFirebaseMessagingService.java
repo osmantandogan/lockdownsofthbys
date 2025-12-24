@@ -143,17 +143,35 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
 
     private void acquireWakeLock() {
         try {
-            if (wakeLock == null || !wakeLock.isHeld()) {
+            // Önceki wake lock'u release et
+            releaseWakeLock();
+            
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            
+            // FULL_WAKE_LOCK kullanarak ekranı da açalım
+            wakeLock = pm.newWakeLock(
+                PowerManager.FULL_WAKE_LOCK | 
+                PowerManager.ACQUIRE_CAUSES_WAKEUP | 
+                PowerManager.ON_AFTER_RELEASE,
+                "HealMedy:EmergencyAlarm"
+            );
+            wakeLock.acquire(ALARM_DURATION_MS + 10000); // Alarm süresi + 10 saniye
+            Log.d(TAG, "🔋 FULL WakeLock acquired - screen should turn on!");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error acquiring wake lock: " + e.getMessage());
+            // Fallback olarak partial wake lock dene
+            try {
                 PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                 wakeLock = pm.newWakeLock(
                     PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
-                    "HealMedy:EmergencyAlarm"
+                    "HealMedy:EmergencyAlarmFallback"
                 );
-                wakeLock.acquire(ALARM_DURATION_MS + 10000); // Alarm süresi + 10 saniye
-                Log.d(TAG, "🔋 WakeLock acquired for emergency alarm");
+                wakeLock.acquire(ALARM_DURATION_MS + 10000);
+                Log.d(TAG, "🔋 Fallback PARTIAL WakeLock acquired");
+            } catch (Exception e2) {
+                Log.e(TAG, "❌ Fallback wake lock also failed: " + e2.getMessage());
             }
-        } catch (Exception e) {
-            Log.e(TAG, "❌ Error acquiring wake lock: " + e.getMessage());
         }
     }
 
@@ -246,10 +264,9 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             );
             notificationBuilder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "✓ ANLAŞILDI", dismissPendingIntent);
             
-            // Acil alarm başlat
-            Log.d(TAG, "🚨 Starting emergency alarm...");
-            startEmergencyAlarm();
+            // Alarm zaten launchEmergencyPopup'da başlatıldı, notification ID'yi kaydet
             emergencyNotificationId = notificationId;
+            Log.d(TAG, "🚨 Emergency notification ID: " + notificationId);
             
         } else if (CHANNEL_CASE.equals(channelId)) {
             notificationBuilder
@@ -264,10 +281,10 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
     }
     
     private void startEmergencyAlarm() {
-        Log.d(TAG, "🔊 startEmergencyAlarm() called");
+        Log.d(TAG, "🔊 startEmergencyAlarm() called - Thread: " + Thread.currentThread().getName());
         
-        // Önce mevcut alarmı durdur
-        stopEmergencyAlarm();
+        // Önce mevcut alarmı temizle (yeni alarm için hazırla)
+        cleanupPreviousAlarm();
         
         try {
             // 1. Ses seviyesini MAKSIMUM yap
@@ -472,8 +489,12 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
     
-    public static void stopEmergencyAlarm() {
-        Log.d("HealmedyFCM", "🛑 stopEmergencyAlarm() called");
+    /**
+     * Önceki alarmı temizle - yeni alarm başlatmadan önce çağrılır
+     * stopEmergencyAlarm'dan farkı: WakeLock'u serbest bırakmaz (yeni alarm için tutar)
+     */
+    private static void cleanupPreviousAlarm() {
+        Log.d("HealmedyFCM", "🧹 cleanupPreviousAlarm() called");
         
         // 1. Siren thread'i durdur
         sirenPlaying = false;
@@ -481,35 +502,40 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         if (sirenThread != null) {
             try {
                 sirenThread.interrupt();
-                sirenThread = null;
-                Log.d("HealmedyFCM", "🛑 Siren thread stopped");
+                // Thread'in bitmesini bekle
+                sirenThread.join(500);
             } catch (Exception e) {
-                Log.e("HealmedyFCM", "❌ Error stopping siren thread: " + e.getMessage());
+                Log.w("HealmedyFCM", "⚠️ Error interrupting siren thread: " + e.getMessage());
             }
+            sirenThread = null;
         }
         
-        // 2. AudioTrack durdur
+        // 2. AudioTrack durdur ve SERBEST BIRAK
         if (emergencySirenTrack != null) {
             try {
-                emergencySirenTrack.stop();
+                int state = emergencySirenTrack.getState();
+                if (state == AudioTrack.STATE_INITIALIZED) {
+                    emergencySirenTrack.pause();
+                    emergencySirenTrack.flush();
+                    emergencySirenTrack.stop();
+                }
                 emergencySirenTrack.release();
-                Log.d("HealmedyFCM", "🛑 AudioTrack stopped");
+                Log.d("HealmedyFCM", "🧹 Previous AudioTrack released");
             } catch (Exception e) {
-                Log.e("HealmedyFCM", "❌ Error stopping AudioTrack: " + e.getMessage());
+                Log.w("HealmedyFCM", "⚠️ Error releasing AudioTrack: " + e.getMessage());
             }
             emergencySirenTrack = null;
         }
         
-        // 3. MediaPlayer durdur (fallback için)
+        // 3. MediaPlayer durdur
         if (emergencyMediaPlayer != null) {
             try { 
                 if (emergencyMediaPlayer.isPlaying()) {
                     emergencyMediaPlayer.stop(); 
-                    Log.d("HealmedyFCM", "🛑 MediaPlayer stopped");
                 }
                 emergencyMediaPlayer.release(); 
             } catch (Exception e) {
-                Log.e("HealmedyFCM", "❌ Error stopping MediaPlayer: " + e.getMessage());
+                Log.w("HealmedyFCM", "⚠️ Error releasing MediaPlayer: " + e.getMessage());
             }
             emergencyMediaPlayer = null;
         }
@@ -518,20 +544,33 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         if (emergencyVibrator != null) {
             try { 
                 emergencyVibrator.cancel(); 
-                Log.d("HealmedyFCM", "🛑 Vibrator cancelled");
             } catch (Exception e) {
-                Log.e("HealmedyFCM", "❌ Error cancelling vibrator: " + e.getMessage());
+                Log.w("HealmedyFCM", "⚠️ Error cancelling vibrator: " + e.getMessage());
             }
             emergencyVibrator = null;
         }
         
-        // 5. Handler'ı temizle
+        // 5. Handler timeout'unu temizle
+        if (alarmHandler != null) { 
+            alarmHandler.removeCallbacksAndMessages(null); 
+        }
+        
+        Log.d("HealmedyFCM", "🧹 Previous alarm cleaned up - ready for new alarm");
+    }
+    
+    public static void stopEmergencyAlarm() {
+        Log.d("HealmedyFCM", "🛑 stopEmergencyAlarm() called");
+        
+        // Önce cleanup yap
+        cleanupPreviousAlarm();
+        
+        // Handler'ı tamamen temizle
         if (alarmHandler != null) { 
             alarmHandler.removeCallbacksAndMessages(null); 
             alarmHandler = null; 
         }
         
-        // 6. WakeLock'u serbest bırak
+        // WakeLock'u serbest bırak
         if (wakeLock != null && wakeLock.isHeld()) {
             try {
                 wakeLock.release();
@@ -539,6 +578,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             } catch (Exception e) {
                 Log.e("HealmedyFCM", "❌ Error releasing wake lock: " + e.getMessage());
             }
+            wakeLock = null;
         }
         
         Log.d("HealmedyFCM", "✅ Emergency siren alarm fully stopped");
@@ -552,9 +592,13 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
         try {
             Log.d(TAG, "🚨 Launching EmergencyPopupActivity...");
             
+            // Önce alarmı başlat (popup açılmadan önce ses çalsın)
+            startEmergencyAlarm();
+            
             Intent popupIntent = new Intent(this, com.healmedy.ambulans.EmergencyPopupActivity.class);
             popupIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
                                  Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                                 Intent.FLAG_ACTIVITY_SINGLE_TOP |
                                  Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
             
             // Vaka bilgilerini ekle
@@ -570,6 +614,12 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             
         } catch (Exception e) {
             Log.e(TAG, "❌ Error launching popup: " + e.getMessage(), e);
+            // Popup açılamazsa en azından alarmı çal
+            try {
+                startEmergencyAlarm();
+            } catch (Exception e2) {
+                Log.e(TAG, "❌ Fallback alarm also failed: " + e2.getMessage());
+            }
         }
     }
     

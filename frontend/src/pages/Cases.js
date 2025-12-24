@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { casesAPI } from '../api';
+import { casesAPI, otpAPI } from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X, Truck, WifiOff, CloudOff, Clock } from 'lucide-react';
+import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X, Truck, WifiOff, CloudOff, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOffline } from '../contexts/OfflineContext';
 import OfflineStorage from '../services/OfflineStorage';
@@ -49,10 +49,19 @@ const Cases = () => {
   const [archivePasswordDialog, setArchivePasswordDialog] = useState(false);
   const [archivePassword, setArchivePassword] = useState('');
   const [archiveUnlocked, setArchiveUnlocked] = useState(false);
+  const [verifyingOTP, setVerifyingOTP] = useState(false);
   
-  // Arşive doğrudan erişebilen roller
-  const archiveAuthorizedRoles = ['doctor', 'operations_manager', 'central_office', 'head_driver'];
+  // Vaka silme state'leri
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [caseToDelete, setCaseToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Arşive doğrudan erişebilen roller (doktor dahil)
+  const archiveAuthorizedRoles = ['doktor', 'operasyon_muduru', 'merkez_ofis', 'bas_sofor'];
   const canAccessArchive = archiveAuthorizedRoles.includes(user?.role);
+  
+  // Vaka silme yetkisi (sadece Operasyon Müdürü ve Merkez Ofis)
+  const canDeleteCase = ['operasyon_muduru', 'merkez_ofis'].includes(user?.role);
   
   const [filters, setFilters] = useState({
     status: '',
@@ -234,6 +243,59 @@ const Cases = () => {
 
   const canCreateCase = ['cagri_merkezi', 'operasyon_muduru', 'merkez_ofis', 'hemsire', 'doktor'].includes(user?.role);
 
+  // OTP ile arşiv erişimi doğrulama
+  const handleVerifyOTP = async () => {
+    if (!archivePassword || archivePassword.length !== 6) {
+      toast.error('Lütfen 6 haneli OTP kodunu girin');
+      return;
+    }
+    
+    setVerifyingOTP(true);
+    try {
+      const response = await otpAPI.verify({ code: archivePassword });
+      if (response.data?.valid) {
+        setArchiveUnlocked(true);
+        setActiveTab('archive');
+        setArchivePasswordDialog(false);
+        setArchivePassword('');
+        toast.success(`Arşiv erişimi sağlandı (${response.data.approver || 'Onaylandı'})`);
+      } else {
+        toast.error('Geçersiz OTP kodu');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'OTP doğrulama başarısız');
+    } finally {
+      setVerifyingOTP(false);
+    }
+  };
+
+  // Vaka silme işlemi
+  const handleDeleteCase = async () => {
+    if (!caseToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const caseId = caseToDelete.id || caseToDelete._id;
+      await casesAPI.delete(caseId);
+      toast.success(`Vaka ${caseToDelete.case_number} başarıyla silindi`);
+      setDeleteDialogOpen(false);
+      setCaseToDelete(null);
+      loadCases(); // Listeyi yenile
+    } catch (error) {
+      console.error('Silme hatası:', error);
+      toast.error(error.response?.data?.detail || 'Vaka silinemedi');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Silme butonuna tıklama (event propagation'ı durdur)
+  const openDeleteDialog = (e, caseItem) => {
+    e.stopPropagation();
+    setCaseToDelete(caseItem);
+    setDeleteDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6" data-testid="cases-page">
       <div className="flex justify-between items-center">
@@ -249,31 +311,29 @@ const Cases = () => {
         )}
       </div>
 
-      {/* Arşiv Şifre Diyaloğu */}
+      {/* Arşiv OTP Doğrulama Diyaloğu */}
       <Dialog open={archivePasswordDialog} onOpenChange={setArchivePasswordDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>🔒 Arşiv Erişimi</DialogTitle>
+            <DialogDescription>
+              Arşive erişmek için Operasyon Müdürünün OTP kodunu girin.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <p className="text-sm text-gray-600">Arşive erişmek için yönetici şifresini girin.</p>
+            <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+              <strong>Not:</strong> Operasyon Müdürü bildirim panelindeki (🔔) 6 haneli OTP kodunu sizinle paylaşmalıdır.
+            </div>
             <Input
-              type="password"
-              placeholder="Şifre"
+              type="text"
+              placeholder="6 haneli OTP kodu"
               value={archivePassword}
-              onChange={(e) => setArchivePassword(e.target.value)}
+              onChange={(e) => setArchivePassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+              className="text-center text-2xl tracking-widest font-mono"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  if (archivePassword === '1234') {
-                    setArchiveUnlocked(true);
-                    setActiveTab('archive');
-                    setArchivePasswordDialog(false);
-                    setArchivePassword('');
-                    toast.success('Arşiv erişimi sağlandı');
-                  } else {
-                    toast.error('Hatalı şifre');
-                    setArchivePassword('');
-                  }
+                  handleVerifyOTP();
                 }
               }}
             />
@@ -285,25 +345,64 @@ const Cases = () => {
                   setArchivePassword('');
                 }}
                 className="flex-1"
+                disabled={verifyingOTP}
               >
                 İptal
               </Button>
               <Button
+                onClick={handleVerifyOTP}
+                className="flex-1"
+                disabled={verifyingOTP || archivePassword.length !== 6}
+              >
+                {verifyingOTP ? 'Doğrulanıyor...' : 'Doğrula'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vaka Silme Diyaloğu */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Vakayı Sil
+            </DialogTitle>
+            <DialogDescription>
+              Bu işlem geri alınamaz!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>Vaka No:</strong> {caseToDelete?.case_number}<br />
+                <strong>Hasta:</strong> {caseToDelete?.patient?.name} {caseToDelete?.patient?.surname}<br />
+                <strong>Tarih:</strong> {caseToDelete?.created_at && new Date(caseToDelete.created_at).toLocaleString('tr-TR')}
+              </p>
+            </div>
+            <p className="text-sm text-gray-600">
+              Bu vakayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm vaka verileri kalıcı olarak silinecektir.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
                 onClick={() => {
-                  if (archivePassword === '1234') {
-                    setArchiveUnlocked(true);
-                    setActiveTab('archive');
-                    setArchivePasswordDialog(false);
-                    setArchivePassword('');
-                    toast.success('Arşiv erişimi sağlandı');
-                  } else {
-                    toast.error('Hatalı şifre');
-                    setArchivePassword('');
-                  }
+                  setDeleteDialogOpen(false);
+                  setCaseToDelete(null);
                 }}
                 className="flex-1"
+                disabled={deleting}
               >
-                Giriş
+                İptal
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteCase}
+                className="flex-1"
+                disabled={deleting}
+              >
+                {deleting ? 'Siliniyor...' : 'Evet, Sil'}
               </Button>
             </div>
           </div>
@@ -701,9 +800,23 @@ const Cases = () => {
                               </div>
                             </div>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Oluşturulma: {new Date(caseItem.created_at).toLocaleString('tr-TR')}
-                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-500">
+                              Oluşturulma: {new Date(caseItem.created_at).toLocaleString('tr-TR')}
+                            </p>
+                            {/* Silme Butonu - Sadece Operasyon Müdürü ve Merkez Ofis */}
+                            {canDeleteCase && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                onClick={(e) => openDeleteDialog(e, caseItem)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Sil
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>

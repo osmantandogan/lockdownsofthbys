@@ -163,7 +163,9 @@ export const casesAPI = {
   // Vaka Form Mapping ile export (Görsel Editör)
   exportExcelWithMapping: (caseId) => api.get(`/cases/${caseId}/export-excel-mapped`, { responseType: 'blob' }),
   // Vaka Form Mapping ile PDF export (Tek Sayfa)
-  exportPdfWithMapping: (caseId) => api.get(`/cases/${caseId}/export-pdf-mapped`, { responseType: 'blob' })
+  exportPdfWithMapping: (caseId) => api.get(`/cases/${caseId}/export-pdf-mapped`, { responseType: 'blob' }),
+  // Vaka silme - Sadece Operasyon Müdürü ve Merkez Ofis
+  delete: (id) => api.delete(`/cases/${id}`)
 };
 
 // Video Call API (Daily.co)
