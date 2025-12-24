@@ -9,6 +9,9 @@ from datetime import datetime, timedelta
 import secrets
 import string
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 from database import notifications_collection, users_collection
 from auth_utils import get_current_user
@@ -182,8 +185,27 @@ async def register_fcm_token(data: FCMTokenRegistration, request: Request):
     """
     Android cihazdan FCM token kaydet
     Her cihaz için ayrı token saklanır
+    
+    ÖNEMLİ: Aynı cihazda farklı kullanıcı giriş yapabilir!
+    Bu yüzden token kaydedilmeden önce diğer kullanıcılardan silinmeli.
     """
     user = await get_current_user(request)
+    
+    # ======= ÖNEMLİ: Token'ı diğer kullanıcılardan temizle =======
+    # Aynı FCM token başka bir kullanıcıda kayıtlıysa, oradan sil
+    # Çünkü aynı cihazda farklı kullanıcı oturum açmış olabilir
+    cleanup_result = await users_collection.update_many(
+        {
+            "_id": {"$ne": user.id},  # Mevcut kullanıcı hariç
+            "fcm_tokens.token": data.fcm_token  # Bu token'a sahip kullanıcıları bul
+        },
+        {
+            "$pull": {"fcm_tokens": {"token": data.fcm_token}}  # Token'ı kaldır
+        }
+    )
+    
+    if cleanup_result.modified_count > 0:
+        logger.info(f"[FCM] Token temizlendi: {cleanup_result.modified_count} kullanıcıdan kaldırıldı (yeni kullanıcı: {user.name})")
     
     # Mevcut FCM token'ları al
     user_doc = await users_collection.find_one({"_id": user.id})
@@ -222,6 +244,8 @@ async def register_fcm_token(data: FCMTokenRegistration, request: Request):
             }
         }
     )
+    
+    logger.info(f"[FCM] Token kaydedildi: {user.name} ({user.role}) - toplam {len(fcm_tokens)} cihaz")
     
     return {
         "message": "FCM token kaydedildi",

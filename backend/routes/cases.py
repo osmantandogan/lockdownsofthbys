@@ -739,9 +739,10 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
             patient_info = case_doc.get("patient", {})
             location_info = case_doc.get("location", {})
             
-            # Saha personelinin FCM token'larını topla (att, paramedik, şoför)
+            # Saha personelinin FCM token'larını topla (şoför, att, paramedik, hemşire)
+            # NOT: Doktor hariç - doktorlar web üzerinden takip ediyor
             field_personnel_ids = []
-            for key in ["driver_id", "paramedic_id", "att_id"]:
+            for key in ["driver_id", "paramedic_id", "att_id", "nurse_id"]:
                 if assigned_team.get(key):
                     field_personnel_ids.append(assigned_team[key])
                     logger.info(f"[FCM] Field personnel {key}: {assigned_team[key]}")
