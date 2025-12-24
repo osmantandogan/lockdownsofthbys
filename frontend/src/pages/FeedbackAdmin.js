@@ -135,12 +135,12 @@ const FeedbackAdmin = () => {
           <div className="flex gap-4 items-center flex-wrap">
             <Filter className="h-4 w-4 text-gray-500" />
             
-            <Select value={filters.status} onValueChange={(v) => setFilters(prev => ({ ...prev, status: v }))}>
+            <Select value={filters.status || 'all'} onValueChange={(v) => setFilters(prev => ({ ...prev, status: v === 'all' ? '' : v }))}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Durum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tümü</SelectItem>
+                <SelectItem value="all">Tümü</SelectItem>
                 <SelectItem value="pending">Bekliyor</SelectItem>
                 <SelectItem value="in_progress">İşleniyor</SelectItem>
                 <SelectItem value="resolved">Çözüldü</SelectItem>
@@ -148,12 +148,12 @@ const FeedbackAdmin = () => {
               </SelectContent>
             </Select>
             
-            <Select value={filters.category} onValueChange={(v) => setFilters(prev => ({ ...prev, category: v }))}>
+            <Select value={filters.category || 'all'} onValueChange={(v) => setFilters(prev => ({ ...prev, category: v === 'all' ? '' : v }))}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Kategori" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tümü</SelectItem>
+                <SelectItem value="all">Tümü</SelectItem>
                 <SelectItem value="bug">Hata</SelectItem>
                 <SelectItem value="suggestion">Öneri</SelectItem>
                 <SelectItem value="question">Soru</SelectItem>
@@ -161,12 +161,12 @@ const FeedbackAdmin = () => {
               </SelectContent>
             </Select>
             
-            <Select value={filters.priority} onValueChange={(v) => setFilters(prev => ({ ...prev, priority: v }))}>
+            <Select value={filters.priority || 'all'} onValueChange={(v) => setFilters(prev => ({ ...prev, priority: v === 'all' ? '' : v }))}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Öncelik" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tümü</SelectItem>
+                <SelectItem value="all">Tümü</SelectItem>
                 <SelectItem value="low">Düşük</SelectItem>
                 <SelectItem value="normal">Normal</SelectItem>
                 <SelectItem value="high">Yüksek</SelectItem>
