@@ -579,9 +579,14 @@ class HandoverSession(BaseModel):
     updated_at: datetime = Field(default_factory=get_turkey_time)
 
 class ShiftStart(BaseModel):
+    model_config = ConfigDict(extra="ignore")  # Extra alanları kabul et ama ignore et
+    
     vehicle_qr: str
     photos: Optional[dict] = None
     daily_control: Optional[dict] = None
+    approval_id: Optional[str] = None  # Onay ID'si
+    form_opened_at: Optional[str] = None  # Form açılma zamanı
+    action_taken_at: Optional[str] = None  # İşlem zamanı
 
 class ShiftEnd(BaseModel):
     shift_id: str

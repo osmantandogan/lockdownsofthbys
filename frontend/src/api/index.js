@@ -349,6 +349,7 @@ export const shiftsAPI = {
   getAssignmentsByDate: (date) => api.get('/shifts/assignments', { params: { date } }),
   getTodayAssignments: () => api.get('/shifts/assignments/today'),
   deleteAssignment: (id) => api.delete(`/shifts/assignments/${id}`),
+  deleteUserAssignments: (userId) => api.delete(`/shifts/assignments/user/${userId}`),
   startAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/start`),
   endAssignmentByAdmin: (id) => api.post(`/shifts/assignments/${id}/end`),
   

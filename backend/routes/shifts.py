@@ -183,6 +183,31 @@ async def delete_all_assignments(request: Request):
         logger.error(f"Toplu silme hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/assignments/user/{user_id}")
+async def delete_user_assignments(user_id: str, request: Request):
+    """Belirli bir kullanıcının tüm atamalarını sil - Çakışma temizliği için"""
+    await require_roles(["merkez_ofis", "operasyon_muduru", "bas_sofor"])(request)
+    
+    try:
+        # Kullanıcının tüm atamalarını bul ve sil
+        assignments = await shift_assignments_collection.find({"user_id": user_id}).to_list(100)
+        result = await shift_assignments_collection.delete_many({"user_id": user_id})
+        
+        # Kullanıcı adını bul
+        from database import users_collection
+        user = await users_collection.find_one({"_id": user_id})
+        user_name = user.get("name", user_id) if user else user_id
+        
+        logger.info(f"Kullanıcı atamaları silindi: {user_name} ({user_id}), Silinen: {result.deleted_count}")
+        return {
+            "deleted": result.deleted_count, 
+            "user_name": user_name,
+            "message": f"{user_name} için {result.deleted_count} atama silindi"
+        }
+    except Exception as e:
+        logger.error(f"Kullanıcı atamaları silme hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/assignments/today")
 async def get_today_assignments(request: Request):
     """Get today's shift assignments - visible to all users"""
@@ -465,11 +490,15 @@ async def create_shift_assignment(data: ShiftAssignmentCreate, request: Request)
         "status": {"$in": ["pending", "started"]}
     }).to_list(100)
     
+    logger.info(f"Overlap kontrolü - Kullanıcı: {user.get('name')} ({data.user_id}), Aktif atama sayısı: {len(active_assignments)}")
+    
     new_end = end_date if end_date else shift_date
     
     for existing in active_assignments:
         existing_start = existing.get("shift_date")
         existing_end = existing.get("end_date") or existing_start
+        existing_id = existing.get("_id", "Bilinmiyor")
+        existing_status = existing.get("status", "Bilinmiyor")
         
         # Convert to datetime if needed
         if isinstance(existing_start, str):
@@ -478,13 +507,15 @@ async def create_shift_assignment(data: ShiftAssignmentCreate, request: Request)
             existing_end = datetime.fromisoformat(existing_end.replace('Z', '+00:00'))
         
         if not isinstance(existing_start, datetime) or not isinstance(existing_end, datetime):
+            logger.warning(f"Geçersiz tarih formatı: {existing}")
             continue
         
         # Check overlap
         if shift_date <= existing_end and new_end >= existing_start:
+            logger.warning(f"Çakışma tespit edildi - Mevcut atama: {existing_id}, Status: {existing_status}, Tarih: {existing_start} - {existing_end}")
             raise HTTPException(
                 status_code=400,
-                detail=f"User already has an assignment from {existing_start.strftime('%Y-%m-%d')} to {existing_end.strftime('%Y-%m-%d')}"
+                detail=f"{user.get('name')} için {existing_start.strftime('%d.%m.%Y')} - {existing_end.strftime('%d.%m.%Y')} tarihlerinde mevcut atama var (ID: {existing_id}, Durum: {existing_status}). Lütfen önce bu atamayı silin."
             )
     
     # Healmedy lokasyon adını bul
