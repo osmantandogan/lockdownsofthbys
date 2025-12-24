@@ -638,10 +638,29 @@ async def get_my_accessible_locations(request: Request):
     
     elif location_type == "saglik_merkezi":
         # Sağlık merkezine atanmış (hemşire/doktor)
-        health_center_id = assignment.get("healmedy_location_id", "filyos_saglik_merkezi")
-        health_center_name = assignment.get("health_center_name", "Filyos Sağlık Merkezi")
+        health_center_id = assignment.get("healmedy_location_id")
+        health_center_name = assignment.get("health_center_name", "Sağlık Merkezi")
         
-        health_center_stock = await location_stocks.find_one({"location_id": health_center_id})
+        logger.info(f"Hemşire sağlık merkezi araması - healmedy_location_id: {health_center_id}, health_center_name: {health_center_name}")
+        
+        # Önce healmedy_location_id ile ara, yoksa health_center_name ile ara
+        health_center_stock = None
+        if health_center_id:
+            health_center_stock = await location_stocks.find_one({"location_id": health_center_id})
+        
+        # Eğer bulunamadıysa, isme göre ara
+        if not health_center_stock and health_center_name:
+            health_center_stock = await location_stocks.find_one({
+                "location_name": {"$regex": health_center_name, "$options": "i"}
+            })
+        
+        # Hala bulunamadıysa "saglik" içeren herhangi bir lokasyonu bul
+        if not health_center_stock:
+            health_center_stock = await location_stocks.find_one({
+                "location_name": {"$regex": "sağlık|saglik|merkez", "$options": "i"}
+            })
+            logger.warning(f"Sağlık merkezi stoğu varsayılan arama ile bulundu: {health_center_stock.get('location_name') if health_center_stock else 'Bulunamadı'}")
+        
         if health_center_stock:
             health_center_stock["id"] = health_center_stock.pop("_id", "")
             accessible_locations.append({
@@ -651,6 +670,9 @@ async def get_my_accessible_locations(request: Request):
                 "items": health_center_stock.get("items", []),
                 "source": "atanmis_saglik_merkezi"
             })
+            logger.info(f"Hemşire için sağlık merkezi stoğu eklendi: {health_center_stock.get('location_name')}")
+        else:
+            logger.warning(f"Hemşire için sağlık merkezi stoğu bulunamadı! User: {user.name}, Assignment: {assignment.get('_id')}")
     
     return {
         "locations": accessible_locations,

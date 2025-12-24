@@ -502,6 +502,7 @@ const CaseDetail = () => {
   
   // PDF ilaçları için state
   const [pdfMedications, setPdfMedications] = useState({});
+  const [medicationSearchQuery, setMedicationSearchQuery] = useState(''); // İlaç arama
   
   // PDF ilaçlarını güncelle ve kaydet
   const updatePdfMedication = (medCode, checked, adet = 1) => {
@@ -3274,14 +3275,24 @@ const CaseDetail = () => {
           {/* PDF İlaçlar Listesi */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-lg py-2">
-              <CardTitle className="flex items-center space-x-2 text-base">
-                <Pill className="h-4 w-4" />
-                <span>Kullanılan İlaçlar (PDF Şablonu)</span>
+              <CardTitle className="flex items-center justify-between text-base">
+                <div className="flex items-center space-x-2">
+                  <Pill className="h-4 w-4" />
+                  <span>Kullanılan İlaçlar (PDF Şablonu)</span>
+                </div>
+                <Input 
+                  placeholder="İlaç ara..." 
+                  className="w-40 h-7 text-xs bg-white/90 text-gray-900 placeholder:text-gray-500"
+                  value={medicationSearchQuery || ''}
+                  onChange={(e) => setMedicationSearchQuery(e.target.value)}
+                />
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-3">
               <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
-                {pdfMedicationsList.map((med, index) => (
+                {pdfMedicationsList.filter(med => 
+                  !medicationSearchQuery || med.name.toLowerCase().includes(medicationSearchQuery.toLowerCase())
+                ).map((med, index) => (
                   <div key={index} className="flex items-center space-x-2 bg-green-50 p-1.5 rounded text-xs">
                     <Checkbox 
                       id={`pdfmed-${index}`} 

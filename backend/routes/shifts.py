@@ -1410,26 +1410,53 @@ async def get_shift_photos(
     Vardiya fotoğraflarını getir
     Tüm roller erişebilir (form geçmişi için)
     """
-    current_user = await get_current_user(request)
-    
-    from database import db
-    shift_photos_collection = db["shift_photos"]
-    
-    query = {}
-    if vehicle_plate:
-        query["vehicle_plate"] = vehicle_plate
-    
-    photos = await shift_photos_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
-    
-    # Kullanıcı bilgisini ekle
-    for photo in photos:
-        photo["id"] = photo.pop("_id")
-        user_doc = await users_collection.find_one({"_id": photo.get("user_id")})
-        if user_doc:
-            photo["user_name"] = user_doc.get("name", "Bilinmiyor")
-            photo["user_role"] = user_doc.get("role", "")
-    
-    return photos
+    try:
+        current_user = await get_current_user(request)
+        
+        from database import db
+        shift_photos_collection = db["shift_photos"]
+        
+        query = {}
+        if vehicle_plate:
+            query["vehicle_plate"] = vehicle_plate
+        
+        photos = await shift_photos_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+        
+        # Kullanıcı bilgisini ekle
+        result = []
+        for photo in photos:
+            try:
+                photo_id = photo.pop("_id", None)
+                if photo_id:
+                    photo["id"] = str(photo_id)
+                
+                user_id = photo.get("user_id")
+                if user_id:
+                    user_doc = await users_collection.find_one({"_id": user_id})
+                    if user_doc:
+                        photo["user_name"] = user_doc.get("name", "Bilinmiyor")
+                        photo["user_role"] = user_doc.get("role", "")
+                    else:
+                        photo["user_name"] = "Bilinmiyor"
+                        photo["user_role"] = ""
+                else:
+                    photo["user_name"] = "Bilinmiyor"
+                    photo["user_role"] = ""
+                
+                # Tarihi string'e çevir (JSON serialization için)
+                if "created_at" in photo and photo["created_at"]:
+                    if hasattr(photo["created_at"], 'isoformat'):
+                        photo["created_at"] = photo["created_at"].isoformat()
+                
+                result.append(photo)
+            except Exception as e:
+                logger.warning(f"Fotoğraf işleme hatası: {e}")
+                continue
+        
+        return result
+    except Exception as e:
+        logger.error(f"Fotoğraf getirme hatası: {e}")
+        return []
 
 @router.get("/photos/{shift_id}")
 async def get_shift_photos_by_id(shift_id: str, request: Request):
