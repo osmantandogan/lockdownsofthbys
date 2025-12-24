@@ -1078,7 +1078,6 @@ async def start_shift(data: ShiftStart, request: Request):
     if data.daily_control:
         from database import forms_collection
         from utils.sanitize import sanitize_form_data
-        import uuid
         
         # Form verilerini temizle
         sanitized_daily_control = sanitize_form_data(data.daily_control) if data.daily_control else {}
