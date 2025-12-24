@@ -33,7 +33,8 @@ import {
   Car,
   Stethoscope,
   Heart,
-  Send
+  Send,
+  Code
 } from 'lucide-react';
 import NotificationDropdown from '../components/NotificationDropdown';
 import OfflineStatusBar from '../components/OfflineStatusBar';
@@ -85,6 +86,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/shift-assignments', icon: Clock, label: 'Vardiya Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'mesul_mudur'] },
     { path: '/dashboard/tickets', icon: MessageSquare, label: 'Bildirim ve Talepler' },
     { path: '/dashboard/tickets-approvals', icon: ClipboardCheck, label: 'Talep Onayları', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi'] },
+    { path: '/dashboard/feedback', icon: Code, label: 'Geliştiriciye Bildir' },
     { path: '/dashboard/forms', icon: FileText, label: 'Formlar', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/form-history', icon: History, label: 'Form Geçmişi', roles: ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'] },
     { path: '/dashboard/patient-cards', icon: User, label: 'Hasta Kartları', roles: ['merkez_ofis', 'operasyon_muduru', 'doktor', 'hemsire', 'paramedik', 'att', 'cagri_merkezi'] },

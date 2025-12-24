@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -16,8 +16,53 @@ import { casesAPI, vehiclesAPI, settingsAPI } from '../../api';
 import { useParams } from 'react-router-dom';
 import PDFExportButton from '../PDFExportButton';
 import { exportAmbulanceCaseForm, downloadPDF } from '../../utils/pdfExport';
-import { Check } from 'lucide-react';
+import { Check, Save } from 'lucide-react';
 import { getTurkeyDate, getTurkeyTimeISO } from '../../utils/timezone';
+
+// ==================== OFFLİNE TASLAK KAYDETME ====================
+const DRAFT_KEY_PREFIX = 'healmedy_case_draft_';
+
+const saveDraftToStorage = (caseId, data) => {
+  if (!caseId) return;
+  try {
+    const key = DRAFT_KEY_PREFIX + caseId;
+    localStorage.setItem(key, JSON.stringify({
+      ...data,
+      savedAt: new Date().toISOString()
+    }));
+    console.log('[Draft] Saved for case:', caseId);
+    return true;
+  } catch (e) {
+    console.error('[Draft] Save error:', e);
+    return false;
+  }
+};
+
+const loadDraftFromStorage = (caseId) => {
+  if (!caseId) return null;
+  try {
+    const key = DRAFT_KEY_PREFIX + caseId;
+    const data = localStorage.getItem(key);
+    if (data) {
+      console.log('[Draft] Loaded for case:', caseId);
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('[Draft] Load error:', e);
+  }
+  return null;
+};
+
+const clearDraftFromStorage = (caseId) => {
+  if (!caseId) return;
+  try {
+    const key = DRAFT_KEY_PREFIX + caseId;
+    localStorage.removeItem(key);
+    console.log('[Draft] Cleared for case:', caseId);
+  } catch (e) {
+    console.error('[Draft] Clear error:', e);
+  }
+};
 
 /**
  * Otomatik İmza Bileşeni
@@ -79,9 +124,15 @@ const AutoSignature = ({ label, userSignature, userName, userRole, targetRoles, 
 };
 
 
-const AmbulanceCaseFormFull = () => {
+const AmbulanceCaseFormFull = ({ caseId: propCaseId }) => {
   const { user } = useAuth();
-  const { caseId } = useParams(); // URL'den case ID çek
+  const { caseId: urlCaseId } = useParams(); // URL'den case ID çek
+  
+  // Prop veya URL'den caseId al - PROP öncelikli
+  const caseId = propCaseId || urlCaseId;
+  
+  console.log('[AmbulanceCaseForm] caseId sources:', { propCaseId, urlCaseId, finalCaseId: caseId });
+  
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -368,6 +419,9 @@ const AmbulanceCaseFormFull = () => {
       // Eğer caseId varsa, vakayı güncelle
       if (caseId) {
         await casesAPI.updateMedicalForm(caseId, medicalFormData);
+        // Başarılı kayıt - taslağı temizle
+        clearDraftFromStorage(caseId);
+        setDraftSaved(false);
         toast.success('Form vakaya kaydedildi!');
       } else {
         // caseId yoksa sadece form_submissions'a kaydet
@@ -394,6 +448,109 @@ const AmbulanceCaseFormFull = () => {
 
   const [procedures, setProcedures] = useState({});
   const [transfers, setTransfers] = useState({});
+
+  // Offline taslak durumu
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [draftTime, setDraftTime] = useState(null);
+  const saveTimerRef = useRef(null);
+
+  // Taslak kaydetme fonksiyonu - HER ZAMAN ÇALIŞMALI
+  const saveDraft = useCallback(() => {
+    console.log('[DRAFT] saveDraft called, caseId:', caseId);
+    if (!caseId) {
+      console.log('[DRAFT] No caseId, skipping save');
+      return;
+    }
+    
+    const draftData = {
+      formData,
+      staffSignatures,
+      patientSignatures,
+      vitalSigns,
+      procedures,
+      transfers
+    };
+    
+    console.log('[DRAFT] Saving data with signatures:', {
+      hasStaffSig: !!staffSignatures?.doctorParamedic || !!staffSignatures?.healthStaff || !!staffSignatures?.driver,
+      hasPatientSig: !!patientSignatures?.companion || !!patientSignatures?.hospitalReject || !!patientSignatures?.patientReject
+    });
+    
+    if (saveDraftToStorage(caseId, draftData)) {
+      setDraftSaved(true);
+      setDraftTime(new Date());
+      console.log('[DRAFT] ✅ Draft saved successfully!');
+    }
+  }, [caseId, formData, staffSignatures, patientSignatures, vitalSigns, procedures, transfers]);
+
+  // Her değişiklikte 1 saniye sonra otomatik kaydet - LOADING KONTROLÜ KALDIRILDI
+  useEffect(() => {
+    console.log('[DRAFT] useEffect triggered, caseId:', caseId, 'loading:', loading);
+    if (!caseId) {
+      console.log('[DRAFT] No caseId in useEffect, skipping');
+      return;
+    }
+    
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    
+    saveTimerRef.current = setTimeout(() => {
+      console.log('[DRAFT] Timer fired, calling saveDraft');
+      saveDraft();
+    }, 1000);
+    
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [formData, staffSignatures, patientSignatures, vitalSigns, procedures, transfers, caseId, saveDraft]);
+
+  // Sayfa yüklendiğinde taslak varsa yükle
+  useEffect(() => {
+    if (!caseId) return;
+    
+    // Biraz bekle - API verisi yüklendikten sonra
+    const timer = setTimeout(() => {
+      const draft = loadDraftFromStorage(caseId);
+      if (draft) {
+        console.log('[Draft] Applying saved draft...');
+        
+        // Form verilerini yükle
+        if (draft.formData) {
+          setFormData(prev => ({ ...prev, ...draft.formData }));
+        }
+        
+        // İMZALARI YÜKLE - ÖNEMLİ!
+        if (draft.staffSignatures) {
+          setStaffSignatures(prev => ({ ...prev, ...draft.staffSignatures }));
+        }
+        if (draft.patientSignatures) {
+          setPatientSignatures(prev => ({ ...prev, ...draft.patientSignatures }));
+        }
+        
+        // Vital signs
+        if (draft.vitalSigns && Array.isArray(draft.vitalSigns)) {
+          setVitalSigns(draft.vitalSigns);
+        }
+        
+        // Procedures ve Transfers
+        if (draft.procedures && typeof draft.procedures === 'object') {
+          setProcedures(draft.procedures);
+        }
+        if (draft.transfers && typeof draft.transfers === 'object') {
+          setTransfers(draft.transfers);
+        }
+        
+        setDraftSaved(true);
+        setDraftTime(new Date(draft.savedAt));
+        toast.info('📋 Kaydedilmiş taslak yüklendi');
+      }
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, [caseId]);
 
   // Excel'deki tüm işlemler
   const procedureCategories = {
@@ -514,6 +671,40 @@ const AmbulanceCaseFormFull = () => {
         {caseId && (
           <p className="text-sm text-green-600">✓ Vaka bilgileri otomatik yüklendi</p>
         )}
+        {/* Taslak durumu ve debug bilgisi */}
+        <div className="flex flex-col items-center gap-2">
+          {/* CaseId göster - DEBUG */}
+          <p className="text-xs text-gray-500">
+            Case ID: {caseId || 'YOK!'}
+          </p>
+          
+          {/* Manuel taslak kaydet butonu */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              console.log('[MANUAL] Saving draft manually...');
+              saveDraft();
+              toast.success('Taslak manuel olarak kaydedildi!');
+            }}
+            className="text-xs"
+          >
+            <Save className="h-3 w-3 mr-1" />
+            Taslak Kaydet (Test)
+          </Button>
+          
+          {/* Taslak kaydedildi göstergesi */}
+          {draftSaved && (
+            <div className="inline-flex items-center gap-2 text-xs text-green-600 bg-green-50 py-1 px-3 rounded-full">
+              <Save className="h-3 w-3" />
+              <span>
+                ✓ Taslak kaydedildi 
+                {draftTime && ` (${draftTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <Card>

@@ -782,4 +782,13 @@ export const stockV2API = {
   searchStockItem: (query, locationId) => api.get('/stock/item/search', { params: { q: query, location_id: locationId } })
 };
 
+// Feedback API - Geliştiriciye Bildir
+export const feedbackAPI = {
+  create: (data) => api.post('/feedback', data),
+  getAll: (params) => api.get('/feedback', { params }),
+  getById: (id) => api.get(`/feedback/${id}`),
+  updateStatus: (id, status) => api.patch(`/feedback/${id}/status`, { status }),
+  delete: (id) => api.delete(`/feedback/${id}`)
+};
+
 export default api;

@@ -290,8 +290,10 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'patientGender': lambda d: d.get('patient', {}).get('gender', ''),
         'patientPhone': lambda d: str(d.get('patient', {}).get('phone', '') or d.get('caller', {}).get('phone', '') or ''),
         'patientAddress': lambda d: d.get('patient', {}).get('address', '') or d.get('location', {}).get('address', ''),
-        'patientHomeAddress': lambda d: d.get('location', {}).get('address', '') or d.get('patient', {}).get('address', ''),
-        'patientPickupAddress': lambda d: d.get('location', {}).get('pickup_location', '') or d.get('location', {}).get('address_description', '') or d.get('location', {}).get('address', ''),
+        # İKAMETGAH ADRESİ: Hastanın sürekli oturduğu adres (patient.address)
+        'patientHomeAddress': lambda d: d.get('patient', {}).get('address', '') or '',
+        # ALINDIĞI ADRES: Hastanın alındığı yer (location.address)
+        'patientPickupAddress': lambda d: d.get('location', {}).get('address', '') or d.get('location', {}).get('pickup_location', '') or d.get('location', {}).get('address_description', '') or '',
         'patientComplaint': lambda d: d.get('patient', {}).get('complaint', '') or d.get('complaint', ''),
         'chronicDiseases': lambda d: d.get('chronic_diseases', '') or d.get('extended_form', {}).get('chronicDiseases', '') or '',
     }

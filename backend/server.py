@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Import routers
 try:
-    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates, firms, form_config, stock_v2, stock_new, warehouse
+    from routes import auth, users, cases, vehicles, stock, shifts, settings, forms, documents, reference_data, video_call, notifications, medications, otp, its, approvals, patients, pdf, stock_barcode, material_requests, locations, pdf_templates, pdf_template, tickets, form_templates, excel_templates, firms, form_config, stock_v2, stock_new, warehouse, feedback
     logger.info("Tüm router'lar başarıyla yüklendi")
 except ImportError as e:
     logger.error(f"Router import hatası: {e}")
@@ -222,6 +222,7 @@ api_router.include_router(form_templates.router, prefix="/form-templates", tags=
 api_router.include_router(excel_templates.router, prefix="/excel-templates", tags=["Excel Templates - Excel Form Şablonları"])
 api_router.include_router(firms.router, prefix="/firms", tags=["Firms - Firma Yönetimi"])
 api_router.include_router(form_config.router, prefix="/form-config", tags=["Form Config - Vaka Formu Yapılandırması"])
+api_router.include_router(feedback.router, tags=["Feedback - Geliştiriciye Bildir"])
 
 # Health check endpoint
 @api_router.get("/")
