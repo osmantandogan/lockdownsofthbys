@@ -37,8 +37,8 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "HealmedyFCM";
     
-    // Notification Channels
-    public static final String CHANNEL_EMERGENCY = "emergency_channel";
+    // Notification Channels - v2: Kanal sesi kaldırıldı, programatik siren kullanılıyor
+    public static final String CHANNEL_EMERGENCY = "emergency_channel_v2";  // v2: Ses ayarı güncellendi
     public static final String CHANNEL_CASE = "case_channel";
     public static final String CHANNEL_GENERAL = "general_channel";
     
@@ -581,38 +581,30 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-            // Custom siren sesini kontrol et
-            Uri sirenUri = null;
-            int sirenResId = getResources().getIdentifier("emergency_siren", "raw", getPackageName());
-            if (sirenResId != 0) {
-                sirenUri = Uri.parse("android.resource://" + getPackageName() + "/" + sirenResId);
-                Log.d(TAG, "📢 Custom siren found for channel: " + sirenUri);
-            } else {
-                sirenUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-                Log.d(TAG, "📢 Using system alarm for channel: " + sirenUri);
+            // Eski kanalı sil (ayarlar değiştiği için)
+            try {
+                nm.deleteNotificationChannel("emergency_channel");
+                Log.d(TAG, "📢 Old emergency_channel deleted");
+            } catch (Exception e) {
+                // İlk kurulumda kanal yoktur, hata normal
             }
 
-            // 🚨 ACİL DURUM KANALI - EN YÜKSEK ÖNCELİK
+            // 🚨 ACİL DURUM KANALI - SES KAPALI (programatik siren kullanılacak)
+            // NOT: Kanal sesi kapalı, tüm ses kontrolü startEmergencyAlarm() ile yapılıyor
             NotificationChannel emergency = new NotificationChannel(
                 CHANNEL_EMERGENCY, 
                 "🚨 Acil Vakalar", 
                 NotificationManager.IMPORTANCE_HIGH
             );
-            emergency.setDescription("Yeni vaka bildirimleri - Yüksek sesli alarm");
-            emergency.enableVibration(true);
-            emergency.setVibrationPattern(new long[]{0, 1000, 500, 1000, 500, 1000, 500, 1000});
-            emergency.setSound(sirenUri,
-                new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
-                    .build());
+            emergency.setDescription("Yeni vaka bildirimleri - Ambulans siren sesi");
+            emergency.enableVibration(false);  // Titreşim de programatik yapılıyor
+            emergency.setSound(null, null);    // SES KAPALI - startEmergencyAlarm() siren çalacak
             emergency.setBypassDnd(true);
             emergency.enableLights(true);
             emergency.setLightColor(Color.RED);
             emergency.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
             nm.createNotificationChannel(emergency);
-            Log.d(TAG, "📢 Emergency channel created: " + CHANNEL_EMERGENCY);
+            Log.d(TAG, "📢 Emergency channel created (v2 - no sound, siren via AudioTrack): " + CHANNEL_EMERGENCY);
 
             // 📋 Vaka Kanalı
             NotificationChannel caseChannel = new NotificationChannel(
