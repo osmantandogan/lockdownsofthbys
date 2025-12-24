@@ -222,8 +222,8 @@ async def seed_location_stock(location_id: str, location_type: str, location_nam
 
 
 async def seed_all_locations():
-    """Tüm araç ve bekleme noktalarına stok ekle"""
-    results = {"vehicles": [], "waiting_points": []}
+    """Tüm araç, bekleme noktaları ve sağlık merkezlerine stok ekle"""
+    results = {"vehicles": [], "waiting_points": [], "health_centers": []}
     
     # Araçları al
     vehicles = await db.vehicles.find({"type": "ambulans"}).to_list(100)
@@ -252,6 +252,19 @@ async def seed_all_locations():
             location_name=loc["name"]
         )
         results["waiting_points"].append(result)
+    
+    # Sağlık Merkezleri
+    HEALTH_CENTERS = [
+        {"id": "merkez_ofis", "name": "Merkez Ofis"},
+    ]
+    
+    for hc in HEALTH_CENTERS:
+        result = await seed_location_stock(
+            location_id=hc["id"],
+            location_type="saglik_merkezi",
+            location_name=hc["name"]
+        )
+        results["health_centers"].append(result)
     
     return results
 
@@ -1587,6 +1600,29 @@ async def remove_case_stock_usage(case_id: str, request: Request):
 
 
 # ============ SAĞLIK MERKEZİ STOK OLUŞTURMA ============
+@router.post("/seed-health-centers")
+async def seed_health_centers_endpoint(request: Request):
+    """Sağlık merkezleri için stok oluştur - tek seferlik"""
+    user = await get_current_user(request)
+    if user.role not in ["operasyon_muduru", "merkez_ofis", "admin"]:
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+    
+    results = []
+    HEALTH_CENTERS = [
+        {"id": "merkez_ofis", "name": "Merkez Ofis"},
+    ]
+    
+    for hc in HEALTH_CENTERS:
+        result = await seed_location_stock(
+            location_id=hc["id"],
+            location_type="saglik_merkezi",
+            location_name=hc["name"]
+        )
+        results.append({"location": hc["name"], "result": result})
+    
+    return {"success": True, "message": "Sağlık merkezi stokları oluşturuldu", "results": results}
+
+
 @router.post("/create-health-center-stock")
 async def create_health_center_stock(request: Request):
     """Sağlık merkezi için boş stok kaydı oluştur"""
