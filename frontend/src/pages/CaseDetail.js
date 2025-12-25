@@ -3311,7 +3311,7 @@ const CaseDetail = () => {
             <CardContent className="pt-3">
               <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
                 {pdfMedicationsList.filter(med => 
-                  !medicationSearchQuery || med.name.toLowerCase().includes(medicationSearchQuery.toLowerCase())
+                  !medicationSearchQuery || (med.name && med.name.toLowerCase().includes(medicationSearchQuery.toLowerCase()))
                 ).map((med, index) => (
                   <div key={index} className="flex items-center space-x-2 bg-green-50 p-1.5 rounded text-xs">
                     <Checkbox 
@@ -3446,8 +3446,10 @@ const CaseDetail = () => {
                             
                             // Basit QR format: ürün adı veya kod
                             const foundItem = allItems.find(item => 
-                              item.name.toLowerCase() === barcode.toLowerCase() ||
-                              item.name.toLowerCase().includes(barcode.toLowerCase())
+                              item.name && (
+                                item.name.toLowerCase() === barcode.toLowerCase() ||
+                                item.name.toLowerCase().includes(barcode.toLowerCase())
+                              )
                             );
                             
                             if (foundItem) {
@@ -3540,7 +3542,7 @@ const CaseDetail = () => {
                         // Arama filtrelemesi
                         if (stockSearch && stockSearch.length >= 2) {
                           items = items.filter(item => 
-                            item.name.toLowerCase().includes(stockSearch.toLowerCase())
+                            item.name && item.name.toLowerCase().includes(stockSearch.toLowerCase())
                           );
                         }
                         
