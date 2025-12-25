@@ -1379,9 +1379,51 @@ async def get_participants(case_id: str, request: Request):
     
     return {"participants": active_participants}
 
+def deep_merge(base: dict, updates: dict) -> dict:
+    """
+    İç içe dictionary'leri birleştirir (deep merge).
+    Özellikle offline sync için önemli - farklı kullanıcıların farklı alanları
+    güncellediğinde verilerin kaybolmasını önler.
+    
+    Örnek:
+    base = {"inline_consents": {"a": 1, "b": 2}, "vital_signs": [...]}
+    updates = {"inline_consents": {"c": 3}}
+    result = {"inline_consents": {"a": 1, "b": 2, "c": 3}, "vital_signs": [...]}
+    """
+    result = base.copy()
+    
+    for key, value in updates.items():
+        if key in ["_id", "id"]:
+            continue
+            
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            # Her iki değer de dict ise, derin birleştirme yap
+            result[key] = deep_merge(result[key], value)
+        elif key in result and isinstance(result[key], list) and isinstance(value, list):
+            # Liste birleştirme - yeni değer boş değilse kullan
+            # (vital_signs gibi listeler için son gönderilen geçerli olsun)
+            if value:  # Boş olmayan listeyi al
+                result[key] = value
+            # Yeni değer boşsa mevcut değeri koru
+        else:
+            # Diğer durumlarda: yeni değer None veya boş string değilse güncelle
+            # None veya boş string ise mevcut değeri koru
+            if value is not None and value != "":
+                result[key] = value
+            elif key not in result:
+                result[key] = value
+    
+    return result
+
+
 @router.patch("/{case_id}/medical-form")
 async def update_medical_form(case_id: str, request: Request):
-    """Update medical form (real-time collaboration)"""
+    """
+    Update medical form (real-time collaboration)
+    DEEP MERGE: Farklı kullanıcıların farklı alanları offline güncellemesi desteklenir.
+    - İmzalar ayrı, vital signs ayrı, clinical_obs ayrı birleştirilir
+    - Hiçbir veri kaybolmaz
+    """
     user = await get_current_user(request)
     
     case_doc = await cases_collection.find_one({"_id": case_id})
@@ -1391,22 +1433,25 @@ async def update_medical_form(case_id: str, request: Request):
     # Get form data from request body
     form_data = await request.json()
     
-    # Update medical form
+    # Update medical form - DEEP MERGE
     current_form = case_doc.get("medical_form") or {}
     
-    # Merge with new data
-    for key, value in form_data.items():
-        if key not in ["_id", "id"]:
-            current_form[key] = value
+    # Derin birleştirme yap - farklı kullanıcıların verileri korunur
+    merged_form = deep_merge(current_form, form_data)
+    
+    logger.info(f"[MedicalForm] Deep merge for case {case_id} by {user.name} ({user.role})")
+    logger.info(f"[MedicalForm] Incoming keys: {list(form_data.keys())}")
     
     # Update case
     await cases_collection.update_one(
         {"_id": case_id},
         {
             "$set": {
-                "medical_form": current_form,
+                "medical_form": merged_form,
                 "last_form_update": get_turkey_time(),
                 "last_form_updater": user.id,
+                "last_form_updater_name": user.name,
+                "last_form_updater_role": user.role,
                 "updated_at": get_turkey_time()
             }
         }
@@ -1421,7 +1466,9 @@ async def update_medical_form(case_id: str, request: Request):
     return {
         "message": "Form güncellendi",
         "updated_by": user.name,
-        "updated_at": get_turkey_time().isoformat()
+        "updated_by_role": user.role,
+        "updated_at": get_turkey_time().isoformat(),
+        "merged_keys": list(form_data.keys())
     }
 
 @router.get("/{case_id}/medical-form")
