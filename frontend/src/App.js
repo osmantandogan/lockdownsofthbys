@@ -118,8 +118,8 @@ function App() {
     <AuthProvider>
       <OfflineProvider>
         <GPSProvider>
-          <NotificationProvider>
-            <BrowserRouter>
+          <BrowserRouter>
+            <NotificationProvider>
         <Routes>
           {/* Multi Login Screen - Çoklu giriş ana ekranı */}
           <Route path="/multi-login" element={<MultiLoginScreen />} />
@@ -210,9 +210,9 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<Navigate to={isNativeApp ? "/multi-login" : "/login"} replace />} />
         </Routes>
-            </BrowserRouter>
-            <Toaster />
-          </NotificationProvider>
+              <Toaster />
+            </NotificationProvider>
+          </BrowserRouter>
         </GPSProvider>
       </OfflineProvider>
     </AuthProvider>
