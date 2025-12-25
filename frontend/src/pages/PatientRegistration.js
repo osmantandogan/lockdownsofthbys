@@ -256,11 +256,22 @@ const PatientRegistration = () => {
       return;
     }
     
+    // İsim ve soyisim zorunlu
+    if (!formData.patientName?.trim()) {
+      toast.error('Lütfen önce hastanın adını giriniz');
+      return;
+    }
+    
+    if (!formData.patientSurname?.trim()) {
+      toast.error('Lütfen önce hastanın soyadını giriniz');
+      return;
+    }
+    
     try {
       const newPatient = await patientsAPI.create({
         tc_no: tcSearch,
-        name: formData.patientName || 'İsim Girilmedi',
-        surname: formData.patientSurname || 'Soyisim Girilmedi',
+        name: formData.patientName.trim(),
+        surname: formData.patientSurname.trim(),
         birth_date: formData.patientBirthDate || null,
         gender: formData.patientGender || 'belirtilmemis'
       });
@@ -721,12 +732,18 @@ const PatientRegistration = () => {
                     <p className="text-sm text-blue-700 mb-2">
                       Bu TC ile kayıtlı hasta bulunamadı
                     </p>
+                    {(!formData.patientName?.trim() || !formData.patientSurname?.trim()) && (
+                      <p className="text-xs text-orange-600 mb-2">
+                        ⚠️ Hasta kartı oluşturmak için önce ad ve soyad giriniz
+                      </p>
+                    )}
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       onClick={handleCreateNewPatient}
                       className="text-blue-600 border-blue-300"
+                      disabled={!formData.patientName?.trim() || !formData.patientSurname?.trim()}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
                       Yeni Hasta Kartı Oluştur

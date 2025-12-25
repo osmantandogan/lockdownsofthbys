@@ -136,16 +136,27 @@ async def search_patient(
     """Hasta ara (TC, ad veya telefon ile) - TC olmadan da arama yapılabilir"""
     user = await get_current_user(request)
     
+    # Maskeli TC için suffix search flag
+    suffix_search_digits = None
+    
     # q parametresi varsa, TC veya isim olarak ara
     if q:
-        # Eğer q sadece rakamlardan oluşuyorsa TC olarak ara
-        if q.isdigit():
-            tc_no = q
-        else:
-            name = q
+        # Asteriskleri temizle (maskeli TC için)
+        clean_q = q.replace('*', '')
+        
+        # Eğer temizlenmiş q sadece rakamlardan oluşuyorsa TC olarak ara
+        if clean_q.isdigit() and len(clean_q) >= 2:
+            # Maskeli TC ise (örn: *******3612) son rakamlarla suffix search yap
+            if '*' in q:
+                # Son rakamlarla ara (suffix match)
+                suffix_search_digits = clean_q
+            else:
+                tc_no = clean_q
+        elif clean_q:  # En az bir karakter varsa
+            name = clean_q
     
     # Arama kriteri gerekli (TC artık zorunlu değil)
-    if not tc_no and not name and not phone:
+    if not tc_no and not name and not phone and not suffix_search_digits:
         # Eğer hiçbir kriter yoksa, tüm hasta kartlarını listele (sadece yetkili roller için)
         if user.role in DIRECT_ACCESS_ROLES or all_patients:
             query = {}
@@ -157,19 +168,30 @@ async def search_patient(
             return []
     else:
         query = {}
-        if tc_no:
+        if suffix_search_digits:
+            # Maskeli TC için suffix match (TC son hanelerle bitiyor mu?)
+            import re
+            escaped_digits = re.escape(suffix_search_digits)
+            query["tc_no"] = {"$regex": f"{escaped_digits}$"}
+        elif tc_no:
             # TC ile başlayanları ara (prefix match)
-            query["tc_no"] = {"$regex": f"^{tc_no}"}
+            import re
+            escaped_tc = re.escape(tc_no)
+            query["tc_no"] = {"$regex": f"^{escaped_tc}"}
         if name:
             # Ad veya soyad içinde ara (case insensitive)
+            import re
+            escaped_name = re.escape(name)
             if "$or" not in query:
                 query["$or"] = []
             query["$or"].extend([
-                {"name": {"$regex": name, "$options": "i"}},
-                {"surname": {"$regex": name, "$options": "i"}}
+                {"name": {"$regex": escaped_name, "$options": "i"}},
+                {"surname": {"$regex": escaped_name, "$options": "i"}}
             ])
         if phone:
-            query["phone"] = {"$regex": phone}
+            import re
+            escaped_phone = re.escape(phone)
+            query["phone"] = {"$regex": escaped_phone}
     
     patients = await patients_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
     

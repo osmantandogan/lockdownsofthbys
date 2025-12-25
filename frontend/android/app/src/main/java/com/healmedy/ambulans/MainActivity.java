@@ -10,11 +10,14 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -26,7 +29,9 @@ import com.google.firebase.messaging.FirebaseMessaging;
 public class MainActivity extends BridgeActivity {
     
     private static final String TAG = "MainActivity";
+    private static final int CAMERA_MIC_PERMISSION_REQUEST_CODE = 1001;
     private WindowInsetsControllerCompat insetsController;
+    private PermissionRequest pendingPermissionRequest;
     
     // Bildirim izni için launcher
     private final ActivityResultLauncher<String> requestPermissionLauncher =
@@ -36,6 +41,26 @@ public class MainActivity extends BridgeActivity {
                 getFCMToken();
             } else {
                 Log.w(TAG, "Notification permission denied");
+            }
+        });
+    
+    // Kamera ve mikrofon izinleri için launcher
+    private final ActivityResultLauncher<String[]> requestMultiplePermissionsLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+            Boolean cameraGranted = result.getOrDefault(Manifest.permission.CAMERA, false);
+            Boolean audioGranted = result.getOrDefault(Manifest.permission.RECORD_AUDIO, false);
+            
+            Log.d(TAG, "Camera permission: " + cameraGranted + ", Audio permission: " + audioGranted);
+            
+            if (pendingPermissionRequest != null) {
+                if (cameraGranted && audioGranted) {
+                    pendingPermissionRequest.grant(pendingPermissionRequest.getResources());
+                    Log.d(TAG, "WebView permissions granted");
+                } else {
+                    pendingPermissionRequest.deny();
+                    Log.w(TAG, "WebView permissions denied");
+                }
+                pendingPermissionRequest = null;
             }
         });
     
@@ -85,6 +110,53 @@ public class MainActivity extends BridgeActivity {
             
             // WebView debugging
             WebView.setWebContentsDebuggingEnabled(true);
+            
+            // WebChromeClient - Kamera ve mikrofon izinleri için
+            webView.setWebChromeClient(new WebChromeClient() {
+                @Override
+                public void onPermissionRequest(final PermissionRequest request) {
+                    Log.d(TAG, "WebView permission request received");
+                    
+                    // İstenen izinleri kontrol et
+                    String[] resources = request.getResources();
+                    boolean needsCamera = false;
+                    boolean needsMic = false;
+                    
+                    for (String resource : resources) {
+                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                            needsCamera = true;
+                            Log.d(TAG, "WebView requests camera permission");
+                        }
+                        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
+                            needsMic = true;
+                            Log.d(TAG, "WebView requests microphone permission");
+                        }
+                    }
+                    
+                    // Android izinlerini kontrol et
+                    boolean hasCameraPermission = ContextCompat.checkSelfPermission(
+                        MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+                    boolean hasMicPermission = ContextCompat.checkSelfPermission(
+                        MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+                    
+                    Log.d(TAG, "Has camera permission: " + hasCameraPermission + ", Has mic permission: " + hasMicPermission);
+                    
+                    if (hasCameraPermission && hasMicPermission) {
+                        // Tüm izinler var, WebView'a izin ver
+                        runOnUiThread(() -> {
+                            request.grant(resources);
+                            Log.d(TAG, "WebView permissions granted directly");
+                        });
+                    } else {
+                        // İzin iste
+                        pendingPermissionRequest = request;
+                        requestMultiplePermissionsLauncher.launch(new String[]{
+                            Manifest.permission.CAMERA,
+                            Manifest.permission.RECORD_AUDIO
+                        });
+                    }
+                }
+            });
         }
     }
     
