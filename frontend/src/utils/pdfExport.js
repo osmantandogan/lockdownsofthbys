@@ -43,6 +43,21 @@ const sanitizeText = (input) => {
   return input;
 };
 
+/**
+ * TC Kimlik Numarasını maskele
+ * Örnek: 12345678901 -> 123****8901 (ilk 3 ve son 4 hane görünür)
+ * PDF'lerde hasta gizliliği için kullanılır
+ */
+const maskTcNo = (tcNo) => {
+  if (!tcNo || typeof tcNo !== 'string') return tcNo || '-';
+  // Zaten maskeli ise olduğu gibi döndür
+  if (tcNo.includes('*')) return tcNo;
+  // 11 haneli değilse olduğu gibi döndür
+  if (tcNo.length !== 11) return tcNo;
+  // İlk 3 + **** + son 4 hane
+  return tcNo.slice(0, 3) + '****' + tcNo.slice(-4);
+};
+
 // HealMedy Renk Paleti
 const COLORS = {
   primary: [220, 38, 38], // Kırmızı
@@ -328,7 +343,7 @@ export const exportGenericForm = (formData, formType, formTitle) => {
   y = addTwoColumnRow(doc, 'Tarih', formData.date || new Date().toLocaleDateString('tr-TR'), 
                           'Form No', formData.formNo || '-', y);
   y = addTwoColumnRow(doc, 'Hasta Adi', formData.patientName || formData.hastaAdi || '-',
-                          'TC No', formData.tcNo || '-', y);
+                          'TC No', maskTcNo(formData.tcNo), y);
   
   if (formData.vehiclePlate || formData.aracPlakasi) {
     y = addTwoColumnRow(doc, 'Arac Plakasi', formData.vehiclePlate || formData.aracPlakasi || '-',
@@ -463,7 +478,7 @@ export const exportAmbulanceCaseForm = (formData, vitalSigns = [], procedures = 
   doc.setFontSize(compactFont.body);
   
   currentY = addCompactRow('Ad Soyad', formData.patientName, leftX, currentY);
-  currentY = addCompactRow('TC No', formData.tcNo, leftX, currentY);
+  currentY = addCompactRow('TC No', maskTcNo(formData.tcNo), leftX, currentY);
   currentY = addCompactRow('Cinsiyet', formData.gender, leftX, currentY);
   currentY = addCompactRow('Yas', formData.age, leftX, currentY);
   currentY = addCompactRow('Telefon', formData.phone, leftX, currentY);
@@ -910,7 +925,7 @@ export const exportConsentForm = (formData, formTitle, consentText) => {
   y = addSectionTitle(doc, 'Hasta Bilgileri', y);
   
   y = addTwoColumnRow(doc, 'Ad Soyad', formData.patientName || formData.hastaAdi || '-',
-                          'TC No', formData.tcNo || '-', y);
+                          'TC No', maskTcNo(formData.tcNo), y);
   y = addTwoColumnRow(doc, 'Tarih', formData.date || new Date().toLocaleDateString('tr-TR'),
                           'Telefon', formData.phone || formData.telefon || '-', y);
   

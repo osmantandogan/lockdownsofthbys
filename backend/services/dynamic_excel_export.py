@@ -244,6 +244,15 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
         'returnTime': lambda d: format_time(get_time_info(d).get('stationReturnTime') or get_time_info(d).get('return_time')),
     }
     
+    # Helper: TC Kimlik No'yu maskele (gizlilik için)
+    def mask_tc(tc_str):
+        """TC numarasını maskele: 12345678901 -> 123****8901"""
+        if not tc_str or len(tc_str) != 11:
+            return tc_str or ''
+        if '*' in tc_str:  # Zaten maskeli
+            return tc_str
+        return tc_str[:3] + '****' + tc_str[-4:]
+    
     # Helper: TC Kimlik No - boş değil ve geçerli formatta olmalı
     def get_patient_tc(d):
         patient = d.get('patient', {})
@@ -256,9 +265,9 @@ def get_case_field_value(case_data: dict, field_key: str) -> str:
               '')
         # TC numarasını string olarak döndür, boş değilse
         tc_str = str(tc).strip() if tc else ''
-        # TC numarası 11 haneli olmalı
+        # TC numarası 11 haneli olmalı ve maskelenmeli
         if tc_str and len(tc_str) >= 10:
-            return tc_str
+            return mask_tc(tc_str)
         return tc_str
     
     # Helper: Yaş hesaplama (doğum tarihinden)
