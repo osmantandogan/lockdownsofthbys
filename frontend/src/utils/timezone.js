@@ -12,23 +12,37 @@ const TURKEY_OFFSET_MINUTES = 3 * 60; // UTC+3
 /**
  * Şu anki Türkiye saatini döndürür
  * Cihaz timezone ayarından bağımsız çalışır
- * @returns {Date} Türkiye saati
+ * @returns {Date} Türkiye saati (Date objesi olarak)
  */
 export function getTurkeyTime() {
+  // Şu anki UTC zamanını al ve +3 saat ekle
   const now = new Date();
-  // UTC time in milliseconds
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  // Turkey time = UTC + 3 hours
-  const turkeyTime = new Date(utcTime + (TURKEY_OFFSET_MINUTES * 60000));
-  return turkeyTime;
+  const turkeyMs = now.getTime() + (TURKEY_OFFSET_MINUTES * 60000);
+  return new Date(turkeyMs);
 }
 
 /**
  * Türkiye saatini ISO string olarak döndürür (YYYY-MM-DDTHH:mm:ss)
- * @returns {string} ISO format tarih string
+ * NOT: toISOString() her zaman UTC döndürür, bu yüzden manuel format kullanıyoruz
+ * @returns {string} ISO format tarih string (UTC+3, Z suffix yok)
  */
 export function getTurkeyTimeISO() {
-  return getTurkeyTime().toISOString();
+  // Şu anki UTC zamanını al
+  const now = new Date();
+  // UTC + 3 saat = Türkiye saati
+  const turkeyMs = now.getTime() + (3 * 60 * 60 * 1000);
+  const turkey = new Date(turkeyMs);
+  
+  // Manuel ISO format (toISOString UTC döndürdüğü için kullanmıyoruz)
+  const year = turkey.getUTCFullYear();
+  const month = String(turkey.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(turkey.getUTCDate()).padStart(2, '0');
+  const hours = String(turkey.getUTCHours()).padStart(2, '0');
+  const minutes = String(turkey.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(turkey.getUTCSeconds()).padStart(2, '0');
+  
+  // Z suffix olmadan döndür - backend bunu local time olarak algılar
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
 /**
