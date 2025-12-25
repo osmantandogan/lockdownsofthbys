@@ -77,7 +77,7 @@ class PatientInfo(BaseModel):
     tc_no: Optional[str] = None
     age: int
     birth_date: Optional[str] = None  # Doğum tarihi (YYYY-MM-DD)
-    gender: Literal["erkek", "kadin", "diger"]
+    gender: Literal["erkek", "kadin", "diger", "belirtilmemis"]
     complaint: str
     phone: Optional[str] = None
     clinic: Optional[str] = None
