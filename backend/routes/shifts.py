@@ -1805,6 +1805,42 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
             "message": f"Günlük kontrol formu {filler_name} tarafından doldurulmuş"
         }
     
+    # 3. shift_start_approvals_collection'dan da kontrol et (pending/approved)
+    pending_approval = await shift_start_approvals_collection.find_one({
+        "vehicle_id": vehicle_id,
+        "user_id": {"$in": team_user_ids},
+        "status": {"$in": ["pending", "approved"]},
+        "daily_control_data": {"$exists": True, "$ne": None},
+        "$or": [
+            {"created_at": {"$gte": day_start, "$lt": day_end}},
+            {"created_at": {"$gte": day_start_naive, "$lt": day_end_naive}}
+        ]
+    })
+    
+    if pending_approval:
+        filler = await users_collection.find_one({"_id": pending_approval.get("user_id")})
+        filler_name = filler.get("name") if filler else pending_approval.get("user_name", "Bilinmiyor")
+        filler_role = filler.get("role") if filler else pending_approval.get("user_role", "")
+        
+        logger.info(f"Form shift_start_approvals'da bulundu: filler={filler_name}, role={filler_role}, status={pending_approval.get('status')}")
+        
+        if filler_role not in ["att", "paramedik"]:
+            return {
+                "filled": False,
+                "message": f"Bu form {filler_name} tarafından doldurulmuş, ancak ATT/Paramedik tarafından doldurulması gerekiyor",
+                "can_fill": True
+            }
+        
+        return {
+            "filled": True,
+            "filled_by": pending_approval.get("user_id"),
+            "filled_by_name": filler_name,
+            "filled_at": pending_approval.get("created_at"),
+            "approval_status": pending_approval.get("status"),
+            "message": f"Günlük kontrol formu {filler_name} tarafından doldurulmuş" + 
+                      (" (onay bekliyor)" if pending_approval.get("status") == "pending" else "")
+        }
+    
     logger.info(f"Form bulunamadı - doldurulmamış: vehicle={vehicle_id}")
     return {
         "filled": False,
