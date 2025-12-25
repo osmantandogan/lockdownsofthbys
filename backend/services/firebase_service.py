@@ -205,20 +205,38 @@ async def send_fcm_to_multiple(
         # Gönder
         response = messaging.send_each_for_multicast(message)
         
-        # Başarısız token'ları bul
+        # Başarısız token'ları bul ve temizle
         failed_tokens = []
+        invalid_tokens = []  # Geçersiz token'lar (veritabanından silinecek)
+        
         for idx, send_response in enumerate(response.responses):
             if not send_response.success:
                 failed_tokens.append(tokens[idx])
                 if send_response.exception:
-                    logger.warning(f"FCM send failed for token {tokens[idx][:20]}...: {send_response.exception}")
+                    error_msg = str(send_response.exception)
+                    logger.warning(f"FCM send failed for token {tokens[idx][:20]}...: {error_msg}")
+                    
+                    # "Requested entity was not found" veya "NOT_FOUND" hatası = geçersiz token
+                    if "not found" in error_msg.lower() or "NOT_FOUND" in error_msg or "unregistered" in error_msg.lower():
+                        invalid_tokens.append(tokens[idx])
+                        logger.info(f"🗑️ Marking token for removal: {tokens[idx][:20]}...")
+        
+        # Geçersiz token'ları veritabanından temizle
+        if invalid_tokens:
+            try:
+                await _cleanup_invalid_tokens(invalid_tokens)
+            except Exception as e:
+                logger.error(f"Error cleaning up invalid tokens: {e}")
         
         logger.info(f"✅ FCM multicast: {response.success_count} success, {response.failure_count} failed (DATA-ONLY)")
+        if invalid_tokens:
+            logger.info(f"🗑️ Cleaned up {len(invalid_tokens)} invalid FCM tokens")
         
         return {
             "success_count": response.success_count,
             "failure_count": response.failure_count,
-            "failed_tokens": failed_tokens
+            "failed_tokens": failed_tokens,
+            "invalid_tokens_cleaned": len(invalid_tokens)
         }
         
     except Exception as e:
@@ -308,6 +326,23 @@ class FirebaseService:
     async def send_emergency(self, tokens: List[str], case_id: str, message: str):
         """Acil durum bildirimi gönder"""
         return await send_emergency_notification_fcm(tokens, case_id, message)
+
+
+async def _cleanup_invalid_tokens(invalid_tokens: List[str]):
+    """Geçersiz FCM token'larını veritabanından temizle"""
+    try:
+        from database import users_collection
+        
+        for token in invalid_tokens:
+            # Token'ı boş string yaparak temizle
+            result = await users_collection.update_many(
+                {"fcm_token": token},
+                {"$set": {"fcm_token": None}}
+            )
+            if result.modified_count > 0:
+                logger.info(f"🗑️ Removed invalid FCM token from {result.modified_count} user(s)")
+    except Exception as e:
+        logger.error(f"Error in _cleanup_invalid_tokens: {e}")
 
 
 # Global instance

@@ -235,7 +235,7 @@ async def get_cases(
             user_shift_assignments = await shift_assignments_collection.find({
                 "user_id": user.id,
                 "status": {"$in": ["pending", "started"]},
-                "$or": [
+            "$or": [
                     {"shift_date": {"$gte": today, "$lt": tomorrow}},
                     {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
                 ]
@@ -253,10 +253,10 @@ async def get_cases(
         # Temel filtreler
         or_conditions = [
             # assigned_team (tekil atama) kontrolü
-            {"assigned_team.driver_id": user.id},
-            {"assigned_team.paramedic_id": user.id},
-            {"assigned_team.att_id": user.id},
-            {"assigned_team.nurse_id": user.id},
+                {"assigned_team.driver_id": user.id},
+                {"assigned_team.paramedic_id": user.id},
+                {"assigned_team.att_id": user.id},
+                {"assigned_team.nurse_id": user.id},
             # assigned_teams (çoklu atama) kontrolü - array içinde arama
             {"assigned_teams.driver_id": user.id},
             {"assigned_teams.paramedic_id": user.id},
@@ -630,14 +630,49 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
         raise HTTPException(status_code=400, detail="Vehicle is not available")
     
     # Bugünkü vardiya atamalarından ekibi otomatik bul
+    turkey_now = get_turkey_time()
+    today = turkey_now.date()
     
-    # O araca atanmış personeli bul
-    vehicle_assignments = await shift_assignments_collection.find({
+    # O araca atanmış personeli bul (tüm pending/started)
+    all_vehicle_assignments = await shift_assignments_collection.find({
         "vehicle_id": data.vehicle_id,
         "status": {"$in": ["pending", "started"]}
     }).to_list(100)
     
-    logger.info(f"Found {len(vehicle_assignments)} assignments for vehicle {data.vehicle_id}")
+    logger.info(f"Found {len(all_vehicle_assignments)} total assignments for vehicle {data.vehicle_id}")
+    
+    # BUGÜN için geçerli atamaları filtrele
+    vehicle_assignments = []
+    for assignment in all_vehicle_assignments:
+        shift_date = assignment.get("shift_date")
+        end_date = assignment.get("end_date") or shift_date
+        
+        # Tarih formatını düzelt
+        if isinstance(shift_date, str):
+            try:
+                shift_date = datetime.fromisoformat(shift_date.replace('Z', '+00:00'))
+            except:
+                continue
+        if isinstance(end_date, str):
+            try:
+                end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            except:
+                end_date = shift_date
+        
+        if shift_date is None:
+            continue
+            
+        # Tarih kontrolü: vardiya başlangıç tarihi <= bugün <= vardiya bitiş tarihi
+        shift_date_only = shift_date.date() if isinstance(shift_date, datetime) else shift_date
+        end_date_only = end_date.date() if isinstance(end_date, datetime) else (end_date or shift_date_only)
+        
+        if shift_date_only <= today <= end_date_only:
+            vehicle_assignments.append(assignment)
+            logger.info(f"✅ Assignment {assignment.get('_id')} valid for today: {shift_date_only} <= {today} <= {end_date_only}")
+        else:
+            logger.info(f"❌ Assignment {assignment.get('_id')} NOT valid for today: {shift_date_only} <= {today} <= {end_date_only}")
+    
+    logger.info(f"Found {len(vehicle_assignments)} TODAY's assignments for vehicle {data.vehicle_id}")
     
     # Ekip ID'lerini doldur (eğer gönderilmemişse)
     assigned_team = data.model_dump()
@@ -880,6 +915,10 @@ async def assign_multiple_teams(case_id: str, request: Request):
     assigned_teams = []
     all_recipient_ids = []
     
+    # Bugünün tarihini al
+    turkey_now = get_turkey_time()
+    today = turkey_now.date()
+    
     for vehicle_id in vehicle_ids:
         # Araç kontrolü
         vehicle = await vehicles_collection.find_one({"_id": vehicle_id})
@@ -896,11 +935,39 @@ async def assign_multiple_teams(case_id: str, request: Request):
         if vehicle["status"] != "musait":
             logger.warning(f"Vehicle {vehicle_id} is not available (status: {vehicle['status']})")
         
-        # Ekip bilgilerini al
-        vehicle_assignments = await shift_assignments_collection.find({
+        # Ekip bilgilerini al (tüm pending/started)
+        all_vehicle_assignments = await shift_assignments_collection.find({
             "vehicle_id": vehicle_id,
             "status": {"$in": ["pending", "started"]}
         }).to_list(100)
+        
+        # BUGÜN için geçerli atamaları filtrele
+        vehicle_assignments = []
+        for asgn in all_vehicle_assignments:
+            shift_date = asgn.get("shift_date")
+            end_date = asgn.get("end_date") or shift_date
+            
+            if isinstance(shift_date, str):
+                try:
+                    shift_date = datetime.fromisoformat(shift_date.replace('Z', '+00:00'))
+                except:
+                    continue
+            if isinstance(end_date, str):
+                try:
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                except:
+                    end_date = shift_date
+            
+            if shift_date is None:
+                continue
+            
+            shift_date_only = shift_date.date() if isinstance(shift_date, datetime) else shift_date
+            end_date_only = end_date.date() if isinstance(end_date, datetime) else (end_date or shift_date_only)
+            
+            if shift_date_only <= today <= end_date_only:
+                vehicle_assignments.append(asgn)
+        
+        logger.info(f"Vehicle {vehicle_id}: {len(vehicle_assignments)} assignments valid for today")
         
         team_data = {
             "vehicle_id": vehicle_id,

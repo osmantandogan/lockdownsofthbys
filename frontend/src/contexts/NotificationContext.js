@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { notificationsAPI } from '../api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import EmergencyCaseAlert from '../components/EmergencyCaseAlert';
 
 // FCM (Firebase Cloud Messaging) ile push bildirimleri
 
@@ -17,6 +18,10 @@ export const NotificationProvider = ({ children }) => {
   const [pushSupported, setPushSupported] = useState(false);
   const [fcmToken, setFcmToken] = useState(null);
   const [fcmEnabled, setFcmEnabled] = useState(false);
+  
+  // Acil durum ekranı state'i
+  const [emergencyAlert, setEmergencyAlert] = useState(null);
+  const [showEmergencyAlert, setShowEmergencyAlert] = useState(false);
 
   // FCM başlat (Android için)
   useEffect(() => {
@@ -65,7 +70,28 @@ export const NotificationProvider = ({ children }) => {
         // Bildirim listener'ları
         await PushNotifications.addListener('pushNotificationReceived', (notification) => {
           console.log('[FCM] Notification received:', notification);
-          toast.info(notification.title, { description: notification.body });
+          
+          // Acil vaka bildirimi kontrolü
+          const data = notification.data || {};
+          const type = data.type || '';
+          
+          if (type === 'new_case' || type === 'case_assigned' || type === 'emergency') {
+            // Acil durum ekranını göster (Web fallback - native Android zaten kendi popup'ını gösteriyor)
+            // Web'de veya native olmadığında bu ekranı göster
+            if (!Capacitor.isNativePlatform()) {
+              setEmergencyAlert({
+                case_id: data.case_id,
+                case_number: data.case_number,
+                patient_name: data.patient_name,
+                patient_phone: data.patient_phone,
+                patient_complaint: data.patient_complaint,
+                address: data.address
+              });
+              setShowEmergencyAlert(true);
+            }
+          } else {
+            toast.info(notification.title, { description: notification.body });
+          }
         });
 
         await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
@@ -271,6 +297,18 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
+  // Acil durum ekranını göster (dışarıdan çağrılabilir)
+  const showEmergencyCase = useCallback((caseData) => {
+    setEmergencyAlert(caseData);
+    setShowEmergencyAlert(true);
+  }, []);
+
+  // Acil durum ekranını kapat
+  const closeEmergencyAlert = useCallback(() => {
+    setShowEmergencyAlert(false);
+    setEmergencyAlert(null);
+  }, []);
+
   const value = {
     notifications,
     unreadCount,
@@ -285,12 +323,30 @@ export const NotificationProvider = ({ children }) => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    sendTestNotification
+    sendTestNotification,
+    // Acil durum ekranı
+    showEmergencyCase,
+    closeEmergencyAlert,
+    emergencyAlert,
+    showEmergencyAlert
   };
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
+      {/* Acil Durum Ekranı - Web için fallback */}
+      <EmergencyCaseAlert
+        isOpen={showEmergencyAlert}
+        onClose={closeEmergencyAlert}
+        caseData={emergencyAlert}
+        onGoToCase={() => {
+          closeEmergencyAlert();
+        }}
+        onExcuse={() => {
+          toast.info('Mazeret bildirimi özelliği yakında eklenecek');
+          closeEmergencyAlert();
+        }}
+      />
     </NotificationContext.Provider>
   );
 };
