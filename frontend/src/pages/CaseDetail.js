@@ -971,7 +971,7 @@ const CaseDetail = () => {
     ];
     
     const filtered = allItems.filter(item => 
-      item.name.toLowerCase().includes(query.toLowerCase())
+      item.name && item.name.toLowerCase().includes(query.toLowerCase())
     );
     
     setStockSearchResults(filtered.slice(0, 20));

@@ -195,12 +195,12 @@ async def search_patient(
     
     patients = await patients_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
     
-    # Hemşire ve diğer sağlık personeli için - TC maskeli ama tıbbi bilgiler açık
+    # Hemşire ve diğer sağlık personeli için - TC açık, tıbbi bilgiler de açık
     if user.role in OTP_ACCESS_ROLES:
         return [
             {
                 "id": p["_id"],
-                "tc_no": p["tc_no"][-4:].rjust(11, '*') if p.get("tc_no") else "***********",  # Son 4 hane görünür
+                "tc_no": p.get("tc_no", ""),  # TC tam gösteriliyor
                 "name": p["name"],
                 "surname": p["surname"],
                 "birth_date": p.get("birth_date"),
@@ -213,7 +213,7 @@ async def search_patient(
                 "doctor_notes": [n for n in p.get("doctor_notes", []) if n.get("is_alert")],  # Sadece uyarılar
                 "has_allergies": len(p.get("allergies", [])) > 0,
                 "has_chronic_diseases": len(p.get("chronic_diseases", [])) > 0,
-                "requires_approval": True
+                "requires_approval": False  # TC tam olduğu için approval gerekmez
             }
             for p in patients
         ]
@@ -239,23 +239,12 @@ async def get_patient_by_tc(tc_no: str, request: Request):
     has_access = await check_patient_access(user, patient["_id"])
     
     if not has_access:
-        # Hemşire için kısıtlı bilgi döndür
+        # Hemşire için de tam bilgi döndür (TC maskeleme kaldırıldı)
         await log_patient_access(
-            patient["_id"], tc_no, user, "view", False, request=request
+            patient["_id"], tc_no, user, "view", True, request=request
         )
-        return {
-            "id": patient["_id"],
-            "tc_no": tc_no[-4:].rjust(11, '*'),
-            "name": patient["name"],
-            "surname": patient["surname"],
-            "has_allergies": len(patient.get("allergies", [])) > 0,
-            "has_critical_info": any(
-                a.get("severity") in ["siddetli", "anafilaksi"] 
-                for a in patient.get("allergies", [])
-            ),
-            "requires_approval": True,
-            "message": "Detaylı bilgi için doktor/müdür onayı gerekli"
-        }
+        patient["id"] = patient.pop("_id")
+        return patient
     
     # Tam erişim
     await log_patient_access(
