@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { Building2, Plus, Trash2, Search, Save, X, RefreshCw } from 'lucide-react';
 import { firmsAPI } from '../api';
+import ReferenceDataCache from '../services/ReferenceDataCache';
 
 const FirmManagement = () => {
   const [firms, setFirms] = useState([]);
@@ -56,7 +57,14 @@ const FirmManagement = () => {
       toast.success('Firma eklendi');
       setNewFirmName('');
       setShowAddForm(false);
-      loadFirms();
+      
+      // Firmaları yeniden yükle ve cache'i güncelle
+      const response = await firmsAPI.getAll();
+      const firmsData = Array.isArray(response.data) ? response.data : [];
+      setFirms(firmsData);
+      
+      // ReferenceDataCache'i de güncelle (PatientRegistration vs. için)
+      await ReferenceDataCache.getFirms(true); // forceOnline=true ile cache'i güncelle
     } catch (error) {
       console.error('Firma eklenemedi:', error);
       toast.error('Firma eklenemedi');
@@ -73,7 +81,14 @@ const FirmManagement = () => {
     try {
       await firmsAPI.delete(firmId);
       toast.success('Firma silindi');
-      loadFirms();
+      
+      // Firmaları yeniden yükle ve cache'i güncelle
+      const response = await firmsAPI.getAll();
+      const firmsData = Array.isArray(response.data) ? response.data : [];
+      setFirms(firmsData);
+      
+      // ReferenceDataCache'i de güncelle
+      await ReferenceDataCache.getFirms(true);
     } catch (error) {
       console.error('Firma silinemedi:', error);
       toast.error('Firma silinemedi');
