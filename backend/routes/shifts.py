@@ -1653,6 +1653,16 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
     user = await get_current_user(request)
     turkey_now = get_turkey_time()
     
+    # Bu kontrol SADECE ATT ve Paramedik için geçerli
+    # Şoförler farklı form dolduruyor, bu kontrol onları etkilememeli
+    if user.role not in ["att", "paramedik"]:
+        logger.info(f"Kullanıcı ATT/Paramedik değil ({user.role}), form kontrolü geçersiz")
+        return {
+            "filled": False,
+            "message": "Bu kontrol sadece ATT/Paramedik için geçerlidir",
+            "not_applicable": True
+        }
+    
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
@@ -1712,8 +1722,19 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
         ]
     }).to_list(100)
     
-    team_user_ids = [a.get("user_id") for a in same_assignment_users]
-    logger.info(f"Ekip üyeleri: {team_user_ids}")
+    # SADECE ATT ve Paramedik kullanıcıları filtrele (Şoför farklı form dolduruyor)
+    # Kullanıcı bilgilerini al ve rollerini kontrol et
+    all_team_user_ids = [a.get("user_id") for a in same_assignment_users]
+    
+    # ATT ve Paramedik rolündeki kullanıcıları bul
+    medical_team_users = await users_collection.find({
+        "_id": {"$in": all_team_user_ids},
+        "role": {"$in": ["att", "paramedik"]}
+    }).to_list(100)
+    
+    team_user_ids = [u.get("_id") for u in medical_team_users]
+    logger.info(f"Tüm ekip üyeleri: {all_team_user_ids}")
+    logger.info(f"ATT/Paramedik ekip üyeleri: {team_user_ids}")
     
     # Debug: Bu araç için tüm daily_control formlarını listele
     all_forms = await forms_collection.find({
