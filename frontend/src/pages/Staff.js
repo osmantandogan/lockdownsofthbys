@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
-import { Users, TrendingUp, Clock, MapPin, Search, Settings } from 'lucide-react';
+import { Users, TrendingUp, Clock, MapPin, Search, Settings, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserManagement from './UserManagement';
+import FirmManagement from './FirmManagement';
 
 const Staff = () => {
   const { user } = useAuth();
@@ -98,13 +99,18 @@ const Staff = () => {
       </div>
 
       <Tabs defaultValue="performance" className="w-full">
-        <TabsList className={`grid w-full max-w-md ${canManageUsers ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <TabsList className={`grid w-full max-w-lg ${canManageUsers ? 'grid-cols-3' : 'grid-cols-1'}`}>
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" /> Performans
           </TabsTrigger>
           {canManageUsers && (
             <TabsTrigger value="management" className="flex items-center gap-2">
               <Settings className="h-4 w-4" /> Kullanıcı Yönetimi
+            </TabsTrigger>
+          )}
+          {canManageUsers && (
+            <TabsTrigger value="firms" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" /> Firma Yönetimi
             </TabsTrigger>
           )}
         </TabsList>
@@ -292,6 +298,12 @@ const Staff = () => {
         {canManageUsers && (
           <TabsContent value="management" className="mt-6">
             <UserManagement embedded={true} />
+          </TabsContent>
+        )}
+
+        {canManageUsers && (
+          <TabsContent value="firms" className="mt-6">
+            <FirmManagement />
           </TabsContent>
         )}
       </Tabs>
