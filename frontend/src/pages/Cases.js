@@ -650,6 +650,30 @@ const Cases = () => {
                             <span className="font-medium">Şikayet:</span> {caseItem.patient.complaint}
                           </p>
                         </div>
+                        
+                        {/* Kaydı Açan Kişi */}
+                        {caseItem.created_by_name && (
+                          <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-200">
+                            <div className="flex items-center gap-2 text-sm">
+                              <User className="h-4 w-4 text-red-600" />
+                              <span className="text-red-700 font-medium">Kaydı Açan:</span>
+                              <span className="font-semibold text-red-800">{caseItem.created_by_name}</span>
+                              {caseItem.created_by_role && (
+                                <Badge className="bg-red-100 text-red-700 text-xs">
+                                  {caseItem.created_by_role === 'cagri_merkezi' ? 'Çağrı Merkezi' :
+                                   caseItem.created_by_role === 'merkez_ofis' ? 'Merkez Ofis' :
+                                   caseItem.created_by_role === 'operasyon_muduru' ? 'Operasyon Müdürü' :
+                                   caseItem.created_by_role === 'bas_sofor' ? 'Baş Şoför' :
+                                   caseItem.created_by_role}
+                                </Badge>
+                              )}
+                              {caseItem.created_location && (
+                                <span className="text-red-600 text-xs">📍 {caseItem.created_location}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
                         {/* Atanan Ekip Bilgisi */}
                         {caseItem.assigned_team && (
                           <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -756,6 +780,30 @@ const Cases = () => {
                               <span className="font-medium">Şikayet:</span> {caseItem.patient.complaint}
                             </p>
                           </div>
+                          
+                          {/* Kaydı Açan Kişi */}
+                          {caseItem.created_by_name && (
+                            <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-200">
+                              <div className="flex items-center gap-2 text-sm">
+                                <User className="h-4 w-4 text-red-600" />
+                                <span className="text-red-700 font-medium">Kaydı Açan:</span>
+                                <span className="font-semibold text-red-800">{caseItem.created_by_name}</span>
+                                {caseItem.created_by_role && (
+                                  <Badge className="bg-red-100 text-red-700 text-xs">
+                                    {caseItem.created_by_role === 'cagri_merkezi' ? 'Çağrı Merkezi' :
+                                     caseItem.created_by_role === 'merkez_ofis' ? 'Merkez Ofis' :
+                                     caseItem.created_by_role === 'operasyon_muduru' ? 'Operasyon Müdürü' :
+                                     caseItem.created_by_role === 'bas_sofor' ? 'Baş Şoför' :
+                                     caseItem.created_by_role}
+                                  </Badge>
+                                )}
+                                {caseItem.created_location && (
+                                  <span className="text-red-600 text-xs">📍 {caseItem.created_location}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Atanan Ekip Bilgisi */}
                           {caseItem.assigned_team && (
                             <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">

@@ -470,38 +470,46 @@ const PhotoCapture = ({
               )}
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="relative bg-black rounded-lg overflow-hidden">
+            <div className="fixed inset-0 z-50 bg-black flex flex-col">
+              {/* Büyük kamera görüntüsü */}
+              <div className="flex-1 relative">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-64 object-cover"
+                  className="w-full h-full object-cover"
                 />
                 {cameraLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <div className="h-8 w-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="h-12 w-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
+                {/* Üst başlık */}
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/60 to-transparent p-4">
+                  <p className="text-white font-medium text-center">{title}</p>
+                </div>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  type="button"
-                  onClick={captureFromVideo}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled={cameraLoading}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Çek
-                </Button>
+              {/* Alt butonlar */}
+              <div className="bg-black p-4 pb-8 flex items-center justify-center gap-6">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={stopCamera}
+                  className="h-14 px-6 bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
                 >
+                  <X className="h-5 w-5 mr-2" />
                   İptal
                 </Button>
+                <Button
+                  type="button"
+                  onClick={captureFromVideo}
+                  className="h-16 w-16 rounded-full bg-white hover:bg-gray-200 text-black p-0"
+                  disabled={cameraLoading}
+                >
+                  <Camera className="h-8 w-8" />
+                </Button>
+                <div className="w-24" /> {/* Spacer for centering */}
               </div>
             </div>
           )}
