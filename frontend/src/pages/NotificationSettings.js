@@ -37,13 +37,15 @@ const NotificationSettings = () => {
   const { 
     pushEnabled, 
     pushSupported,
-    oneSignalReady,
-    oneSignalError,
-    isLocalhost,
+    fcmEnabled,
     enablePushNotifications, 
     disablePushNotifications,
     sendTestNotification 
   } = useNotifications();
+  
+  // Localhost kontrolü
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const fcmReady = fcmEnabled || !isLocalhost; // FCM durumu
   
   const [preferences, setPreferences] = useState({});
   const [loading, setLoading] = useState(true);
@@ -201,7 +203,7 @@ const NotificationSettings = () => {
           <CardTitle className="flex items-center space-x-2">
             <BellRing className="h-5 w-5 text-blue-600" />
             <span>Push Bildirimleri</span>
-            {oneSignalReady && (
+            {fcmReady && (
               <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
                 FCM Aktif
               </Badge>
@@ -234,7 +236,7 @@ const NotificationSettings = () => {
                   ? '❌ Tarayıcınız push bildirimlerini desteklemiyor'
                   : isLocalhost
                   ? '🧪 Localhost modu - Production ortamında aktif olacak'
-                  : !oneSignalReady
+                  : !fcmReady
                   ? '⏳ Bildirim sistemi yükleniyor...'
                   : pushEnabled
                   ? '✅ Push bildirimleri aktif - Bildirimler bu cihaza gönderilecek'
@@ -250,7 +252,7 @@ const NotificationSettings = () => {
               )}
               <Button
                 onClick={handlePushToggle}
-                disabled={!pushSupported || !oneSignalReady || isLocalhost}
+                disabled={!pushSupported || !fcmReady || isLocalhost}
                 variant={pushEnabled ? "outline" : "default"}
                 className={pushEnabled ? "border-red-300 text-red-600 hover:bg-red-50" : ""}
               >
@@ -495,11 +497,11 @@ const NotificationSettings = () => {
             <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
               <div className={`p-2 rounded-full ${
                 isLocalhost ? 'bg-yellow-100' : 
-                oneSignalReady ? 'bg-green-100' : 'bg-yellow-100'
+                fcmReady ? 'bg-green-100' : 'bg-yellow-100'
               }`}>
                 <Bell className={`h-5 w-5 ${
                   isLocalhost ? 'text-yellow-600' :
-                  oneSignalReady ? 'text-green-600' : 'text-yellow-600'
+                  fcmReady ? 'text-green-600' : 'text-yellow-600'
                 }`} />
               </div>
               <div>
@@ -507,14 +509,14 @@ const NotificationSettings = () => {
                 <p className="text-sm text-gray-500">
                   {isLocalhost 
                     ? 'Localhost modu' 
-                    : oneSignalReady 
+                    : fcmReady 
                     ? 'Bağlı ve çalışıyor' 
                     : 'Bağlanıyor...'}
                 </p>
               </div>
               {isLocalhost ? (
                 <AlertTriangle className="h-5 w-5 text-yellow-500 ml-auto" />
-              ) : oneSignalReady ? (
+              ) : fcmReady ? (
                 <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto" />
               ) : null}
             </div>

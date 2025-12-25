@@ -416,8 +416,8 @@ async def get_today_assignments(request: Request):
                 today_assignments.append(assignment)
         else:
             # Saat 08:00'dan önce - bugün geçerli olan tüm vardiyalar
-        if shift_date <= today <= end_date:
-            today_assignments.append(assignment)
+            if shift_date <= today <= end_date:
+                today_assignments.append(assignment)
     
     # Enrich with user information
     enriched_assignments = []
