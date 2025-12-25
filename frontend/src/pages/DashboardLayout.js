@@ -35,7 +35,8 @@ import {
   Heart,
   Send,
   Code,
-  ClipboardList
+  ClipboardList,
+  Building2
 } from 'lucide-react';
 import NotificationDropdown from '../components/NotificationDropdown';
 import OfflineStatusBar from '../components/OfflineStatusBar';
@@ -98,6 +99,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/archive', icon: ArchiveIcon, label: 'Form Arşivi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/notifications', icon: Bell, label: 'Bildirim Ayarları' },
     { path: '/dashboard/gps-settings', icon: MapPin, label: 'GPS Ayarları', roles: ['operasyon_muduru', 'merkez_ofis', 'att', 'paramedik', 'sofor', 'bas_sofor', 'cagri_merkezi', 'doktor', 'mesul_mudur'] },
+    { path: '/dashboard/firms', icon: Building2, label: 'Firma Yönetimi', roles: ['merkez_ofis', 'operasyon_muduru'] },
     { path: '/dashboard/settings', icon: Settings, label: 'Ayarlar' }
   ];
 
