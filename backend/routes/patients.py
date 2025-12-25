@@ -671,9 +671,9 @@ async def get_patient_case_count(patient_id: str, request: Request):
     if not patient:
         raise HTTPException(status_code=404, detail="Hasta kartı bulunamadı")
     
-    # Erişim kontrolü
-    has_access = await check_patient_access(user, patient_id)
-    if not has_access:
+    # Vaka sayısı için tüm sağlık personeli erişebilir
+    CASE_COUNT_ROLES = DIRECT_ACCESS_ROLES + ["hemsire", "paramedik", "att", "cagri_merkezi", "sofor", "bas_sofor"]
+    if user.role not in CASE_COUNT_ROLES:
         raise HTTPException(status_code=403, detail="Bu bilgiye erişim yetkiniz yok")
     
     # TC ile eşleşen vakaları say
