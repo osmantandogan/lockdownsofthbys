@@ -192,10 +192,10 @@ const NotificationSettings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Bildirim Ayarları</h1>
-        <p className="text-gray-500">Push bildirim tercihlerinizi yönetin (OneSignal)</p>
+        <p className="text-gray-500">Push bildirim tercihlerinizi yönetin (FCM)</p>
       </div>
 
-      {/* OneSignal Push Ayarları */}
+      {/* FCM Push Ayarları */}
       <Card className="border-2 border-blue-200">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardTitle className="flex items-center space-x-2">
@@ -203,7 +203,7 @@ const NotificationSettings = () => {
             <span>Push Bildirimleri</span>
             {oneSignalReady && (
               <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
-                OneSignal Aktif
+                FCM Aktif
               </Badge>
             )}
           </CardTitle>
@@ -235,7 +235,7 @@ const NotificationSettings = () => {
                   : isLocalhost
                   ? '🧪 Localhost modu - Production ortamında aktif olacak'
                   : !oneSignalReady
-                  ? '⏳ OneSignal yükleniyor...'
+                  ? '⏳ Bildirim sistemi yükleniyor...'
                   : pushEnabled
                   ? '✅ Push bildirimleri aktif - Bildirimler bu cihaza gönderilecek'
                   : '🔔 Push bildirimlerini etkinleştirmek için butona tıklayın'}
@@ -392,7 +392,7 @@ const NotificationSettings = () => {
                 </div>
                 <div>
                   <p className="font-medium">SMS Servisi</p>
-                  <p className="text-sm text-gray-500">OneSignal SMS Gateway</p>
+                  <p className="text-sm text-gray-500">SMS Gateway</p>
                 </div>
               </div>
               <div className="text-sm text-gray-600 space-y-1">
@@ -485,7 +485,7 @@ const NotificationSettings = () => {
         </Card>
       )}
 
-      {/* OneSignal Durumu */}
+      {/* FCM Durumu */}
       <Card>
         <CardHeader>
           <CardTitle>Bildirim Sistemi Durumu</CardTitle>
@@ -503,7 +503,7 @@ const NotificationSettings = () => {
                 }`} />
               </div>
               <div>
-                <p className="font-medium">OneSignal</p>
+                <p className="font-medium">Firebase Cloud Messaging</p>
                 <p className="text-sm text-gray-500">
                   {isLocalhost 
                     ? 'Localhost modu' 
