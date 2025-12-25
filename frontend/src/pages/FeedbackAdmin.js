@@ -12,6 +12,7 @@ import {
   Monitor, Trash2, CheckCircle, AlertCircle, Eye, X,
   RefreshCw, Filter
 } from 'lucide-react';
+import ImageViewer from '../components/ImageViewer';
 
 const FeedbackAdmin = () => {
   const [feedbacks, setFeedbacks] = useState([]);
@@ -374,20 +375,14 @@ const FeedbackAdmin = () => {
                     <h4 className="font-medium mb-2">Ekran Görüntüleri ({selectedFeedback.screenshots.length})</h4>
                     <div className="grid grid-cols-2 gap-3">
                       {selectedFeedback.screenshots.map((ss, idx) => (
-                        <a 
-                          key={idx} 
-                          href={ss.data} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="block"
-                        >
-                          <img 
+                        <div key={idx} className="space-y-1">
+                          <ImageViewer 
                             src={ss.data} 
                             alt={ss.name}
-                            className="w-full h-40 object-cover rounded-lg border hover:opacity-90 transition-opacity"
+                            className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
                           />
-                          <p className="text-xs text-gray-500 mt-1 truncate">{ss.name}</p>
-                        </a>
+                          <p className="text-xs text-gray-500 truncate">{ss.name}</p>
+                        </div>
                       ))}
                     </div>
                   </div>

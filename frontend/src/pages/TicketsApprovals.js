@@ -30,6 +30,7 @@ import {
   MessageSquare,
   Filter
 } from 'lucide-react';
+import ImageViewer from '../components/ImageViewer';
 
 const TicketsApprovals = () => {
   const { user } = useAuth();
@@ -437,11 +438,11 @@ const TicketsApprovals = () => {
                   <label className="text-sm font-medium text-gray-500">Fotoğraflar</label>
                   <div className="grid grid-cols-3 gap-2 mt-1">
                     {selectedTicket.photos.map((photo, idx) => (
-                      <img 
+                      <ImageViewer
                         key={idx} 
                         src={photo.data || photo} 
                         alt={`Foto ${idx + 1}`}
-                        className="w-full h-24 object-cover rounded border"
+                        className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
                       />
                     ))}
                   </div>
