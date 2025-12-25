@@ -222,15 +222,29 @@ async def get_cases(
     
     # Role-based filtering - saha personeli sadece atandıkları veya oluşturdukları vakaları görür
     # Hemşire tüm vakaları görebilir
-    if user.role in ["paramedik", "att", "sofor"]:
-        # Atandığı VEYA oluşturduğu vakaları görsün
+    if user.role in ["paramedik", "att", "sofor", "bas_sofor"]:
+        # Son 24 saat içinde atandığı VEYA oluşturduğu vakaları görsün
+        last_24h_for_assignment = get_turkey_time() - timedelta(hours=24)
+        
         filters.append({
             "$or": [
+                # assigned_team (tekil atama) kontrolü
                 {"assigned_team.driver_id": user.id},
                 {"assigned_team.paramedic_id": user.id},
                 {"assigned_team.att_id": user.id},
                 {"assigned_team.nurse_id": user.id},
-                {"created_by": user.id}  # Kendi oluşturduğu vakalar
+                # assigned_teams (çoklu atama) kontrolü - array içinde arama
+                {"assigned_teams.driver_id": user.id},
+                {"assigned_teams.paramedic_id": user.id},
+                {"assigned_teams.att_id": user.id},
+                {"assigned_teams.nurse_id": user.id},
+                # Kendi oluşturduğu vakalar
+                {"created_by": user.id},
+                # Son 24 saat içinde oluşturulan vakalar (atama geçmişi için)
+                {
+                    "created_at": {"$gte": last_24h_for_assignment},
+                    "status_history.updated_by": user.id
+                }
             ]
         })
     # Hemşire tüm vakaları görebilir - filtre ekleme
