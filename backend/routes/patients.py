@@ -126,6 +126,7 @@ async def create_patient_card(data: PatientCardCreate, request: Request):
 @router.get("/search")
 async def search_patient(
     request: Request,
+    q: Optional[str] = None,  # Genel arama (TC, ad, soyad)
     tc_no: Optional[str] = None,
     name: Optional[str] = None,
     phone: Optional[str] = None,
@@ -134,6 +135,14 @@ async def search_patient(
 ):
     """Hasta ara (TC, ad veya telefon ile) - TC olmadan da arama yapılabilir"""
     user = await get_current_user(request)
+    
+    # q parametresi varsa, TC veya isim olarak ara
+    if q:
+        # Eğer q sadece rakamlardan oluşuyorsa TC olarak ara
+        if q.isdigit():
+            tc_no = q
+        else:
+            name = q
     
     # Arama kriteri gerekli (TC artık zorunlu değil)
     if not tc_no and not name and not phone:
@@ -149,7 +158,8 @@ async def search_patient(
     else:
         query = {}
         if tc_no:
-            query["tc_no"] = tc_no
+            # TC ile başlayanları ara (prefix match)
+            query["tc_no"] = {"$regex": f"^{tc_no}"}
         if name:
             # Ad veya soyad içinde ara (case insensitive)
             if "$or" not in query:

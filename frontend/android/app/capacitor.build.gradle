@@ -19,8 +19,9 @@ dependencies {
     implementation project(':capacitor-push-notifications')
     implementation project(':capacitor-splash-screen')
     implementation project(':capacitor-status-bar')
-    // OneSignal removed - using FCM only
+
 }
+
 
 if (hasProperty('postBuildExtras')) {
   postBuildExtras()
