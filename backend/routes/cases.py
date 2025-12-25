@@ -113,8 +113,8 @@ async def create_case(data: CaseCreate, request: Request):
     if hasattr(data, 'timestamps') and data.timestamps:
         timestamps_data = data.timestamps.model_dump() if hasattr(data.timestamps, 'model_dump') else data.timestamps
     else:
-        # Varsayılan olarak çağrı saatini şimdi olarak ayarla
-        timestamps_data = {"call_received": datetime.now().isoformat()}
+        # Varsayılan olarak çağrı saatini şimdi olarak ayarla (Türkiye saati)
+        timestamps_data = {"call_received": get_turkey_time().isoformat()}
     
     # Kaynak belirle: case_details.type == 'ayaktan_basvuru' ise 'registration', yoksa 'call_center'
     case_details = data.case_details if hasattr(data, 'case_details') else None
@@ -185,7 +185,7 @@ async def create_case(data: CaseCreate, request: Request):
                         "patient_name": f"{patient_info.get('name', '')} {patient_info.get('surname', '')}".strip() or "Belirtilmemiş",
                         "location": location_info.get("address", "Belirtilmemiş"),
                         "priority": case_dict.get("priority", "Normal"),
-                        "created_at": datetime.now().strftime("%d.%m.%Y %H:%M"),
+                        "created_at": get_turkey_time().strftime("%d.%m.%Y %H:%M"),
                         "url": f"/dashboard/cases/{case_dict['_id']}"
                     }
                 )

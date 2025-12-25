@@ -1234,36 +1234,50 @@ const CaseDetail = () => {
     }
   };
   
-  // İmza alanlarına assigned_team'den varsayılan isimler ata (sadece ilk yüklemede, boşlarsa)
+  // İmza alanlarına assigned_team'den varsayılan isimler ata 
+  // NOT: Backend'den inline_consents yüklendikten SONRA, sadece boş olanları doldur
+  const teamNamesAppliedRef = useRef(false);
+  
   useEffect(() => {
+    // Sadece caseData ve initialLoadDone olduktan sonra çalış
+    // Bu, backend verisi yüklendikten sonra eksik alanları doldurur
     if (!caseData?.assigned_team) return;
+    if (teamNamesAppliedRef.current) return; // Sadece bir kez çalış
     
-    setInlineConsents(prev => {
-      const updates = {};
+    // 500ms bekle - backend inline_consents yüklenmesi için
+    const timer = setTimeout(() => {
+      setInlineConsents(prev => {
+        const updates = {};
+        
+        // Doktor/Paramedik ismi - sadece boş string veya undefined ise ata
+        if (!prev.doctor_paramedic_name || prev.doctor_paramedic_name.trim() === '') {
+          const dpName = caseData.assigned_team.doctor_name || caseData.assigned_team.paramedic_name || '';
+          if (dpName && dpName.trim()) updates.doctor_paramedic_name = dpName;
+        }
+        
+        // Sağlık Personeli (ATT/Hemşire) ismi - sadece boş string veya undefined ise ata
+        if (!prev.health_personnel_name || prev.health_personnel_name.trim() === '') {
+          const hpName = caseData.assigned_team.att_name || caseData.assigned_team.nurse_name || '';
+          if (hpName && hpName.trim()) updates.health_personnel_name = hpName;
+        }
+        
+        // Sürücü ismi - sadece boş string veya undefined ise ata
+        if (!prev.driver_pilot_name || prev.driver_pilot_name.trim() === '') {
+          const driverName = caseData.assigned_team.driver_name || '';
+          if (driverName && driverName.trim()) updates.driver_pilot_name = driverName;
+        }
+        
+        // Hiç güncelleme yoksa aynı state'i döndür
+        if (Object.keys(updates).length === 0) return prev;
+        
+        console.log('[CaseDetail] Applying team names:', updates);
+        return { ...prev, ...updates };
+      });
       
-      // Doktor/Paramedik ismi - sadece boşsa ata
-      if (!prev.doctor_paramedic_name) {
-        const dpName = caseData.assigned_team.doctor_name || caseData.assigned_team.paramedic_name || '';
-        if (dpName) updates.doctor_paramedic_name = dpName;
-      }
-      
-      // Sağlık Personeli (ATT/Hemşire) ismi - sadece boşsa ata
-      if (!prev.health_personnel_name) {
-        const hpName = caseData.assigned_team.att_name || caseData.assigned_team.nurse_name || '';
-        if (hpName) updates.health_personnel_name = hpName;
-      }
-      
-      // Sürücü ismi - sadece boşsa ata
-      if (!prev.driver_pilot_name) {
-        const driverName = caseData.assigned_team.driver_name || '';
-        if (driverName) updates.driver_pilot_name = driverName;
-      }
-      
-      // Hiç güncelleme yoksa aynı state'i döndür
-      if (Object.keys(updates).length === 0) return prev;
-      
-      return { ...prev, ...updates };
-    });
+      teamNamesAppliedRef.current = true;
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [caseData?.assigned_team]);
   
   const loadParticipants = async () => {
