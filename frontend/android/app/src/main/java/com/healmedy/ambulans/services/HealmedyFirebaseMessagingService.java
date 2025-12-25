@@ -210,7 +210,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             launchEmergencyPopup(caseId, caseNumber, patientName, patientPhone, patientComplaint, address);
         }
         
-        // Normal intent
+        // Normal intent (bildirime tıklandığında)
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         
@@ -223,6 +223,28 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
             this, notificationId, intent,
             PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE
         );
+        
+        // Acil durum için FullScreen Intent - EmergencyPopupActivity'ye yönlendir
+        // Bu, ekran kapalıyken otomatik olarak popup'ı açar
+        PendingIntent fullScreenPendingIntent = null;
+        if (isEmergency) {
+            Intent fullScreenIntent = new Intent(this, EmergencyPopupActivity.class);
+            fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
+                                      Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                                      Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            if (caseId != null) fullScreenIntent.putExtra("case_id", caseId);
+            if (caseNumber != null) fullScreenIntent.putExtra("case_number", caseNumber);
+            if (patientName != null) fullScreenIntent.putExtra("patient_name", patientName);
+            if (patientPhone != null) fullScreenIntent.putExtra("patient_phone", patientPhone);
+            if (patientComplaint != null) fullScreenIntent.putExtra("patient_complaint", patientComplaint);
+            if (address != null) fullScreenIntent.putExtra("address", address);
+            
+            fullScreenPendingIntent = PendingIntent.getActivity(
+                this, notificationId + 1, fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            Log.d(TAG, "🚨 FullScreen PendingIntent created for EmergencyPopupActivity");
+        }
         
         // Kanal belirleme
         if (isEmergency) {
@@ -255,7 +277,8 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setVibrate(new long[]{0, 1000, 500, 1000, 500, 1000})
                 .setLights(Color.RED, 500, 500)
-                .setFullScreenIntent(pendingIntent, true);
+                // FullScreenIntent: Ekran kapalıyken EmergencyPopupActivity'yi açar
+                .setFullScreenIntent(fullScreenPendingIntent != null ? fullScreenPendingIntent : pendingIntent, true);
             
             // "Anlaşıldı" butonu
             Intent dismissIntent = new Intent(this, EmergencyDismissReceiver.class);
