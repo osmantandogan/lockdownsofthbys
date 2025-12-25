@@ -562,7 +562,7 @@ public class HealmedyFirebaseMessagingService extends FirebaseMessagingService {
                 if (state == AudioTrack.STATE_INITIALIZED) {
                     emergencySirenTrack.pause();
                     emergencySirenTrack.flush();
-                    emergencySirenTrack.stop();
+                emergencySirenTrack.stop();
                 }
                 emergencySirenTrack.release();
                 Log.d("HealmedyFCM", "🧹 Previous AudioTrack released");

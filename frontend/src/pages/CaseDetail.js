@@ -1252,15 +1252,36 @@ const CaseDetail = () => {
     }
   };
   
-  // Debounced form update
+  // Debounce için ref
+  const pendingUpdates = useRef({});
+  const updateTimeoutRef = useRef(null);
+  
+  // Debounced form update - API çağrısını 800ms bekletir
   const updateFormField = useCallback(async (field, value) => {
+    // Local state'i hemen güncelle
     setMedicalForm(prev => ({ ...prev, [field]: value }));
     
-    try {
-      await casesAPI.updateMedicalForm(id, { [field]: value });
-    } catch (error) {
-      console.error('Error updating form:', error);
+    // Pending updates'e ekle
+    pendingUpdates.current[field] = value;
+    
+    // Önceki timeout'u temizle
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
     }
+    
+    // 800ms sonra API'ye gönder
+    updateTimeoutRef.current = setTimeout(async () => {
+      const updates = { ...pendingUpdates.current };
+      pendingUpdates.current = {};
+      
+      if (Object.keys(updates).length > 0) {
+        try {
+          await casesAPI.updateMedicalForm(id, updates);
+        } catch (error) {
+          console.error('Error updating form:', error);
+        }
+      }
+    }, 800);
   }, [id]);
   
   // Update vital signs

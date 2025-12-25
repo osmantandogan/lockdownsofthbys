@@ -360,7 +360,13 @@ async def get_today_assignments(request: Request):
     turkey_now = get_turkey_time()
     today = turkey_now.date()
     today_str = today.isoformat()
-    logger.info(f"Bugünkü atamalar sorgusu - Bugün (TR): {today}")
+    current_hour = turkey_now.hour
+    
+    # Saat 08:00'dan sonra mı? (Vardiya değişim saati)
+    is_after_shift_change = current_hour >= 8
+    yesterday = today - timedelta(days=1)
+    
+    logger.info(f"Bugünkü atamalar sorgusu - Bugün (TR): {today}, Saat: {current_hour}:00, Vardiya değişti mi: {is_after_shift_change}")
     
     # Find all assignments that include today
     # Either: shift_date is today OR (shift_date <= today AND end_date >= today)
@@ -402,9 +408,16 @@ async def get_today_assignments(request: Request):
                 except:
                     pass
         
-        # Check if today falls within the assignment period
-        if shift_date <= today <= end_date:
-            today_assignments.append(assignment)
+        # Saat 08:00'dan sonra: sadece bugünkü vardiyaları göster
+        # Saat 08:00'dan önce: hem dünkü (devam eden) hem bugünkü vardiyaları göster
+        if is_after_shift_change:
+            # Saat 08:00'dan sonra - sadece bugün başlayan vardiyalar
+            if shift_date == today:
+                today_assignments.append(assignment)
+        else:
+            # Saat 08:00'dan önce - bugün geçerli olan tüm vardiyalar
+            if shift_date <= today <= end_date:
+                today_assignments.append(assignment)
     
     # Enrich with user information
     enriched_assignments = []
@@ -1505,20 +1518,20 @@ async def get_shift_photos(
     Tüm roller erişebilir (form geçmişi için)
     """
     try:
-        current_user = await get_current_user(request)
-        
-        from database import db
-        shift_photos_collection = db["shift_photos"]
-        
-        query = {}
-        if vehicle_plate:
-            query["vehicle_plate"] = vehicle_plate
-        
-        photos = await shift_photos_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
-        
-        # Kullanıcı bilgisini ekle
+    current_user = await get_current_user(request)
+    
+    from database import db
+    shift_photos_collection = db["shift_photos"]
+    
+    query = {}
+    if vehicle_plate:
+        query["vehicle_plate"] = vehicle_plate
+    
+    photos = await shift_photos_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Kullanıcı bilgisini ekle
         result = []
-        for photo in photos:
+    for photo in photos:
             try:
                 photo_id = photo.pop("_id", None)
                 if photo_id:
@@ -1527,9 +1540,9 @@ async def get_shift_photos(
                 user_id = photo.get("user_id")
                 if user_id:
                     user_doc = await users_collection.find_one({"_id": user_id})
-                    if user_doc:
-                        photo["user_name"] = user_doc.get("name", "Bilinmiyor")
-                        photo["user_role"] = user_doc.get("role", "")
+        if user_doc:
+            photo["user_name"] = user_doc.get("name", "Bilinmiyor")
+            photo["user_role"] = user_doc.get("role", "")
                     else:
                         photo["user_name"] = "Bilinmiyor"
                         photo["user_role"] = ""
