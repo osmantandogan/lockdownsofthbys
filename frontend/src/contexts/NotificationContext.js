@@ -3,19 +3,21 @@ import { Capacitor } from '@capacitor/core';
 import { notificationsAPI } from '../api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
-import {
-  initOneSignal,
-  requestNotificationPermission,
-  isPushEnabled,
-  getPlayerId,
-  optInPushNotifications,
-  optOutPushNotifications,
-  removeExternalUserId,
-  addNotificationListener,
-  setUserTags,
-  getInitError,
-  isProduction
-} from '../config/onesignal';
+
+// OneSignal DEVRE DIŞI - Sadece FCM kullanılıyor
+// import {
+//   initOneSignal,
+//   requestNotificationPermission,
+//   isPushEnabled,
+//   getPlayerId,
+//   optInPushNotifications,
+//   optOutPushNotifications,
+//   removeExternalUserId,
+//   addNotificationListener,
+//   setUserTags,
+//   getInitError,
+//   isProduction
+// } from '../config/onesignal';
 
 const NotificationContext = createContext(null);
 
@@ -136,116 +138,14 @@ export const NotificationProvider = ({ children }) => {
     checkPushSupport();
   }, []);
 
-  // OneSignal'i başlat (kullanıcı login olduğunda)
+  // OneSignal DEVRE DIŞI - Sadece FCM kullanılıyor
+  // OneSignal loglarını ve hatalarını önlemek için bu bölüm kaldırıldı
   useEffect(() => {
-    const initializeOneSignal = async () => {
-      // Auth yüklenirken bekle
-      if (authLoading) {
-        console.log('[NotificationContext] Auth still loading, waiting...');
-        return;
-      }
-      
-      // Rol değişikliği sırasında bekle
-      if (isSwitchingRole) {
-        console.log('[NotificationContext] Role switching in progress, waiting...');
-        return;
-      }
-      
-      if (!isAuthenticated || !user) {
-        console.log('[NotificationContext] User not authenticated (isAuthenticated:', isAuthenticated, ', user:', !!user, ')');
-        return;
-      }
-
-      // User ID: id veya _id olabilir
-      const userId = user.id || user._id;
-      console.log('[NotificationContext] Starting OneSignal initialization for user:', userId, user.name, 'role:', activeRole || user.role);
-
-      if (!userId) {
-        console.error('[NotificationContext] User ID is missing! User object:', user);
-        setOneSignalError('User ID bulunamadı');
-        return;
-      }
-
-      try {
-        // OneSignal'i başlat
-        const onesignal = await initOneSignal(userId, {
-          role: user.role,
-          name: user.name
-        });
-
-        console.log('[NotificationContext] initOneSignal returned:', onesignal ? 'success' : 'null');
-
-        // Hata durumunu kontrol et
-        const error = getInitError();
-        if (error) {
-          console.log('[NotificationContext] Init error:', error);
-          setOneSignalError(error);
-          if (error === 'localhost') {
-            // Localhost'ta simüle et - ready olarak işaretle
-            setOneSignalReady(true);
-            setIsLocalhost(true);
-            console.log('[NotificationContext] Localhost mode - simulating ready state');
-          }
-          return;
-        }
-
-        if (onesignal && !onesignal.isLocalhost) {
-          console.log('[NotificationContext] OneSignal ready, checking push status...');
-          setOneSignalReady(true);
-          
-          // Mevcut push durumunu kontrol et
-          const enabled = await isPushEnabled();
-          console.log('[NotificationContext] Push enabled:', enabled);
-          setPushEnabled(enabled);
-
-          // Player ID'yi backend'e kaydet
-          if (enabled) {
-            const playerId = await getPlayerId();
-            console.log('[NotificationContext] Player ID:', playerId);
-            if (playerId) {
-              try {
-                await notificationsAPI.subscribe({ player_id: playerId });
-                console.log('[NotificationContext] Player ID saved to backend');
-              } catch (e) {
-                console.warn('[NotificationContext] Player ID backend kayıt hatası:', e);
-              }
-            }
-          }
-
-          // Foreground bildirimleri dinle
-          addNotificationListener((notification) => {
-            toast.info(notification.title, {
-              description: notification.body
-            });
-            // In-app bildirimleri yenile
-            loadNotifications();
-          });
-          
-          console.log('[NotificationContext] OneSignal fully initialized');
-        } else if (onesignal?.isLocalhost) {
-          // Localhost simülasyonu
-          console.log('[NotificationContext] Localhost simulation mode');
-          setOneSignalReady(true);
-          setIsLocalhost(true);
-        } else {
-          console.warn('[NotificationContext] OneSignal initialization returned null or invalid');
-          setOneSignalError('Başlatma başarısız');
-        }
-      } catch (error) {
-        console.error('[NotificationContext] OneSignal initialization error:', error);
-        setOneSignalError(error.message);
-      }
-    };
-
-    initializeOneSignal();
-  }, [isAuthenticated, user, authLoading, isSwitchingRole, activeRole]);
-
-  // Kullanıcı logout olduğunda OneSignal'den çıkış yap
-  useEffect(() => {
-    if (!isAuthenticated && oneSignalReady) {
-      removeExternalUserId();
-    }
-  }, [isAuthenticated, oneSignalReady]);
+    // FCM kullanıldığı için OneSignal'e gerek yok
+    console.log('[NotificationContext] OneSignal disabled - using FCM only');
+    setOneSignalReady(true); // FCM aktif olduğunda ready olarak işaretle
+    setPushEnabled(fcmEnabled);
+  }, [fcmEnabled]);
 
   // Bildirimleri yükle
   const loadNotifications = useCallback(async () => {
@@ -278,54 +178,34 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [isAuthenticated, loadNotifications]);
 
-  // Push bildirimleri etkinleştir
+  // Push bildirimleri etkinleştir (FCM için)
   const enablePushNotifications = async () => {
+    // Native platformda FCM otomatik olarak etkin
+    if (Capacitor.isNativePlatform()) {
+      if (fcmEnabled) {
+        toast.success('Push bildirimleri zaten etkin (FCM)');
+        return true;
+      }
+      toast.info('Push bildirimleri FCM ile yönetiliyor');
+      return true;
+    }
+    
+    // Web'de tarayıcı bildirimlerini kullan
     if (!pushSupported) {
       toast.error('Tarayıcınız push bildirimleri desteklemiyor');
       return false;
     }
 
-    if (!oneSignalReady) {
-      toast.error('Bildirim sistemi henüz hazır değil');
-      return false;
-    }
-
-    // Localhost kontrolü
-    if (isLocalhost) {
-      toast.warning('Push bildirimleri sadece production ortamında (abro.ldserp.com) aktif olur');
-      return false;
-    }
-
     try {
-      // İzin iste
-      const granted = await requestNotificationPermission();
-      
-      if (!granted) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setPushEnabled(true);
+        toast.success('Bildirim izni verildi');
+        return true;
+      } else {
         toast.error('Bildirim izni reddedildi');
         return false;
       }
-
-      // Push bildirimleri aç
-      await optInPushNotifications();
-      
-      // Player ID'yi backend'e kaydet
-      const playerId = await getPlayerId();
-      if (playerId) {
-        await notificationsAPI.subscribe({ player_id: playerId });
-      }
-
-      // Kullanıcı tag'lerini güncelle
-      if (user) {
-        await setUserTags({
-          role: user.role,
-          name: user.name
-        });
-      }
-      
-      setPushEnabled(true);
-      toast.success('Push bildirimleri etkinleştirildi');
-      return true;
-
     } catch (error) {
       console.error('Error enabling push notifications:', error);
       toast.error('Push bildirimleri etkinleştirilemedi');
@@ -336,8 +216,6 @@ export const NotificationProvider = ({ children }) => {
   // Push bildirimleri devre dışı bırak
   const disablePushNotifications = async () => {
     try {
-      await optOutPushNotifications();
-      
       // Backend'den subscription'ı kaldır
       try {
         await notificationsAPI.unsubscribe();
