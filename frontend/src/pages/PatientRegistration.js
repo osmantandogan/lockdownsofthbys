@@ -205,12 +205,14 @@ const PatientRegistration = () => {
     try {
       let fullPatient = patient;
       
-      if (!patient.requires_approval) {
+      // Patient ID ile detayları almaya çalış (requires_approval olsa bile)
+      if (patient.id) {
         try {
           const response = await patientsAPI.getById(patient.id);
-          fullPatient = response.data;
+          fullPatient = { ...patient, ...response.data };
         } catch (e) {
           console.log('Tam bilgi alınamadı, mevcut bilgiyle devam ediliyor');
+          // Alerji ve kronik hastalık bilgileri zaten search'ten geliyor
         }
       }
       
@@ -224,9 +226,15 @@ const PatientRegistration = () => {
         age = calculateAgeFromBirthDate(birthDate);
       }
       
+      // TC numarasını belirle - maskeli ise mevcut search değerini kullan
+      // Maskeli TC (**** içeren) kullanmaktan kaçın
+      const patientTc = (fullPatient.tc_no && !fullPatient.tc_no.includes('*')) 
+        ? fullPatient.tc_no 
+        : tcSearch;
+      
       setFormData(prev => ({
         ...prev,
-        patientTcNo: fullPatient.tc_no,
+        patientTcNo: patientTc,
         patientName: fullPatient.name || '',
         patientSurname: fullPatient.surname || '',
         patientBirthDate: birthDate,
@@ -235,7 +243,10 @@ const PatientRegistration = () => {
         patientPhone: fullPatient.phone || ''
       }));
       
-      setTcSearch(fullPatient.tc_no);
+      // tcSearch'ü sadece gerçek TC ise güncelle, maskeli TC kullanma
+      if (patientTc && patientTc.length === 11 && !patientTc.includes('*')) {
+        setTcSearch(patientTc);
+      }
       setShowTcDropdown(false);
       toast.success('Hasta bilgileri yüklendi');
     } catch (error) {
@@ -319,7 +330,7 @@ const PatientRegistration = () => {
 
   // Filtrelenmiş firmalar
   const filteredFirms = companySearch
-    ? firms.filter(f => f.name.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 8)
+    ? firms.filter(f => f.name && f.name.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 8)
     : [];
 
   // İlçeler

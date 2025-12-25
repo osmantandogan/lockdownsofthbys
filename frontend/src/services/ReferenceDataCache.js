@@ -473,6 +473,12 @@ const searchHospitals = async (query) => {
  * Hasta getir (TC ile)
  */
 const getPatientByTc = async (tcNo, forceOnline = false) => {
+  // Maskeli TC kontrolü - asterisk içeren TC ile arama yapma
+  if (!tcNo || tcNo.includes('*') || tcNo.length !== 11) {
+    console.log('[ReferenceDataCache] Invalid or masked TC, skipping API call:', tcNo);
+    return { data: null, fromCache: false, error: 'Geçersiz veya maskeli TC' };
+  }
+  
   // Önce cache'den dene
   if (!forceOnline) {
     const cached = await OfflineStorage.getCachedPatientByTc(tcNo);

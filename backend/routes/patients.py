@@ -195,7 +195,7 @@ async def search_patient(
     
     patients = await patients_collection.find(query).sort("created_at", -1).limit(limit).to_list(limit)
     
-    # Hemşire ise sadece temel bilgileri göster
+    # Hemşire ve diğer sağlık personeli için - TC maskeli ama tıbbi bilgiler açık
     if user.role in OTP_ACCESS_ROLES:
         return [
             {
@@ -204,6 +204,13 @@ async def search_patient(
                 "name": p["name"],
                 "surname": p["surname"],
                 "birth_date": p.get("birth_date"),
+                "gender": p.get("gender"),
+                "phone": p.get("phone"),
+                "blood_type": p.get("blood_type"),
+                # Tıbbi bilgiler herkese açık - hasta güvenliği için
+                "allergies": p.get("allergies", []),
+                "chronic_diseases": p.get("chronic_diseases", []),
+                "doctor_notes": [n for n in p.get("doctor_notes", []) if n.get("is_alert")],  # Sadece uyarılar
                 "has_allergies": len(p.get("allergies", [])) > 0,
                 "has_chronic_diseases": len(p.get("chronic_diseases", [])) > 0,
                 "requires_approval": True
