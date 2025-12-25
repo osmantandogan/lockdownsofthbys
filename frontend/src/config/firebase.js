@@ -1,6 +1,6 @@
 /**
  * Firebase Configuration
- * Sadece Authentication ve Analytics için (Push bildirimler OneSignal üzerinden)
+ * Authentication ve FCM (Firebase Cloud Messaging) Push Bildirimleri için
  */
 
 import { initializeApp } from 'firebase/app';

@@ -530,7 +530,7 @@ export const formsAPI = {
   getStats: () => api.get('/forms/stats/summary')
 };
 
-// Notifications API (OneSignal)
+// Notifications API (FCM)
 export const notificationsAPI = {
   // In-app Bildirimler
   getAll: (params) => api.get('/notifications', { params }),
@@ -539,11 +539,11 @@ export const notificationsAPI = {
   markAllRead: () => api.put('/notifications/mark-all-read'),
   delete: (id) => api.delete(`/notifications/${id}`),
   
-  // OneSignal Subscription
+  // Push Subscription
   subscribe: (data) => api.post('/notifications/subscribe', data),
   unsubscribe: () => api.delete('/notifications/unsubscribe'),
   getStatus: () => api.get('/notifications/status'),
-  getConfig: () => api.get('/notifications/onesignal-config'),
+  getConfig: () => api.get('/notifications/config'),
   
   // FCM (Firebase Cloud Messaging) - Android
   registerFCM: (data) => api.post('/notifications/fcm/register', data),

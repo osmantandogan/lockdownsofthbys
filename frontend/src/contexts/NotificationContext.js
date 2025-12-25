@@ -4,27 +4,17 @@ import { notificationsAPI } from '../api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
-// OneSignal DEVRE DIŞI - Sadece FCM kullanılıyor
-
-// Production domain kontrolü (localhost değilse production)
-const ALLOWED_DOMAINS = ['abro.ldserp.com', 'healmedy.com', 'ldserp.com'];
-const isProduction = () => {
-  const hostname = window.location.hostname;
-  return ALLOWED_DOMAINS.some(domain => hostname.includes(domain));
-};
+// FCM (Firebase Cloud Messaging) ile push bildirimleri
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
-  const { user, isAuthenticated, loading: authLoading, isSwitchingRole, activeRole } = useAuth();
+  const { user, isAuthenticated, isSwitchingRole } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
-  const [oneSignalReady, setOneSignalReady] = useState(false);
-  const [oneSignalError, setOneSignalError] = useState(null);
-  const [isLocalhost, setIsLocalhost] = useState(!isProduction());
   const [fcmToken, setFcmToken] = useState(null);
   const [fcmEnabled, setFcmEnabled] = useState(false);
 
@@ -132,12 +122,8 @@ export const NotificationProvider = ({ children }) => {
     checkPushSupport();
   }, []);
 
-  // OneSignal DEVRE DIŞI - Sadece FCM kullanılıyor
-  // OneSignal loglarını ve hatalarını önlemek için bu bölüm kaldırıldı
+  // FCM durumuna göre push'u güncelle
   useEffect(() => {
-    // FCM kullanıldığı için OneSignal'e gerek yok
-    console.log('[NotificationContext] OneSignal disabled - using FCM only');
-    setOneSignalReady(true); // FCM aktif olduğunda ready olarak işaretle
     setPushEnabled(fcmEnabled);
   }, [fcmEnabled]);
 
@@ -291,9 +277,8 @@ export const NotificationProvider = ({ children }) => {
     loading,
     pushEnabled,
     pushSupported,
-    oneSignalReady,
-    oneSignalError,
-    isLocalhost,
+    fcmToken,
+    fcmEnabled,
     loadNotifications,
     enablePushNotifications,
     disablePushNotifications,
