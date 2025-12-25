@@ -653,7 +653,6 @@ async def get_patient_case_count(patient_id: str, request: Request):
     if not tc_no:
         return {"case_count": 0}
     
-    from database import cases_collection
     case_count = await cases_collection.count_documents({
         "patient.tc_no": tc_no
     })
