@@ -226,27 +226,57 @@ async def get_cases(
         # Son 24 saat içinde atandığı VEYA oluşturduğu vakaları görsün
         last_24h_for_assignment = get_turkey_time() - timedelta(hours=24)
         
-        filters.append({
-            "$or": [
-                # assigned_team (tekil atama) kontrolü
-                {"assigned_team.driver_id": user.id},
-                {"assigned_team.paramedic_id": user.id},
-                {"assigned_team.att_id": user.id},
-                {"assigned_team.nurse_id": user.id},
-                # assigned_teams (çoklu atama) kontrolü - array içinde arama
-                {"assigned_teams.driver_id": user.id},
-                {"assigned_teams.paramedic_id": user.id},
-                {"assigned_teams.att_id": user.id},
-                {"assigned_teams.nurse_id": user.id},
-                # Kendi oluşturduğu vakalar
-                {"created_by": user.id},
-                # Son 24 saat içinde oluşturulan vakalar (atama geçmişi için)
-                {
-                    "created_at": {"$gte": last_24h_for_assignment},
-                    "status_history.updated_by": user.id
-                }
-            ]
-        })
+        # Kullanıcının bugünkü vardiya atamasındaki araçları bul
+        user_vehicle_ids = []
+        try:
+            today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow = today + timedelta(days=1)
+            
+            user_shift_assignments = await shift_assignments_collection.find({
+                "user_id": user.id,
+                "status": {"$in": ["pending", "started"]},
+                "$or": [
+                    {"shift_date": {"$gte": today, "$lt": tomorrow}},
+                    {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+                ]
+            }).to_list(10)
+            
+            for assignment in user_shift_assignments:
+                vehicle_id = assignment.get("vehicle_id")
+                if vehicle_id and vehicle_id not in user_vehicle_ids:
+                    user_vehicle_ids.append(vehicle_id)
+            
+            logger.info(f"[Cases] User {user.id} has {len(user_vehicle_ids)} vehicle assignments: {user_vehicle_ids}")
+        except Exception as e:
+            logger.warning(f"[Cases] Error getting user vehicle assignments: {e}")
+        
+        # Temel filtreler
+        or_conditions = [
+            # assigned_team (tekil atama) kontrolü
+            {"assigned_team.driver_id": user.id},
+            {"assigned_team.paramedic_id": user.id},
+            {"assigned_team.att_id": user.id},
+            {"assigned_team.nurse_id": user.id},
+            # assigned_teams (çoklu atama) kontrolü - array içinde arama
+            {"assigned_teams.driver_id": user.id},
+            {"assigned_teams.paramedic_id": user.id},
+            {"assigned_teams.att_id": user.id},
+            {"assigned_teams.nurse_id": user.id},
+            # Kendi oluşturduğu vakalar
+            {"created_by": user.id},
+            # Son 24 saat içinde oluşturulan vakalar (atama geçmişi için)
+            {
+                "created_at": {"$gte": last_24h_for_assignment},
+                "status_history.updated_by": user.id
+            }
+        ]
+        
+        # Kullanıcının vardiya atamasındaki araçlara atanan vakaları da ekle
+        for vehicle_id in user_vehicle_ids:
+            or_conditions.append({"assigned_team.vehicle_id": vehicle_id})
+            or_conditions.append({"assigned_teams.vehicle_id": vehicle_id})
+        
+        filters.append({"$or": or_conditions})
     # Hemşire tüm vakaları görebilir - filtre ekleme
     
     if status:
