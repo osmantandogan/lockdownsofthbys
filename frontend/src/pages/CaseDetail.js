@@ -1716,7 +1716,8 @@ const CaseDetail = () => {
     dusuk: 'Düşük'
   };
 
-  const canManageCase = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor'].includes(user?.role);
+  // Vaka durumu güncelleme yetkisi - baş şoför, çağrı merkezi, op. müdürü, hemşire dahil
+  const canManageCase = ['merkez_ofis', 'operasyon_muduru', 'bas_sofor', 'cagri_merkezi', 'hemsire'].includes(user?.role);
   const isDoctor = user?.role === 'doktor';
   const canEditForm = ['doktor', 'hemsire', 'paramedik', 'att'].includes(user?.role);
 
@@ -4359,7 +4360,10 @@ const CaseDetail = () => {
                       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
                         <Label className="font-semibold text-gray-700">DOKTOR/PARAMEDİK ADI SOYADI</Label>
                         <Input 
-                          value={inlineConsents.doctor_paramedic_name || user?.name || ''}
+                          value={inlineConsents.doctor_paramedic_name || 
+                            (user?.role === 'doktor' || user?.role === 'paramedik' ? user?.name : '') ||
+                            caseData?.assigned_team?.doctor_name || 
+                            caseData?.assigned_team?.paramedic_name || ''}
                           onChange={(e) => updateInlineConsent('doctor_paramedic_name', e.target.value)}
                           placeholder="Ad Soyad"
                         />
@@ -4374,7 +4378,10 @@ const CaseDetail = () => {
                       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
                         <Label className="font-semibold text-gray-700">SAĞLIK PERSONELİ ADI SOYADI</Label>
                         <Input 
-                          value={inlineConsents.health_personnel_name || user?.name || ''}
+                          value={inlineConsents.health_personnel_name || 
+                            (user?.role === 'att' || user?.role === 'hemsire' ? user?.name : '') ||
+                            caseData?.assigned_team?.att_name || 
+                            caseData?.assigned_team?.nurse_name || ''}
                           onChange={(e) => updateInlineConsent('health_personnel_name', e.target.value)}
                           placeholder="Ad Soyad"
                         />
@@ -4389,7 +4396,9 @@ const CaseDetail = () => {
                       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
                         <Label className="font-semibold text-gray-700">SÜRÜCÜ/PİLOT ADI SOYADI</Label>
                         <Input 
-                          value={inlineConsents.driver_pilot_name}
+                          value={inlineConsents.driver_pilot_name || 
+                            (user?.role === 'şoför' || user?.role === 'sofor' ? user?.name : '') ||
+                            caseData?.assigned_team?.driver_name || ''}
                           onChange={(e) => updateInlineConsent('driver_pilot_name', e.target.value)}
                           placeholder="Ad Soyad"
                         />
