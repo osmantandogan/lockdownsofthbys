@@ -1715,6 +1715,13 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
     team_user_ids = [a.get("user_id") for a in same_assignment_users]
     logger.info(f"Ekip üyeleri: {team_user_ids}")
     
+    # Debug: Bu araç için tüm daily_control formlarını listele
+    all_forms = await forms_collection.find({
+        "vehicle_id": vehicle_id,
+        "form_type": "daily_control"
+    }).to_list(10)
+    logger.info(f"Bu araç için tüm daily_control formları ({len(all_forms)}): {[(f.get('submitted_by'), f.get('created_at')) for f in all_forms]}")
+    
     # 1. ÖNCELİKLE forms_collection'dan kontrol et (daha güvenilir)
     daily_form = await forms_collection.find_one({
         "vehicle_id": vehicle_id,
@@ -1725,6 +1732,20 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
             {"created_at": {"$gte": day_start_naive, "$lt": day_end_naive}}
         ]
     })
+    
+    if not daily_form:
+        logger.info(f"Form bulunamadı. Aranan: vehicle_id={vehicle_id}, team_user_ids={team_user_ids}, day_range={day_start_naive} - {day_end_naive}")
+        
+        # Debug: Sadece bugünün formlarını da kontrol et (team_user_ids olmadan)
+        todays_forms = await forms_collection.find({
+            "vehicle_id": vehicle_id,
+            "form_type": "daily_control",
+            "$or": [
+                {"created_at": {"$gte": day_start, "$lt": day_end}},
+                {"created_at": {"$gte": day_start_naive, "$lt": day_end_naive}}
+            ]
+        }).to_list(10)
+        logger.info(f"Bugünün tüm formları (team filtresi olmadan): {[(f.get('submitted_by'), f.get('created_at')) for f in todays_forms]}")
     
     if daily_form:
         filler_id = daily_form.get("submitted_by")
@@ -2705,6 +2726,9 @@ async def approve_shift_start(approval_id: str, request: Request):
     """
     Vardiya başlatma onayı ver
     """
+    from database import forms_collection
+    from utils.sanitize import sanitize_form_data
+    
     user = await require_roles(["bas_sofor", "operasyon_muduru", "merkez_ofis", "mesul_mudur"])(request)
     turkey_now = datetime.utcnow() + timedelta(hours=3)
     
@@ -2725,6 +2749,25 @@ async def approve_shift_start(approval_id: str, request: Request):
             "approved_at": turkey_now
         }}
     )
+    
+    # Günlük kontrol formunu forms_collection'a kaydet (ekip üyesi kontrolü için kritik!)
+    daily_control_data = approval.get("daily_control_data")
+    if daily_control_data:
+        sanitized_data = sanitize_form_data(daily_control_data) if daily_control_data else {}
+        
+        daily_control_form = {
+            "_id": str(uuid.uuid4()),
+            "form_type": "daily_control",
+            "submitted_by": approval.get("user_id"),
+            "form_data": sanitized_data,
+            "vehicle_plate": approval.get("vehicle_plate"),
+            "vehicle_id": approval.get("vehicle_id"),
+            "shift_id": approval.get("shift_id"),
+            "approval_id": approval_id,
+            "created_at": approval.get("created_at", turkey_now)  # Original submission time
+        }
+        await forms_collection.insert_one(daily_control_form)
+        logger.info(f"Günlük kontrol formu forms_collection'a kaydedildi: {daily_control_form['_id']} - user: {approval.get('user_id')}")
     
     logger.info(f"Vardiya başlatma onaylandı: {approval['user_name']} - {approval['vehicle_plate']} - Onaylayan: {user.name}")
     

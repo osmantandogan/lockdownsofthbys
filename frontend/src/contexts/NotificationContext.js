@@ -5,19 +5,13 @@ import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
 // OneSignal DEVRE DIŞI - Sadece FCM kullanılıyor
-// import {
-//   initOneSignal,
-//   requestNotificationPermission,
-//   isPushEnabled,
-//   getPlayerId,
-//   optInPushNotifications,
-//   optOutPushNotifications,
-//   removeExternalUserId,
-//   addNotificationListener,
-//   setUserTags,
-//   getInitError,
-//   isProduction
-// } from '../config/onesignal';
+
+// Production domain kontrolü (localhost değilse production)
+const ALLOWED_DOMAINS = ['abro.ldserp.com', 'healmedy.com', 'ldserp.com'];
+const isProduction = () => {
+  const hostname = window.location.hostname;
+  return ALLOWED_DOMAINS.some(domain => hostname.includes(domain));
+};
 
 const NotificationContext = createContext(null);
 
