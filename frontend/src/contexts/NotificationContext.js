@@ -54,6 +54,13 @@ export const NotificationProvider = ({ children }) => {
           console.log('[FCM] Token:', token.value);
           setFcmToken(token.value);
           setFcmEnabled(true);
+          
+          // Token'ı localStorage'a kaydet (logout sırasında kullanmak için)
+          try {
+            localStorage.setItem('healmedy_fcm_token', token.value);
+          } catch (e) {
+            console.warn('[FCM] Failed to save token to localStorage:', e);
+          }
 
           // Backend'e kaydet
           try {
@@ -76,19 +83,19 @@ export const NotificationProvider = ({ children }) => {
           const type = data.type || '';
           
           if (type === 'new_case' || type === 'case_assigned' || type === 'emergency') {
-            // Acil durum ekranını göster (Web fallback - native Android zaten kendi popup'ını gösteriyor)
-            // Web'de veya native olmadığında bu ekranı göster
-            if (!Capacitor.isNativePlatform()) {
-              setEmergencyAlert({
-                case_id: data.case_id,
-                case_number: data.case_number,
-                patient_name: data.patient_name,
-                patient_phone: data.patient_phone,
-                patient_complaint: data.patient_complaint,
-                address: data.address
-              });
-              setShowEmergencyAlert(true);
-            }
+            // Acil durum ekranını göster
+            // Native'de EmergencyPopupActivity zaten tetikleniyor olabilir,
+            // ama yedek olarak web popup'ını da göster (data-only mesajlar için)
+            console.log('[FCM] 🚨 Emergency notification - showing alert');
+            setEmergencyAlert({
+              caseId: data.case_id,
+              caseNumber: data.case_number,
+              patientName: data.patient_name,
+              patientPhone: data.patient_phone,
+              patientComplaint: data.patient_complaint,
+              address: data.address
+            });
+            setShowEmergencyAlert(true);
           } else {
             toast.info(notification.title, { description: notification.body });
           }
@@ -121,6 +128,14 @@ export const NotificationProvider = ({ children }) => {
       console.log('[FCM] Token from native:', token);
       setFcmToken(token);
       setFcmEnabled(true);
+      
+      // Token'ı localStorage'a kaydet (logout sırasında kullanmak için)
+      try {
+        localStorage.setItem('healmedy_fcm_token', token);
+        console.log('[FCM] Token saved to localStorage');
+      } catch (e) {
+        console.warn('[FCM] Failed to save token to localStorage:', e);
+      }
 
       if (user) {
         try {

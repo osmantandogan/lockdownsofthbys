@@ -1,6 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { setAuthToken, getAuthToken, authAPI, clearAllCookies } from '../api';
+import { setAuthToken, getAuthToken, authAPI, clearAllCookies, notificationsAPI } from '../api';
 import SessionManager from '../services/SessionManager';
+import { Capacitor } from '@capacitor/core';
+
+// FCM Token'ı localStorage veya SharedPreferences'dan al
+const getCurrentFCMToken = () => {
+  try {
+    // Android'de SharedPreferences'dan al
+    if (Capacitor.isNativePlatform()) {
+      // WebView'da localStorage kullanılıyor (MainActivity token'ı buraya yazıyor)
+      return localStorage.getItem('healmedy_fcm_token') || null;
+    }
+    return null;
+  } catch (e) {
+    console.warn('[Auth] FCM token get error:', e);
+    return null;
+  }
+};
 
 const AuthContext = createContext(null);
 
@@ -280,6 +296,17 @@ export const AuthProvider = ({ children }) => {
       setAuthToken(session.token);
       
       try {
+        // FCM token'ı backend'den kaldır (bildirim gitmemesi için)
+        const fcmToken = getCurrentFCMToken();
+        if (fcmToken) {
+          try {
+            await notificationsAPI.unregisterFCM(fcmToken);
+            console.log('[Auth] FCM token unregistered for role:', role);
+          } catch (fcmError) {
+            console.warn('[Auth] FCM unregister error (ignored):', fcmError.message);
+          }
+        }
+        
         await authAPI.logout();
       } catch (error) {
         console.log('[Auth] Logout error (ignored):', error.message);
@@ -351,6 +378,17 @@ export const AuthProvider = ({ children }) => {
     
     // Normal çıkış
     try {
+      // FCM token'ı backend'den kaldır (bildirim gitmemesi için)
+      const fcmToken = getCurrentFCMToken();
+      if (fcmToken) {
+        try {
+          await notificationsAPI.unregisterFCM(fcmToken);
+          console.log('[Auth] FCM token unregistered on logout');
+        } catch (fcmError) {
+          console.warn('[Auth] FCM unregister error (ignored):', fcmError.message);
+        }
+      }
+      
       await authAPI.logout();
     } catch (error) {
       console.log('[Auth] Logout error (ignored):', error.message);
