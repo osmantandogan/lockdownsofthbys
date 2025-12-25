@@ -640,8 +640,6 @@ const PatientRegistration = () => {
                   onChange={(e) => handleChange('patientName', e.target.value)}
                   placeholder="Hastanın adı"
                   required
-                  readOnly={!!selectedPatientCard}
-                  className={selectedPatientCard ? 'bg-gray-50' : ''}
                 />
               </div>
               <div className="space-y-2">
@@ -652,8 +650,6 @@ const PatientRegistration = () => {
                   onChange={(e) => handleChange('patientSurname', e.target.value)}
                   placeholder="Hastanın soyadı"
                   required
-                  readOnly={!!selectedPatientCard}
-                  className={selectedPatientCard ? 'bg-gray-50' : ''}
                 />
               </div>
               <div className="space-y-2 relative">
@@ -751,7 +747,6 @@ const PatientRegistration = () => {
                     value={formData.patientBirthDate}
                     onChange={(e) => handleBirthDateChange(e.target.value)}
                     className="pl-10"
-                    readOnly={!!selectedPatientCard}
                   />
                 </div>
               </div>
@@ -779,9 +774,8 @@ const PatientRegistration = () => {
                   value={formData.patientGender} 
                   onValueChange={(value) => handleChange('patientGender', value)} 
                   required
-                  disabled={!!selectedPatientCard}
                 >
-                  <SelectTrigger className={selectedPatientCard ? 'bg-gray-50' : ''}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Seçin" />
                   </SelectTrigger>
                   <SelectContent>

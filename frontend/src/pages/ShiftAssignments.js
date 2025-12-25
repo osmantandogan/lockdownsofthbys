@@ -39,6 +39,13 @@ const ShiftAssignments = () => {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
   
+  // Süper vardiya bitirme
+  const [superEndDialogOpen, setSuperEndDialogOpen] = useState(false);
+  const [superEndLoading, setSuperEndLoading] = useState(false);
+  const [superEndMode, setSuperEndMode] = useState('all'); // 'all' veya 'range'
+  const [superEndStartDate, setSuperEndStartDate] = useState('');
+  const [superEndEndDate, setSuperEndEndDate] = useState('');
+  
   // Onaylar için state'ler
   const [startApprovals, setStartApprovals] = useState([]);
   const [endApprovals, setEndApprovals] = useState([]);
@@ -226,6 +233,29 @@ const ShiftAssignments = () => {
     finally { setExcelUploading(false); }
   };
 
+  // Süper vardiya bitirme
+  const handleSuperEndShifts = async () => {
+    setSuperEndLoading(true);
+    try {
+      const data = superEndMode === 'all' 
+        ? { all: true }
+        : { start_date: superEndStartDate, end_date: superEndEndDate };
+      
+      const response = await shiftsAPI.superEndShifts(data);
+      
+      if (response.data) {
+        toast.success(response.data.message || `${response.data.ended} vardiya bitirildi`);
+        setSuperEndDialogOpen(false);
+        loadAssignments();
+      }
+    } catch (error) {
+      console.error('Super end shifts error:', error);
+      toast.error(error.response?.data?.detail || 'Vardiyalar bitirilemedi');
+    } finally {
+      setSuperEndLoading(false);
+    }
+  };
+
   // Toplu silme - Hem atamaları hem de aktif vardiyaları sıfırla
   const handleDeleteAll = async () => {
     setDeleteAllLoading(true);
@@ -329,6 +359,78 @@ const ShiftAssignments = () => {
           <p className="text-gray-500 text-sm">Atamalar ve onaylar</p>
         </div>
         <div className="flex gap-2">
+          {/* Süper Vardiya Bitir */}
+          <Dialog open={superEndDialogOpen} onOpenChange={setSuperEndDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="border-orange-300 text-orange-600 hover:bg-orange-50">
+                <Square className="h-4 w-4 mr-1" />Süper Bitir
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>🛑 Süper Vardiya Bitirme</DialogTitle></DialogHeader>
+              <div className="py-4 space-y-4">
+                <p className="text-gray-600">Aktif vardiyaları toplu olarak bitirebilirsiniz.</p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="radio" 
+                      id="endAll" 
+                      checked={superEndMode === 'all'} 
+                      onChange={() => setSuperEndMode('all')}
+                    />
+                    <Label htmlFor="endAll" className="cursor-pointer">Tüm aktif vardiyaları bitir</Label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="radio" 
+                      id="endRange" 
+                      checked={superEndMode === 'range'} 
+                      onChange={() => setSuperEndMode('range')}
+                    />
+                    <Label htmlFor="endRange" className="cursor-pointer">Tarih aralığındaki vardiyaları bitir</Label>
+                  </div>
+                  
+                  {superEndMode === 'range' && (
+                    <div className="grid grid-cols-2 gap-3 pl-6">
+                      <div>
+                        <Label className="text-xs text-gray-500">Başlangıç</Label>
+                        <Input 
+                          type="date" 
+                          value={superEndStartDate}
+                          onChange={(e) => setSuperEndStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Bitiş</Label>
+                        <Input 
+                          type="date" 
+                          value={superEndEndDate}
+                          onChange={(e) => setSuperEndEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                  Bu işlem seçilen vardiyaları "tamamlandı" olarak işaretleyecektir.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setSuperEndDialogOpen(false)}>İptal</Button>
+                <Button 
+                  className="bg-orange-600 hover:bg-orange-700" 
+                  onClick={handleSuperEndShifts} 
+                  disabled={superEndLoading || (superEndMode === 'range' && (!superEndStartDate && !superEndEndDate))}
+                >
+                  {superEndLoading ? 'Bitiriliyor...' : 'Vardiyaları Bitir'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
           <Dialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
             <DialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" />Tümünü Sil</Button></DialogTrigger>
             <DialogContent>

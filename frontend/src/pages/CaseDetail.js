@@ -3477,34 +3477,13 @@ const CaseDetail = () => {
                       value={stockSearch}
                       onChange={(e) => {
                         setStockSearch(e.target.value);
-                        handleStockSearch(e.target.value);
                       }}
                       className="mt-1"
                     />
-                    {stockSearchResults.length > 0 && (
-                      <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto bg-white shadow-sm">
-                        {stockSearchResults.map((item, idx) => (
-                          <div 
-                            key={`${item.name}-${idx}`}
-                            className="p-3 hover:bg-emerald-50 cursor-pointer flex justify-between items-center border-b last:border-b-0"
-                            onClick={() => {
-                              handleUseStock(item, itemQuantities[item.name] || 1);
-                              setStockSearch('');
-                              setStockSearchResults([]);
-                            }}
-                          >
-                            <div>
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-xs text-gray-500">
-                                Stok: {item.quantity} | {item.source_name}
-                              </p>
-                            </div>
-                            <Badge variant="outline" className={item.source === 'vehicle' ? 'text-blue-600 border-blue-300' : 'text-amber-600 border-amber-300'}>
-                              {item.source === 'vehicle' ? 'Araç' : 'Lokasyon'}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
+                    {stockSearch && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        "{stockSearch}" için filtreleniyor...
+                      </p>
                     )}
                   </div>
 
@@ -3554,14 +3533,22 @@ const CaseDetail = () => {
                     {/* Stok Listesi */}
                     <div className="border rounded-lg max-h-72 overflow-y-auto">
                       {(() => {
-                        const items = selectedSource === 'vehicle' 
+                        let items = selectedSource === 'vehicle' 
                           ? availableStock.vehicle?.items || []
                           : availableStock.location?.items || [];
+                        
+                        // Arama filtrelemesi
+                        if (stockSearch && stockSearch.length >= 2) {
+                          items = items.filter(item => 
+                            item.name.toLowerCase().includes(stockSearch.toLowerCase())
+                          );
+                        }
                         
                         if (items.length === 0) {
                           return (
                             <p className="text-center text-gray-500 py-6">
-                              {loadingAvailableStock ? 'Yükleniyor...' : 'Stok bulunamadı'}
+                              {loadingAvailableStock ? 'Yükleniyor...' : 
+                               stockSearch ? `"${stockSearch}" bulunamadı` : 'Stok bulunamadı'}
                             </p>
                           );
                         }

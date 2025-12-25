@@ -227,6 +227,102 @@ async def cancel_all_active_shifts(request: Request):
         logger.error(f"Vardiya iptal hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/super-end-shifts")
+async def super_end_all_shifts(request: Request):
+    """
+    Süper vardiya bitirme - Tüm aktif vardiyaları veya tarih aralığındaki vardiyaları bitir.
+    
+    Query params:
+    - all: true ise tüm zamanlardaki aktif vardiyaları bitirir
+    - start_date: Başlangıç tarihi (YYYY-MM-DD) - isteğe bağlı
+    - end_date: Bitiş tarihi (YYYY-MM-DD) - isteğe bağlı
+    """
+    admin_user = await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    
+    end_all = body.get("all", False)
+    start_date_str = body.get("start_date")
+    end_date_str = body.get("end_date")
+    
+    turkey_now = get_turkey_time()
+    turkey_tz = pytz.timezone('Europe/Istanbul')
+    
+    query = {"status": {"$in": ["active", "on_break"]}}
+    
+    if not end_all and (start_date_str or end_date_str):
+        # Tarih aralığı filtresi
+        date_filter = {}
+        
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                start_date = turkey_tz.localize(start_date)
+                date_filter["$gte"] = start_date
+            except ValueError:
+                pass
+        
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                end_date = turkey_tz.localize(end_date) + timedelta(days=1)  # Gün sonuna kadar dahil
+                date_filter["$lt"] = end_date
+            except ValueError:
+                pass
+        
+        if date_filter:
+            query["start_time"] = date_filter
+    
+    # Önce kaç vardiya etkilenecek kontrol et
+    affected_count = await shifts_collection.count_documents(query)
+    
+    if affected_count == 0:
+        return {
+            "ended": 0,
+            "assignments_updated": 0,
+            "message": "Bitirilecek vardiya bulunamadı"
+        }
+    
+    # Vardiyaları bitir
+    result = await shifts_collection.update_many(
+        query,
+        {
+            "$set": {
+                "status": "completed",
+                "end_time": turkey_now,
+                "admin_note": f"Süper vardiya bitirme - {admin_user.name}",
+                "ended_by_admin": True,
+                "admin_id": admin_user.id
+            }
+        }
+    )
+    
+    # İlgili assignment'ları da güncelle
+    ended_shifts = await shifts_collection.find({
+        "end_time": turkey_now,
+        "admin_note": {"$regex": "Süper vardiya bitirme"}
+    }).to_list(1000)
+    
+    assignment_ids = [s.get("assignment_id") for s in ended_shifts if s.get("assignment_id")]
+    
+    assignment_result = await shift_assignments_collection.update_many(
+        {"_id": {"$in": assignment_ids}},
+        {"$set": {"status": "completed"}}
+    )
+    
+    logger.info(f"Süper vardiya bitirme: {result.modified_count} vardiya, {assignment_result.modified_count} atama tamamlandı")
+    
+    return {
+        "ended": result.modified_count,
+        "assignments_updated": assignment_result.modified_count,
+        "message": f"{result.modified_count} vardiya başarıyla bitirildi"
+    }
+
+
 @router.delete("/assignments/user/{user_id}")
 async def delete_user_assignments(user_id: str, request: Request):
     """Belirli bir kullanıcının tüm atamalarını sil - Çakışma temizliği için"""
@@ -1552,41 +1648,49 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
     ATT/Paramedik'ten biri doldurduysa diğerinin doldurmasına gerek yok
     SADECE AYNI VARDİYA ATAMASINDA OLAN EKİP ÜYELERİ DOLDURABİLİR
     """
-    user = await get_current_user(request)
+    from database import forms_collection
     
-    turkey_now = datetime.utcnow() + timedelta(hours=3)
+    user = await get_current_user(request)
+    turkey_now = get_turkey_time()
     
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
+            # Timezone bilgisi ekle
+            turkey_tz = pytz.timezone('Europe/Istanbul')
+            target_date = turkey_tz.localize(target_date)
         except ValueError:
             target_date = turkey_now
     else:
         target_date = turkey_now
     
-    # Bugünün başlangıcı ve bitişi
-    day_start = datetime(target_date.year, target_date.month, target_date.day)
+    # Bugünün başlangıcı ve bitişi (timezone-aware)
+    turkey_tz = pytz.timezone('Europe/Istanbul')
+    day_start = turkey_tz.localize(datetime(target_date.year, target_date.month, target_date.day))
     day_end = day_start + timedelta(days=1)
     
-    # Kullanıcının bugünkü vardiya assignment'ını bul
-    from database import db
-    shift_assignments_collection = db["shift_assignments"]
+    # Naive datetime versiyonları (bazı alanlar naive olarak kaydedilmiş olabilir)
+    day_start_naive = datetime(target_date.year, target_date.month, target_date.day)
+    day_end_naive = day_start_naive + timedelta(days=1)
     
-    today = get_turkey_time().replace(hour=0, minute=0, second=0, microsecond=0)
-    tomorrow = today + timedelta(days=1)
+    logger.info(f"Günlük form kontrolü: vehicle_id={vehicle_id}, user={user.id}, date={target_date.date()}")
+    
+    # Kullanıcının bugünkü vardiya assignment'ını bul
+    today_naive = datetime(turkey_now.year, turkey_now.month, turkey_now.day)
+    tomorrow_naive = today_naive + timedelta(days=1)
     
     user_assignment = await shift_assignments_collection.find_one({
         "user_id": user.id,
         "vehicle_id": vehicle_id,
         "status": {"$in": ["pending", "started"]},
         "$or": [
-            {"shift_date": {"$gte": today, "$lt": tomorrow}},
-            {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+            {"shift_date": {"$gte": today_naive, "$lt": tomorrow_naive}},
+            {"shift_date": {"$lte": today_naive}, "end_date": {"$gte": today_naive}}
         ]
     })
     
     if not user_assignment:
-        # Kullanıcının bu araç için aktif vardiya ataması yok
+        logger.info(f"Kullanıcının ataması yok: user={user.id}, vehicle={vehicle_id}")
         return {
             "filled": False,
             "message": "Bu araç için aktif vardiya atamanız bulunmuyor",
@@ -1603,31 +1707,68 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
         "status": {"$in": ["pending", "started"]},
         "$or": [
             {"shift_date": assignment_date, "end_date": assignment_end_date},
-            {"shift_date": {"$gte": today, "$lt": tomorrow}},
-            {"shift_date": {"$lte": today}, "end_date": {"$gte": today}}
+            {"shift_date": {"$gte": today_naive, "$lt": tomorrow_naive}},
+            {"shift_date": {"$lte": today_naive}, "end_date": {"$gte": today_naive}}
         ]
     }).to_list(100)
     
     team_user_ids = [a.get("user_id") for a in same_assignment_users]
+    logger.info(f"Ekip üyeleri: {team_user_ids}")
     
-    # Bu araç ve bu gün için günlük form doldurulmuş mu?
-    # SADECE AYNI EKİPTEKİ KULLANICILARIN DOLDURDUĞU FORMLARI KONTROL ET
+    # 1. ÖNCELİKLE forms_collection'dan kontrol et (daha güvenilir)
+    daily_form = await forms_collection.find_one({
+        "vehicle_id": vehicle_id,
+        "form_type": "daily_control",
+        "submitted_by": {"$in": team_user_ids},
+        "$or": [
+            {"created_at": {"$gte": day_start, "$lt": day_end}},
+            {"created_at": {"$gte": day_start_naive, "$lt": day_end_naive}}
+        ]
+    })
+    
+    if daily_form:
+        filler_id = daily_form.get("submitted_by")
+        filler = await users_collection.find_one({"_id": filler_id})
+        filler_name = filler.get("name") if filler else "Bilinmiyor"
+        filler_role = filler.get("role") if filler else ""
+        
+        logger.info(f"Form forms_collection'da bulundu: filler={filler_name}, role={filler_role}")
+        
+        # Dolduran kişi ATT veya Paramedik mi kontrol et
+        if filler_role not in ["att", "paramedik"]:
+            return {
+                "filled": False,
+                "message": f"Bu form {filler_name} tarafından doldurulmuş, ancak ATT/Paramedik tarafından doldurulması gerekiyor",
+                "can_fill": True
+            }
+        
+        return {
+            "filled": True,
+            "filled_by": filler_id,
+            "filled_by_name": filler_name,
+            "filled_at": daily_form.get("created_at"),
+            "shift_id": daily_form.get("shift_id"),
+            "message": f"Günlük kontrol formu {filler_name} tarafından doldurulmuş"
+        }
+    
+    # 2. Yedek olarak shifts_collection'dan da kontrol et
     filled_shift = await shifts_collection.find_one({
         "vehicle_id": vehicle_id,
-        "daily_control_filled_by": {"$in": team_user_ids},  # Sadece ekip üyeleri
-        "daily_control_filled_at": {"$gte": day_start, "$lt": day_end},
-        "start_time": {"$gte": day_start, "$lt": day_end}  # Aynı gün başlatılan vardiya
+        "daily_control_filled_by": {"$in": team_user_ids},
+        "$or": [
+            {"daily_control_filled_at": {"$gte": day_start, "$lt": day_end}},
+            {"daily_control_filled_at": {"$gte": day_start_naive, "$lt": day_end_naive}}
+        ]
     })
     
     if filled_shift:
-        # Dolduran kişi bilgisini al
         filler = await users_collection.find_one({"_id": filled_shift.get("daily_control_filled_by")})
         filler_name = filler.get("name") if filler else "Bilinmiyor"
         filler_role = filler.get("role") if filler else ""
         
-        # Dolduran kişi ATT veya Paramedik mi kontrol et
+        logger.info(f"Form shifts_collection'da bulundu: filler={filler_name}, role={filler_role}")
+        
         if filler_role not in ["att", "paramedik"]:
-            # Şoför veya başka biri doldurmuş, ATT/Paramedik yeniden doldurmalı
             return {
                 "filled": False,
                 "message": f"Bu form {filler_name} tarafından doldurulmuş, ancak ATT/Paramedik tarafından doldurulması gerekiyor",
@@ -1643,6 +1784,7 @@ async def check_daily_form_filled(vehicle_id: str, request: Request, date: Optio
             "message": f"Günlük kontrol formu {filler_name} tarafından doldurulmuş"
         }
     
+    logger.info(f"Form bulunamadı - doldurulmamış: vehicle={vehicle_id}")
     return {
         "filled": False,
         "message": "Bu araç için bugün günlük kontrol formu doldurulmamış"

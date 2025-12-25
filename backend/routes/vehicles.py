@@ -183,14 +183,26 @@ async def update_vehicle(vehicle_id: str, data: VehicleUpdate, request: Request)
 @router.delete("/{vehicle_id}")
 async def delete_vehicle(vehicle_id: str, request: Request):
     """Delete vehicle (admin only)"""
-    await require_roles(["merkez_ofis"])(request)
+    await require_roles(["merkez_ofis", "operasyon_muduru"])(request)
+    
+    # Önce aracın aktif vardiyası var mı kontrol et
+    active_shift = await shifts_collection.find_one({
+        "vehicle_id": vehicle_id,
+        "end_time": None
+    })
+    
+    if active_shift:
+        raise HTTPException(
+            status_code=400, 
+            detail="Bu araçta aktif vardiya var. Önce vardiyayı bitirin."
+        )
     
     result = await vehicles_collection.delete_one({"_id": vehicle_id})
     
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Vehicle not found")
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
     
-    return {"message": "Vehicle deleted successfully"}
+    return {"message": "Araç başarıyla silindi"}
 
 @router.get("/stats/summary")
 async def get_vehicle_stats(request: Request):
