@@ -504,36 +504,41 @@ async def verify_master_code(code: str, request: Request):
 
 @router.post("/test")
 async def test_notification(data: TestNotificationRequest, request: Request):
-    """Bildirim testi"""
+    """Bildirim testi - FCM kullanır"""
     user = await get_current_user(request)
     
     if user.role not in ["merkez_ofis", "operasyon_muduru"]:
         raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
     
-    notification_type = NotificationType(data.type) if data.type else NotificationType.SYSTEM_ALERT
+    # Kullanıcının FCM token'larını al
+    user_doc = await users_collection.find_one({"_id": user.id})
+    fcm_tokens = user_doc.get("fcm_tokens", [])
     
-    result = await onesignal_service.send_notification(
-        notification_type,
-        [user.id],
-        {
-            "case_number": "TEST-001",
-            "patient_name": "Test Hasta",
-            "location": "Filyos",
-            "priority": "Normal",
-            "vehicle_plate": "67 ABC 001",
-            "shift_date": datetime.now().strftime("%d.%m.%Y"),
-            "shift_time": "08:00 - 16:00",
-            "employee_name": "Test Personel",
-            "master_code": "123456",
-            "message": data.message or "Bu bir test bildirimidir",
-            "item_name": "Test Ürün",
-            "current_qty": "5",
-            "min_qty": "10",
-            "doctor_name": "Dr. Test"
-        }
+    # Eski format desteği (fcm_token tek string olarak)
+    if not fcm_tokens and user_doc.get("fcm_token"):
+        fcm_tokens = [{"token": user_doc.get("fcm_token")}]
+    
+    if not fcm_tokens:
+        raise HTTPException(status_code=400, detail="Kayıtlı FCM token bulunamadı. Lütfen Android uygulamasından giriş yapın.")
+    
+    tokens = [t.get("token") for t in fcm_tokens if t.get("token")]
+    
+    if not tokens:
+        raise HTTPException(status_code=400, detail="Geçerli FCM token bulunamadı.")
+    
+    # FCM ile test bildirimi gönder
+    result = await firebase_service.send_to_multiple(
+        tokens=tokens,
+        title="🔔 Test Bildirimi",
+        body=data.message or f"Merhaba {user.name}! Bu bir test bildirimidir.",
+        notification_type="general"
     )
     
-    return result
+    return {
+        "success": result.get("success_count", 0) > 0,
+        "message": f"Bildirim gönderildi: {result.get('success_count', 0)} başarılı, {result.get('failure_count', 0)} başarısız",
+        "result": result
+    }
 
 
 @router.post("/broadcast")

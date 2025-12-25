@@ -632,6 +632,15 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
     # Bugünkü vardiya atamalarından ekibi otomatik bul
     turkey_now = get_turkey_time()
     today = turkey_now.date()
+    current_hour = turkey_now.hour
+    
+    # Vardiya değişim saati: 08:00
+    # Saat 08:00'dan önce ise, dünkü gece vardiyası hala geçerli olabilir
+    # Saat 08:00'dan sonra ise, sadece bugünkü vardiyalar geçerli
+    is_after_shift_change = current_hour >= 8
+    yesterday = today - timedelta(days=1)
+    
+    logger.info(f"[Shift] Current time: {turkey_now}, is_after_shift_change: {is_after_shift_change}")
     
     # O araca atanmış personeli bul (tüm pending/started)
     all_vehicle_assignments = await shift_assignments_collection.find({
@@ -662,15 +671,26 @@ async def assign_team(case_id: str, data: CaseAssignTeam, request: Request):
         if shift_date is None:
             continue
             
-        # Tarih kontrolü: vardiya başlangıç tarihi <= bugün <= vardiya bitiş tarihi
+        # Tarih kontrolü
         shift_date_only = shift_date.date() if isinstance(shift_date, datetime) else shift_date
         end_date_only = end_date.date() if isinstance(end_date, datetime) else (end_date or shift_date_only)
         
-        if shift_date_only <= today <= end_date_only:
-            vehicle_assignments.append(assignment)
-            logger.info(f"✅ Assignment {assignment.get('_id')} valid for today: {shift_date_only} <= {today} <= {end_date_only}")
+        # KATIL KURAL: Eğer saat 08:00'dan sonra ise, sadece BUGÜN başlayan vardiyaları al
+        # Bu, eski vardiyaların atamada kullanılmasını engeller
+        if is_after_shift_change:
+            # Saat 08:00'dan sonra - sadece bugün başlayan vardiyalar
+            if shift_date_only == today:
+                vehicle_assignments.append(assignment)
+                logger.info(f"✅ Assignment {assignment.get('_id')} valid (today only): shift_date={shift_date_only}")
+            else:
+                logger.info(f"❌ Assignment {assignment.get('_id')} SKIPPED (not today): shift_date={shift_date_only} != today={today}")
         else:
-            logger.info(f"❌ Assignment {assignment.get('_id')} NOT valid for today: {shift_date_only} <= {today} <= {end_date_only}")
+            # Saat 08:00'dan önce - dünkü veya bugünkü vardiyalar
+            if shift_date_only == today or shift_date_only == yesterday:
+                vehicle_assignments.append(assignment)
+                logger.info(f"✅ Assignment {assignment.get('_id')} valid (early morning): shift_date={shift_date_only}")
+            else:
+                logger.info(f"❌ Assignment {assignment.get('_id')} SKIPPED: shift_date={shift_date_only} not in [{yesterday}, {today}]")
     
     logger.info(f"Found {len(vehicle_assignments)} TODAY's assignments for vehicle {data.vehicle_id}")
     
@@ -918,6 +938,13 @@ async def assign_multiple_teams(case_id: str, request: Request):
     # Bugünün tarihini al
     turkey_now = get_turkey_time()
     today = turkey_now.date()
+    current_hour = turkey_now.hour
+    yesterday = today - timedelta(days=1)
+    
+    # Vardiya değişim saati: 08:00
+    is_after_shift_change = current_hour >= 8
+    
+    logger.info(f"[MultiAssign] Current time: {turkey_now}, is_after_shift_change: {is_after_shift_change}")
     
     for vehicle_id in vehicle_ids:
         # Araç kontrolü
@@ -941,7 +968,7 @@ async def assign_multiple_teams(case_id: str, request: Request):
             "status": {"$in": ["pending", "started"]}
         }).to_list(100)
         
-        # BUGÜN için geçerli atamaları filtrele
+        # BUGÜN için geçerli atamaları filtrele (strict mode)
         vehicle_assignments = []
         for asgn in all_vehicle_assignments:
             shift_date = asgn.get("shift_date")
@@ -962,10 +989,17 @@ async def assign_multiple_teams(case_id: str, request: Request):
                 continue
             
             shift_date_only = shift_date.date() if isinstance(shift_date, datetime) else shift_date
-            end_date_only = end_date.date() if isinstance(end_date, datetime) else (end_date or shift_date_only)
             
-            if shift_date_only <= today <= end_date_only:
-                vehicle_assignments.append(asgn)
+            # KATIL KURAL: Saat 08:00'dan sonra sadece bugünkü vardiyaları al
+            if is_after_shift_change:
+                if shift_date_only == today:
+                    vehicle_assignments.append(asgn)
+                    logger.info(f"✅ [MultiAssign] Assignment {asgn.get('_id')} valid (today only): {shift_date_only}")
+            else:
+                # Saat 08:00'dan önce - dünkü veya bugünkü
+                if shift_date_only == today or shift_date_only == yesterday:
+                    vehicle_assignments.append(asgn)
+                    logger.info(f"✅ [MultiAssign] Assignment {asgn.get('_id')} valid (early): {shift_date_only}")
         
         logger.info(f"Vehicle {vehicle_id}: {len(vehicle_assignments)} assignments valid for today")
         
