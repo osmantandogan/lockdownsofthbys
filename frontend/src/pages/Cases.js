@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { Search, Filter, Plus, ChevronRight, Users, Pill, Hospital, Calendar, X, Truck, WifiOff, CloudOff, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Plus, ChevronRight, Users, User, Pill, Hospital, Calendar, X, Truck, WifiOff, CloudOff, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOffline } from '../contexts/OfflineContext';
 import OfflineStorage from '../services/OfflineStorage';
